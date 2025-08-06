@@ -17,6 +17,15 @@
         <label for="ticker-select">Select Ticker: </label>
         <select id="ticker-select"></select>
     </div>
+
+    <div class="chart-container">
+        <h2>Moneyness vs. Volatility</h2>
+        <div>
+            <label><input type="checkbox" id="vol-metric-moneyness" checked> Use Implied Volatility (uncheck for IV_bid-ask)</label>
+        </div>
+        <select id="expiry-select"></select>
+        <canvas id="moneyness-vs-iv-chart"></canvas>
+    </div>
     
     <div class="chart-container">
         <h2>Expiry vs. Volatility</h2>
@@ -25,15 +34,6 @@
         </div>
         <select id="moneyness-select"></select>
         <canvas id="expiry-vs-iv-chart"></canvas>
-    </div>
-    
-    <div class="chart-container">
-        <h2>Moneyness vs. Volatility</h2>
-        <div>
-            <label><input type="checkbox" id="vol-metric-moneyness" checked> Use Implied Volatility (uncheck for IV_bid-ask)</label>
-        </div>
-        <select id="expiry-select"></select>
-        <canvas id="moneyness-vs-iv-chart"></canvas>
     </div>
     
     <script>
