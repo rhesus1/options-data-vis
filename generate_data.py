@@ -7,7 +7,7 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 import json
 
-def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percentile=25):
+def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percentile=50):
     option_data = []
     stock = yf.Ticker(ticker)
    
