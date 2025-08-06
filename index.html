@@ -78,13 +78,13 @@
                 {
                     label: 'Calls',
                     data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: new Date(item.Expiry), y: item['Implied Volatility']})),
-                    borderColor: 'blue',
+                    borderColor: 'teal',
                     fill: false
                 },
                 {
                     label: 'Puts',
                     data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: new Date(item.Expiry), y: item['Implied Volatility']})),
-                    borderColor: 'red',
+                    borderColor: 'blue',
                     fill: false
                 }
             ];
@@ -111,13 +111,13 @@
                 {
                     label: 'Calls',
                     data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: item.Moneyness, y: item['Implied Volatility']})),
-                    borderColor: 'blue',
+                    borderColor: 'teal',
                     fill: false
                 },
                 {
                     label: 'Puts',
                     data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: item.Moneyness, y: item['Implied Volatility']})),
-                    borderColor: 'red',
+                    borderColor: 'blue',
                     fill: false
                 }
             ];
