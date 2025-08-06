@@ -281,11 +281,14 @@ def main(ticker, strikes):
     # Calculate metrics
     df, skew_df, slope_df = calculate_metrics(df)
     
+    #df['Implied Volatility'] = df['Implied Volatility'] * 100  # Convert to % for plotting
+    #df['IV_bid-ask'] = df['IV_bid-ask']  # Already in % from calculation
+    #df['Moneyness'] = df['Moneyness'] * 100  # Convert to % for plotting
+    #df[['Implied Volatility', 'Expiry', 'Moneyness']].to_json('data.json', orient='records', date_format='iso')  # Save only specified columns
     df['Implied Volatility'] = df['Implied Volatility'] * 100  # Convert to % for plotting
-    df['IV_bid-ask'] = df['IV_bid-ask']  # Already in % from calculation
+    df['IV_bid-ask'] = df['IV_bid-ask']  # Already in %
     df['Moneyness'] = df['Moneyness'] * 100  # Convert to % for plotting
-    df[['Implied Volatility', 'Expiry', 'Moneyness']].to_json('data.json', orient='records', date_format='iso')  # Save only specified columns
-
+    df.to_json('data.json', orient='records', date_format='iso')
     # Save to CSV
     print(f"\nRealized Volatility (5-day): {rvol5d:.4f}")
     print(f"\nRealized Volatility (1-month): {rvol1m:.4f}")
