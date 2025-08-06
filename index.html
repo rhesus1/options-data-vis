@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Options Data Visualization for COIN</title>
+    <title>Options Data Visualization</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
@@ -12,7 +12,11 @@
     </style>
 </head>
 <body>
-    <h1>Options Data for COIN</h1>
+    <h1>Options Data Visualization</h1>
+    <div>
+        <label for="ticker-select">Select Ticker: </label>
+        <select id="ticker-select"></select>
+    </div>
     
     <div class="chart-container">
         <h2>Expiry vs. Volatility</h2>
@@ -46,9 +50,24 @@
             .catch(error => console.error('Error loading data:', error));
 
         function populateDropdowns() {
-            const uniqueMoneyness = [...new Set(data.map(item => item.Moneyness))]
+            const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
+                .filter(val => val).sort();
+            const tickerSelect = document.getElementById('ticker-select');
+            uniqueTickers.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = val;
+                tickerSelect.add(option);
+            });
+            tickerSelect.addEventListener('change', updateCharts);
+
+            const selectedTicker = tickerSelect.value;
+            const tickerData = data.filter(item => item.Ticker === selectedTicker);
+
+            const uniqueMoneyness = [...new Set(tickerData.map(item => item.Moneyness))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             const moneynessSelect = document.getElementById('moneyness-select');
+            moneynessSelect.innerHTML = ''; // Clear previous options
             uniqueMoneyness.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
@@ -57,9 +76,10 @@
             });
             moneynessSelect.addEventListener('change', updateCharts);
 
-            const uniqueExpiries = [...new Set(data.map(item => item.Expiry))]
+            const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort();
             const expirySelect = document.getElementById('expiry-select');
+            expirySelect.innerHTML = ''; // Clear previous options
             uniqueExpiries.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
@@ -78,10 +98,11 @@
         }
 
         function updateExpiryVsIV() {
+            const selectedTicker = document.getElementById('ticker-select').value;
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
             const useImpliedVol = document.getElementById('vol-metric-expiry').checked;
             const volKey = useImpliedVol ? 'Implied Volatility' : 'IV_bid-ask';
-            const filteredData = data.filter(item => item.Moneyness === selectedMoneyness && item[volKey] > 0);
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness === selectedMoneyness && item[volKey] > 0);
 
             const datasets = [
                 {
@@ -131,10 +152,11 @@
         }
 
         function updateMoneynessVsIV() {
+            const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
             const useImpliedVol = document.getElementById('vol-metric-moneyness').checked;
             const volKey = useImpliedVol ? 'Implied Volatility' : 'IV_bid-ask';
-            const filteredData = data.filter(item => item.Expiry === selectedExpiry && item[volKey] > 0);
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry && item[volKey] > 0);
 
             const datasets = [
                 {
