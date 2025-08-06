@@ -284,7 +284,7 @@ def main(ticker, strikes):
     df['Implied Volatility'] = df['Implied Volatility'] * 100  # Convert to % for plotting
     df['IV_bid-ask'] = df['IV_bid-ask']  # Already in % from calculation
     df['Moneyness'] = df['Moneyness'] * 100  # Convert to % for plotting
-    df.to_json('data.json', orient='records', date_format='iso')  # Save as list of dicts, dates as ISO strings
+    df[['Implied Volatility', 'IV_bid-ask', 'Moneyness']].to_json('data.json', orient='records', date_format='iso')  # Save only specified columns
 
     # Save to CSV
     print(f"\nRealized Volatility (5-day): {rvol5d:.4f}")
