@@ -7,7 +7,7 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 import json
 
-def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percentile=50):
+def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percentile=25):
     option_data = []
     stock = yf.Ticker(ticker)
    
@@ -23,9 +23,6 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percenti
            
             # Process calls
             for _, row in calls.iterrows():
-                #if row['strike'] not in strikes:
-                #    continue
-                
                 volume = row['volume'] if pd.notna(row['volume']) else 0
                 open_interest = row['openInterest'] if pd.notna(row['openInterest']) else 0
                 bid = row['bid']
@@ -51,9 +48,6 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percenti
            
             # Process puts
             for _, row in puts.iterrows():
-                #if row['strike'] not in strikes:
-                #    continue
-                
                 volume = row['volume'] if pd.notna(row['volume']) else 0
                 open_interest = row['openInterest'] if pd.notna(row['openInterest']) else 0
                 bid = row['bid']
@@ -169,7 +163,6 @@ def calculate_rvol(ticker, period):
             return None
         
         # Calculate annualized realized volatility
-        # Use ddof=1 for sample standard deviation (default in np.std)
         realized_vol = np.std(daily_returns, ddof=1) * np.sqrt(252)
         
         return realized_vol
@@ -190,7 +183,7 @@ def calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y):
     df["Ivol/Rvol2y Ratio"] = df["Implied Volatility"] / rvol2y
     return df
 
-def calculate_metrics(df):
+def calculate_metrics(df, ticker):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
     
@@ -213,7 +206,7 @@ def calculate_metrics(df):
             subset = df[(df["Strike"] == strike) & (df["Type"] == opt_type)].sort_values("Expiry")
             if len(subset) > 1:
                 iv_diff = subset["Implied Volatility"].diff()
-                subset["Expiry_dt"] = pd.to_datetime(subset["Expiry"], format="%m/%d/%Y")
+                subset["Expiry_dt"] = pd.to_datetime(subset["Expiry"])
                 time_diff = (subset["Expiry_dt"] - subset["Expiry_dt"].shift(1)).map(lambda x: x.days / 365.0)
                 slope = iv_diff / time_diff
                 for i in range(1, len(subset)):
@@ -225,14 +218,15 @@ def calculate_metrics(df):
                     })
     
     slope_df = pd.DataFrame(slope_data)
-# Calculate Implied Volatility from Bid-Ask Spread
+    
+    # Calculate Implied Volatility from Bid-Ask Spread
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]  # Current stock price
     tnx_data = yf.download('^TNX', period='1d')  # 10-year Treasury yield
-    r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05  # Ensure scalar
-    q = float(stock.info.get('trailingAnnualDividendYield', 0.0))  # Ensure scalar
+    r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
+    q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
     today = datetime.today()
-    df["Expiry_dt"] = df["Expiry"]  # Use existing Timestamp
+    df["Expiry_dt"] = df["Expiry"]
     df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
     # Check for NaN in Years_to_Expiry
     invalid_rows = df[df['Years_to_Expiry'].isna()]
@@ -246,8 +240,8 @@ def calculate_metrics(df):
     df['IV_spread'] = np.nan
     for idx, row in df.iterrows():
         if pd.isna(row['Years_to_Expiry']):
-            continue  # Skip rows with invalid T
-        T = max(row['Years_to_Expiry'], 0.0001)  # Use Years_to_Expiry, avoid zero
+            continue
+        T = max(row['Years_to_Expiry'], 0.0001)
         option_type = row['Type'].lower()
         contract_name = row['Contract Name']
         df.at[idx, 'IV_bid'] = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name) * 100
@@ -259,46 +253,66 @@ def calculate_metrics(df):
 
 def calc_moneyness(df, ticker):
     stock = yf.Ticker(ticker)
-    S = stock.history(period='1d')['Close'].iloc[-1]  # Current stock price
+    S = stock.history(period='1d')['Close'].iloc[-1]
     df["Moneyness"] = np.round(S / (df['Strike']) / 0.1) * 0.1
     return df
 
-def main(ticker, strikes):
-    # Fetch data
-    df = fetch_option_data(ticker, strikes)
-
-    # Calculate Realized Volatility
-    rvol5d = calculate_rvol(ticker, "5d")
-    rvol1m = calculate_rvol(ticker, "1mo")
-    rvol3m = calculate_rvol(ticker, "3mo")
-    rvol6m = calculate_rvol(ticker, "6mo")
-    rvol1y = calculate_rvol(ticker, "1y")
-    rvol2y = calculate_rvol(ticker, "2y")
-
-    df = calc_moneyness(df, ticker)
-
-    # Calc Ivol / Rvol
-    df = calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y)
+def main():
+    # Read tickers from file
+    with open('tickers.txt', 'r') as file:
+        tickers = [line.strip() for line in file if line.strip()]
     
-    # Calculate metrics
-    df, skew_df, slope_df = calculate_metrics(df)
+    all_data = []
+    strikes = []  # Empty strikes list as per original code
     
-    #df['Implied Volatility'] = df['Implied Volatility'] * 100  # Convert to % for plotting
-    #df['IV_bid-ask'] = df['IV_bid-ask']  # Already in % from calculation
-    #df['Moneyness'] = df['Moneyness'] * 100  # Convert to % for plotting
-    #df[['Implied Volatility', 'Expiry', 'Moneyness']].to_json('data.json', orient='records', date_format='iso')  # Save only specified columns
-    df['Implied Volatility'] = df['Implied Volatility'] * 100  # Convert to % for plotting
-    df['IV_bid-ask'] = df['IV_bid-ask']  # Already in %
-    df['Moneyness'] = df['Moneyness'] * 100  # Convert to % for plotting
-    df.to_json('data.json', orient='records', date_format='iso')
-    # Save to CSV
-    print(f"\nRealized Volatility (5-day): {rvol5d:.4f}")
-    print(f"\nRealized Volatility (1-month): {rvol1m:.4f}")
-    print(f"\nRealized Volatility (3-month): {rvol3m:.4f}")
-    print(f"\nRealized Volatility (6-month): {rvol6m:.4f}")
-    print(f"\nRealized Volatility (1-year): {rvol1y:.4f}")
-    print(f"\nRealized Volatility (2-year): {rvol2y:.4f}")
+    for ticker in tickers:
+        print(f"Processing {ticker}...")
+        
+        # Fetch data
+        df = fetch_option_data(ticker, strikes)
+        
+        if df.empty:
+            print(f"No data for {ticker}")
+            continue
+            
+        # Calculate Realized Volatility
+        rvol5d = calculate_rvol(ticker, "5d")
+        rvol1m = calculate_rvol(ticker, "1mo")
+        rvol3m = calculate_rvol(ticker, "3mo")
+        rvol6m = calculate_rvol(ticker, "6mo")
+        rvol1y = calculate_rvol(ticker, "1y")
+        rvol2y = calculate_rvol(ticker, "2y")
+        
+        # Print realized volatilities
+        print(f"\nRealized Volatility for {ticker}:")
+        print(f"5-day: {rvol5d:.4f}" if rvol5d is not None else "5-day: N/A")
+        print(f"1-month: {rvol1m:.4f}" if rvol1m is not None else "1-month: N/A")
+        print(f"3-month: {rvol3m:.4f}" if rvol3m is not None else "3-month: N/A")
+        print(f"6-month: {rvol6m:.4f}" if rvol6m is not None else "6-month: N/A")
+        print(f"1-year: {rvol1y:.4f}" if rvol1y is not None else "1-year: N/A")
+        print(f"2-year: {rvol2y:.4f}" if rvol2y is not None else "2-year: N/A")
+        
+        df = calc_moneyness(df, ticker)
+        
+        # Calc Ivol / Rvol
+        df = calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y)
+        
+        # Calculate metrics
+        df, skew_df, slope_df = calculate_metrics(df, ticker)
+        
+        # Format for plotting
+        df['Implied Volatility'] = df['Implied Volatility'] * 100
+        df['IV_bid-ask'] = df['IV_bid-ask']
+        df['Moneyness'] = df['Moneyness'] * 100
+        
+        all_data.append(df)
+    
+    # Combine all data
+    if all_data:
+        combined_df = pd.concat(all_data, ignore_index=True)
+        combined_df.to_json('data.json', orient='records', date_format='iso')
+        print("\nData saved to data.json")
+    else:
+        print("\nNo data to save")
 
-strikes = np.arange(0, 2000.1, 0.5).tolist()#[40, 45, 50, 55, 60, 65, 70, 75]
-ticker = "COIN"
-main(ticker, strikes)
+main()
