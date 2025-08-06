@@ -8,20 +8,26 @@
     <style>
         body { font-family: Arial, sans-serif; }
         .chart-container { width: 80%; margin: 20px auto; }
-        select { margin: 10px; }
+        select, input { margin: 10px; }
     </style>
 </head>
 <body>
     <h1>Options Data for COIN</h1>
     
     <div class="chart-container">
-        <h2>Expiry vs. Implied Volatility (Dropdown: Moneyness)</h2>
+        <h2>Expiry vs. Volatility</h2>
+        <div>
+            <label><input type="checkbox" id="vol-metric-expiry" checked> Use Implied Volatility (uncheck for IV_bid-ask)</label>
+        </div>
         <select id="moneyness-select"></select>
         <canvas id="expiry-vs-iv-chart"></canvas>
     </div>
     
     <div class="chart-container">
-        <h2>Moneyness vs. Implied Volatility (Dropdown: Expiry)</h2>
+        <h2>Moneyness vs. Volatility</h2>
+        <div>
+            <label><input type="checkbox" id="vol-metric-moneyness" checked> Use Implied Volatility (uncheck for IV_bid-ask)</label>
+        </div>
         <select id="expiry-select"></select>
         <canvas id="moneyness-vs-iv-chart"></canvas>
     </div>
@@ -61,6 +67,9 @@
                 expirySelect.add(option);
             });
             expirySelect.addEventListener('change', updateCharts);
+
+            document.getElementById('vol-metric-expiry').addEventListener('change', updateCharts);
+            document.getElementById('vol-metric-moneyness').addEventListener('change', updateCharts);
         }
 
         function updateCharts() {
@@ -70,14 +79,16 @@
 
         function updateExpiryVsIV() {
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
-            const filteredData = data.filter(item => item.Moneyness === selectedMoneyness && item['Implied Volatility'] > 0);
+            const useImpliedVol = document.getElementById('vol-metric-expiry').checked;
+            const volKey = useImpliedVol ? 'Implied Volatility' : 'IV_bid-ask';
+            const filteredData = data.filter(item => item.Moneyness === selectedMoneyness && item[volKey] > 0);
 
             const datasets = [
                 {
                     label: 'Calls',
                     data: filteredData.filter(item => item.Type === 'Call').map(item => ({
                         x: new Date(item.Expiry),
-                        y: item['Implied Volatility']
+                        y: item[volKey]
                     })),
                     borderColor: 'blue',
                     backgroundColor: 'blue',
@@ -89,7 +100,7 @@
                     label: 'Puts',
                     data: filteredData.filter(item => item.Type === 'Put').map(item => ({
                         x: new Date(item.Expiry),
-                        y: item['Implied Volatility']
+                        y: item[volKey]
                     })),
                     borderColor: 'teal',
                     backgroundColor: 'teal',
@@ -111,7 +122,7 @@
                             title: { display: true, text: 'Expiry Date' }
                         },
                         y: {
-                            title: { display: true, text: 'Implied Volatility (%)' },
+                            title: { display: true, text: `${useImpliedVol ? 'Implied Volatility' : 'IV Bid-Ask'} (%)` },
                             beginAtZero: true
                         }
                     }
@@ -121,14 +132,16 @@
 
         function updateMoneynessVsIV() {
             const selectedExpiry = document.getElementById('expiry-select').value;
-            const filteredData = data.filter(item => item.Expiry === selectedExpiry && item['Implied Volatility'] > 0);
+            const useImpliedVol = document.getElementById('vol-metric-moneyness').checked;
+            const volKey = useImpliedVol ? 'Implied Volatility' : 'IV_bid-ask';
+            const filteredData = data.filter(item => item.Expiry === selectedExpiry && item[volKey] > 0);
 
             const datasets = [
                 {
                     label: 'Calls',
                     data: filteredData.filter(item => item.Type === 'Call').map(item => ({
                         x: item.Moneyness,
-                        y: item['Implied Volatility']
+                        y: item[volKey]
                     })),
                     borderColor: 'blue',
                     backgroundColor: 'blue',
@@ -140,7 +153,7 @@
                     label: 'Puts',
                     data: filteredData.filter(item => item.Type === 'Put').map(item => ({
                         x: item.Moneyness,
-                        y: item['Implied Volatility']
+                        y: item[volKey]
                     })),
                     borderColor: 'teal',
                     backgroundColor: 'teal',
@@ -162,7 +175,7 @@
                             beginAtZero: true
                         },
                         y: {
-                            title: { display: true, text: 'Implied Volatility (%)' },
+                            title: { display: true, text: `${useImpliedVol ? 'Implied Volatility' : 'IV Bid-Ask'} (%)` },
                             beginAtZero: true
                         }
                     }
