@@ -77,13 +77,13 @@
             const datasets = [
                 {
                     label: 'Calls',
-                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: new Date(item.Expiry), y: item['IV_bid-ask']})),
+                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: new Date(item.Expiry), y: item['Implied Volatility']})),
                     borderColor: 'blue',
                     fill: false
                 },
                 {
                     label: 'Puts',
-                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: new Date(item.Expiry), y: item['IV_bid-ask']})),
+                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: new Date(item.Expiry), y: item['Implied Volatility']})),
                     borderColor: 'red',
                     fill: false
                 }
@@ -110,13 +110,13 @@
             const datasets = [
                 {
                     label: 'Calls',
-                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: item.Moneyness, y: item['IV_bid-ask']})),
+                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: item.Moneyness, y: item['Implied Volatility']})),
                     borderColor: 'blue',
                     fill: false
                 },
                 {
                     label: 'Puts',
-                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: item.Moneyness, y: item['IV_bid-ask']})),
+                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: item.Moneyness, y: item['Implied Volatility']})),
                     borderColor: 'red',
                     fill: false
                 }
