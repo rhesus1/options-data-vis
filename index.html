@@ -17,7 +17,6 @@
         <label for="ticker-select">Select Ticker: </label>
         <select id="ticker-select"></select>
     </div>
-
     <div class="chart-container">
         <h2>Moneyness vs. Volatility</h2>
         <div>
@@ -26,7 +25,7 @@
         <select id="expiry-select"></select>
         <canvas id="moneyness-vs-iv-chart"></canvas>
     </div>
-    
+   
     <div class="chart-container">
         <h2>Expiry vs. Volatility</h2>
         <div>
@@ -35,12 +34,11 @@
         <select id="moneyness-select"></select>
         <canvas id="expiry-vs-iv-chart"></canvas>
     </div>
-    
+   
     <script>
         let data = [];
         let expiryChart, moneynessChart;
-
-        fetch('data.json?v=' + Date.now())  // Cache-buster
+        fetch('data.json?v=' + Date.now()) // Cache-buster
             .then(response => response.json())
             .then(jsonData => {
                 data = jsonData;
@@ -48,7 +46,6 @@
                 updateCharts();
             })
             .catch(error => console.error('Error loading data:', error));
-
         function populateDropdowns() {
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
                 .filter(val => val).sort();
@@ -60,10 +57,8 @@
                 tickerSelect.add(option);
             });
             tickerSelect.addEventListener('change', updateCharts);
-
             const selectedTicker = tickerSelect.value;
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
-
             const uniqueMoneyness = [...new Set(tickerData.map(item => item.Moneyness))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             const moneynessSelect = document.getElementById('moneyness-select');
@@ -75,7 +70,6 @@
                 moneynessSelect.add(option);
             });
             moneynessSelect.addEventListener('change', updateCharts);
-
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort();
             const expirySelect = document.getElementById('expiry-select');
@@ -87,30 +81,42 @@
                 expirySelect.add(option);
             });
             expirySelect.addEventListener('change', updateCharts);
-
             document.getElementById('vol-metric-expiry').addEventListener('change', updateCharts);
             document.getElementById('vol-metric-moneyness').addEventListener('change', updateCharts);
         }
-
         function updateCharts() {
             updateExpiryVsIV();
             updateMoneynessVsIV();
         }
-
+        function aggregateDataByX(data, xKey, yKey) {
+            const grouped = data.reduce((acc, item) => {
+                const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
+                if (!acc[xValue]) {
+                    acc[xValue] = { sum: 0, count: 0 };
+                }
+                acc[xValue].sum += item[yKey];
+                acc[xValue].count += 1;
+                return acc;
+            }, {});
+            return Object.keys(grouped).map(x => ({
+                x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
+                y: grouped[x].sum / grouped[x].count
+            })).sort((a, b) => a.x - b.x);
+        }
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
             const useImpliedVol = document.getElementById('vol-metric-expiry').checked;
             const volKey = useImpliedVol ? 'Implied Volatility' : 'IV_bid-ask';
             const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness === selectedMoneyness && item[volKey] > 0);
-
             const datasets = [
                 {
                     label: 'Calls',
-                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({
-                        x: new Date(item.Expiry),
-                        y: item[volKey]
-                    })),
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        volKey
+                    ),
                     borderColor: 'blue',
                     backgroundColor: 'blue',
                     pointRadius: 1,
@@ -119,10 +125,11 @@
                 },
                 {
                     label: 'Puts',
-                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({
-                        x: new Date(item.Expiry),
-                        y: item[volKey]
-                    })),
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        volKey
+                    ),
                     borderColor: 'teal',
                     backgroundColor: 'teal',
                     pointRadius: 1,
@@ -130,7 +137,6 @@
                     showLine: true
                 }
             ];
-
             if (expiryChart) expiryChart.destroy();
             expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
                 type: 'line',
@@ -150,21 +156,20 @@
                 }
             });
         }
-
         function updateMoneynessVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
             const useImpliedVol = document.getElementById('vol-metric-moneyness').checked;
             const volKey = useImpliedVol ? 'Implied Volatility' : 'IV_bid-ask';
             const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry && item[volKey] > 0);
-
             const datasets = [
                 {
                     label: 'Calls',
-                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({
-                        x: item.Moneyness,
-                        y: item[volKey]
-                    })),
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        volKey
+                    ),
                     borderColor: 'blue',
                     backgroundColor: 'blue',
                     pointRadius: 1,
@@ -173,10 +178,11 @@
                 },
                 {
                     label: 'Puts',
-                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({
-                        x: item.Moneyness,
-                        y: item[volKey]
-                    })),
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        volKey
+                    ),
                     borderColor: 'teal',
                     backgroundColor: 'teal',
                     pointRadius: 1,
@@ -184,7 +190,6 @@
                     showLine: true
                 }
             ];
-
             if (moneynessChart) moneynessChart.destroy();
             moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
                 type: 'line',
