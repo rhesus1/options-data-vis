@@ -82,7 +82,8 @@
                     borderColor: 'blue',
                     backgroundColor: 'blue',
                     pointRadius: 5,
-                    fill: false
+                    fill: false,
+                    showLine: true
                 },
                 {
                     label: 'Puts',
@@ -93,13 +94,14 @@
                     borderColor: 'teal',
                     backgroundColor: 'teal',
                     pointRadius: 5,
-                    fill: false
+                    fill: false,
+                    showLine: true
                 }
             ];
 
             if (expiryChart) expiryChart.destroy();
             expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
-                type: 'scatter',  // Scatter for clarity
+                type: 'line',
                 data: { datasets },
                 options: {
                     scales: {
@@ -131,7 +133,8 @@
                     borderColor: 'blue',
                     backgroundColor: 'blue',
                     pointRadius: 5,
-                    fill: false
+                    fill: false,
+                    showLine: true
                 },
                 {
                     label: 'Puts',
@@ -142,18 +145,19 @@
                     borderColor: 'teal',
                     backgroundColor: 'teal',
                     pointRadius: 5,
-                    fill: false
+                    fill: false,
+                    showLine: true
                 }
             ];
 
             if (moneynessChart) moneynessChart.destroy();
             moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
-                type: 'scatter',  // Scatter for clarity
+                type: 'line',
                 data: { datasets },
                 options: {
                     scales: {
                         x: {
-                            type: 'linear',  // Numerical axis for Moneyness
+                            type: 'linear',
                             title: { display: true, text: 'Moneyness (%)' },
                             beginAtZero: true
                         },
