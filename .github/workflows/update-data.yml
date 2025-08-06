@@ -2,7 +2,7 @@ name: Update Options Data
 
 on:
   schedule:
-    - cron: '0 14,16,18,20 * * *'  # Daily at 10 AM, 12 PM, 2 PM, 4 PM NY time (EDT/UTC-4 on Aug 6, 2025; adjust for DST end if needed)
+    - cron: '0 14,15,16,17,18,19,20 * * *'  # Daily at 10 AM, 12 PM, 2 PM, 4 PM NY time (EDT/UTC-4 on Aug 6, 2025; adjust for DST end if needed)
   workflow_dispatch:  # Manual trigger option
 
 jobs:
