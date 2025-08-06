@@ -6,28 +6,29 @@ from datetime import datetime, timedelta
 from scipy.optimize import brentq
 from scipy.stats import norm
 import json
+import multiprocessing
 
 def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percentile=25):
     option_data = []
     stock = yf.Ticker(ticker)
-   
+  
     try:
         # Get all expiration dates
         expirations = stock.options
-       
+      
         for expiry in expirations:
             # Fetch option chain for each expiration
             opt = stock.option_chain(expiry)
             calls = opt.calls
             puts = opt.puts
-           
+          
             # Process calls
             for _, row in calls.iterrows():
                 volume = row['volume'] if pd.notna(row['volume']) else 0
                 open_interest = row['openInterest'] if pd.notna(row['openInterest']) else 0
                 bid = row['bid']
                 ask = row['ask']
-                
+               
                 # Store data temporarily without filtering
                 option_data.append({
                     "Type": "Call",
@@ -45,14 +46,14 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percenti
                     "Ticker": ticker,
                     "Last Trade Date": pd.to_datetime(row['lastTradeDate']) if pd.notna(row['lastTradeDate']) else ""
                 })
-           
+          
             # Process puts
             for _, row in puts.iterrows():
                 volume = row['volume'] if pd.notna(row['volume']) else 0
                 open_interest = row['openInterest'] if pd.notna(row['openInterest']) else 0
                 bid = row['bid']
                 ask = row['ask']
-                
+               
                 # Store data temporarily without filtering
                 option_data.append({
                     "Type": "Put",
@@ -70,26 +71,26 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percenti
                     "Ticker": ticker,
                     "Last Trade Date": pd.to_datetime(row['lastTradeDate']) if pd.notna(row['lastTradeDate']) else ""
                 })
-           
+          
             time.sleep(1) # Rate limiting to avoid overwhelming the API
-           
+          
     except Exception as e:
         print(f"Error fetching data for {ticker}: {e}")
-   
+  
     # Convert to DataFrame
     df = pd.DataFrame(option_data)
-   
+  
     if not df.empty:
         # Timezone handling
         if "Expiry" in df.columns:
             df["Expiry"] = df["Expiry"].apply(lambda x: x.tz_localize(None) if pd.notna(x) and hasattr(x, 'tz') else x)
         if "Last Trade Date" in df.columns:
             df["Last Trade Date"] = df["Last Trade Date"].apply(lambda x: x.tz_localize(None) if pd.notna(x) and hasattr(x, 'tz') else x)
-        
+       
         # Calculate percentile thresholds for volume and open interest
         volume_threshold = df['Volume'].quantile(min_volume_percentile / 100)
         oi_threshold = df['Open Interest'].quantile(min_oi_percentile / 100)
-        
+       
         # Filter out low volume, low open interest, or invalid bid-ask spreads
         df = df[
             (df['Volume'] >= volume_threshold) &
@@ -99,28 +100,27 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percenti
             (df['Ask'] >= 0) &
             (df['Bid'] <= df['Ask'])
         ]
-   
+  
     return df
-    
+   
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
-        return max(S - K, 0)  # Intrinsic value at expiration or zero vol
+        return max(S - K, 0) # Intrinsic value at expiration or zero vol
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-    
+   
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
-        return max(K - S, 0)  # Intrinsic value at expiration or zero vol
+        return max(K - S, 0) # Intrinsic value at expiration or zero vol
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
-
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
-        return 0.0  # No IV for invalid price or time
+        return 0.0 # No IV for invalid price or time
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
-    if price < intrinsic * np.exp(-r * T):  # Price below discounted intrinsic value
+    if price < intrinsic * np.exp(-r * T): # Price below discounted intrinsic value
         print(f"Warning: {option_type.capitalize()} {contract_name} price {price} below intrinsic {intrinsic * np.exp(-r * T):.2f}; returning 0.0001")
         return 0.0001
     def objective(sigma):
@@ -129,14 +129,13 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         else:
             return black_scholes_put(S, K, T, r, q, sigma) - price
     try:
-        iv = brentq(objective, 0.0001, 50.0)  # Increased upper bound to 1000%
+        iv = brentq(objective, 0.0001, 50.0) # Increased upper bound to 1000%
         return iv
     except ValueError as e:
         low = objective(0.0001)
         high = objective(20.0)
         print(f"Warning: Failed to solve IV for {option_type.capitalize()} {contract_name}: low={low:.2f}, high={high:.2f}, price={price}, S={S}, K={K}, T={T:.4f}")
         return np.nan
-
 def calculate_rvol(ticker, period):
     try:
         # Validate period
@@ -144,33 +143,31 @@ def calculate_rvol(ticker, period):
         if period not in valid_periods:
             print(f"Invalid period '{period}'. Valid periods: {valid_periods}")
             return None
-
         # Fetch historical data
         stock = yf.Ticker(ticker)
         hist = stock.history(period=period)
-        
+       
         # Check if data is empty
         if hist.empty:
             print(f"No data retrieved for ticker '{ticker}' with period '{period}'")
             return None
-        
+       
         # Calculate daily returns
         daily_returns = hist["Close"].pct_change().dropna()
-        
+       
         # Check if enough data points exist
         if len(daily_returns) < 2:
             print(f"Insufficient data points for '{ticker}' with period '{period}' to calculate volatility")
             return None
-        
+       
         # Calculate annualized realized volatility
         realized_vol = np.std(daily_returns, ddof=1) * np.sqrt(252)
-        
+       
         return realized_vol
-    
+   
     except Exception as e:
         print(f"Error calculating realized volatility for '{ticker}': {str(e)}")
         return None
-
 def calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
@@ -182,11 +179,10 @@ def calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y):
     df["Ivol/Rvol1y Ratio"] = df["Implied Volatility"] / rvol1y
     df["Ivol/Rvol2y Ratio"] = df["Implied Volatility"] / rvol2y
     return df
-
 def calculate_metrics(df, ticker):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
-    
+   
     # Calculate Vol Skew (Put IV / Call IV)
     skew_data = []
     for exp in df["Expiry"].unique():
@@ -196,9 +192,9 @@ def calculate_metrics(df, ticker):
             if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
                 skew = put_iv.iloc[0] / call_iv.iloc[0]
                 skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
-    
+   
     skew_df = pd.DataFrame(skew_data)
-    
+   
     # Calculate IV Slope (change in IV per year)
     slope_data = []
     for strike in df["Strike"].unique():
@@ -216,13 +212,13 @@ def calculate_metrics(df, ticker):
                         "Expiry": subset["Expiry"].iloc[i],
                         "IV Slope": slope.iloc[i]
                     })
-    
+   
     slope_df = pd.DataFrame(slope_data)
-    
+   
     # Calculate Implied Volatility from Bid-Ask Spread
     stock = yf.Ticker(ticker)
-    S = stock.history(period='1d')['Close'].iloc[-1]  # Current stock price
-    tnx_data = yf.download('^TNX', period='1d')  # 10-year Treasury yield
+    S = stock.history(period='1d')['Close'].iloc[-1] # Current stock price
+    tnx_data = yf.download('^TNX', period='1d') # 10-year Treasury yield
     r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
     q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
     today = datetime.today()
@@ -248,13 +244,54 @@ def calculate_metrics(df, ticker):
         df.at[idx, 'IV_ask'] = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name) * 100
         df.at[idx, 'IV_bid-ask'] = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name) * 100
         df.at[idx, 'IV_spread'] = df.at[idx, 'IV_ask'] - df.at[idx, 'IV_bid'] if not np.isnan(df.at[idx, 'IV_bid']) else np.nan
-
     return df, skew_df, slope_df
-
 def calc_moneyness(df, ticker):
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
     df["Moneyness"] = np.round(S / (df['Strike']) / 0.1) * 0.1
+    return df
+
+def process_ticker(ticker):
+    print(f"Processing {ticker}...")
+    strikes = []  # Empty strikes list as per original code
+    
+    # Fetch data
+    df = fetch_option_data(ticker, strikes)
+    
+    if df.empty:
+        print(f"No data for {ticker}")
+        return None
+    
+    # Calculate Realized Volatility
+    rvol5d = calculate_rvol(ticker, "5d")
+    rvol1m = calculate_rvol(ticker, "1mo")
+    rvol3m = calculate_rvol(ticker, "3mo")
+    rvol6m = calculate_rvol(ticker, "6mo")
+    rvol1y = calculate_rvol(ticker, "1y")
+    rvol2y = calculate_rvol(ticker, "2y")
+    
+    # Print realized volatilities
+    print(f"\nRealized Volatility for {ticker}:")
+    print(f"5-day: {rvol5d:.4f}" if rvol5d is not None else "5-day: N/A")
+    print(f"1-month: {rvol1m:.4f}" if rvol1m is not None else "1-month: N/A")
+    print(f"3-month: {rvol3m:.4f}" if rvol3m is not None else "3-month: N/A")
+    print(f"6-month: {rvol6m:.4f}" if rvol6m is not None else "6-month: N/A")
+    print(f"1-year: {rvol1y:.4f}" if rvol1y is not None else "1-year: N/A")
+    print(f"2-year: {rvol2y:.4f}" if rvol2y is not None else "2-year: N/A")
+    
+    df = calc_moneyness(df, ticker)
+    
+    # Calc Ivol / Rvol
+    df = calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y)
+    
+    # Calculate metrics
+    df, skew_df, slope_df = calculate_metrics(df, ticker)
+    
+    # Format for plotting
+    df['Implied Volatility'] = df['Implied Volatility'] * 100
+    df['IV_bid-ask'] = df['IV_bid-ask']
+    df['Moneyness'] = df['Moneyness'] * 100
+    
     return df
 
 def main():
@@ -262,50 +299,13 @@ def main():
     with open('tickers.txt', 'r') as file:
         tickers = [line.strip() for line in file if line.strip()]
     
-    all_data = []
-    strikes = []  # Empty strikes list as per original code
+    # Parallel processing of tickers
+    num_processes = min(4, len(tickers))  # Limit to 4 processes to avoid rate limiting issues; adjust as needed
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        all_data = pool.map(process_ticker, tickers)
     
-    for ticker in tickers:
-        print(f"Processing {ticker}...")
-        
-        # Fetch data
-        df = fetch_option_data(ticker, strikes)
-        
-        if df.empty:
-            print(f"No data for {ticker}")
-            continue
-            
-        # Calculate Realized Volatility
-        rvol5d = calculate_rvol(ticker, "5d")
-        rvol1m = calculate_rvol(ticker, "1mo")
-        rvol3m = calculate_rvol(ticker, "3mo")
-        rvol6m = calculate_rvol(ticker, "6mo")
-        rvol1y = calculate_rvol(ticker, "1y")
-        rvol2y = calculate_rvol(ticker, "2y")
-        
-        # Print realized volatilities
-        print(f"\nRealized Volatility for {ticker}:")
-        print(f"5-day: {rvol5d:.4f}" if rvol5d is not None else "5-day: N/A")
-        print(f"1-month: {rvol1m:.4f}" if rvol1m is not None else "1-month: N/A")
-        print(f"3-month: {rvol3m:.4f}" if rvol3m is not None else "3-month: N/A")
-        print(f"6-month: {rvol6m:.4f}" if rvol6m is not None else "6-month: N/A")
-        print(f"1-year: {rvol1y:.4f}" if rvol1y is not None else "1-year: N/A")
-        print(f"2-year: {rvol2y:.4f}" if rvol2y is not None else "2-year: N/A")
-        
-        df = calc_moneyness(df, ticker)
-        
-        # Calc Ivol / Rvol
-        df = calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y)
-        
-        # Calculate metrics
-        df, skew_df, slope_df = calculate_metrics(df, ticker)
-        
-        # Format for plotting
-        df['Implied Volatility'] = df['Implied Volatility'] * 100
-        df['IV_bid-ask'] = df['IV_bid-ask']
-        df['Moneyness'] = df['Moneyness'] * 100
-        
-        all_data.append(df)
+    # Filter out None results
+    all_data = [df for df in all_data if df is not None]
     
     # Combine all data
     if all_data:
@@ -314,5 +314,5 @@ def main():
         print("\nData saved to data.json")
     else:
         print("\nNo data to save")
-
+        
 main()
