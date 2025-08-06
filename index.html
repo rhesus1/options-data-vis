@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Options Data Visualization</title>
+    <title>Options Data Visualization for COIN</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>  <!-- For date parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body { font-family: Arial, sans-serif; }
         .chart-container { width: 80%; margin: 20px auto; }
@@ -30,19 +30,18 @@
         let data = [];
         let expiryChart, moneynessChart;
 
-        // Load data.json
-        fetch('data.json')
+        fetch('data.json?v=' + Date.now())  // Cache-buster
             .then(response => response.json())
             .then(jsonData => {
                 data = jsonData;
                 populateDropdowns();
-                updateCharts();  // Initial plots with first options
+                updateCharts();
             })
             .catch(error => console.error('Error loading data:', error));
 
         function populateDropdowns() {
-            // Unique moneyness (sorted numerically)
-            const uniqueMoneyness = [...new Set(data.map(item => item.Moneyness))].sort((a, b) => a - b);
+            const uniqueMoneyness = [...new Set(data.map(item => item.Moneyness))]
+                .filter(val => !isNaN(val)).sort((a, b) => a - b);
             const moneynessSelect = document.getElementById('moneyness-select');
             uniqueMoneyness.forEach(val => {
                 const option = document.createElement('option');
@@ -52,13 +51,13 @@
             });
             moneynessSelect.addEventListener('change', updateCharts);
 
-            // Unique expiries (sorted by date)
-            const uniqueExpiries = [...new Set(data.map(item => item.Expiry))].sort();
+            const uniqueExpiries = [...new Set(data.map(item => item.Expiry))]
+                .filter(val => val).sort();
             const expirySelect = document.getElementById('expiry-select');
             uniqueExpiries.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
-                option.text = new Date(val).toLocaleDateString();  // Human-readable date
+                option.text = new Date(val).toLocaleDateString();
                 expirySelect.add(option);
             });
             expirySelect.addEventListener('change', updateCharts);
@@ -71,32 +70,48 @@
 
         function updateExpiryVsIV() {
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
-            const filteredData = data.filter(item => item.Moneyness === selectedMoneyness);
+            const filteredData = data.filter(item => item.Moneyness === selectedMoneyness && item['Implied Volatility'] > 0);
 
-            const labels = filteredData.map(item => new Date(item.Expiry));  // x: Dates
             const datasets = [
                 {
                     label: 'Calls',
-                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: new Date(item.Expiry), y: item['Implied Volatility']})),
-                    borderColor: 'teal',
+                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({
+                        x: new Date(item.Expiry),
+                        y: item['Implied Volatility']
+                    })),
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    pointRadius: 5,
                     fill: false
                 },
                 {
                     label: 'Puts',
-                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: new Date(item.Expiry), y: item['Implied Volatility']})),
-                    borderColor: 'blue',
+                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({
+                        x: new Date(item.Expiry),
+                        y: item['Implied Volatility']
+                    })),
+                    borderColor: 'teal',
+                    backgroundColor: 'teal',
+                    pointRadius: 5,
                     fill: false
                 }
             ];
 
             if (expiryChart) expiryChart.destroy();
             expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
-                type: 'line',
+                type: 'scatter',  // Scatter for clarity
                 data: { datasets },
                 options: {
                     scales: {
-                        x: { type: 'time', time: { unit: 'day' }, title: { display: true, text: 'Expiry Date' } },
-                        y: { title: { display: true, text: 'Implied Volatility (%)' } }
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' },
+                            title: { display: true, text: 'Expiry Date' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Implied Volatility (%)' },
+                            beginAtZero: true
+                        }
                     }
                 }
             });
@@ -104,32 +119,48 @@
 
         function updateMoneynessVsIV() {
             const selectedExpiry = document.getElementById('expiry-select').value;
-            const filteredData = data.filter(item => item.Expiry === selectedExpiry);
+            const filteredData = data.filter(item => item.Expiry === selectedExpiry && item['Implied Volatility'] > 0);
 
-            const labels = filteredData.map(item => item.Moneyness);  // x: Moneyness
             const datasets = [
                 {
                     label: 'Calls',
-                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: item.Moneyness, y: item['Implied Volatility']})),
-                    borderColor: 'teal',
+                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({
+                        x: item.Moneyness,
+                        y: item['Implied Volatility']
+                    })),
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    pointRadius: 5,
                     fill: false
                 },
                 {
                     label: 'Puts',
-                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: item.Moneyness, y: item['Implied Volatility']})),
-                    borderColor: 'blue',
+                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({
+                        x: item.Moneyness,
+                        y: item['Implied Volatility']
+                    })),
+                    borderColor: 'teal',
+                    backgroundColor: 'teal',
+                    pointRadius: 5,
                     fill: false
                 }
             ];
 
             if (moneynessChart) moneynessChart.destroy();
             moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
-                type: 'line',
+                type: 'scatter',  // Scatter for clarity
                 data: { datasets },
                 options: {
                     scales: {
-                        x: { title: { display: true, text: 'Moneyness (%)' } },
-                        y: { title: { display: true, text: 'Implied Volatility (%)' } }
+                        x: {
+                            type: 'linear',  // Numerical axis for Moneyness
+                            title: { display: true, text: 'Moneyness (%)' },
+                            beginAtZero: true
+                        },
+                        y: {
+                            title: { display: true, text: 'Implied Volatility (%)' },
+                            beginAtZero: true
+                        }
                     }
                 }
             });
