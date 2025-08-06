@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Options Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>  <!-- For date parsing -->
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .chart-container { width: 80%; margin: 20px auto; }
+        select { margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Options Data for COIN</h1>
+    
+    <div class="chart-container">
+        <h2>Expiry vs. Implied Volatility (Dropdown: Moneyness)</h2>
+        <select id="moneyness-select"></select>
+        <canvas id="expiry-vs-iv-chart"></canvas>
+    </div>
+    
+    <div class="chart-container">
+        <h2>Moneyness vs. Implied Volatility (Dropdown: Expiry)</h2>
+        <select id="expiry-select"></select>
+        <canvas id="moneyness-vs-iv-chart"></canvas>
+    </div>
+    
+    <script>
+        let data = [];
+        let expiryChart, moneynessChart;
+
+        // Load data.json
+        fetch('data.json')
+            .then(response => response.json())
+            .then(jsonData => {
+                data = jsonData;
+                populateDropdowns();
+                updateCharts();  // Initial plots with first options
+            })
+            .catch(error => console.error('Error loading data:', error));
+
+        function populateDropdowns() {
+            // Unique moneyness (sorted numerically)
+            const uniqueMoneyness = [...new Set(data.map(item => item.Moneyness))].sort((a, b) => a - b);
+            const moneynessSelect = document.getElementById('moneyness-select');
+            uniqueMoneyness.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = `${val.toFixed(2)}%`;
+                moneynessSelect.add(option);
+            });
+            moneynessSelect.addEventListener('change', updateCharts);
+
+            // Unique expiries (sorted by date)
+            const uniqueExpiries = [...new Set(data.map(item => item.Expiry))].sort();
+            const expirySelect = document.getElementById('expiry-select');
+            uniqueExpiries.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = new Date(val).toLocaleDateString();  // Human-readable date
+                expirySelect.add(option);
+            });
+            expirySelect.addEventListener('change', updateCharts);
+        }
+
+        function updateCharts() {
+            updateExpiryVsIV();
+            updateMoneynessVsIV();
+        }
+
+        function updateExpiryVsIV() {
+            const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
+            const filteredData = data.filter(item => item.Moneyness === selectedMoneyness);
+
+            const labels = filteredData.map(item => new Date(item.Expiry));  // x: Dates
+            const datasets = [
+                {
+                    label: 'Calls',
+                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: new Date(item.Expiry), y: item['IV_bid-ask']})),
+                    borderColor: 'blue',
+                    fill: false
+                },
+                {
+                    label: 'Puts',
+                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: new Date(item.Expiry), y: item['IV_bid-ask']})),
+                    borderColor: 'red',
+                    fill: false
+                }
+            ];
+
+            if (expiryChart) expiryChart.destroy();
+            expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    scales: {
+                        x: { type: 'time', time: { unit: 'day' }, title: { display: true, text: 'Expiry Date' } },
+                        y: { title: { display: true, text: 'Implied Volatility (%)' } }
+                    }
+                }
+            });
+        }
+
+        function updateMoneynessVsIV() {
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const filteredData = data.filter(item => item.Expiry === selectedExpiry);
+
+            const labels = filteredData.map(item => item.Moneyness);  // x: Moneyness
+            const datasets = [
+                {
+                    label: 'Calls',
+                    data: filteredData.filter(item => item.Type === 'Call').map(item => ({x: item.Moneyness, y: item['IV_bid-ask']})),
+                    borderColor: 'blue',
+                    fill: false
+                },
+                {
+                    label: 'Puts',
+                    data: filteredData.filter(item => item.Type === 'Put').map(item => ({x: item.Moneyness, y: item['IV_bid-ask']})),
+                    borderColor: 'red',
+                    fill: false
+                }
+            ];
+
+            if (moneynessChart) moneynessChart.destroy();
+            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Moneyness (%)' } },
+                        y: { title: { display: true, text: 'Implied Volatility (%)' } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
