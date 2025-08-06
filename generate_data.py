@@ -45,6 +45,7 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percenti
                     "Open Interest": open_interest,
                     "Implied Volatility": row['impliedVolatility'] if pd.notna(row['impliedVolatility']) else 0,
                     "Contract Name": row['contractSymbol'],
+                    "Ticker": ticker,
                     "Last Trade Date": pd.to_datetime(row['lastTradeDate']) if pd.notna(row['lastTradeDate']) else ""
                 })
            
@@ -72,6 +73,7 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percenti
                     "Open Interest": open_interest,
                     "Implied Volatility": row['impliedVolatility'] if pd.notna(row['impliedVolatility']) else 0,
                     "Contract Name": row['contractSymbol'],
+                    "Ticker": ticker,
                     "Last Trade Date": pd.to_datetime(row['lastTradeDate']) if pd.notna(row['lastTradeDate']) else ""
                 })
            
@@ -98,7 +100,7 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percenti
         df = df[
             (df['Volume'] >= volume_threshold) &
             (df['Open Interest'] >= oi_threshold) &
-            #(df['Ask'] - df['Bid'] >= 0.1) &
+            (df['Ask'] - df['Bid'] >= 0.1) &
             (df['Bid'] >= 0) &
             (df['Ask'] >= 0) &
             (df['Bid'] <= df['Ask'])
