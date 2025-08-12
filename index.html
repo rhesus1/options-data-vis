@@ -46,6 +46,19 @@
         let data = [];
         let historicData = [];
         let expiryChart, moneynessChart, historicChart;
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            return lines.slice(1).map(line => {
+                const values = line.split(',').map(v => v.trim());
+                const obj = {};
+                headers.forEach((h, i) => {
+                    obj[h] = values[i];
+                });
+                return obj;
+            });
+        }
     
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
@@ -75,10 +88,10 @@
                     updateCharts();
                 })
                 .catch(error => console.error('Error loading data:', error));
-            fetch(`data/historic_${timestamp}.json?v=` + Date.now())
-                .then(response => response.json())
-                .then(jsonData => {
-                    historicData = jsonData;
+            fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
+                .then(response => response.text())
+                .then(csvText => {
+                    historicData = parseCSV(csvText);
                     updateHistoricChart();
                 })
                 .catch(error => console.error('Error loading historic data:', error));
@@ -593,8 +606,8 @@
             let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
             filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
             const dates = filteredHistoric.map(item => new Date(item.Date));
-            const prices = filteredHistoric.map(item => item.Close);
-            const vols = filteredHistoric.map(item => item.Realized_Vol);
+            const prices = filteredHistoric.map(item => parseFloat(item.Close));
+            const vols = filteredHistoric.map(item => parseFloat(item.Realized_Vol));
             const datasets = [
                 {
                     label: 'Stock Price',
