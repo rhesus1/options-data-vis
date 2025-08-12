@@ -1,0 +1,44 @@
+# fetch_historic_data.py
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from datetime import datetime
+import os
+import time
+
+def fetch_historic_data(ticker):
+    print(f"Fetching historic data for {ticker}...")
+    stock = yf.Ticker(ticker)
+    hist = stock.history(period='max')
+    if hist.empty:
+        return pd.DataFrame()
+    hist = hist[['Close']]
+    hist['Log_Return'] = np.log(hist['Close'] / hist['Close'].shift(1))
+    hist['Realized_Vol'] = hist['Log_Return'].rolling(window=90).std() * np.sqrt(252) * 100  # Annualized volatility in percent
+    hist = hist.dropna()
+    hist['Date'] = hist.index.strftime('%Y-%m-%d')
+    hist['Ticker'] = ticker
+    return hist[['Ticker', 'Date', 'Close', 'Realized_Vol']]
+
+def main():
+    with open('tickers.txt', 'r') as file:
+        tickers = [line.strip() for line in file if line.strip()]
+    
+    all_hist = []
+    for ticker in tickers:
+        df = fetch_historic_data(ticker)
+        if not df.empty:
+            all_hist.append(df)
+        time.sleep(1)  # Avoid rate limiting
+    
+    if all_hist:
+        combined_df = pd.concat(all_hist, ignore_index=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        os.makedirs('data', exist_ok=True)
+        filename = f'data/historic_{timestamp}.csv'
+        combined_df.to_csv(filename, index=False)
+        print(f"Historic data saved to {filename}")
+    else:
+        print("No historic data to save")
+
+main()
