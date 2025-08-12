@@ -1,4 +1,3 @@
-# calculate_data.py
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -19,7 +18,7 @@ def black_scholes_call(S, K, T, r, q, sigma):
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-  
+
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(K - S, 0)
@@ -96,7 +95,7 @@ def calc_Ivol_Rvol(df, rvol90d):
 def calculate_metrics(df, ticker):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame(), None, None, None
-  
+
     skew_data = []
     for exp in df["Expiry"].unique():
         for strike in df["Strike"].unique():
@@ -105,9 +104,9 @@ def calculate_metrics(df, ticker):
             if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
                 skew = put_iv.iloc[0] / call_iv.iloc[0]
                 skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
-  
+
     skew_df = pd.DataFrame(skew_data)
-  
+
     slope_data = []
     for strike in df["Strike"].unique():
         for opt_type in ["Call", "Put"]:
@@ -124,9 +123,9 @@ def calculate_metrics(df, ticker):
                         "Expiry": subset["Expiry"].iloc[i],
                         "IV Slope": slope.iloc[i]
                     })
-  
+
     slope_df = pd.DataFrame(slope_data)
-  
+
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
     tnx_data = yf.download('^TNX', period='1d')
@@ -210,7 +209,6 @@ def calculate_heston_iv(df, S, r, q, heston_params):
         df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower()) * 100
     return df
 
-
 def compute_local_vol_row(row, points, values, r, q):
     """
     Compute local vol for a single row. Extracted for parallelization.
@@ -221,22 +219,22 @@ def compute_local_vol_row(row, points, values, r, q):
         if tt <= 0:
             return np.nan
         return griddata(points, values, (kk, tt), method='linear', fill_value=np.nan, rescale=False)
-    
+
     c = call_price_interp(k, t)
     if np.isnan(c):
         return None
-    
+
     h_t = max(1e-3, t * 1e-3)
     dC_dT = (call_price_interp(k, t + h_t) - call_price_interp(k, t - h_t)) / (2 * h_t)
-    
+
     h_k = max(0.1, k * 0.001)
     dC_dK = (call_price_interp(k + h_k, t) - call_price_interp(k - h_k, t)) / (2 * h_k)
     d2C_dK2 = (call_price_interp(k + h_k, t) - 2 * c + call_price_interp(k - h_k, t)) / (h_k ** 2)
-    
+
     if np.isnan(dC_dT) or np.isnan(dC_dK) or np.isnan(d2C_dK2) or d2C_dK2 <= 0:
         print(f"Warning: Invalid derivatives for K={k}, T={t}; skipping.")
         return None
-    
+
     numer = dC_dT + (r - q) * k * dC_dK + q * c
     denom = 0.5 * k**2 * d2C_dK2
     if denom == 0 or numer <= 0:
@@ -245,7 +243,10 @@ def compute_local_vol_row(row, points, values, r, q):
     else:
         local_vol_sq = numer / denom
         local_vol = np.sqrt(local_vol_sq) * 100
-    
+        # Filter local volatility: set to NaN if < 0% or > 300%
+        if local_vol < 0 or local_vol > 300:
+            local_vol = np.nan
+
     return {
         "Strike": k,
         "Expiry": row['Expiry'],
@@ -266,17 +267,16 @@ def calculate_local_vol(full_df, S, r, q):
         return pd.DataFrame()
     points = np.column_stack((calls['Strike'], calls['T']))
     values = calls['mid_price'].values
-    
+
     # Parallelize the loop over rows
     local_vol_data = Parallel(n_jobs=-1)(
         delayed(compute_local_vol_row)(row, points, values, r, q) for idx, row in calls.iterrows()
     )
-    
+
     # Filter out None
     local_vol_data = [d for d in local_vol_data if d is not None]
-    
-    return pd.DataFrame(local_vol_data)
 
+    return pd.DataFrame(local_vol_data)
 
 def process_ticker(ticker, df, full_df):
     print(f"Processing calculations for {ticker}...")
@@ -284,14 +284,12 @@ def process_ticker(ticker, df, full_df):
     ticker_full = full_df[full_df['Ticker'] == ticker].copy()
     if ticker_df.empty:
         return None
-
     rvol90d = calculate_rvol_days(ticker, 90)
     print(f"\nRealized Volatility for {ticker}:")
     print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
-
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
     ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
-    # heston_params = calibrate_heston(ticker_df, S, r, q)  # Uncomment if needed
+    # heston_params = calibrate_heston(ticker_df, S, r, q) # Uncomment if needed
     # ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
     local_df = calculate_local_vol(ticker_full, S, r, q)
     if not local_df.empty:
@@ -301,7 +299,6 @@ def process_ticker(ticker, df, full_df):
     ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
     ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
     ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
-
     return ticker_df
 
 def main():
@@ -317,16 +314,13 @@ def main():
         print(f"Corresponding raw file {raw_file} not found")
         return
     full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
-
     tickers = df['Ticker'].unique()
     if len(tickers) == 0:
         print("No tickers found")
         return
-
     # Parallel processing: Use a pool of workers
-    with multiprocessing.Pool(processes=4) as pool:  # Adjust processes to your CPU cores - 1
+    with multiprocessing.Pool(processes=4) as pool: # Adjust processes to your CPU cores - 1
         processed_dfs = pool.starmap(process_ticker, [(ticker, df, full_df) for ticker in tickers])
-
     # Filter out None results and combine
     processed_dfs = [pdf for pdf in processed_dfs if pdf is not None]
     if processed_dfs:
@@ -334,7 +328,6 @@ def main():
         processed_filename = f'data/processed_{timestamp}.json'
         combined_processed.to_json(processed_filename, orient='records', date_format='iso')
         print(f"Processed data saved to {processed_filename}")
-
         dates_file = 'data/dates.json'
         if os.path.exists(dates_file):
             with open(dates_file, 'r') as f:
