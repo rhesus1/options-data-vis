@@ -94,7 +94,7 @@ def process_ticker_fetch(ticker):
     full_df['Last Stock Price'] = S
     full_df['Moneyness'] = np.round(S / full_df['Strike'] / 0.05) * 0.05
     full_df['Last Option Price'] = full_df['Last Price']
-    columns = ['Ticker', 'Contract Name', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Last Option Price', 'Last Stock Price', 'Implied Volatility']
+    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Last Option Price', 'Last Stock Price', 'Implied Volatility']
     return full_df[columns]
 
 def main():
