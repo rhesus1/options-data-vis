@@ -320,7 +320,6 @@ def main():
             ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
         else:
             ticker_df['Local Vol'] = np.nan
-        ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
         ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
         ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
         ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
