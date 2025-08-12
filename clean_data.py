@@ -15,7 +15,7 @@ def main():
         df = df.drop_duplicates(subset=['Contract Name'])
     
     # Cap Moneyness between 0% and 350%
-    df = df[(df['Moneyness'] >= 0) & (df['Moneyness'] <= 3.5)]
+    #df = df[(df['Moneyness'] >= 0) & (df['Moneyness'] <= 3.5)]
     
     df = df[
         (df['Volume'] >= 0) &
