@@ -314,8 +314,8 @@ def main():
         
         ticker_df = calc_Ivol_Rvol(ticker_df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y, rvol90d)
         ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
-        heston_params = calibrate_heston(ticker_df, S, r, q)
-        ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
+        #heston_params = calibrate_heston(ticker_df, S, r, q)
+        #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
         local_df = calculate_local_vol(ticker_full, S, r, q)
         ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
         ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
