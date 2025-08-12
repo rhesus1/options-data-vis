@@ -9,6 +9,9 @@
         body { font-family: Arial, sans-serif; }
         .chart-container { width: 80%; margin: 20px auto; }
         select, input { margin: 10px; }
+        .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .stats-table th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
@@ -26,17 +29,15 @@
         <select id="expiry-select"></select>
         <canvas id="moneyness-vs-iv-chart"></canvas>
     </div>
- 
     <div class="chart-container">
         <h2>Expiry vs. Volatility</h2>
         <select id="moneyness-select"></select>
         <canvas id="expiry-vs-iv-chart"></canvas>
     </div>
- 
     <script>
         let data = [];
         let expiryChart, moneynessChart;
-        
+       
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -51,13 +52,11 @@
                     loadData(dates[0]); // Load latest by default
                 })
                 .catch(error => console.error('Error loading dates:', error));
-
             const dateSelect = document.getElementById('date-select');
             dateSelect.addEventListener('change', (e) => {
                 loadData(e.target.value);
             });
         });
-
         function loadData(timestamp) {
             fetch(`data/processed_${timestamp}.json?v=` + Date.now())
                 .then(response => response.json())
@@ -68,7 +67,6 @@
                 })
                 .catch(error => console.error('Error loading data:', error));
         }
-
         function populateDropdowns() {
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
                 .filter(val => val).sort();
@@ -138,6 +136,41 @@
                     };
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
+        }
+        function createStatsTable(chart, canvasId) {
+            const container = document.getElementById(canvasId).parentNode;
+            let existingTable = container.querySelector('.stats-table');
+            if (existingTable) existingTable.remove();
+            const table = document.createElement('table');
+            table.className = 'stats-table';
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            chart.data.datasets.forEach(dataset => {
+                if (dataset.data.length === 0) return;
+                const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
+                if (ys.length === 0) return;
+                const min = Math.min(...ys);
+                const max = Math.max(...ys);
+                const sum = ys.reduce((a, b) => a + b, 0);
+                const mean = sum / ys.length;
+                const row = document.createElement('tr');
+                [dataset.label, min.toFixed(2), max.toFixed(2), mean.toFixed(2)].forEach(text => {
+                    const td = document.createElement('td');
+                    td.textContent = text;
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
         }
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
@@ -286,221 +319,4 @@
                         'Expiry',
                         'Last Option Price'
                     ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y1'
-                }
-            ];
-            if (expiryChart) expiryChart.destroy();
-            expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
-                type: 'line',
-                data: { datasets },
-                options: {
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'day' },
-                            title: { display: true, text: 'Expiry Date' }
-                        },
-                        y: {
-                            title: { display: true, text: 'Volatility (%)' },
-                            beginAtZero: true
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { display: true, text: 'Last Option Price ($)' },
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-        function updateMoneynessVsIV() {
-            const selectedTicker = document.getElementById('ticker-select').value;
-            const selectedExpiry = document.getElementById('expiry-select').value;
-            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
-            const datasets = [
-                {
-                    label: 'Calls Implied Volatility',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Moneyness',
-                        'Implied Volatility'
-                    ),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Puts Implied Volatility',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Moneyness',
-                        'Implied Volatility'
-                    ),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Calls IV_bid-ask',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Moneyness',
-                        'IV_bid-ask'
-                    ),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Puts IV_bid-ask',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Moneyness',
-                        'IV_bid-ask'
-                    ),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Calls Heston IV',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
-                        'Moneyness',
-                        'Heston IV'
-                    ),
-                    borderColor: 'magenta',
-                    backgroundColor: 'magenta',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Puts Heston IV',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
-                        'Moneyness',
-                        'Heston IV'
-                    ),
-                    borderColor: 'magenta',
-                    backgroundColor: 'magenta',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Local Vol',
-                    data: aggregateDataByX(
-                        filteredData,
-                        'Moneyness',
-                        'Local Vol'
-                    ),
-                    borderColor: 'green',
-                    backgroundColor: 'green',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Realized Vol 90d',
-                    data: aggregateDataByX(
-                        filteredData,
-                        'Moneyness',
-                        'Realized Vol 90d'
-                    ),
-                    borderColor: 'orange',
-                    backgroundColor: 'orange',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Calls Last Option Price',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Moneyness',
-                        'Last Option Price'
-                    ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: 'Puts Last Option Price',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Moneyness',
-                        'Last Option Price'
-                    ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y1'
-                }
-            ];
-            if (moneynessChart) moneynessChart.destroy();
-            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
-                type: 'line',
-                data: { datasets },
-                options: {
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            title: { display: true, text: 'Moneyness (%)' },
-                            beginAtZero: true
-                        },
-                        y: {
-                            title: { display: true, text: 'Volatility (%)' },
-                            beginAtZero: true
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { display: true, text: 'Last Option Price ($)' },
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+                    borderColor: 'purple
