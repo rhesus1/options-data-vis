@@ -89,17 +89,25 @@
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
+                const yValue = item[yKey];
                 if (!acc[xValue]) {
                     acc[xValue] = { sum: 0, count: 0 };
                 }
-                acc[xValue].sum += item[yKey];
-                acc[xValue].count += 1;
+                if (!isNaN(yValue) && yValue !== null) {
+                    acc[xValue].sum += yValue;
+                    acc[xValue].count += 1;
+                }
                 return acc;
             }, {});
-            return Object.keys(grouped).map(x => ({
-                x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
-                y: grouped[x].sum / grouped[x].count
-            })).sort((a, b) => a.x - b.x);
+            return Object.keys(grouped).map(x => {
+                const group = grouped[x];
+                if (group.count > 0) {
+                    return {
+                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
+                        y: group.sum / group.count
+                    };
+                }
+            }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
@@ -109,7 +117,7 @@
                 {
                     label: 'Calls Implied Volatility',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['Implied Volatility'] > 0),
+                        filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'Implied Volatility'
                     ),
@@ -118,12 +126,13 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: []
+                    borderDash: [],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Puts Implied Volatility',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['Implied Volatility'] > 0),
+                        filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'Implied Volatility'
                     ),
@@ -132,12 +141,13 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: [5, 5]
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Calls IV_bid-ask',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['IV_bid-ask'] > 0),
+                        filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'IV_bid-ask'
                     ),
@@ -146,12 +156,13 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: []
+                    borderDash: [],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Puts IV_bid-ask',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['IV_bid-ask'] > 0),
+                        filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'IV_bid-ask'
                     ),
@@ -160,7 +171,68 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: [5, 5]
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Local Vol',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Expiry',
+                        'Local Vol'
+                    ),
+                    borderColor: 'green',
+                    backgroundColor: 'green',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realized Vol 90d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Expiry',
+                        'Realized Vol 90d'
+                    ),
+                    borderColor: 'orange',
+                    backgroundColor: 'orange',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Last Price',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        'Last Price'
+                    ),
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Puts Last Price',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        'Last Price'
+                    ),
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
                 }
             ];
             if (expiryChart) expiryChart.destroy();
@@ -177,6 +249,12 @@
                         y: {
                             title: { display: true, text: 'Volatility (%)' },
                             beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Last Price ($)' },
+                            beginAtZero: true
                         }
                     }
                 }
@@ -190,7 +268,7 @@
                 {
                     label: 'Calls Implied Volatility',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['Implied Volatility'] > 0),
+                        filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'Implied Volatility'
                     ),
@@ -199,12 +277,13 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: []
+                    borderDash: [],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Puts Implied Volatility',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['Implied Volatility'] > 0),
+                        filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'Implied Volatility'
                     ),
@@ -213,12 +292,13 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: [5, 5]
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Calls IV_bid-ask',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['IV_bid-ask'] > 0),
+                        filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'IV_bid-ask'
                     ),
@@ -227,12 +307,13 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: []
+                    borderDash: [],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Puts IV_bid-ask',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['IV_bid-ask'] > 0),
+                        filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'IV_bid-ask'
                     ),
@@ -241,28 +322,67 @@
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
-                    borderDash: [5, 5]
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Local Vol',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Local Vol'
+                    ),
+                    borderColor: 'green',
+                    backgroundColor: 'green',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realized Vol 90d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Realized Vol 90d'
+                    ),
+                    borderColor: 'orange',
+                    backgroundColor: 'orange',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Last Price',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'Last Price'
+                    ),
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Puts Last Price',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'Last Price'
+                    ),
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
                 }
-            ];
-            if (moneynessChart) moneynessChart.destroy();
-            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
-                type: 'line',
-                data: { datasets },
-                options: {
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            title: { display: true, text: 'Moneyness (%)' },
-                            beginAtZero: true
-                        },
-                        y: {
-                            title: { display: true, text: 'Volatility (%)' },
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+           
