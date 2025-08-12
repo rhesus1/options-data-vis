@@ -52,7 +52,7 @@
         let data = [];
         let historicData = [];
         let expiryChart, moneynessChart, historicChart;
-    
+   
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -131,26 +131,12 @@
             updateMoneynessVsIV();
             updateHistoricChart();
         }
-        function aggregateDataByX(data, xKey, yKey) {
-            const grouped = data.reduce((acc, item) => {
-                const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
+        function getRawDataPoints(data, xKey, yKey) {
+            return data.map(item => {
+                const xValue = xKey === 'Expiry' ? new Date(item[xKey]) : parseFloat(item[xKey]);
                 const yValue = item[yKey];
-                if (!acc[xValue]) {
-                    acc[xValue] = { sum: 0, count: 0 };
-                }
-                if (!isNaN(yValue) && yValue !== null) {
-                    acc[xValue].sum += yValue;
-                    acc[xValue].count += 1;
-                }
-                return acc;
-            }, {});
-            return Object.keys(grouped).map(x => {
-                const group = grouped[x];
-                if (group.count > 0) {
-                    return {
-                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
-                        y: group.sum / group.count
-                    };
+                if (!isNaN(xValue) && !isNaN(yValue) && yValue !== null) {
+                    return { x: xValue, y: yValue };
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
@@ -220,7 +206,7 @@
             const datasets = [
                 {
                     label: 'Calls Implied Volatility',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'Implied Volatility'
@@ -235,7 +221,7 @@
                 },
                 {
                     label: 'Puts Implied Volatility',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'Implied Volatility'
@@ -250,7 +236,7 @@
                 },
                 {
                     label: 'Calls IV_bid-ask',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'IV_bid-ask'
@@ -265,7 +251,7 @@
                 },
                 {
                     label: 'Puts IV_bid-ask',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'IV_bid-ask'
@@ -280,7 +266,7 @@
                 },
                 {
                     label: 'Calls Heston IV',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
                         'Expiry',
                         'Heston IV'
@@ -295,7 +281,7 @@
                 },
                 {
                     label: 'Puts Heston IV',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
                         'Expiry',
                         'Heston IV'
@@ -310,7 +296,7 @@
                 },
                 {
                     label: 'Local Vol',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData,
                         'Expiry',
                         'Local Vol'
@@ -325,7 +311,7 @@
                 },
                 {
                     label: 'Realised Vol 90d',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData,
                         'Expiry',
                         'Realised Vol 90d'
@@ -340,7 +326,7 @@
                 },
                 {
                     label: 'Calls Last Option Price',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'Last Option Price'
@@ -355,7 +341,7 @@
                 },
                 {
                     label: 'Puts Last Option Price',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'Last Option Price'
@@ -407,7 +393,7 @@
             const datasets = [
                 {
                     label: 'Calls Implied Volatility',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'Implied Volatility'
@@ -422,7 +408,7 @@
                 },
                 {
                     label: 'Puts Implied Volatility',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'Implied Volatility'
@@ -437,7 +423,7 @@
                 },
                 {
                     label: 'Calls IV_bid-ask',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'IV_bid-ask'
@@ -452,7 +438,7 @@
                 },
                 {
                     label: 'Puts IV_bid-ask',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'IV_bid-ask'
@@ -467,7 +453,7 @@
                 },
                 {
                     label: 'Calls Heston IV',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
                         'Moneyness',
                         'Heston IV'
@@ -482,7 +468,7 @@
                 },
                 {
                     label: 'Puts Heston IV',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
                         'Moneyness',
                         'Heston IV'
@@ -497,7 +483,7 @@
                 },
                 {
                     label: 'Local Vol',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData,
                         'Moneyness',
                         'Local Vol'
@@ -512,7 +498,7 @@
                 },
                 {
                     label: 'Realised Vol 90d',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData,
                         'Moneyness',
                         'Realised Vol 90d'
@@ -527,7 +513,7 @@
                 },
                 {
                     label: 'Calls Last Option Price',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'Last Option Price'
@@ -542,7 +528,7 @@
                 },
                 {
                     label: 'Puts Last Option Price',
-                    data: aggregateDataByX(
+                    data: getRawDataPoints(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'Last Option Price'
@@ -569,9 +555,7 @@
                     scales: {
                         x: {
                             type: 'linear',
-                            title: { display: true, text: 'Moneyness (%)' },
-                            min: 0,
-                            max: 300
+                            title: { display: true, text: 'Moneyness (%)' }
                         },
                         y: {
                             title: { display: true, text: 'Volatility (%)' },
