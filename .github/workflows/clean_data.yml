@@ -1,0 +1,40 @@
+name: Clean Options Data
+
+on:
+  workflow_run:
+    workflows: ["Fetch Options Data"]
+    types:
+      - completed
+  workflow_dispatch:  # Manual trigger option
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install yfinance pandas numpy scipy  # Your script's requirements
+
+    - name: Create data directory
+      run: mkdir -p data
+
+    - name: Run clean script
+      run: python clean_data.py
+
+    - name: Commit and push updated data
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data
+        git commit -m "Auto-update cleaned data" || echo "No changes to commit"
+        git push
