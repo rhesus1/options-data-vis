@@ -351,7 +351,7 @@ def calculate_local_vol(full_df, S, r, q):
 def calc_moneyness(df, ticker):
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
-    df["Moneyness"] = np.round(S / (df['Strike']) / 0.1) * 0.1
+    df["Moneyness"] = np.round(S / (df['Strike']) / 0.05) * 0.05
     return df
 
 def process_ticker(ticker):
