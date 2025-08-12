@@ -25,11 +25,11 @@ def main():
         (df['Open Interest'] >= 0) &
         (df['Bid'] >= 0) &
         (df['Ask'] >= 0) &
-        (df['Moneyness'] <= 200) &
+        (df['Moneyness'] <= 300) &
         (df['Moneyness'] >= 10) &
-        (df['Bid'] <= df['Ask']) &  # Strict < to ensure positive spread
-        (df['Bid'] <= df['Last Option Price']) &
-        (df['Last Option Price'] <= df['Ask']) &
+        #(df['Bid'] <= df['Ask']) &  # Strict < to ensure positive spread
+        #(df['Bid'] <= df['Last Option Price']) &
+        #(df['Last Option Price'] <= df['Ask']) &
         (df['Implied Volatility'] > 0.001)  # Remove zero IV
     ]
     
