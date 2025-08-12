@@ -12,7 +12,7 @@
         .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         .stats-table th { background-color: #f2f2f2; }
-        .colour-swatch { width: 20px; height: 20px; }
+        .line-swatch { display: inline-block; vertical-align: middle; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -38,7 +38,7 @@
     <script>
         let data = [];
         let expiryChart, moneynessChart;
-       
+      
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -146,7 +146,7 @@
             table.className = 'stats-table';
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            ['Colour', 'Label', 'Min', 'Max', 'Mean'].forEach(text => {
+            ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -163,14 +163,25 @@
                 const sum = ys.reduce((a, b) => a + b, 0);
                 const mean = sum / ys.length;
                 const row = document.createElement('tr');
-                const colourTd = document.createElement('td');
-                const swatch = document.createElement('div');
-                swatch.className = 'colour-swatch';
-                swatch.style.backgroundColor = dataset.borderColor;
-                colourTd.appendChild(swatch);
-                row.appendChild(colourTd);
                 const labelTd = document.createElement('td');
-                labelTd.textContent = dataset.label;
+                const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                swatch.setAttribute('width', '20');
+                swatch.setAttribute('height', '10');
+                swatch.setAttribute('class', 'line-swatch');
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '0');
+                line.setAttribute('y1', '5');
+                line.setAttribute('x2', '20');
+                line.setAttribute('y2', '5');
+                line.setAttribute('stroke', dataset.borderColor);
+                line.setAttribute('stroke-width', '2');
+                if (dataset.borderDash && dataset.borderDash.length > 0) {
+                    line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
+                }
+                swatch.appendChild(line);
+                labelTd.appendChild(swatch);
+                const labelText = document.createTextNode(` ${dataset.label}`);
+                labelTd.appendChild(labelText);
                 row.appendChild(labelTd);
                 const minTd = document.createElement('td');
                 minTd.textContent = min.toFixed(2);
