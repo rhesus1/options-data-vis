@@ -15,10 +15,10 @@ def main():
     if duplicates > 0:
         df = df.drop_duplicates(subset=['Contract Name'])
 
-    key_cols = ['Ticker', 'Type', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 
-                'Open Interest', 'Last Option Price', 'Implied Volatility', 'Last Stock Price']
-    na_before = df[key_cols].isna().any(axis=1).sum()
-    df = df.dropna(subset=key_cols)
+    #key_cols = ['Ticker', 'Type', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 
+    #            'Open Interest', 'Last Option Price', 'Implied Volatility', 'Last Stock Price']
+    #na_before = df[key_cols].isna().any(axis=1).sum()
+    #df = df.dropna(subset=key_cols)
 
     df = df[
         (df['Volume'] >= 0) &
@@ -39,15 +39,15 @@ def main():
         (df['Open Interest'] >= oi_threshold)
     ]
 
-    df['Spread'] = df['Ask'] - df['Bid']
-    df['Mid Price'] = (df['Ask'] + df['Bid']) / 2
-    df = df[df['Spread'] / df['Mid Price'] <= 0.2]
+    #df['Spread'] = df['Ask'] - df['Bid']
+    #df['Mid Price'] = (df['Ask'] + df['Bid']) / 2
+    #df = df[df['Spread'] / df['Mid Price'] <= 0.2]
 
-    for col in ['Volume', 'Open Interest', 'Implied Volatility']:
-        Q1 = df[col].quantile(0.25)
-        Q3 = df[col].quantile(0.75)
-        IQR = Q3 - Q1
-        df = df[(df[col] >= Q1 - 1.5 * IQR) & (df[col] <= Q3 + 1.5 * IQR)]
+    #for col in ['Volume', 'Open Interest', 'Implied Volatility']:
+    #    Q1 = df[col].quantile(0.25)
+    #    Q3 = df[col].quantile(0.75)
+    #    IQR = Q3 - Q1
+    #    df = df[(df[col] >= Q1 - 1.5 * IQR) & (df[col] <= Q3 + 1.5 * IQR)]
     
     timestamp = os.path.basename(latest_raw).split('raw_')[1].split('.csv')[0]
     clean_filename = f'data/cleaned_{timestamp}.csv'
