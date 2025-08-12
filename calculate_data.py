@@ -10,6 +10,7 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 from scipy.interpolate import griddata
 from scipy.optimize import minimize
+import multiprocessing
 
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
@@ -267,6 +268,32 @@ def calculate_local_vol(full_df, S, r, q):
     
     return pd.DataFrame(local_vol_data)
 
+def process_ticker(ticker, df, full_df):
+    print(f"Processing calculations for {ticker}...")
+    ticker_df = df[df['Ticker'] == ticker].copy()
+    ticker_full = full_df[full_df['Ticker'] == ticker].copy()
+    if ticker_df.empty:
+        return None
+
+    rvol90d = calculate_rvol_days(ticker, 90)
+    print(f"\nRealized Volatility for {ticker}:")
+    print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
+
+    ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
+    ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
+    # heston_params = calibrate_heston(ticker_df, S, r, q)  # Uncomment if needed
+    # ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
+    #local_df = calculate_local_vol(ticker_full, S, r, q)
+    #if not local_df.empty:
+    #    ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
+    #else:
+    #    ticker_df['Local Vol'] = np.nan
+    ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
+    ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
+    ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
+
+    return ticker_df
+
 def main():
     clean_files = glob.glob('data/cleaned_*.csv')
     if not clean_files:
@@ -280,40 +307,24 @@ def main():
         print(f"Corresponding raw file {raw_file} not found")
         return
     full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
-    
-    processed_dfs = []
-    for ticker in df['Ticker'].unique():
-        print(f"Processing calculations for {ticker}...")
-        ticker_df = df[df['Ticker'] == ticker].copy()
-        ticker_full = full_df[full_df['Ticker'] == ticker].copy()
-        if ticker_df.empty:
-            continue
-        rvol90d = calculate_rvol_days(ticker, 90)
-        
-        print(f"\nRealized Volatility for {ticker}:")
-        print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
-        
-        ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
-        ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
-        #heston_params = calibrate_heston(ticker_df, S, r, q)
-        #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
-        local_df = calculate_local_vol(ticker_full, S, r, q)
-        if not local_df.empty:
-            ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
-        else:
-            ticker_df['Local Vol'] = np.nan
-        ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
-        ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
-        ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
-        
-        processed_dfs.append(ticker_df)
-    
+
+    tickers = df['Ticker'].unique()
+    if len(tickers) == 0:
+        print("No tickers found")
+        return
+
+    # Parallel processing: Use a pool of workers
+    with multiprocessing.Pool(processes=4) as pool:  # Adjust processes to your CPU cores - 1
+        processed_dfs = pool.starmap(process_ticker, [(ticker, df, full_df) for ticker in tickers])
+
+    # Filter out None results and combine
+    processed_dfs = [pdf for pdf in processed_dfs if pdf is not None]
     if processed_dfs:
         combined_processed = pd.concat(processed_dfs, ignore_index=True)
         processed_filename = f'data/processed_{timestamp}.json'
         combined_processed.to_json(processed_filename, orient='records', date_format='iso')
         print(f"Processed data saved to {processed_filename}")
-        
+
         dates_file = 'data/dates.json'
         if os.path.exists(dates_file):
             with open(dates_file, 'r') as f:
