@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 from scipy.optimize import brentq
 from scipy.stats import norm
 from scipy.interpolate import griddata
+from scipy.optimize import minimize
 import json
 import multiprocessing
+import cmath
 
-def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percentile=50):
+def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percentile=25):
     option_data = []
     stock = yf.Ticker(ticker)
  
@@ -99,7 +101,7 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percenti
         df = df[
             (df['Volume'] >= volume_threshold) &
             (df['Open Interest'] >= oi_threshold) &
-            #(df['Ask'] - df['Bid'] >= 0.1) &
+            (df['Ask'] - df['Bid'] >= 0.1) &
             (df['Bid'] >= 0) &
             (df['Ask'] >= 0) &
             (df['Bid'] <= df['Ask'])
@@ -126,8 +128,8 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return 0.0 # No IV for invalid price or time
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
     if price < intrinsic * np.exp(-r * T): # Price below discounted intrinsic value
-        print(f"Warning: {option_type.capitalize()} {contract_name} price {price} below intrinsic {intrinsic * np.exp(-r * T):.2f}; returning null")
-        return np.nan
+        print(f"Warning: {option_type.capitalize()} {contract_name} price {price} below intrinsic {intrinsic * np.exp(-r * T):.2f}; returning 0.0001")
+        return 0.0001
     def objective(sigma):
         if option_type.lower() == 'call':
             return black_scholes_call(S, K, T, r, q, sigma) - price
@@ -285,6 +287,61 @@ def calculate_metrics(df, ticker):
         df.at[idx, 'IV_spread'] = df.at[idx, 'IV_ask'] - df.at[idx, 'IV_bid'] if not np.isnan(df.at[idx, 'IV_bid']) else np.nan
     return df, skew_df, slope_df, S, r, q
 
+def heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau):
+    i = complex(0, 1)
+    d = cmath.sqrt((rho * sigma_vol * i * phi - kappa)**2 + sigma_vol**2 * (i * phi + phi**2))
+    g = (kappa - rho * sigma_vol * i * phi - d) / (kappa - rho * sigma_vol * i * phi + d)
+    C = r * i * phi * tau + (kappa * theta / sigma_vol**2) * ((kappa - rho * sigma_vol * i * phi - d) * tau - 2 * cmath.log((1 - g * cmath.exp(-d * tau)) / (1 - g)))
+    D = ((kappa - rho * sigma_vol * i * phi - d) / sigma_vol**2) * ((1 - cmath.exp(-d * tau)) / (1 - g * cmath.exp(-d * tau)))
+    return cmath.exp(C + D * v0 + i * phi * cmath.log(S0))
+
+def heston_price_call(S0, K, v0, kappa, theta, sigma_vol, rho, r, tau):
+    i = complex(0, 1)
+    def integrand(phi):
+        return np.real(cmath.exp(-i * phi * np.log(K)) / (i * phi) * heston_char_func(phi - i, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / heston_char_func(-i, S0, v0, kappa, theta, sigma_vol, rho, r, tau))
+    phi_vals = np.linspace(0.01, 100, 1000)
+    integral = np.trapz(integrand(phi_vals), dx=phi_vals[1] - phi_vals[0])
+    P1 = 0.5 + (1 / np.pi) * integral
+    def integrand2(phi):
+        return np.real(heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / (i * phi * cmath.exp(i * phi * np.log(K))))
+    integral2 = np.trapz(integrand2(phi_vals), dx=phi_vals[1] - phi_vals[0])
+    P2 = 0.5 + (1 / np.pi) * integral2
+    return S0 * P1 - K * np.exp(-r * tau) * P2
+
+def calibrate_heston(df, S, r, q):
+    def objective(params):
+        v0, kappa, theta, sigma_vol, rho = params
+        error = 0.0
+        for idx, row in df.iterrows():
+            T = row['Years_to_Expiry']
+            K = row['Strike']
+            market_price = 0.5 * (row['Bid'] + row['Ask'])
+            model_price = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
+            error += (model_price - market_price)**2
+        return error
+    # Initial guess and bounds
+    initial = [0.04, 2.0, 0.04, 0.3, -0.7]
+    bounds = [(0.01, 0.2), (0.1, 5.0), (0.01, 0.2), (0.1, 1.0), (-0.99, 0.99)]
+    result = minimize(objective, initial, bounds=bounds, method='L-BFGS-B')
+    if result.success:
+        return result.x
+    else:
+        print("Heston calibration failed:", result.message)
+        return None
+
+def calculate_heston_iv(df, S, r, q, heston_params):
+    if heston_params is None:
+        df['Heston IV'] = np.nan
+        return df
+    v0, kappa, theta, sigma_vol, rho = heston_params
+    df['Heston IV'] = np.nan
+    for idx, row in df.iterrows():
+        T = row['Years_to_Expiry']
+        K = row['Strike']
+        heston_p = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
+        df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower()) * 100
+    return df
+
 def calculate_local_vol(full_df, S, r, q):
     calls = full_df[full_df['Type'] == 'Call'].copy()
     if calls.empty:
@@ -351,7 +408,7 @@ def calculate_local_vol(full_df, S, r, q):
 def calc_moneyness(df, ticker):
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
-    df["Moneyness"] = np.round(S / (df['Strike']) / 0.05) * 0.05
+    df["Moneyness"] = np.round(S / (df['Strike']) / 0.1) * 0.1
     return df
 
 def process_ticker(ticker):
@@ -391,6 +448,12 @@ def process_ticker(ticker):
    
     # Calculate metrics
     df, skew_df, slope_df, S, r, q = calculate_metrics(df, ticker)
+   
+    # Calibrate Heston parameters
+    heston_params = calibrate_heston(df, S, r, q)
+   
+    # Calculate Heston IV
+    df = calculate_heston_iv(df, S, r, q, heston_params)
    
     # Calculate local (diffusion) vol on full_df for denser surface
     local_df = calculate_local_vol(full_df, S, r, q)
