@@ -36,7 +36,7 @@ def main():
     
     df = df[
         (df['Volume'] >= volume_threshold) &
-        (df['Open Interest'] >= oi_threshold) &
+        (df['Open Interest'] >= oi_threshold)
     ]
 
     df['Spread'] = df['Ask'] - df['Bid']
