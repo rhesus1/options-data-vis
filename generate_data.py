@@ -9,7 +9,7 @@ from scipy.interpolate import griddata
 import json
 import multiprocessing
 
-def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percentile=25):
+def fetch_option_data(ticker, strikes, min_volume_percentile=50, min_oi_percentile=50):
     option_data = []
     stock = yf.Ticker(ticker)
  
@@ -126,8 +126,8 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return 0.0 # No IV for invalid price or time
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
     if price < intrinsic * np.exp(-r * T): # Price below discounted intrinsic value
-        print(f"Warning: {option_type.capitalize()} {contract_name} price {price} below intrinsic {intrinsic * np.exp(-r * T):.2f}; returning 0.0001")
-        return 0.0001
+        print(f"Warning: {option_type.capitalize()} {contract_name} price {price} below intrinsic {intrinsic * np.exp(-r * T):.2f}; returning null")
+        return np.nan
     def objective(sigma):
         if option_type.lower() == 'call':
             return black_scholes_call(S, K, T, r, q, sigma) - price
