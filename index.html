@@ -7,12 +7,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body { font-family: Arial, sans-serif; }
-        .chart-container { width: 80%; margin: 20px auto; }
+        .chart-container { width: 100%; margin: 0; }
         select, input { margin: 10px; }
         .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         .stats-table th { background-color: #f2f2f2; }
         .line-swatch { display: inline-block; vertical-align: middle; margin-right: 5px; }
+        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 80%; margin: 20px auto; }
     </style>
 </head>
 <body>
@@ -25,25 +26,27 @@
         <label for="ticker-select">Select Ticker: </label>
         <select id="ticker-select"></select>
     </div>
-    <div class="chart-container">
-        <h2>Moneyness vs. Volatility</h2>
-        <select id="expiry-select"></select>
-        <canvas id="moneyness-vs-iv-chart"></canvas>
-    </div>
-    <div class="chart-container">
-        <h2>Expiry vs. Volatility</h2>
-        <select id="moneyness-select"></select>
-        <canvas id="expiry-vs-iv-chart"></canvas>
-    </div>
-    <div class="chart-container">
-        <h2>Historic Stock Price with 90-day Realised Volatility</h2>
-        <canvas id="historic-price-chart"></canvas>
+    <div class="grid-container">
+        <div class="chart-container">
+            <h2>Moneyness vs. Volatility</h2>
+            <select id="expiry-select"></select>
+            <canvas id="moneyness-vs-iv-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h2>Expiry vs. Volatility</h2>
+            <select id="moneyness-select"></select>
+            <canvas id="expiry-vs-iv-chart"></canvas>
+        </div>
+        <div class="chart-container" style="grid-column: span 2;">
+            <h2>Historic Stock Price with 90-day Realised Volatility</h2>
+            <canvas id="historic-price-chart"></canvas>
+        </div>
     </div>
     <script>
         let data = [];
         let historicData = [];
         let expiryChart, moneynessChart, historicChart;
-     
+    
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -223,8 +226,8 @@
                         'Expiry',
                         'Implied Volatility'
                     ),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -238,8 +241,8 @@
                         'Expiry',
                         'Implied Volatility'
                     ),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -253,8 +256,8 @@
                         'Expiry',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -268,8 +271,8 @@
                         'Expiry',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -283,8 +286,8 @@
                         'Expiry',
                         'Heston IV'
                     ),
-                    borderColor: 'magenta',
-                    backgroundColor: 'magenta',
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -298,8 +301,8 @@
                         'Expiry',
                         'Heston IV'
                     ),
-                    borderColor: 'magenta',
-                    backgroundColor: 'magenta',
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -313,8 +316,8 @@
                         'Expiry',
                         'Local Vol'
                     ),
-                    borderColor: 'green',
-                    backgroundColor: 'green',
+                    borderColor: '#B4F8C8',
+                    backgroundColor: '#B4F8C8',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -328,8 +331,8 @@
                         'Expiry',
                         'Realised Vol 90d'
                     ),
-                    borderColor: 'orange',
-                    backgroundColor: 'orange',
+                    borderColor: '#FBE7C6',
+                    backgroundColor: '#FBE7C6',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -343,8 +346,8 @@
                         'Expiry',
                         'Last Option Price'
                     ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
+                    borderColor: '#D7A1F9',
+                    backgroundColor: '#D7A1F9',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -358,8 +361,8 @@
                         'Expiry',
                         'Last Option Price'
                     ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
+                    borderColor: '#D7A1F9',
+                    backgroundColor: '#D7A1F9',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -410,8 +413,8 @@
                         'Moneyness',
                         'Implied Volatility'
                     ),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -425,8 +428,8 @@
                         'Moneyness',
                         'Implied Volatility'
                     ),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -440,8 +443,8 @@
                         'Moneyness',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -455,8 +458,8 @@
                         'Moneyness',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -470,8 +473,8 @@
                         'Moneyness',
                         'Heston IV'
                     ),
-                    borderColor: 'magenta',
-                    backgroundColor: 'magenta',
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -485,8 +488,8 @@
                         'Moneyness',
                         'Heston IV'
                     ),
-                    borderColor: 'magenta',
-                    backgroundColor: 'magenta',
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -500,8 +503,8 @@
                         'Moneyness',
                         'Local Vol'
                     ),
-                    borderColor: 'green',
-                    backgroundColor: 'green',
+                    borderColor: '#B4F8C8',
+                    backgroundColor: '#B4F8C8',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -515,8 +518,8 @@
                         'Moneyness',
                         'Realised Vol 90d'
                     ),
-                    borderColor: 'orange',
-                    backgroundColor: 'orange',
+                    borderColor: '#FBE7C6',
+                    backgroundColor: '#FBE7C6',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -530,8 +533,8 @@
                         'Moneyness',
                         'Last Option Price'
                     ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
+                    borderColor: '#D7A1F9',
+                    backgroundColor: '#D7A1F9',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -545,8 +548,8 @@
                         'Moneyness',
                         'Last Option Price'
                     ),
-                    borderColor: 'purple',
-                    backgroundColor: 'purple',
+                    borderColor: '#D7A1F9',
+                    backgroundColor: '#D7A1F9',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -596,8 +599,8 @@
                 {
                     label: 'Stock Price',
                     data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -606,8 +609,8 @@
                 {
                     label: '90-day Realized Vol (%)',
                     data: vols.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: 'red',
-                    backgroundColor: 'red',
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
