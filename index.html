@@ -7,7 +7,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body { font-family: Arial, sans-serif; }
-        .chart-container { width: 80%; margin: 20px auto; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 20px;
+            width: 80%;
+            margin: 20px auto;
+        }
+        .chart-container { width: 100%; margin: 0; }
         select, input { margin: 10px; }
         .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -25,25 +32,27 @@
         <label for="ticker-select">Select Ticker: </label>
         <select id="ticker-select"></select>
     </div>
-    <div class="chart-container">
-        <h2>Moneyness vs. Volatility</h2>
-        <select id="expiry-select"></select>
-        <canvas id="moneyness-vs-iv-chart"></canvas>
-    </div>
-    <div class="chart-container">
-        <h2>Expiry vs. Volatility</h2>
-        <select id="moneyness-select"></select>
-        <canvas id="expiry-vs-iv-chart"></canvas>
-    </div>
-    <div class="chart-container">
-        <h2>Historic Stock Price with 90-day Realised Volatility</h2>
-        <canvas id="historic-price-chart"></canvas>
+    <div class="grid-container">
+        <div class="chart-container">
+            <h2>Moneyness vs. Volatility</h2>
+            <select id="expiry-select"></select>
+            <canvas id="moneyness-vs-iv-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h2>Expiry vs. Volatility</h2>
+            <select id="moneyness-select"></select>
+            <canvas id="expiry-vs-iv-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h2>Historic Stock Price with 90-day Realised Volatility</h2>
+            <canvas id="historic-price-chart"></canvas>
+        </div>
     </div>
     <script>
         let data = [];
         let historicData = [];
         let expiryChart, moneynessChart, historicChart;
-     
+    
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
