@@ -2,19 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Options Data</title>
+    <title>Options Data Visualisation</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body { font-family: Arial, sans-serif; }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-gap: 20px;
-            width: 80%;
-            margin: 20px auto;
-        }
-        .chart-container { width: 100%; margin: 0; }
+        .chart-container { width: 80%; margin: 20px auto; }
         select, input { margin: 10px; }
         .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -32,27 +25,25 @@
         <label for="ticker-select">Select Ticker: </label>
         <select id="ticker-select"></select>
     </div>
-    <div class="grid-container">
-        <div class="chart-container">
-            <h2>Moneyness vs. Volatility</h2>
-            <select id="expiry-select"></select>
-            <canvas id="moneyness-vs-iv-chart"></canvas>
-        </div>
-        <div class="chart-container">
-            <h2>Expiry vs. Volatility</h2>
-            <select id="moneyness-select"></select>
-            <canvas id="expiry-vs-iv-chart"></canvas>
-        </div>
-        <div class="chart-container">
-            <h2>Historic Stock Price with 90-day Realised Volatility</h2>
-            <canvas id="historic-price-chart"></canvas>
-        </div>
+    <div class="chart-container">
+        <h2>Moneyness vs. Volatility</h2>
+        <select id="expiry-select"></select>
+        <canvas id="moneyness-vs-iv-chart"></canvas>
+    </div>
+    <div class="chart-container">
+        <h2>Expiry vs. Volatility</h2>
+        <select id="moneyness-select"></select>
+        <canvas id="expiry-vs-iv-chart"></canvas>
+    </div>
+    <div class="chart-container">
+        <h2>Historic Stock Price with 90-day Realised Volatility</h2>
+        <canvas id="historic-price-chart"></canvas>
     </div>
     <script>
         let data = [];
         let historicData = [];
         let expiryChart, moneynessChart, historicChart;
-   
+     
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -73,15 +64,21 @@
             });
         });
         function loadData(timestamp) {
-            Promise.all([
-                fetch(`data/processed_${timestamp}.json?v=` + Date.now()).then(response => response.json()),
-                fetch(`data/historic_${timestamp}.json?v=` + Date.now()).then(response => response.json())
-            ]).then(([jsonData, historicJson]) => {
-                data = jsonData;
-                historicData = historicJson;
-                populateDropdowns();
-                updateCharts();
-            }).catch(error => console.error('Error loading data:', error));
+            fetch(`data/processed_${timestamp}.json?v=` + Date.now())
+                .then(response => response.json())
+                .then(jsonData => {
+                    data = jsonData;
+                    populateDropdowns();
+                    updateCharts();
+                })
+                .catch(error => console.error('Error loading data:', error));
+            fetch(`data/historic_${timestamp}.json?v=` + Date.now())
+                .then(response => response.json())
+                .then(jsonData => {
+                    historicData = jsonData;
+                    updateHistoricChart();
+                })
+                .catch(error => console.error('Error loading historic data:', error));
         }
         function populateDropdowns() {
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
@@ -97,6 +94,7 @@
             tickerSelect.addEventListener('change', () => {
                 updateDropdowns();
                 updateCharts();
+                updateHistoricChart();
             });
             updateDropdowns();
             document.getElementById('moneyness-select').addEventListener('change', updateCharts);
@@ -131,12 +129,26 @@
             updateMoneynessVsIV();
             updateHistoricChart();
         }
-        function getRawDataPoints(data, xKey, yKey) {
-            return data.map(item => {
-                const xValue = xKey === 'Expiry' ? new Date(item[xKey]) : parseFloat(item[xKey]);
+        function aggregateDataByX(data, xKey, yKey) {
+            const grouped = data.reduce((acc, item) => {
+                const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
                 const yValue = item[yKey];
-                if (!isNaN(xValue) && !isNaN(yValue) && yValue !== null) {
-                    return { x: xValue, y: yValue };
+                if (!acc[xValue]) {
+                    acc[xValue] = { sum: 0, count: 0 };
+                }
+                if (!isNaN(yValue) && yValue !== null) {
+                    acc[xValue].sum += yValue;
+                    acc[xValue].count += 1;
+                }
+                return acc;
+            }, {});
+            return Object.keys(grouped).map(x => {
+                const group = grouped[x];
+                if (group.count > 0) {
+                    return {
+                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
+                        y: group.sum / group.count
+                    };
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
@@ -206,13 +218,13 @@
             const datasets = [
                 {
                     label: 'Calls Implied Volatility',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'Implied Volatility'
                     ),
-                    borderColor: 'teal',
-                    backgroundColor: 'teal',
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -221,13 +233,13 @@
                 },
                 {
                     label: 'Puts Implied Volatility',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'Implied Volatility'
                     ),
-                    borderColor: 'teal',
-                    backgroundColor: 'teal',
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -236,13 +248,13 @@
                 },
                 {
                     label: 'Calls IV_bid-ask',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'lightcoral',
-                    backgroundColor: 'lightcoral',
+                    borderColor: 'red',
+                    backgroundColor: 'red',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -251,13 +263,13 @@
                 },
                 {
                     label: 'Puts IV_bid-ask',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'lightcoral',
-                    backgroundColor: 'lightcoral',
+                    borderColor: 'red',
+                    backgroundColor: 'red',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -266,13 +278,13 @@
                 },
                 {
                     label: 'Calls Heston IV',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
                         'Expiry',
                         'Heston IV'
                     ),
-                    borderColor: 'plum',
-                    backgroundColor: 'plum',
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -281,13 +293,13 @@
                 },
                 {
                     label: 'Puts Heston IV',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
                         'Expiry',
                         'Heston IV'
                     ),
-                    borderColor: 'plum',
-                    backgroundColor: 'plum',
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -296,13 +308,13 @@
                 },
                 {
                     label: 'Local Vol',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData,
                         'Expiry',
                         'Local Vol'
                     ),
-                    borderColor: 'lightgreen',
-                    backgroundColor: 'lightgreen',
+                    borderColor: 'green',
+                    backgroundColor: 'green',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -311,13 +323,13 @@
                 },
                 {
                     label: 'Realised Vol 90d',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData,
                         'Expiry',
                         'Realised Vol 90d'
                     ),
-                    borderColor: 'lightsalmon',
-                    backgroundColor: 'lightsalmon',
+                    borderColor: 'orange',
+                    backgroundColor: 'orange',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -326,13 +338,13 @@
                 },
                 {
                     label: 'Calls Last Option Price',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'Last Option Price'
                     ),
-                    borderColor: 'lavender',
-                    backgroundColor: 'lavender',
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -341,13 +353,13 @@
                 },
                 {
                     label: 'Puts Last Option Price',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
                         'Last Option Price'
                     ),
-                    borderColor: 'lavender',
-                    backgroundColor: 'lavender',
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -393,13 +405,13 @@
             const datasets = [
                 {
                     label: 'Calls Implied Volatility',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'Implied Volatility'
                     ),
-                    borderColor: 'teal',
-                    backgroundColor: 'teal',
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -408,13 +420,13 @@
                 },
                 {
                     label: 'Puts Implied Volatility',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'Implied Volatility'
                     ),
-                    borderColor: 'teal',
-                    backgroundColor: 'teal',
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -423,13 +435,13 @@
                 },
                 {
                     label: 'Calls IV_bid-ask',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'lightcoral',
-                    backgroundColor: 'lightcoral',
+                    borderColor: 'red',
+                    backgroundColor: 'red',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -438,13 +450,13 @@
                 },
                 {
                     label: 'Puts IV_bid-ask',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'IV_bid-ask'
                     ),
-                    borderColor: 'lightcoral',
-                    backgroundColor: 'lightcoral',
+                    borderColor: 'red',
+                    backgroundColor: 'red',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -453,13 +465,13 @@
                 },
                 {
                     label: 'Calls Heston IV',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
                         'Moneyness',
                         'Heston IV'
                     ),
-                    borderColor: 'plum',
-                    backgroundColor: 'plum',
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -468,13 +480,13 @@
                 },
                 {
                     label: 'Puts Heston IV',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
                         'Moneyness',
                         'Heston IV'
                     ),
-                    borderColor: 'plum',
-                    backgroundColor: 'plum',
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -483,13 +495,13 @@
                 },
                 {
                     label: 'Local Vol',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData,
                         'Moneyness',
                         'Local Vol'
                     ),
-                    borderColor: 'lightgreen',
-                    backgroundColor: 'lightgreen',
+                    borderColor: 'green',
+                    backgroundColor: 'green',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -498,13 +510,13 @@
                 },
                 {
                     label: 'Realised Vol 90d',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData,
                         'Moneyness',
                         'Realised Vol 90d'
                     ),
-                    borderColor: 'lightsalmon',
-                    backgroundColor: 'lightsalmon',
+                    borderColor: 'orange',
+                    backgroundColor: 'orange',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -513,13 +525,13 @@
                 },
                 {
                     label: 'Calls Last Option Price',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'Last Option Price'
                     ),
-                    borderColor: 'lavender',
-                    backgroundColor: 'lavender',
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -528,13 +540,13 @@
                 },
                 {
                     label: 'Puts Last Option Price',
-                    data: getRawDataPoints(
+                    data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
                         'Last Option Price'
                     ),
-                    borderColor: 'lavender',
-                    backgroundColor: 'lavender',
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -555,7 +567,8 @@
                     scales: {
                         x: {
                             type: 'linear',
-                            title: { display: true, text: 'Moneyness (%)' }
+                            title: { display: true, text: 'Moneyness (%)' },
+                            beginAtZero: true
                         },
                         y: {
                             title: { display: true, text: 'Volatility (%)' },
@@ -583,8 +596,8 @@
                 {
                     label: 'Stock Price',
                     data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                    borderColor: 'lightblue',
-                    backgroundColor: 'lightblue',
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -593,8 +606,8 @@
                 {
                     label: '90-day Realized Vol (%)',
                     data: vols.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: 'lightcoral',
-                    backgroundColor: 'lightcoral',
+                    borderColor: 'red',
+                    backgroundColor: 'red',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -630,7 +643,6 @@
                     }
                 }
             });
-            createStatsTable(historicChart, 'historic-price-chart');
         }
     </script>
 </body>
