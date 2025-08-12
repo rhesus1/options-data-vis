@@ -313,13 +313,38 @@ def main():
         
         ticker_df = calc_Ivol_Rvol(ticker_df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y, rvol90d)
         ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
-        heston_params = calibrate_heston(ticker_df, S, r, q)
-        ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
+        #heston_params = calibrate_heston(ticker_df, S, r, q)
+        #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
         local_df = calculate_local_vol(ticker_full, S, r, q)
         ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
         ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
         ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
         ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
+        
+        # Add skew gradient and convexity calculations
+        ticker_df['Call Skew Gradient'] = np.nan
+        ticker_df['Put Skew Gradient'] = np.nan
+        ticker_df['Upside Convexity'] = np.nan
+        ticker_df['Downside Convexity'] = np.nan
+        for exp in ticker_df['Expiry'].unique():
+            for opt_type in ["Call", "Put"]:
+                subset = ticker_df[(ticker_df['Expiry'] == exp) & (ticker_df['Type'] == opt_type)].sort_values('Moneyness')
+                if len(subset) < 2:
+                    continue
+                M = subset['Moneyness'].values
+                IV = subset['Implied Volatility'].values
+                grad = np.gradient(IV, M)
+                if len(subset) < 3:
+                    conv = np.full(len(grad), np.nan)
+                else:
+                    conv = np.gradient(grad, M)
+                if opt_type == "Call":
+                    ticker_df.loc[subset.index, 'Call Skew Gradient'] = grad
+                    ticker_df.loc[subset.index, 'Upside Convexity'] = conv
+                else:
+                    ticker_df.loc[subset.index, 'Put Skew Gradient'] = grad
+                    ticker_df.loc[subset.index, 'Downside Convexity'] = conv
+        
         processed_dfs.append(ticker_df)
     
     if processed_dfs:
