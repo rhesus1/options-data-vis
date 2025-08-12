@@ -39,6 +39,15 @@
         </div>
         <div class="chart-container" style="grid-column: span 2;">
             <h2>Historic Stock Price with 90-day Realised Volatility</h2>
+            <label for="history-select">Select History Length: </label>
+            <select id="history-select">
+                <option value="1m">1-month</option>
+                <option value="3m">3-month</option>
+                <option value="6m">6-month</option>
+                <option value="1y">1-year</option>
+                <option value="5y">5-year</option>
+                <option value="all" selected>All</option>
+            </select>
             <canvas id="historic-price-chart"></canvas>
         </div>
     </div>
@@ -59,7 +68,33 @@
                 return obj;
             });
         }
-    
+
+        function calculateDateRange(historyLength) {
+            const now = new Date();
+            let fromDate = new Date();
+            switch (historyLength) {
+                case '1m':
+                    fromDate.setMonth(now.getMonth() - 1);
+                    break;
+                case '3m':
+                    fromDate.setMonth(now.getMonth() - 3);
+                    break;
+                case '6m':
+                    fromDate.setMonth(now.getMonth() - 6);
+                    break;
+                case '1y':
+                    fromDate.setFullYear(now.getFullYear() - 1);
+                    break;
+                case '5y':
+                    fromDate.setFullYear(now.getFullYear() - 5);
+                    break;
+                case 'all':
+                default:
+                    return null; // No filtering
+            }
+            return fromDate;
+        }
+   
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -78,6 +113,8 @@
             dateSelect.addEventListener('change', (e) => {
                 loadData(e.target.value);
             });
+            const historySelect = document.getElementById('history-select');
+            historySelect.addEventListener('change', updateHistoricChart);
         });
         function loadData(timestamp) {
             fetch(`data/processed_${timestamp}.json?v=` + Date.now())
@@ -143,12 +180,11 @@
         function updateCharts() {
             updateExpiryVsIV();
             updateMoneynessVsIV();
-            updateHistoricChart();
         }
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
-                const yValue = item[yKey];
+                const yValue = parseFloat(item[yKey]);
                 if (!acc[xValue]) {
                     acc[xValue] = { sum: 0, count: 0 };
                 }
@@ -295,7 +331,7 @@
                 {
                     label: 'Calls Heston IV',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        filteredData.filter(item => item.Type === 'Call' && parseFloat(item['Heston IV']) > 0),
                         'Expiry',
                         'Heston IV'
                     ),
@@ -310,7 +346,7 @@
                 {
                     label: 'Puts Heston IV',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        filteredData.filter(item => item.Type === 'Put' && parseFloat(item['Heston IV']) > 0),
                         'Expiry',
                         'Heston IV'
                     ),
@@ -338,11 +374,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Realised Vol 90d',
+                    label: 'Realized Vol 90d',
                     data: aggregateDataByX(
-                        filteredData,
+                        filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
-                        'Realised Vol 90d'
+                        'Realized Vol 90d'
                     ),
                     borderColor: '#FBE7C6',
                     backgroundColor: '#FBE7C6',
@@ -482,7 +518,7 @@
                 {
                     label: 'Calls Heston IV',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        filteredData.filter(item => item.Type === 'Call' && parseFloat(item['Heston IV']) > 0),
                         'Moneyness',
                         'Heston IV'
                     ),
@@ -497,7 +533,7 @@
                 {
                     label: 'Puts Heston IV',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        filteredData.filter(item => item.Type === 'Put' && parseFloat(item['Heston IV']) > 0),
                         'Moneyness',
                         'Heston IV'
                     ),
@@ -525,11 +561,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Realised Vol 90d',
+                    label: 'Realized Vol 90d',
                     data: aggregateDataByX(
-                        filteredData,
+                        filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
-                        'Realised Vol 90d'
+                        'Realized Vol 90d'
                     ),
                     borderColor: '#FBE7C6',
                     backgroundColor: '#FBE7C6',
@@ -603,11 +639,16 @@
         }
         function updateHistoricChart() {
             const selectedTicker = document.getElementById('ticker-select').value;
+            const historyLength = document.getElementById('history-select').value;
             let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
             filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const fromDate = calculateDateRange(historyLength);
+            if (fromDate) {
+                filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
+            }
             const dates = filteredHistoric.map(item => new Date(item.Date));
             const prices = filteredHistoric.map(item => parseFloat(item.Close));
-            const vols = filteredHistoric.map(item => parseFloat(item.Realized_Vol));
+            const vols = filteredHistoric.map(item => parseFloat(item['Realized_Vol']));
             const datasets = [
                 {
                     label: 'Stock Price',
