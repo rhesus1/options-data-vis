@@ -319,4 +319,233 @@
                         'Expiry',
                         'Last Option Price'
                     ),
-                    borderColor: 'purple
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                }
+            ];
+            if (expiryChart) expiryChart.destroy();
+            expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' },
+                            title: { display: true, text: 'Expiry Date' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Volatility (%)' },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Last Option Price ($)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            createStatsTable(expiryChart, 'expiry-vs-iv-chart');
+        }
+        function updateMoneynessVsIV() {
+            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'Implied Volatility'
+                    ),
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'Implied Volatility'
+                    ),
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls IV_bid-ask',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'IV_bid-ask'
+                    ),
+                    borderColor: 'red',
+                    backgroundColor: 'red',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts IV_bid-ask',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'IV_bid-ask'
+                    ),
+                    borderColor: 'red',
+                    backgroundColor: 'red',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        'Moneyness',
+                        'Heston IV'
+                    ),
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        'Moneyness',
+                        'Heston IV'
+                    ),
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Local Vol',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Local Vol'
+                    ),
+                    borderColor: 'green',
+                    backgroundColor: 'green',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realized Vol 90d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Realized Vol 90d'
+                    ),
+                    borderColor: 'orange',
+                    backgroundColor: 'orange',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Last Option Price',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'Last Option Price'
+                    ),
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Puts Last Option Price',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'Last Option Price'
+                    ),
+                    borderColor: 'purple',
+                    backgroundColor: 'purple',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                }
+            ];
+            if (moneynessChart) moneynessChart.destroy();
+            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Moneyness (%)' },
+                            beginAtZero: true
+                        },
+                        y: {
+                            title: { display: true, text: 'Volatility (%)' },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Last Option Price ($)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
+        }
+    </script>
+</body>
+</html>
