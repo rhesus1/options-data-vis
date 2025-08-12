@@ -73,21 +73,15 @@
             });
         });
         function loadData(timestamp) {
-            fetch(`data/processed_${timestamp}.json?v=` + Date.now())
-                .then(response => response.json())
-                .then(jsonData => {
-                    data = jsonData;
-                    populateDropdowns();
-                    updateCharts();
-                })
-                .catch(error => console.error('Error loading data:', error));
-            fetch(`data/historic_${timestamp}.json?v=` + Date.now())
-                .then(response => response.json())
-                .then(jsonData => {
-                    historicData = jsonData;
-                    updateHistoricChart();
-                })
-                .catch(error => console.error('Error loading historic data:', error));
+            Promise.all([
+                fetch(`data/processed_${timestamp}.json?v=` + Date.now()).then(response => response.json()),
+                fetch(`data/historic_${timestamp}.json?v=` + Date.now()).then(response => response.json())
+            ]).then(([jsonData, historicJson]) => {
+                data = jsonData;
+                historicData = historicJson;
+                populateDropdowns();
+                updateCharts();
+            }).catch(error => console.error('Error loading data:', error));
         }
         function populateDropdowns() {
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
@@ -577,7 +571,8 @@
                         x: {
                             type: 'linear',
                             title: { display: true, text: 'Moneyness (%)' },
-                            beginAtZero: true
+                            min: 0,
+                            max: 300
                         },
                         y: {
                             title: { display: true, text: 'Volatility (%)' },
@@ -652,6 +647,7 @@
                     }
                 }
             });
+            createStatsTable(historicChart, 'historic-price-chart');
         }
     </script>
 </body>
