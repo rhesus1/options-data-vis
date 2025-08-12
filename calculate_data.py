@@ -11,6 +11,7 @@ from scipy.stats import norm
 from scipy.interpolate import griddata
 from scipy.optimize import minimize
 import multiprocessing
+from joblib import Parallel, delayed
 
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
@@ -209,6 +210,48 @@ def calculate_heston_iv(df, S, r, q, heston_params):
         df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower()) * 100
     return df
 
+
+def compute_local_vol_row(row, points, values, r, q):
+    """
+    Compute local vol for a single row. Extracted for parallelization.
+    """
+    k = row['Strike']
+    t = row['T']
+    def call_price_interp(kk, tt):
+        if tt <= 0:
+            return np.nan
+        return griddata(points, values, (kk, tt), method='linear', fill_value=np.nan, rescale=False)
+    
+    c = call_price_interp(k, t)
+    if np.isnan(c):
+        return None
+    
+    h_t = max(1e-3, t * 1e-3)
+    dC_dT = (call_price_interp(k, t + h_t) - call_price_interp(k, t - h_t)) / (2 * h_t)
+    
+    h_k = max(0.1, k * 0.001)
+    dC_dK = (call_price_interp(k + h_k, t) - call_price_interp(k - h_k, t)) / (2 * h_k)
+    d2C_dK2 = (call_price_interp(k + h_k, t) - 2 * c + call_price_interp(k - h_k, t)) / (h_k ** 2)
+    
+    if np.isnan(dC_dT) or np.isnan(dC_dK) or np.isnan(d2C_dK2) or d2C_dK2 <= 0:
+        print(f"Warning: Invalid derivatives for K={k}, T={t}; skipping.")
+        return None
+    
+    numer = dC_dT + (r - q) * k * dC_dK + q * c
+    denom = 0.5 * k**2 * d2C_dK2
+    if denom == 0 or numer <= 0:
+        print(f"Warning: Non-positive local vol sq for K={k}, T={t} (numer={numer:.2f}, denom={denom:.2f}); setting NaN.")
+        local_vol = np.nan
+    else:
+        local_vol_sq = numer / denom
+        local_vol = np.sqrt(local_vol_sq) * 100
+    
+    return {
+        "Strike": k,
+        "Expiry": row['Expiry'],
+        "Local Vol": local_vol
+    }
+
 def calculate_local_vol(full_df, S, r, q):
     calls = full_df[full_df['Type'] == 'Call'].copy()
     if calls.empty:
@@ -224,49 +267,16 @@ def calculate_local_vol(full_df, S, r, q):
     points = np.column_stack((calls['Strike'], calls['T']))
     values = calls['mid_price'].values
     
-    def call_price_interp(k, t):
-        if t <= 0:
-            return np.nan
-        interp_val = griddata(points, values, (k, t), method='linear', fill_value=np.nan, rescale=False)
-        return interp_val
+    # Parallelize the loop over rows
+    local_vol_data = Parallel(n_jobs=-1)(
+        delayed(compute_local_vol_row)(row, points, values, r, q) for idx, row in calls.iterrows()
+    )
     
-    def finite_diff_1st(f, x, h):
-        return (f(x + h) - f(x - h)) / (2 * h)
-    
-    def finite_diff_2nd(f, x, h):
-        return (f(x + h) - 2 * f(x) + f(x - h)) / (h ** 2)
-    
-    local_vol_data = []
-    for idx, row in calls.iterrows():
-        k = row['Strike']
-        t = row['T']
-        c = call_price_interp(k, t)
-        if np.isnan(c):
-            continue
-        h_t = max(1e-3, t * 1e-3)
-        dC_dT = finite_diff_1st(lambda tt: call_price_interp(k, tt), t, h_t)
-        h_k = max(0.1, k * 0.001)
-        dC_dK = finite_diff_1st(lambda kk: call_price_interp(kk, t), k, h_k)
-        d2C_dK2 = finite_diff_2nd(lambda kk: call_price_interp(kk, t), k, h_k)
-        if np.isnan(dC_dT) or np.isnan(dC_dK) or np.isnan(d2C_dK2) or d2C_dK2 <= 0:
-            print(f"Warning: Invalid derivatives for K={k}, T={t}; skipping.")
-            local_vol = np.nan
-        else:
-            numer = dC_dT + (r - q) * k * dC_dK + q * c
-            denom = 0.5 * k**2 * d2C_dK2
-            if denom == 0 or numer <= 0:
-                print(f"Warning: Non-positive local vol sq for K={k}, T={t} (numer={numer:.2f}, denom={denom:.2f}); setting NaN.")
-                local_vol = np.nan
-            else:
-                local_vol_sq = numer / denom
-                local_vol = np.sqrt(local_vol_sq) * 100
-        local_vol_data.append({
-            "Strike": k,
-            "Expiry": row['Expiry'],
-            "Local Vol": local_vol
-        })
+    # Filter out None
+    local_vol_data = [d for d in local_vol_data if d is not None]
     
     return pd.DataFrame(local_vol_data)
+
 
 def process_ticker(ticker, df, full_df):
     print(f"Processing calculations for {ticker}...")
