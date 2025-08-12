@@ -14,9 +14,6 @@ def main():
     if duplicates > 0:
         df = df.drop_duplicates(subset=['Contract Name'])
     
-    # Set Implied Volatility to NaN if < 0% or > 300%
-    df.loc[(df['Implied Volatility'] < 0) | (df['Implied Volatility'] > 3.0), 'Implied Volatility'] = np.nan
-    
     # Cap Moneyness between 0% and 350%
     df = df[(df['Moneyness'] >= 0) & (df['Moneyness'] <= 3.5)]
     
