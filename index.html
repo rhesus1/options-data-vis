@@ -332,7 +332,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Calls IV_bid-ask',
+                    label: 'Calls Implied Volatility Mid',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
@@ -347,7 +347,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Puts IV_bid-ask',
+                    label: 'Puts Implied Volatility Mid',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
@@ -507,7 +507,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Calls IV_bid-ask',
+                    label: 'Calls Implied Volatility Mid',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
@@ -522,7 +522,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Puts IV_bid-ask',
+                    label: 'Puts Implied Volatility Mid',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
@@ -657,11 +657,11 @@
             }
             const dates = filteredHistoric.map(item => new Date(item.Date));
             const prices = filteredHistoric.map(item => parseFloat(item.Close));
-            const vol30 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_30));
-            const vol60 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_60));
-            const vol90 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_90));
-            const vol180 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_180));
-            const vol360 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_360));
+            const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
+            const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
+            const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_90));
+            const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
+            const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_360));
             const datasets = [
                 {
                     label: 'Stock Price',
@@ -674,7 +674,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: '30-day Realized Vol (%)',
+                    label: '30-day Realised Vol (%)',
                     data: vol30.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#FFB3BA',
                     backgroundColor: '#FFB3BA',
@@ -685,7 +685,7 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: '60-day Realized Vol (%)',
+                    label: '60-day Realised Vol (%)',
                     data: vol60.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#F4A8E4',
                     backgroundColor: '#F4A8E4',
@@ -696,7 +696,7 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: '90-day Realized Vol (%)',
+                    label: '90-day Realised Vol (%)',
                     data: vol90.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#B4F8C8',
                     backgroundColor: '#B4F8C8',
@@ -707,7 +707,7 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: '180-day Realized Vol (%)',
+                    label: '180-day Realised Vol (%)',
                     data: vol180.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#FBE7C6',
                     backgroundColor: '#FBE7C6',
@@ -718,7 +718,7 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: '360-day Realized Vol (%)',
+                    label: '360-day Realised Vol (%)',
                     data: vol360.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#D7A1F9',
                     backgroundColor: '#D7A1F9',
@@ -761,7 +761,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Stock Price ($)',
+                                text: 'Stock Price (£)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: false,
@@ -777,7 +777,7 @@
                             position: 'right',
                             title: {
                                 display: true,
-                                text: 'Realized Volatility (%)',
+                                text: 'Realised Volatility (%)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: false,
