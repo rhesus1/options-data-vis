@@ -14,6 +14,10 @@
 <body>
     <h1>Options Data Visualization</h1>
     <div>
+        <label for="date-select">Select Date/Time: </label>
+        <select id="date-select"></select>
+    </div>
+    <div>
         <label for="ticker-select">Select Ticker: </label>
         <select id="ticker-select"></select>
     </div>
@@ -22,28 +26,54 @@
         <select id="expiry-select"></select>
         <canvas id="moneyness-vs-iv-chart"></canvas>
     </div>
-  
+ 
     <div class="chart-container">
         <h2>Expiry vs. Volatility</h2>
         <select id="moneyness-select"></select>
         <canvas id="expiry-vs-iv-chart"></canvas>
     </div>
-  
+ 
     <script>
         let data = [];
         let expiryChart, moneynessChart;
-        fetch('data.json?v=' + Date.now()) // Cache-buster
-            .then(response => response.json())
-            .then(jsonData => {
-                data = jsonData;
-                populateDropdowns();
-                updateCharts();
-            })
-            .catch(error => console.error('Error loading data:', error));
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('data/dates.json?v=' + Date.now())
+                .then(response => response.json())
+                .then(dates => {
+                    const dateSelect = document.getElementById('date-select');
+                    dates.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3 $4:$5');
+                        dateSelect.appendChild(option);
+                    });
+                    loadData(dates[0]); // Load latest by default
+                })
+                .catch(error => console.error('Error loading dates:', error));
+
+            const dateSelect = document.getElementById('date-select');
+            dateSelect.addEventListener('change', (e) => {
+                loadData(e.target.value);
+            });
+        });
+
+        function loadData(timestamp) {
+            fetch(`data/processed_${timestamp}.json?v=` + Date.now())
+                .then(response => response.json())
+                .then(jsonData => {
+                    data = jsonData;
+                    populateDropdowns();
+                    updateCharts();
+                })
+                .catch(error => console.error('Error loading data:', error));
+        }
+
         function populateDropdowns() {
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
                 .filter(val => val).sort();
             const tickerSelect = document.getElementById('ticker-select');
+            tickerSelect.innerHTML = ''; // Clear previous
             uniqueTickers.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
@@ -235,11 +265,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Calls Last Price',
+                    label: 'Calls Last Option Price',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
-                        'Last Price'
+                        'Last Option Price'
                     ),
                     borderColor: 'purple',
                     backgroundColor: 'purple',
@@ -250,11 +280,11 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: 'Puts Last Price',
+                    label: 'Puts Last Option Price',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
-                        'Last Price'
+                        'Last Option Price'
                     ),
                     borderColor: 'purple',
                     backgroundColor: 'purple',
@@ -283,7 +313,7 @@
                         y1: {
                             type: 'linear',
                             position: 'right',
-                            title: { display: true, text: 'Last Price ($)' },
+                            title: { display: true, text: 'Last Option Price ($)' },
                             beginAtZero: true
                         }
                     }
@@ -416,11 +446,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Calls Last Price',
+                    label: 'Calls Last Option Price',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
-                        'Last Price'
+                        'Last Option Price'
                     ),
                     borderColor: 'purple',
                     backgroundColor: 'purple',
@@ -431,11 +461,11 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: 'Puts Last Price',
+                    label: 'Puts Last Option Price',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
-                        'Last Price'
+                        'Last Option Price'
                     ),
                     borderColor: 'purple',
                     backgroundColor: 'purple',
@@ -464,7 +494,7 @@
                         y1: {
                             type: 'linear',
                             position: 'right',
-                            title: { display: true, text: 'Last Price ($)' },
+                            title: { display: true, text: 'Last Option Price ($)' },
                             beginAtZero: true
                         }
                     }
