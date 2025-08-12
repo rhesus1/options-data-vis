@@ -35,10 +35,15 @@
         <select id="moneyness-select"></select>
         <canvas id="expiry-vs-iv-chart"></canvas>
     </div>
+    <div class="chart-container">
+        <h2>Historic Stock Price with 90-day Realized Volatility</h2>
+        <canvas id="historic-price-chart"></canvas>
+    </div>
     <script>
         let data = [];
-        let expiryChart, moneynessChart;
-      
+        let historicData = [];
+        let expiryChart, moneynessChart, historicChart;
+     
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -67,6 +72,13 @@
                     updateCharts();
                 })
                 .catch(error => console.error('Error loading data:', error));
+            fetch(`data/historic_${timestamp}.json?v=` + Date.now())
+                .then(response => response.json())
+                .then(jsonData => {
+                    historicData = jsonData;
+                    updateHistoricChart();
+                })
+                .catch(error => console.error('Error loading historic data:', error));
         }
         function populateDropdowns() {
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
@@ -82,6 +94,7 @@
             tickerSelect.addEventListener('change', () => {
                 updateDropdowns();
                 updateCharts();
+                updateHistoricChart();
             });
             updateDropdowns();
             document.getElementById('moneyness-select').addEventListener('change', updateCharts);
@@ -114,6 +127,7 @@
         function updateCharts() {
             updateExpiryVsIV();
             updateMoneynessVsIV();
+            updateHistoricChart();
         }
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
@@ -570,6 +584,65 @@
                 }
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
+        }
+        function updateHistoricChart() {
+            const selectedTicker = document.getElementById('ticker-select').value;
+            let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
+            filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const dates = filteredHistoric.map(item => new Date(item.Date));
+            const prices = filteredHistoric.map(item => item.Close);
+            const vols = filteredHistoric.map(item => item.Realized_Vol);
+            const datasets = [
+                {
+                    label: 'Stock Price',
+                    data: prices.map((p, i) => ({ x: dates[i], y: p })),
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '90-day Realized Vol (%)',
+                    data: vols.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: 'red',
+                    backgroundColor: 'red',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    yAxisID: 'y1'
+                }
+            ];
+            if (historicChart) historicChart.destroy();
+            historicChart = new Chart(document.getElementById('historic-price-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'month' },
+                            title: { display: true, text: 'Date' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Stock Price ($)' },
+                            beginAtZero: false
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Realized Volatility (%)' },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
