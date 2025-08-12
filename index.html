@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Options Data Visualization</title>
+    <title>Options Data Visualisation</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
@@ -12,10 +12,11 @@
         .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         .stats-table th { background-color: #f2f2f2; }
+        .colour-swatch { width: 20px; height: 20px; }
     </style>
 </head>
 <body>
-    <h1>Options Data Visualization</h1>
+    <h1>Options Data Visualisation</h1>
     <div>
         <label for="date-select">Select Date/Time: </label>
         <select id="date-select"></select>
@@ -106,7 +107,7 @@
             uniqueExpiries.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
-                option.text = new Date(val).toLocaleDateString();
+                option.text = new Date(val).toLocaleDateString('en-GB');
                 expirySelect.add(option);
             });
         }
@@ -145,7 +146,7 @@
             table.className = 'stats-table';
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
+            ['Colour', 'Label', 'Min', 'Max', 'Mean'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -162,11 +163,24 @@
                 const sum = ys.reduce((a, b) => a + b, 0);
                 const mean = sum / ys.length;
                 const row = document.createElement('tr');
-                [dataset.label, min.toFixed(2), max.toFixed(2), mean.toFixed(2)].forEach(text => {
-                    const td = document.createElement('td');
-                    td.textContent = text;
-                    row.appendChild(td);
-                });
+                const colourTd = document.createElement('td');
+                const swatch = document.createElement('div');
+                swatch.className = 'colour-swatch';
+                swatch.style.backgroundColor = dataset.borderColor;
+                colourTd.appendChild(swatch);
+                row.appendChild(colourTd);
+                const labelTd = document.createElement('td');
+                labelTd.textContent = dataset.label;
+                row.appendChild(labelTd);
+                const minTd = document.createElement('td');
+                minTd.textContent = min.toFixed(2);
+                row.appendChild(minTd);
+                const maxTd = document.createElement('td');
+                maxTd.textContent = max.toFixed(2);
+                row.appendChild(maxTd);
+                const meanTd = document.createElement('td');
+                meanTd.textContent = mean.toFixed(2);
+                row.appendChild(meanTd);
                 tbody.appendChild(row);
             });
             table.appendChild(tbody);
@@ -283,11 +297,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Realized Vol 90d',
+                    label: 'Realised Vol 90d',
                     data: aggregateDataByX(
                         filteredData,
                         'Expiry',
-                        'Realized Vol 90d'
+                        'Realised Vol 90d'
                     ),
                     borderColor: 'orange',
                     backgroundColor: 'orange',
@@ -470,11 +484,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Realized Vol 90d',
+                    label: 'Realised Vol 90d',
                     data: aggregateDataByX(
                         filteredData,
                         'Moneyness',
-                        'Realized Vol 90d'
+                        'Realised Vol 90d'
                     ),
                     borderColor: 'orange',
                     backgroundColor: 'orange',
