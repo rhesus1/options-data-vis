@@ -23,13 +23,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install yfinance pandas numpy scipy  # Your script's requirements
 
-    - name: Run Python script to generate data
-      run: python generate_data.py  # Outputs data.json
+    - name: Create data directory
+      run: mkdir -p data
+
+    - name: Run fetch script
+      run: python fetch_data.py
+
+    - name: Run clean script
+      run: python clean_data.py
+
+    - name: Run calculate script
+      run: python calculate_data.py
 
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add data.json
+        git add data
         git commit -m "Auto-update data from scheduled run" || echo "No changes to commit"
         git push
