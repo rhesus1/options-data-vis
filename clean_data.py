@@ -25,10 +25,12 @@ def main():
         (df['Open Interest'] >= 0) &
         (df['Bid'] >= 0) &
         (df['Ask'] >= 0) &
-        #(df['Bid'] < df['Ask']) &  # Strict < to ensure positive spread
-        #(df['Bid'] <= df['Last Option Price']) &
-        #(df['Last Option Price'] <= df['Ask']) &
-        (df['Implied Volatility'] > 0.01)  # Remove zero IV
+        (df['Moneyness'] <= 200) &
+        (df['Moneyness'] >= 10) &
+        (df['Bid'] <= df['Ask']) &  # Strict < to ensure positive spread
+        (df['Bid'] <= df['Last Option Price']) &
+        (df['Last Option Price'] <= df['Ask']) &
+        (df['Implied Volatility'] > 0.001)  # Remove zero IV
     ]
     
     volume_threshold = df['Volume'].quantile(0.25)
