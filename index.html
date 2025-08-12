@@ -6,47 +6,111 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #1C2526; 
-            color: #FFFFFF; 
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1C2526;
+            color: #FFFFFF;
         }
-        .chart-container { 
-            width: 100%; 
-            margin: 0; 
-            background-color: #1C2526; 
+        .chart-container {
+            width: 100%;
+            margin: 0;
+            background-color: #1C2526;
         }
-        select, input { 
-            margin: 10px; 
-            background-color: #2E3537; 
-            color: #FFFFFF; 
-            border: 1px solid #FFFFFF; 
+        select, input {
+            margin: 10px;
+            background-color: #2E3537;
+            color: #FFFFFF;
+            border: 1px solid #FFFFFF;
         }
-        .stats-table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            margin-top: 20px; 
+        .stats-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
         }
-        .stats-table th, .stats-table td { 
-            border: 1px solid #FFFFFF; 
-            padding: 8px; 
-            text-align: left; 
-            color: #FFFFFF; 
+        .stats-table th, .stats-table td {
+            border: 1px solid #FFFFFF;
+            padding: 8px;
+            text-align: left;
+            color: #FFFFFF;
         }
-        .stats-table th { 
-            background-color: #2E3537; 
+        .stats-table th {
+            background-color: #2E3537;
         }
-        .line-swatch { 
-            display: inline-block; 
-            vertical-align: middle; 
-            margin-right: 5px; 
+        .line-swatch {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
         }
-        .grid-container { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 20px; 
-            width: 80%; 
-            margin: 20px auto; 
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 80%;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Options Data Visualisation</h1>
+    <div>
+        <label for="date-select">Select Date/Time: </label>
+        <select id="date-select"></select>
+    </div>
+    <div>
+        <label for="ticker-select">Select Ticker: </label>
+        <select id="ticker-select"></select>
+    </以及
+
+System: <xaiArtifact artifact_id="03bd6b8d-b9d8-4d0c-acda-0bc5bbff3307" artifact_version_id="0dc2c04a-f7b3-4acf-a735-3fb3755d06e1" title="index.html" contentType="text/html">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Options Data Visualisation</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1C2526;
+            color: #FFFFFF;
+        }
+        .chart-container {
+            width: 100%;
+            margin: 0;
+            background-color: #1C2526;
+        }
+        select, input {
+            margin: 10px;
+            background-color: #2E3537;
+            color: #FFFFFF;
+            border: 1px solid #FFFFFF;
+        }
+        .stats-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid #FFFFFF;
+            padding: 8px;
+            text-align: left;
+            color: #FFFFFF;
+        }
+        .stats-table th {
+            background-color: #2E3537;
+        }
+        .line-swatch {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 80%;
+            margin: 20px auto;
         }
     </style>
 </head>
@@ -101,7 +165,6 @@
                 return obj;
             });
         }
-
         function calculateDateRange(historyLength) {
             const now = new Date();
             let fromDate = new Date();
@@ -127,7 +190,7 @@
             }
             return fromDate;
         }
-   
+  
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -421,36 +484,6 @@
                     showLine: true,
                     borderDash: [],
                     yAxisID: 'y'
-                },
-                {
-                    label: 'Calls Last Option Price',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Expiry',
-                        'Last Option Price'
-                    ),
-                    borderColor: '#D7A1F9',
-                    backgroundColor: '#D7A1F9',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: 'Puts Last Option Price',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Expiry',
-                        'Last Option Price'
-                    ),
-                    borderColor: '#D7A1F9',
-                    backgroundColor: '#D7A1F9',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y1'
                 }
             ];
             if (expiryChart) expiryChart.destroy();
@@ -470,8 +503,8 @@
                         x: {
                             type: 'time',
                             time: { unit: 'day' },
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Expiry Date',
                                 color: '#FFFFFF'
                             },
@@ -483,25 +516,9 @@
                             }
                         },
                         y: {
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Volatility (%)',
-                                color: '#FFFFFF'
-                            },
-                            beginAtZero: true,
-                            grid: {
-                                color: '#FFFFFF33'
-                            },
-                            ticks: {
-                                color: '#FFFFFF'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { 
-                                display: true, 
-                                text: 'Last Option Price ($)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: true,
@@ -547,11 +564,7 @@
                     ),
                     borderColor: '#A0E7E5',
                     backgroundColor: '#A0E7E5',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y'
+                    pointRadius: stereoharmonic
                 },
                 {
                     label: 'Calls IV_bid-ask',
@@ -642,36 +655,6 @@
                     showLine: true,
                     borderDash: [],
                     yAxisID: 'y'
-                },
-                {
-                    label: 'Calls Last Option Price',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Moneyness',
-                        'Last Option Price'
-                    ),
-                    borderColor: '#D7A1F9',
-                    backgroundColor: '#D7A1F9',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: 'Puts Last Option Price',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Moneyness',
-                        'Last Option Price'
-                    ),
-                    borderColor: '#D7A1F9',
-                    backgroundColor: '#D7A1F9',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y1'
                 }
             ];
             if (moneynessChart) moneynessChart.destroy();
@@ -690,8 +673,8 @@
                     scales: {
                         x: {
                             type: 'linear',
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Moneyness (%)',
                                 color: '#FFFFFF'
                             },
@@ -704,25 +687,9 @@
                             }
                         },
                         y: {
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Volatility (%)',
-                                color: '#FFFFFF'
-                            },
-                            beginAtZero: true,
-                            grid: {
-                                color: '#FFFFFF33'
-                            },
-                            ticks: {
-                                color: '#FFFFFF'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { 
-                                display: true, 
-                                text: 'Last Option Price ($)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: true,
@@ -790,8 +757,8 @@
                         x: {
                             type: 'time',
                             time: { unit: 'month' },
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Date',
                                 color: '#FFFFFF'
                             },
@@ -803,8 +770,8 @@
                             }
                         },
                         y: {
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Stock Price ($)',
                                 color: '#FFFFFF'
                             },
@@ -819,8 +786,8 @@
                         y1: {
                             type: 'linear',
                             position: 'right',
-                            title: { 
-                                display: true, 
+                            title: {
+                                display: true,
                                 text: 'Realized Volatility (%)',
                                 color: '#FFFFFF'
                             },
