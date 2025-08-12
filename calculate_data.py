@@ -10,7 +10,6 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 from scipy.interpolate import griddata
 from scipy.optimize import minimize
-import cmath
 
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
@@ -162,22 +161,22 @@ def calculate_metrics(df, ticker):
     return df, skew_df, slope_df, S, r, q
 
 def heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau):
-    i = complex(0, 1)
-    d = cmath.sqrt((rho * sigma_vol * i * phi - kappa)**2 + sigma_vol**2 * (i * phi + phi**2))
+    i = 1j
+    d = np.sqrt((rho * sigma_vol * i * phi - kappa)**2 + sigma_vol**2 * (i * phi + phi**2))
     g = (kappa - rho * sigma_vol * i * phi - d) / (kappa - rho * sigma_vol * i * phi + d)
-    C = r * i * phi * tau + (kappa * theta / sigma_vol**2) * ((kappa - rho * sigma_vol * i * phi - d) * tau - 2 * cmath.log((1 - g * cmath.exp(-d * tau)) / (1 - g)))
-    D = ((kappa - rho * sigma_vol * i * phi - d) / sigma_vol**2) * ((1 - cmath.exp(-d * tau)) / (1 - g * cmath.exp(-d * tau)))
-    return cmath.exp(C + D * v0 + i * phi * cmath.log(S0))
+    C = r * i * phi * tau + (kappa * theta / sigma_vol**2) * ((kappa - rho * sigma_vol * i * phi - d) * tau - 2 * np.log((1 - g * np.exp(-d * tau)) / (1 - g)))
+    D = ((kappa - rho * sigma_vol * i * phi - d) / sigma_vol**2) * ((1 - np.exp(-d * tau)) / (1 - g * np.exp(-d * tau)))
+    return np.exp(C + D * v0 + i * phi * np.log(S0))
 
 def heston_price_call(S0, K, v0, kappa, theta, sigma_vol, rho, r, tau):
-    i = complex(0, 1)
+    i = 1j
     def integrand(phi):
-        return np.real(cmath.exp(-i * phi * np.log(K)) / (i * phi) * heston_char_func(phi - i, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / heston_char_func(-i, S0, v0, kappa, theta, sigma_vol, rho, r, tau))
+        return np.real(np.exp(-i * phi * np.log(K)) / (i * phi) * heston_char_func(phi - i, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / heston_char_func(-i, S0, v0, kappa, theta, sigma_vol, rho, r, tau))
     phi_vals = np.linspace(0.01, 100, 1000)
     integral = np.trapz(integrand(phi_vals), dx=phi_vals[1] - phi_vals[0])
     P1 = 0.5 + (1 / np.pi) * integral
     def integrand2(phi):
-        return np.real(heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / (i * phi * cmath.exp(i * phi * np.log(K))))
+        return np.real(heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / (i * phi * np.exp(i * phi * np.log(K))))
     integral2 = np.trapz(integrand2(phi_vals), dx=phi_vals[1] - phi_vals[0])
     P2 = 0.5 + (1 / np.pi) * integral2
     return S0 * P1 - K * np.exp(-r * tau) * P2
@@ -314,8 +313,8 @@ def main():
         
         ticker_df = calc_Ivol_Rvol(ticker_df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y, rvol90d)
         ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
-        #heston_params = calibrate_heston(ticker_df, S, r, q)
-        #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
+        heston_params = calibrate_heston(ticker_df, S, r, q)
+        ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
         local_df = calculate_local_vol(ticker_full, S, r, q)
         ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
         ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
