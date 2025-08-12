@@ -85,15 +85,9 @@ def calculate_rvol_days(ticker, days):
         print(f"Error calculating {days}-day realized volatility for '{ticker}': {str(e)}")
         return None
 
-def calc_Ivol_Rvol(df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y, rvol90d):
+def calc_Ivol_Rvol(df, rvol90d):
     if df.empty:
         return df
-    df["Ivol/Rvol5d Ratio"] = df["Implied Volatility"] / rvol5d
-    df["Ivol/Rvol1m Ratio"] = df["Implied Volatility"] / rvol1m
-    df["Ivol/Rvol3m Ratio"] = df["Implied Volatility"] / rvol3m
-    df["Ivol/Rvol6m Ratio"] = df["Implied Volatility"] / rvol6m
-    df["Ivol/Rvol1y Ratio"] = df["Implied Volatility"] / rvol1y
-    df["Ivol/Rvol2y Ratio"] = df["Implied Volatility"] / rvol2y
     df["Ivol/Rvol90d Ratio"] = df["Implied Volatility"] / rvol90d
     return df
 
@@ -294,24 +288,12 @@ def main():
         ticker_full = full_df[full_df['Ticker'] == ticker].copy()
         if ticker_df.empty:
             continue
-        rvol5d = calculate_rvol(ticker, "5d")
-        rvol1m = calculate_rvol(ticker, "1mo")
-        rvol3m = calculate_rvol(ticker, "3mo")
-        rvol6m = calculate_rvol(ticker, "6mo")
-        rvol1y = calculate_rvol(ticker, "1y")
-        rvol2y = calculate_rvol(ticker, "2y")
         rvol90d = calculate_rvol_days(ticker, 90)
         
         print(f"\nRealized Volatility for {ticker}:")
-        print(f"5-day: {rvol5d * 100:.2f}%" if rvol5d is not None else "5-day: N/A")
-        print(f"1-month: {rvol1m * 100:.2f}%" if rvol1m is not None else "1-month: N/A")
-        print(f"3-month: {rvol3m * 100:.2f}%" if rvol3m is not None else "3-month: N/A")
-        print(f"6-month: {rvol6m * 100:.2f}%" if rvol6m is not None else "6-month: N/A")
-        print(f"1-year: {rvol1y * 100:.2f}%" if rvol1y is not None else "1-year: N/A")
-        print(f"2-year: {rvol2y * 100:.2f}%" if rvol2y is not None else "2-year: N/A")
         print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
         
-        ticker_df = calc_Ivol_Rvol(ticker_df, rvol5d, rvol1m, rvol3m, rvol6m, rvol1y, rvol2y, rvol90d)
+        ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
         ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
         #heston_params = calibrate_heston(ticker_df, S, r, q)
         #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
@@ -323,30 +305,6 @@ def main():
         ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
         ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
         ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
-        
-        # Add skew gradient and convexity calculations
-        ticker_df['Call Skew Gradient'] = np.nan
-        ticker_df['Put Skew Gradient'] = np.nan
-        ticker_df['Upside Convexity'] = np.nan
-        ticker_df['Downside Convexity'] = np.nan
-        for exp in ticker_df['Expiry'].unique():
-            for opt_type in ["Call", "Put"]:
-                subset = ticker_df[(ticker_df['Expiry'] == exp) & (ticker_df['Type'] == opt_type)].sort_values('Moneyness')
-                if len(subset) < 2:
-                    continue
-                M = subset['Moneyness'].values
-                IV = subset['Implied Volatility'].values
-                grad = np.gradient(IV, M)
-                if len(subset) < 3:
-                    conv = np.full(len(grad), np.nan)
-                else:
-                    conv = np.gradient(grad, M)
-                if opt_type == "Call":
-                    ticker_df.loc[subset.index, 'Call Skew Gradient'] = grad
-                    ticker_df.loc[subset.index, 'Upside Convexity'] = conv
-                else:
-                    ticker_df.loc[subset.index, 'Put Skew Gradient'] = grad
-                    ticker_df.loc[subset.index, 'Downside Convexity'] = conv
         
         processed_dfs.append(ticker_df)
     
