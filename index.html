@@ -175,6 +175,36 @@
                     yAxisID: 'y'
                 },
                 {
+                    label: 'Calls Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        'Expiry',
+                        'Heston IV'
+                    ),
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        'Expiry',
+                        'Heston IV'
+                    ),
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
                     label: 'Local Vol',
                     data: aggregateDataByX(
                         filteredData,
@@ -319,6 +349,36 @@
                     ),
                     borderColor: 'red',
                     backgroundColor: 'red',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        'Moneyness',
+                        'Heston IV'
+                    ),
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        'Moneyness',
+                        'Heston IV'
+                    ),
+                    borderColor: 'magenta',
+                    backgroundColor: 'magenta',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
