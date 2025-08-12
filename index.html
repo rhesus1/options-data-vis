@@ -72,7 +72,7 @@
             <canvas id="expiry-vs-iv-chart"></canvas>
         </div>
         <div class="chart-container" style="grid-column: span 2;">
-            <h2>Historic Stock Price with 90-day Realised Volatility</h2>
+            <h2>Historic Stock Price with Realised Volatility</h2>
             <label for="history-select">Select History Length: </label>
             <select id="history-select">
                 <option value="1m">1-month</option>
@@ -500,7 +500,11 @@
                     ),
                     borderColor: '#A0E7E5',
                     backgroundColor: '#A0E7E5',
-                    pointRadius: stereoharmonic
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Calls IV_bid-ask',
@@ -653,7 +657,11 @@
             }
             const dates = filteredHistoric.map(item => new Date(item.Date));
             const prices = filteredHistoric.map(item => parseFloat(item.Close));
-            const vols = filteredHistoric.map(item => parseFloat(item.Realized_Vol));
+            const vol30 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_30));
+            const vol60 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_60));
+            const vol90 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_90));
+            const vol180 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_180));
+            const vol360 = filteredHistoric.map(item => parseFloat(item.Realized_Vol_360));
             const datasets = [
                 {
                     label: 'Stock Price',
@@ -666,13 +674,58 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: '90-day Realized Vol (%)',
-                    data: vols.map((v, i) => ({ x: dates[i], y: v })),
+                    label: '30-day Realized Vol (%)',
+                    data: vol30.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#FFB3BA',
                     backgroundColor: '#FFB3BA',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '60-day Realized Vol (%)',
+                    data: vol60.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '90-day Realized Vol (%)',
+                    data: vol90.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#B4F8C8',
+                    backgroundColor: '#B4F8C8',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '180-day Realized Vol (%)',
+                    data: vol180.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#FBE7C6',
+                    backgroundColor: '#FBE7C6',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [3, 3],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '360-day Realized Vol (%)',
+                    data: vol360.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#D7A1F9',
+                    backgroundColor: '#D7A1F9',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [7, 3],
                     yAxisID: 'y1'
                 }
             ];
