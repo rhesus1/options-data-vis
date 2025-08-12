@@ -316,6 +316,10 @@ def main():
         #heston_params = calibrate_heston(ticker_df, S, r, q)
         #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
         local_df = calculate_local_vol(ticker_full, S, r, q)
+        if not local_df.empty:
+            ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
+        else:
+            ticker_df['Local Vol'] = np.nan
         ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
         ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
         ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
