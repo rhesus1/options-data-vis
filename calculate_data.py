@@ -62,10 +62,10 @@ def calculate_rvol(ticker, period):
         if len(log_returns) < 2:
             print(f"Insufficient data points for '{ticker}' with period '{period}' to calculate volatility")
             return None
-        realized_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
-        return realized_vol
+        realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
+        return realised_vol
     except Exception as e:
-        print(f"Error calculating realized volatility for '{ticker}': {str(e)}")
+        print(f"Error calculating realised volatility for '{ticker}': {str(e)}")
         return None
 
 def calculate_rvol_days(ticker, days):
@@ -80,10 +80,10 @@ def calculate_rvol_days(ticker, days):
         if len(log_returns) < 2:
             print(f"Insufficient returns for '{ticker}' over {days} days")
             return None
-        realized_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
-        return realized_vol
+        realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
+        return realised_vol
     except Exception as e:
-        print(f"Error calculating {days}-day realized volatility for '{ticker}': {str(e)}")
+        print(f"Error calculating {days}-day realised volatility for '{ticker}': {str(e)}")
         return None
 
 def calc_Ivol_Rvol(df, rvol90d):
@@ -285,7 +285,7 @@ def process_ticker(ticker, df, full_df):
     if ticker_df.empty:
         return None
     rvol90d = calculate_rvol_days(ticker, 90)
-    print(f"\nRealized Volatility for {ticker}:")
+    print(f"\nRealised Volatility for {ticker}:")
     print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
     ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
@@ -296,7 +296,7 @@ def process_ticker(ticker, df, full_df):
         ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
     else:
         ticker_df['Local Vol'] = np.nan
-    ticker_df['Realized Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
+    ticker_df['Realised Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
     ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
     ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
     return ticker_df
