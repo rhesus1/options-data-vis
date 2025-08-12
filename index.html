@@ -385,4 +385,32 @@
                     borderDash: [5, 5],
                     yAxisID: 'y1'
                 }
-           
+            ];
+            if (moneynessChart) moneynessChart.destroy();
+            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Moneyness (%)' },
+                            beginAtZero: true
+                        },
+                        y: {
+                            title: { display: true, text: 'Volatility (%)' },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Last Price ($)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
