@@ -6,14 +6,48 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .chart-container { width: 100%; margin: 0; }
-        select, input { margin: 10px; }
-        .stats-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .stats-table th { background-color: #f2f2f2; }
-        .line-swatch { display: inline-block; vertical-align: middle; margin-right: 5px; }
-        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 80%; margin: 20px auto; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #1C2526; 
+            color: #FFFFFF; 
+        }
+        .chart-container { 
+            width: 100%; 
+            margin: 0; 
+            background-color: #1C2526; 
+        }
+        select, input { 
+            margin: 10px; 
+            background-color: #2E3537; 
+            color: #FFFFFF; 
+            border: 1px solid #FFFFFF; 
+        }
+        .stats-table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-top: 20px; 
+        }
+        .stats-table th, .stats-table td { 
+            border: 1px solid #FFFFFF; 
+            padding: 8px; 
+            text-align: left; 
+            color: #FFFFFF; 
+        }
+        .stats-table th { 
+            background-color: #2E3537; 
+        }
+        .line-swatch { 
+            display: inline-block; 
+            vertical-align: middle; 
+            margin-right: 5px; 
+        }
+        .grid-container { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 20px; 
+            width: 80%; 
+            margin: 20px auto; 
+        }
     </style>
 </head>
 <body>
@@ -426,26 +460,60 @@
                 options: {
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
                         }
                     },
                     scales: {
                         x: {
                             type: 'time',
                             time: { unit: 'day' },
-                            title: { display: true, text: 'Expiry Date' }
+                            title: { 
+                                display: true, 
+                                text: 'Expiry Date',
+                                color: '#FFFFFF'
+                            },
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         },
                         y: {
-                            title: { display: true, text: 'Volatility (%)' },
-                            beginAtZero: true
+                            title: { 
+                                display: true, 
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         },
                         y1: {
                             type: 'linear',
                             position: 'right',
-                            title: { display: true, text: 'Last Option Price ($)' },
-                            beginAtZero: true
+                            title: { 
+                                display: true, 
+                                text: 'Last Option Price ($)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         }
-                    }
+                    },
+                    backgroundColor: '#1C2526'
                 }
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
@@ -586,7 +654,7 @@
                     backgroundColor: '#D7A1F9',
                     pointRadius: 1,
                     fill: false,
-                    showLine: true,
+                    showLine:.sep,
                     borderDash: [],
                     yAxisID: 'y1'
                 },
@@ -613,26 +681,60 @@
                 options: {
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
                         }
                     },
                     scales: {
                         x: {
                             type: 'linear',
-                            title: { display: true, text: 'Moneyness (%)' },
-                            beginAtZero: true
+                            title: { 
+                                display: true, 
+                                text: 'Moneyness (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         },
                         y: {
-                            title: { display: true, text: 'Volatility (%)' },
-                            beginAtZero: true
+                            title: { 
+                                display: true, 
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         },
                         y1: {
                             type: 'linear',
                             position: 'right',
-                            title: { display: true, text: 'Last Option Price ($)' },
-                            beginAtZero: true
+                            title: { 
+                                display: true, 
+                                text: 'Last Option Price ($)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         }
-                    }
+                    },
+                    backgroundColor: '#1C2526'
                 }
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
@@ -678,26 +780,60 @@
                 options: {
                     plugins: {
                         legend: {
-                            display: true
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
                         }
                     },
                     scales: {
                         x: {
                             type: 'time',
                             time: { unit: 'month' },
-                            title: { display: true, text: 'Date' }
+                            title: { 
+                                display: true, 
+                                text: 'Date',
+                                color: '#FFFFFF'
+                            },
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         },
                         y: {
-                            title: { display: true, text: 'Stock Price ($)' },
-                            beginAtZero: false
+                            title: { 
+                                display: true, 
+                                text: 'Stock Price ($)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         },
                         y1: {
                             type: 'linear',
                             position: 'right',
-                            title: { display: true, text: 'Realized Volatility (%)' },
-                            beginAtZero: false
+                            title: { 
+                                display: true, 
+                                text: 'Realized Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
                         }
-                    }
+                    },
+                    backgroundColor: '#1C2526'
                 }
             });
         }
