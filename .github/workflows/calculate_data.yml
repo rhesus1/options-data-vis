@@ -1,12 +1,14 @@
-name: Update Options Data
+name: Calculate Options Data
 
 on:
-  schedule:
-    - cron: '0 15,17,19 * * *'  # Daily at 10 AM, 12 PM, 2 PM, 4 PM NY time (EDT/UTC-4 on Aug 6, 2025; adjust for DST end if needed)
+  workflow_run:
+    workflows: ["Clean Options Data"]
+    types:
+      - completed
   workflow_dispatch:  # Manual trigger option
 
 jobs:
-  build:
+  calculate:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,12 +28,6 @@ jobs:
     - name: Create data directory
       run: mkdir -p data
 
-    - name: Run fetch script
-      run: python fetch_data.py
-
-    - name: Run clean script
-      run: python clean_data.py
-
     - name: Run calculate script
       run: python calculate_data.py
 
@@ -40,5 +36,5 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add data
-        git commit -m "Auto-update data from scheduled run" || echo "No changes to commit"
+        git commit -m "Auto-update processed data" || echo "No changes to commit"
         git push
