@@ -25,6 +25,7 @@ def setup_driver(headless=True):
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_argument("--start-maximized")
+    chrome_options.binary_location = "/usr/bin/chromium-browser"  # Explicitly set Chromium binary
     driver = webdriver.Chrome(options=chrome_options)
     driver.set_page_load_timeout(40)
     return driver
