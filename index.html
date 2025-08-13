@@ -238,73 +238,77 @@
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
         function createStatsTable(chart, canvasId) {
-            const container = document.getElementById(canvasId).parentNode;
-            let existingTable = container.querySelector('.stats-table');
-            if (existingTable) existingTable.remove();
-            const table = document.createElement('table');
-            table.className = 'stats-table';
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
-                const th = document.createElement('th');
-                th.textContent = text;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            const tbody = document.createElement('tbody');
-            chart.data.datasets.forEach((dataset, index) => {
-                if (dataset.data.length === 0) return;
-                const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
-                if (ys.length === 0) return;
-                const min = Math.min(...ys);
-                const max = Math.max(...ys);
-                const sum = ys.reduce((a, b) => a + b, 0);
-                const mean = sum / ys.length;
-                const row = document.createElement('tr');
-                row.style.cursor = 'pointer'; // Make row appear clickable
-                row.addEventListener('click', () => {
-                    // Toggle dataset visibility
-                    chart.setDatasetVisibility(index, !chart.getDatasetVisibility(index));
-                    chart.update();
-                    // Update row style to indicate visibility
-                    row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
+            try {
+                const container = document.getElementById(canvasId).parentNode;
+                let existingTable = container.querySelector('.stats-table');
+                if (existingTable) existingTable.remove();
+                const table = document.createElement('table');
+                table.className = 'stats-table';
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
+                    const th = document.createElement('th');
+                    th.textContent = text;
+                    headerRow.appendChild(th);
                 });
-                // Set initial opacity based on visibility
-                row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
-                const labelTd = document.createElement('td');
-                const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                swatch.setAttribute('width', '20');
-                swatch.setAttribute('height', '10');
-                swatch.setAttribute('class', 'line-swatch');
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', '0');
-                line.setAttribute('y1', '5');
-                line.setAttribute('x2', '20');
-                line.setAttribute('y2', '5');
-                line.setAttribute('stroke', dataset.borderColor);
-                line.setAttribute('stroke-width', '2');
-                if (dataset.borderDash && dataset.borderDash.length > 0) {
-                    line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
-                }
-                swatch.appendChild(line);
-                labelTd.appendChild(swatch);
-                const labelText = document.createTextNode(` ${dataset.label}`);
-                labelTd.appendChild(labelText);
-                row.appendChild(labelTd);
-                const minTd = document.createElement('td');
-                minTd.textContent = min.toFixed(2);
-                row.appendChild(minTd);
-                const maxTd = document.createElement('td');
-                maxTd.textContent = max.toFixed(2);
-                row.appendChild(maxTd);
-                const meanTd = document.createElement('td');
-                meanTd.textContent = mean.toFixed(2);
-                row.appendChild(meanTd);
-                tbody.appendChild(row);
-            });
-            table.appendChild(tbody);
-            container.appendChild(table);
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                chart.data.datasets.forEach((dataset, index) => {
+                    if (dataset.data.length === 0) return;
+                    const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
+                    if (ys.length === 0) return;
+                    const min = Math.min(...ys);
+                    const max = Math.max(...ys);
+                    const sum = ys.reduce((a, b) => a + b, 0);
+                    const mean = sum / ys.length;
+                    const row = document.createElement('tr');
+                    row.style.cursor = 'pointer'; // Make row appear clickable
+                    row.addEventListener('click', () => {
+                        // Toggle dataset visibility
+                        chart.setDatasetVisibility(index, !chart.getDatasetVisibility(index));
+                        chart.update();
+                        // Update row style to indicate visibility
+                        row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
+                    });
+                    // Set initial opacity based on visibility
+                    row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
+                    const labelTd = document.createElement('td');
+                    const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    swatch.setAttribute('width', '20');
+                    swatch.setAttribute('height', '10');
+                    swatch.setAttribute('class', 'line-swatch');
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', '0');
+                    line.setAttribute('y1', '5');
+                    line.setAttribute('x2', '20');
+                    line.setAttribute('y2', '5');
+                    line.setAttribute('stroke', dataset.borderColor);
+                    line.setAttribute('stroke-width', '2');
+                    if (dataset.borderDash && dataset.borderDash.length > 0) {
+                        line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
+                    }
+                    swatch.appendChild(line);
+                    labelTd.appendChild(swatch);
+                    const labelText = document.createTextNode(` ${dataset.label}`);
+                    labelTd.appendChild(labelText);
+                    row.appendChild(labelTd);
+                    const minTd = document.createElement('td');
+                    minTd.textContent = min.toFixed(2);
+                    row.appendChild(minTd);
+                    const maxTd = document.createElement('td');
+                    maxTd.textContent = max.toFixed(2);
+                    row.appendChild(maxTd);
+                    const meanTd = document.createElement('td');
+                    meanTd.textContent = mean.toFixed(2);
+                    row.appendChild(meanTd);
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                container.appendChild(table);
+            } catch (error) {
+                console.error('Error creating stats table for ' + canvasId + ':', error);
+            }
         }
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
@@ -577,11 +581,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Calls Local Vol',
+                    label: 'Local Vol',
                     data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put' && item['Call Local Vol'] > 0),
+                        filteredData,
                         'Moneyness',
-                        'Call Local Vol'
+                        'Local Vol'
                     ),
                     borderColor: '#B4F8C8',
                     backgroundColor: '#B4F8C8',
