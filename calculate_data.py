@@ -266,8 +266,8 @@ def process_ticker(ticker, df, full_df, r):
     rvol90d = calculate_rvol_days(ticker, 90)
     print(f"\nRealised Volatility for {ticker}:")
     print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
-    ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
+    ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
     if not call_local_df.empty:
