@@ -23,8 +23,7 @@ def main():
         (df['Bid'] >= 0) &
         (df['Ask'] >= 0) &
         (df['Implied Volatility'] > 0.001),
-        (df['Implied Volatility'] < 3),
-        (df['Moneyness'] < 3)
+        (df['Implied Volatility'] < 3)
     ]
    
     volume_threshold = df['Volume'].quantile(0.25)
