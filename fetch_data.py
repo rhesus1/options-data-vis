@@ -4,27 +4,25 @@ import pandas as pd
 import numpy as np
 import time
 from datetime import datetime
-import multiprocessing
 import os
 
 def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percentile=25):
     option_data = []
     stock = yf.Ticker(ticker)
- 
     try:
         expirations = stock.options
-     
+    
         for expiry in expirations:
             opt = stock.option_chain(expiry)
             calls = opt.calls
             puts = opt.puts
-         
+        
             for _, row in calls.iterrows():
                 volume = row['volume'] if pd.notna(row['volume']) else 0
                 open_interest = row['openInterest'] if pd.notna(row['openInterest']) else 0
                 bid = row['bid']
                 ask = row['ask']
-              
+             
                 option_data.append({
                     "Type": "Call",
                     "Strike": row['strike'],
@@ -41,13 +39,13 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percenti
                     "Ticker": ticker,
                     "Last Trade Date": pd.to_datetime(row['lastTradeDate']) if pd.notna(row['lastTradeDate']) else ""
                 })
-         
+        
             for _, row in puts.iterrows():
                 volume = row['volume'] if pd.notna(row['volume']) else 0
                 open_interest = row['openInterest'] if pd.notna(row['openInterest']) else 0
                 bid = row['bid']
                 ask = row['ask']
-              
+             
                 option_data.append({
                     "Type": "Put",
                     "Strike": row['strike'],
@@ -64,21 +62,18 @@ def fetch_option_data(ticker, strikes, min_volume_percentile=25, min_oi_percenti
                     "Ticker": ticker,
                     "Last Trade Date": pd.to_datetime(row['lastTradeDate']) if pd.notna(row['lastTradeDate']) else ""
                 })
-         
+        
             time.sleep(1)
-         
+        
     except Exception as e:
         print(f"Error fetching data for {ticker}: {e}")
- 
     full_df = pd.DataFrame(option_data)
- 
     if not full_df.empty:
         if "Expiry" in full_df.columns:
             full_df["Expiry"] = full_df["Expiry"].apply(lambda x: x.tz_localize(None) if pd.notna(x) and hasattr(x, 'tz') else x)
         if "Last Trade Date" in full_df.columns:
             full_df["Last Trade Date"] = full_df["Last Trade Date"].apply(lambda x: x.tz_localize(None) if pd.notna(x) and hasattr(x, 'tz') else x)
- 
-    return full_df  # Only return full_df since filtering is in clean script
+    return full_df # Only return full_df since filtering is in clean script
 
 def process_ticker_fetch(ticker):
     print(f"Fetching data for {ticker}...")
@@ -88,7 +83,7 @@ def process_ticker_fetch(ticker):
         info = stock.info
         bid = info.get('bid', None)
         ask = info.get('ask', None)
-        mid = (bid + ask)/2;
+        mid = (bid + ask)/2 if bid is not None and ask is not None else 0
     except:
         print(f"Failed to fetch stock price for {ticker}")
         return pd.DataFrame()
@@ -98,10 +93,8 @@ def process_ticker_fetch(ticker):
     full_df['Last Stock Price'] = S
     full_df['Bid Stock'] = bid
     full_df['Ask Stock'] = ask
-
-    full_df['Mid Option'] = (full_df['Bid'] + full_df['Ask'])/2;
-    full_df['Mid Stock'] = (full_df['Bid Stock'] + full_df['Ask Stock'])/2;
-
+    full_df['Mid Option'] = (full_df['Bid'] + full_df['Ask'])/2
+    full_df['Mid Stock'] = (full_df['Bid Stock'] + full_df['Ask Stock'])/2 if bid is not None and ask is not None else 0
     if mid > 0:
         full_df['Moneyness'] = np.round(mid / full_df['Strike'] / 0.01) * 0.01
     else:
@@ -112,13 +105,13 @@ def process_ticker_fetch(ticker):
 def main():
     with open('tickers.txt', 'r') as file:
         tickers = [line.strip() for line in file if line.strip()]
-   
-    num_processes = min(4, len(tickers))
-    with multiprocessing.Pool(processes=num_processes) as pool:
-        all_data = pool.map(process_ticker_fetch, tickers)
-   
-    all_data = [df for df in all_data if not df.empty]
-   
+  
+    all_data = []
+    for ticker in tickers:
+        df = process_ticker_fetch(ticker)
+        if not df.empty:
+            all_data.append(df)
+  
     if all_data:
         combined_df = pd.concat(all_data, ignore_index=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -128,5 +121,5 @@ def main():
         print(f"Raw data saved to {filename}")
     else:
         print("No data to save")
-       
+      
 main()
