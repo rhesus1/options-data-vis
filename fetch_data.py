@@ -85,6 +85,10 @@ def process_ticker_fetch(ticker):
     stock = yf.Ticker(ticker)
     try:
         S = stock.history(period='1d')['Close'].iloc[-1]
+        info = stock.info
+        bid = info.get('bid', None)
+        ask = info.get('ask', None)
+        mid = (bid + ask)/2;
     except:
         print(f"Failed to fetch stock price for {ticker}")
         return pd.DataFrame()
@@ -92,9 +96,17 @@ def process_ticker_fetch(ticker):
     if full_df.empty:
         return pd.DataFrame()
     full_df['Last Stock Price'] = S
-    full_df['Moneyness'] = np.round(S / full_df['Strike'] / 0.05) * 0.05
-    full_df['Last Option Price'] = full_df['Last Price']
-    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Last Option Price', 'Last Stock Price', 'Implied Volatility']
+    full_df['Bid Stock'] = bid
+    full_df['Ask Stock'] = ask
+
+    full_df['Mid Option'] = (full_df['Bid'] + full_df['Ask'])/2;
+    full_df['Mid Stock'] = (full_df['Bid Stock'] + full_df['Ask Stock'])/2;
+
+    if mid > 0:
+        full_df['Moneyness'] = np.round(mid / full_df['Strike'] / 0.05) * 0.05
+    else:
+        full_df['Moneyness'] = np.round(S / full_df['Strike'] / 0.05) * 0.05
+    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Last Stock Price', 'Implied Volatility']
     return full_df[columns]
 
 def main():
