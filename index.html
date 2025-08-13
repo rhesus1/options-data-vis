@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Options Data Visualisation</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body {
@@ -90,21 +90,16 @@
         let historicData = [];
         let expiryChart, moneynessChart, historicChart;
         function parseCSV(csvText) {
-            try {
-                const lines = csvText.trim().split('\n');
-                const headers = lines[0].split(',').map(h => h.trim());
-                return lines.slice(1).map(line => {
-                    const values = line.split(',').map(v => v.trim());
-                    const obj = {};
-                    headers.forEach((h, i) => {
-                        obj[h] = values[i];
-                    });
-                    return obj;
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            return lines.slice(1).map(line => {
+                const values = line.split(',').map(v => v.trim());
+                const obj = {};
+                headers.forEach((h, i) => {
+                    obj[h] = values[i];
                 });
-            } catch (error) {
-                console.error('Error parsing CSV:', error);
-                return [];
-            }
+                return obj;
+            });
         }
         function calculateDateRange(historyLength) {
             const now = new Date();
@@ -131,7 +126,7 @@
             }
             return fromDate;
         }
- 
+  
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -143,11 +138,7 @@
                         option.textContent = date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3 $4:$5');
                         dateSelect.appendChild(option);
                     });
-                    if (dates[0]) {
-                        loadData(dates[0]); // Load latest by default
-                    } else {
-                        console.error('No dates available in dates.json');
-                    }
+                    loadData(dates[0]); // Load latest by default
                 })
                 .catch(error => console.error('Error loading dates:', error));
             const dateSelect = document.getElementById('date-select');
@@ -162,7 +153,6 @@
                 .then(response => response.json())
                 .then(jsonData => {
                     data = jsonData;
-                    console.log('Loaded data:', data); // Debug data
                     populateDropdowns();
                     updateCharts();
                 })
@@ -171,7 +161,6 @@
                 .then(response => response.text())
                 .then(csvText => {
                     historicData = parseCSV(csvText);
-                    console.log('Loaded historic data:', historicData); // Debug historic data
                     updateHistoricChart();
                 })
                 .catch(error => console.error('Error loading historic data:', error));
@@ -226,665 +215,583 @@
             updateHistoricChart();
         }
         function aggregateDataByX(data, xKey, yKey) {
-            try {
-                const grouped = data.reduce((acc, item) => {
-                    const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
-                    const yValue = parseFloat(item[yKey]);
-                    if (!acc[xValue]) {
-                        acc[xValue] = { sum: 0, count: 0 };
-                    }
-                    if (!isNaN(yValue) && yValue !== null) {
-                        acc[xValue].sum += yValue;
-                        acc[xValue].count += 1;
-                    }
-                    return acc;
-                }, {});
-                return Object.keys(grouped).map(x => {
-                    const group = grouped[x];
-                    if (group.count > 0) {
-                        return {
-                            x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
-                            y: group.sum / group.count
-                        };
-                    }
-                    return null;
-                }).filter(point => point !== null).sort((a, b) => a.x - b.x);
-            } catch (error) {
-                console.error('Error aggregating data:', error);
-                return [];
-            }
+            const grouped = data.reduce((acc, item) => {
+                const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
+                const yValue = item[yKey];
+                if (!acc[xValue]) {
+                    acc[xValue] = { sum: 0, count: 0 };
+                }
+                if (!isNaN(yValue) && yValue !== null) {
+                    acc[xValue].sum += yValue;
+                    acc[xValue].count += 1;
+                }
+                return acc;
+            }, {});
+            return Object.keys(grouped).map(x => {
+                const group = grouped[x];
+                if (group.count > 0) {
+                    return {
+                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
+                        y: group.sum / group.count
+                    };
+                }
+            }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
         function createStatsTable(chart, canvasId) {
-            try {
-                const container = document.getElementById(canvasId).parentNode;
-                let existingTable = container.querySelector('.stats-table');
-                if (existingTable) existingTable.remove();
-                const table = document.createElement('table');
-                table.className = 'stats-table';
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
-                    const th = document.createElement('th');
-                    th.textContent = text;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                chart.data.datasets.forEach((dataset, index) => {
-                    if (!dataset.data || dataset.data.length === 0) return;
-                    const ys = dataset.data.map(point => parseFloat(point.y)).filter(y => !isNaN(y));
-                    if (ys.length === 0) return;
-                    const min = Math.min(...ys);
-                    const max = Math.max(...ys);
-                    const sum = ys.reduce((a, b) => a + b, 0);
-                    const mean = sum / ys.length;
-                    const row = document.createElement('tr');
-                    row.style.cursor = 'pointer';
-                    row.addEventListener('click', () => {
-                        try {
-                            chart.setDatasetVisibility(index, !chart.getDatasetVisibility(index));
-                            chart.update();
-                            row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
-                        } catch (error) {
-                            console.error('Error toggling dataset visibility:', error);
-                        }
-                    });
-                    row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
-                    const labelTd = document.createElement('td');
-                    const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    swatch.setAttribute('width', '20');
-                    swatch.setAttribute('height', '10');
-                    swatch.setAttribute('class', 'line-swatch');
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', '0');
-                    line.setAttribute('y1', '5');
-                    line.setAttribute('x2', '20');
-                    line.setAttribute('y2', '5');
-                    line.setAttribute('stroke', dataset.borderColor);
-                    line.setAttribute('stroke-width', '2');
-                    if (dataset.borderDash && dataset.borderDash.length > 0) {
-                        line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
-                    }
-                    swatch.appendChild(line);
-                    labelTd.appendChild(swatch);
-                    const labelText = document.createTextNode(` ${dataset.label}`);
-                    labelTd.appendChild(labelText);
-                    row.appendChild(labelTd);
-                    const minTd = document.createElement('td');
-                    minTd.textContent = min.toFixed(2);
-                    row.appendChild(minTd);
-                    const maxTd = document.createElement('td');
-                    maxTd.textContent = max.toFixed(2);
-                    row.appendChild(maxTd);
-                    const meanTd = document.createElement('td');
-                    meanTd.textContent = mean.toFixed(2);
-                    row.appendChild(meanTd);
-                    tbody.appendChild(row);
-                });
-                if (tbody.children.length === 0) {
-                    console.warn(`No valid datasets for stats table in ${canvasId}`);
-                    const row = document.createElement('tr');
-                    const td = document.createElement('td');
-                    td.colSpan = 4;
-                    td.textContent = 'No data available';
-                    row.appendChild(td);
-                    tbody.appendChild(row);
+            const container = document.getElementById(canvasId).parentNode;
+            let existingTable = container.querySelector('.stats-table');
+            if (existingTable) existingTable.remove();
+            const table = document.createElement('table');
+            table.className = 'stats-table';
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            chart.data.datasets.forEach(dataset => {
+                if (dataset.data.length === 0) return;
+                const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
+                if (ys.length === 0) return;
+                const min = Math.min(...ys);
+                const max = Math.max(...ys);
+                const sum = ys.reduce((a, b) => a + b, 0);
+                const mean = sum / ys.length;
+                const row = document.createElement('tr');
+                const labelTd = document.createElement('td');
+                const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                swatch.setAttribute('width', '20');
+                swatch.setAttribute('height', '10');
+                swatch.setAttribute('class', 'line-swatch');
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '0');
+                line.setAttribute('y1', '5');
+                line.setAttribute('x2', '20');
+                line.setAttribute('y2', '5');
+                line.setAttribute('stroke', dataset.borderColor);
+                line.setAttribute('stroke-width', '2');
+                if (dataset.borderDash && dataset.borderDash.length > 0) {
+                    line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
                 }
-                table.appendChild(tbody);
-                container.appendChild(table);
-            } catch (error) {
-                console.error(`Error creating stats table for ${canvasId}:`, error);
-            }
+                swatch.appendChild(line);
+                labelTd.appendChild(swatch);
+                const labelText = document.createTextNode(` ${dataset.label}`);
+                labelTd.appendChild(labelText);
+                row.appendChild(labelTd);
+                const minTd = document.createElement('td');
+                minTd.textContent = min.toFixed(2);
+                row.appendChild(minTd);
+                const maxTd = document.createElement('td');
+                maxTd.textContent = max.toFixed(2);
+                row.appendChild(maxTd);
+                const meanTd = document.createElement('td');
+                meanTd.textContent = mean.toFixed(2);
+                row.appendChild(meanTd);
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
         }
         function updateExpiryVsIV() {
-            try {
-                const selectedTicker = document.getElementById('ticker-select').value;
-                const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness === selectedMoneyness);
-                const datasets = [
-                    {
-                        label: 'Calls Implied Volatility',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Expiry',
-                            'Implied Volatility'
-                        ),
-                        borderColor: '#A0E7E5',
-                        backgroundColor: '#A0E7E5',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Implied Volatility',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Expiry',
-                            'Implied Volatility'
-                        ),
-                        borderColor: '#A0E7E5',
-                        backgroundColor: '#A0E7E5',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Expiry',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FFB3BA',
-                        backgroundColor: '#FFB3BA',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Expiry',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FFB3BA',
-                        backgroundColor: '#FFB3BA',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Heston IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
-                            'Expiry',
-                            'Heston IV'
-                        ),
-                        borderColor: '#F4A8E4',
-                        backgroundColor: '#F4A8E4',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Heston IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
-                            'Expiry',
-                            'Heston IV'
-                        ),
-                        borderColor: '#F4A8E4',
-                        backgroundColor: '#F4A8E4',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Local Vol',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Expiry',
-                            'Local Vol'
-                        ),
-                        borderColor: '#B4F8C8',
-                        backgroundColor: '#B4F8C8',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Realised Vol 90d',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Expiry',
-                            'Realised Vol 90d'
-                        ),
-                        borderColor: '#FBE7C6',
-                        backgroundColor: '#FBE7C6',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    }
-                ];
-                if (expiryChart) expiryChart.destroy();
-                expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: false,
-                                labels: {
-                                    color: '#FFFFFF'
-                                }
+            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness === selectedMoneyness);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        'Implied Volatility'
+                    ),
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        'Implied Volatility'
+                    ),
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        'IV_bid-ask'
+                    ),
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        'IV_bid-ask'
+                    ),
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        'Expiry',
+                        'Heston IV'
+                    ),
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        'Expiry',
+                        'Heston IV'
+                    ),
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Local Vol',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Expiry',
+                        'Local Vol'
+                    ),
+                    borderColor: '#B4F8C8',
+                    backgroundColor: '#B4F8C8',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realised Vol 90d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Expiry',
+                        'Realised Vol 90d'
+                    ),
+                    borderColor: '#FBE7C6',
+                    backgroundColor: '#FBE7C6',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                }
+            ];
+            if (expiryChart) expiryChart.destroy();
+            expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false,
+                            labels: {
+                                color: '#FFFFFF'
                             }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: { unit: 'day' },
-                                title: {
-                                    display: true,
-                                    text: 'Expiry Date',
-                                    color: '#FFFFFF'
-                                },
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' },
+                            title: {
+                                display: true,
+                                text: 'Expiry Date',
+                                color: '#FFFFFF'
                             },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Volatility (%)',
-                                    color: '#FFFFFF'
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
                             }
                         },
-                        backgroundColor: '#1C2526'
-                    }
-                });
-                createStatsTable(expiryChart, 'expiry-vs-iv-chart');
-            } catch (error) {
-                console.error('Error updating expiry vs IV chart:', error);
-            }
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
         function updateMoneynessVsIV() {
-            try {
-                const selectedTicker = document.getElementById('ticker-select').value;
-                const selectedExpiry = document.getElementById('expiry-select').value;
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
-                const datasets = [
-                    {
-                        label: 'Calls Implied Volatility',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Moneyness',
-                            'Implied Volatility'
-                        ),
-                        borderColor: '#A0E7E5',
-                        backgroundColor: '#A0E7E5',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Implied Volatility',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Moneyness',
-                            'Implied Volatility'
-                        ),
-                        borderColor: '#A0E7E5',
-                        backgroundColor: '#A0E7E5',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Moneyness',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FFB3BA',
-                        backgroundColor: '#FFB3BA',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Moneyness',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FFB3BA',
-                        backgroundColor: '#FFB3BA',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Heston IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
-                            'Moneyness',
-                            'Heston IV'
-                        ),
-                        borderColor: '#F4A8E4',
-                        backgroundColor: '#F4A8E4',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Heston IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
-                            'Moneyness',
-                            'Heston IV'
-                        ),
-                        borderColor: '#F4A8E4',
-                        backgroundColor: '#F4A8E4',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Local Vol',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Moneyness',
-                            'Local Vol'
-                        ),
-                        borderColor: '#B4F8C8',
-                        backgroundColor: '#B4F8C8',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Realised Vol 90d',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Moneyness',
-                            'Realised Vol 90d'
-                        ),
-                        borderColor: '#FBE7C6',
-                        backgroundColor: '#FBE7C6',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    }
-                ];
-                if (moneynessChart) moneynessChart.destroy();
-                moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: false,
-                                labels: {
-                                    color: '#FFFFFF'
-                                }
+            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'Implied Volatility'
+                    ),
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'Implied Volatility'
+                    ),
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'IV_bid-ask'
+                    ),
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'IV_bid-ask'
+                    ),
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Heston IV'] > 0),
+                        'Moneyness',
+                        'Heston IV'
+                    ),
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Heston IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Heston IV'] > 0),
+                        'Moneyness',
+                        'Heston IV'
+                    ),
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Local Vol',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Local Vol'
+                    ),
+                    borderColor: '#B4F8C8',
+                    backgroundColor: '#B4F8C8',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realised Vol 90d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Realised Vol 90d'
+                    ),
+                    borderColor: '#FBE7C6',
+                    backgroundColor: '#FBE7C6',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                }
+            ];
+            if (moneynessChart) moneynessChart.destroy();
+            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false,
+                            labels: {
+                                color: '#FFFFFF'
                             }
-                        },
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                title: {
-                                    display: true,
-                                    text: 'Moneyness (%)',
-                                    color: '#FFFFFF'
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Moneyness (%)',
+                                color: '#FFFFFF'
                             },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Volatility (%)',
-                                    color: '#FFFFFF'
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
                             }
                         },
-                        backgroundColor: '#1C2526'
-                    }
-                });
-                createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
-            } catch (error) {
-                console.error('Error updating moneyness vs IV chart:', error);
-            }
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
         }
         function updateHistoricChart() {
-            try {
-                const selectedTicker = document.getElementById('ticker-select').value;
-                const historyLength = document.getElementById('history-select').value;
-                let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
-                if (!filteredHistoric.length) {
-                    console.warn(`No historic data for ticker: ${selectedTicker}`);
-                    return;
-                }
-                filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                const fromDate = calculateDateRange(historyLength);
-                if (fromDate) {
-                    filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
-                }
-                if (!filteredHistoric.length) {
-                    console.warn(`No historic data after date filter for ticker: ${selectedTicker}, history: ${historyLength}`);
-                    return;
-                }
-                const dates = filteredHistoric.map(item => {
-                    const date = new Date(item.Date);
-                    if (isNaN(date)) console.warn(`Invalid date in historic data: ${item.Date}`);
-                    return date;
-                });
-                const prices = filteredHistoric.map(item => {
-                    const price = parseFloat(item.Close);
-                    if (isNaN(price)) console.warn(`Invalid Close price: ${item.Close}`);
-                    return price;
-                });
-                const vol30 = filteredHistoric.map(item => {
-                    const vol = parseFloat(item.Realised_Vol_30);
-                    if (isNaN(vol)) console.warn(`Invalid Realised_Vol_30: ${item.Realised_Vol_30}`);
-                    return vol;
-                });
-                const vol60 = filteredHistoric.map(item => {
-                    const vol = parseFloat(item.Realised_Vol_60);
-                    if (isNaN(vol)) console.warn(`Invalid Realised_Vol_60: ${item.Realised_Vol_60}`);
-                    return vol;
-                });
-                const vol90 = filteredHistoric.map(item => {
-                    const vol = parseFloat(item.Realised_Vol_90);
-                    if (isNaN(vol)) console.warn(`Invalid Realised_Vol_90: ${item.Realised_Vol_90}`);
-                    return vol;
-                });
-                const vol180 = filteredHistoric.map(item => {
-                    const vol = parseFloat(item.Realised_Vol_180);
-                    if (isNaN(vol)) console.warn(`Invalid Realised_Vol_180: ${item.Realised_Vol_180}`);
-                    return vol;
-                });
-                const vol360 = filteredHistoric.map(item => {
-                    const vol = parseFloat(item.Realised_Vol_360);
-                    if (isNaN(vol)) console.warn(`Invalid Realised_Vol_360: ${item.Realised_Vol_360}`);
-                    return vol;
-                });
-                const datasets = [
-                    {
-                        label: 'Stock Price',
-                        data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                        borderColor: '#A0E7E5',
-                        backgroundColor: '#A0E7E5',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: '30-day Realised Vol (%)',
-                        data: vol30.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FFB3BA',
-                        backgroundColor: '#FFB3BA',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '60-day Realised Vol (%)',
-                        data: vol60.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#F4A8E4',
-                        backgroundColor: '#F4A8E4',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [10, 5],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '90-day Realised Vol (%)',
-                        data: vol90.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#B4F8C8',
-                        backgroundColor: '#B4F8C8',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '180-day Realised Vol (%)',
-                        data: vol180.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FBE7C6',
-                        backgroundColor: '#FBE7C6',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [3, 3],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '360-day Realised Vol (%)',
-                        data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#D7A1F9',
-                        backgroundColor: '#D7A1F9',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [7, 3],
-                        yAxisID: 'y1'
-                    }
-                ].filter(dataset => dataset.data.every(point => !isNaN(point.x) && !isNaN(point.y)));
-                if (!datasets.length) {
-                    console.warn('No valid datasets for historic chart');
-                    return;
-                }
-                if (historicChart) historicChart.destroy();
-                historicChart = new Chart(document.getElementById('historic-price-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: true,
-                                labels: {
-                                    color: '#FFFFFF'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: { unit: 'month' },
-                                title: {
-                                    display: true,
-                                    text: 'Date',
-                                    color: '#FFFFFF'
-                                },
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Stock Price (£)',
-                                    color: '#FFFFFF'
-                                },
-                                beginAtZero: false,
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
-                            },
-                            y1: {
-                                type: 'linear',
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: 'Realised Volatility (%)',
-                                    color: '#FFFFFF'
-                                },
-                                beginAtZero: false,
-                                grid: {
-                                    color: '#FFFFFF33'
-                                },
-                                ticks: {
-                                    color: '#FFFFFF'
-                                }
-                            }
-                        },
-                        backgroundColor: '#1C2526'
-                    }
-                });
-            } catch (error) {
-                console.error('Error updating historic chart:', error);
+            const selectedTicker = document.getElementById('ticker-select').value;
+            const historyLength = document.getElementById('history-select').value;
+            let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
+            filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const fromDate = calculateDateRange(historyLength);
+            if (fromDate) {
+                filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
             }
+            const dates = filteredHistoric.map(item => new Date(item.Date));
+            const prices = filteredHistoric.map(item => parseFloat(item.Close));
+            const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
+            const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
+            const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_90));
+            const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
+            const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_360));
+            const datasets = [
+                {
+                    label: 'Stock Price',
+                    data: prices.map((p, i) => ({ x: dates[i], y: p })),
+                    borderColor: '#A0E7E5',
+                    backgroundColor: '#A0E7E5',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '30-day Realised Vol (%)',
+                    data: vol30.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#FFB3BA',
+                    backgroundColor: '#FFB3BA',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '60-day Realised Vol (%)',
+                    data: vol60.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#F4A8E4',
+                    backgroundColor: '#F4A8E4',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '90-day Realised Vol (%)',
+                    data: vol90.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#B4F8C8',
+                    backgroundColor: '#B4F8C8',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '180-day Realised Vol (%)',
+                    data: vol180.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#FBE7C6',
+                    backgroundColor: '#FBE7C6',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [3, 3],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '360-day Realised Vol (%)',
+                    data: vol360.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#D7A1F9',
+                    backgroundColor: '#D7A1F9',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [7, 3],
+                    yAxisID: 'y1'
+                }
+            ];
+            if (historicChart) historicChart.destroy();
+            historicChart = new Chart(document.getElementById('historic-price-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'month' },
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                color: '#FFFFFF'
+                            },
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Stock Price (£)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Realised Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
         }
     </script>
 </body>
