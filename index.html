@@ -199,16 +199,16 @@
             const expirySelect = document.getElementById('expiry-select');
             const prevMoneyness = moneynessSelect.value;
             const prevExpiry = expirySelect.value;
-            const uniqueMoneyness = [...new Set(tickerData.map(item => item.Moneyness))]
+            const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             moneynessSelect.innerHTML = ''; // Clear previous options
-            uniqueMoneyness.forEach(val => {
+            uniqueRoundedMoneyness.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
-                option.text = `${(val * 100).toFixed(2)}%`;
+                option.text = `${(val * 100).toFixed(0)}%`;
                 moneynessSelect.add(option);
             });
-            if (prevMoneyness && uniqueMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
+            if (prevMoneyness && uniqueRoundedMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
                 moneynessSelect.value = prevMoneyness;
             } else if (moneynessSelect.options.length > 0) {
                 moneynessSelect.value = moneynessSelect.options[0].value;
@@ -318,7 +318,7 @@
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
-            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness === selectedMoneyness);
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && Math.round(item.Moneyness * 100 / 10) * 0.1 === selectedMoneyness);
             const datasets = [
                 {
                     label: 'Calls Implied Volatility',
