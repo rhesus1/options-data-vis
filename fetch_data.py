@@ -33,7 +33,7 @@ def setup_driver(headless=True):
 def fetch_option_data(ticker, driver, max_retries=3):
     option_data = []
     url = f"https://www.nasdaq.com/market-activity/stocks/{ticker.lower()}/option-chain"
-    last_expiry_group = pd.to_datetime(datetime.now().year, format='%Y')  # Default to current year as fallback
+    last_expiry_group = pd.to_datetime(datetime.now().year, format='%Y') # Default to current year as fallback
     
     for attempt in range(max_retries):
         try:
@@ -41,8 +41,7 @@ def fetch_option_data(ticker, driver, max_retries=3):
             driver.get(url)
             time.sleep(random.uniform(4, 6))
             
-            # Handle cookie consent with retry
-            banner_present = True
+            # Handle cookie consent with retry and fallback
             for _ in range(5):
                 try:
                     consent_banner = WebDriverWait(driver, 15).until(
@@ -53,17 +52,14 @@ def fetch_option_data(ticker, driver, max_retries=3):
                     )
                     driver.execute_script("arguments[0].click();", accept_button)
                     time.sleep(random.uniform(2, 4))
-                    banner_present = False
+                    print(f"Cookie consent accepted for {ticker}")
                     break
                 except (TimeoutException, NoSuchElementException):
-                    print(f"Attempt {_ + 1} to find cookie consent banner failed")
+                    print(f"Attempt {_ + 1} to find cookie consent banner failed for {ticker}")
                     time.sleep(random.uniform(2, 4))
-            if banner_present:
-                print("Cookie consent banner not found or not dismissed after retries")
-                driver.save_screenshot(f'debug_{ticker}_attempt_{attempt + 1}_consent.png')
-                with open(f'debug_{ticker}_attempt_{attempt + 1}_consent.html', 'w', encoding='utf-8') as f:
-                    f.write(driver.page_source)
-                continue
+            else:
+                print(f"Cookie consent banner not found for {ticker}, proceeding without consent")
+                # Removed 'continue' to proceed to the next steps
             
             # Scroll to ensure filters are in view
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 2);")
@@ -89,9 +85,6 @@ def fetch_option_data(ticker, driver, max_retries=3):
                 time.sleep(random.uniform(3, 5))
             except (TimeoutException, NoSuchElementException) as e:
                 print(f"Failed to set expiration filter for {ticker}: {e}")
-                driver.save_screenshot(f'debug_{ticker}_attempt_{attempt + 1}_expiry.png')
-                with open(f'debug_{ticker}_attempt_{attempt + 1}_expiry.html', 'w', encoding='utf-8') as f:
-                    f.write(driver.page_source)
                 continue
             
             # Open and select "All (Moneyness)" for Moneyness
@@ -100,7 +93,6 @@ def fetch_option_data(ticker, driver, max_retries=3):
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'jupiter22-option-chain-filter-toggle-moneyness')]"))
                 )
                 driver.execute_script("arguments[0].click();", moneyness_toggle)
-                driver.save_screenshot(f'debug_{ticker}_attempt_{attempt + 1}_moneyness_toggle.png')
                 time.sleep(random.uniform(2, 3))
                 
                 WebDriverWait(driver, 20).until(
@@ -114,9 +106,6 @@ def fetch_option_data(ticker, driver, max_retries=3):
                 time.sleep(random.uniform(3, 5))
             except (TimeoutException, NoSuchElementException) as e:
                 print(f"Failed to set moneyness filter for {ticker}: {e}")
-                driver.save_screenshot(f'debug_{ticker}_attempt_{attempt + 1}_moneyness.png')
-                with open(f'debug_{ticker}_attempt_{attempt + 1}_moneyness.html', 'w', encoding='utf-8') as f:
-                    f.write(driver.page_source)
                 continue
             
             while True:
@@ -131,14 +120,14 @@ def fetch_option_data(ticker, driver, max_retries=3):
                     cells = row.find_all('td')
                     if len(cells) < 17:
                         continue
-                        
+                    
                     # Check if this is a new expiry group heading
                     if cells[0].get('class', []) and 'jupiter22-options-chain__cell--expirygroup' in cells[0].get('class', []):
                         expiry_group_text = cells[0].text.strip()
                         if expiry_group_text:
                             last_expiry_group = pd.to_datetime(expiry_group_text, format='%B %d, %Y')
                     
-                    expiry_date_str = cells[1].text.strip()  # e.g., "Aug 15"
+                    expiry_date_str = cells[1].text.strip() # e.g., "Aug 15"
                     if last_expiry_group and expiry_date_str:
                         # Combine month and day with year from the last expiry group
                         expiry_date = pd.to_datetime(f"{expiry_date_str} {last_expiry_group.year}", format='%b %d %Y', errors='coerce')
@@ -211,17 +200,12 @@ def fetch_option_data(ticker, driver, max_retries=3):
         
         except Exception as e:
             print(f"Attempt {attempt + 1} failed for {ticker}: {e}")
-            driver.save_screenshot(f'debug_{ticker}_attempt_{attempt + 1}.png')
-            with open(f'debug_{ticker}_attempt_{attempt + 1}.html', 'w', encoding='utf-8') as f:
-                f.write(driver.page_source)
-            print(f"Saved screenshot to debug_{ticker}_attempt_{attempt + 1}.png")
-            print(f"Saved page source to debug_{ticker}_attempt_{attempt + 1}.html")
             if attempt < max_retries - 1:
                 time.sleep(random.uniform(5, 7))
             continue
     
     return pd.DataFrame()
-
+    
 def process_ticker_fetch(ticker, driver):
     print(f"Fetching data for {ticker}...")
     stock = yf.Ticker(ticker)
@@ -269,12 +253,12 @@ def fetch_historic_data(ticker):
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
     return hist[['Ticker', 'Date', 'Close', 'Realised_Vol_30', 'Realised_Vol_60', 'Realised_Vol_90', 'Realised_Vol_180', 'Realised_Vol_360']]
-
+    
 def main():
     with open('tickers.txt', 'r') as file:
         tickers = [line.strip() for line in file if line.strip()]
     
-    driver = setup_driver(headless=True)  # Set to False for debugging
+    driver = setup_driver(headless=True) # Set to False for debugging
     all_data = []
     all_hist = []
     
@@ -288,7 +272,7 @@ def main():
             if not df_hist.empty:
                 all_hist.append(df_hist)
             
-            time.sleep(1)  # Avoid rate limiting
+            time.sleep(1) # Avoid rate limiting
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         os.makedirs('data', exist_ok=True)
