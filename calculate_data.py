@@ -15,6 +15,8 @@ import sys
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
 
+from scipy.interpolate import RBFInterpolator
+
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(S - K, 0)
@@ -176,67 +178,17 @@ def calculate_heston_iv(df, S, r, q, heston_params):
         df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower())
     return df
 
-def compute_local_vol_row(row, r, q, option_type, h_k_base, interp):
-    k = row['Strike']
-    t = row['T']
-    if t <= 0:
-        return None
-   
-    price = interp((k, t))
-    if np.isnan(price):
-        return None
-   
-    h_t = 0.01 * t
-    h_k = h_k_base
-   
-    price_T_plus = interp((k, t + h_t))
-    price_T_minus = interp((k, max(t - h_t, 0.0001)))
-    if np.isnan(price_T_plus) or np.isnan(price_T_minus):
-        return None
-    dP_dT = (price_T_plus - price_T_minus) / (2 * h_t)
-   
-    price_K_plus = interp((k + h_k, t))
-    price_K_minus = interp((k - h_k, t))
-    if np.isnan(price_K_plus) or np.isnan(price_K_minus):
-        return None
-    dP_dK = (price_K_plus - price_K_minus) / (2 * h_k)
-   
-    d2P_dK2 = (price_K_plus - 2 * price + price_K_minus) / (h_k ** 2)
-   
-    if np.isnan(dP_dT) or np.isnan(dP_dK) or np.isnan(d2P_dK2):
-        return None
-   
-    numer = dP_dT + (r - q) * k * dP_dK + q * price
-    denom = 0.5 * k ** 2 * d2P_dK2
-   
-    if denom <= 1e-10 or numer <= 0:
-        local_vol = 0.0
-    else:
-        local_vol_sq = numer / denom
-        if local_vol_sq <= 0:
-            local_vol = 0.0
-        else:
-            local_vol = np.sqrt(local_vol_sq)
-            if local_vol < 0 or local_vol > 2.0:
-                local_vol = np.nan
-   
-    return {
-        "Strike": k,
-        "Expiry": row['Expiry'],
-        "Local Vol": local_vol
-    }
-
 def calculate_local_vol(full_df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'Bid', 'Ask']
     if not all(col in full_df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
-   
+  
     calls = full_df[full_df['Type'] == 'Call'].copy()
     puts = full_df[full_df['Type'] == 'Put'].copy()
-   
+  
     call_local_df = pd.DataFrame()
     put_local_df = pd.DataFrame()
-   
+  
     if not calls.empty:
         calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
         calls['T'] = (calls['Expiry'] - datetime.today()).dt.days / 365.25
@@ -249,29 +201,31 @@ def calculate_local_vol(full_df, S, r, q):
                 print(f"Warning: Non-monotonic call prices for T={t:.4f}")
         call_points = np.column_stack((calls['Strike'], calls['T']))
         call_values = calls['mid_price'].values
-       
+      
         strikes = np.sort(np.unique(calls['Strike']))
+        min_k = strikes.min()
+        max_k = strikes.max()
         if len(strikes) > 1:
             h_k_base = np.median(np.diff(strikes))
         else:
             h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
         h_k_base = max(h_k_base, 0.1)
-       
+      
         if len(calls) >= 3:
             try:
-                call_interp = CloughTocher2DInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
+                call_interp = RBFInterpolator(call_points, call_values, kernel='gaussian', smoothing=0.01)
             except Exception as e:
                 print(f"Warning: Interpolator fit failed for calls: {e}. Using linear fallback.")
                 call_interp = LinearNDInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
-           
+          
             call_local_data = Parallel(n_jobs=-1, backend='threading')(
-                delayed(compute_local_vol_row)(row, r, q, 'Call', h_k_base, call_interp)
+                delayed(compute_local_vol_row)(row, r, q, 'Call', h_k_base, call_interp, min_k, max_k)
                 for _, row in calls.iterrows()
             )
             call_local_data = [d for d in call_local_data if d is not None]
             if call_local_data:
                 call_local_df = pd.DataFrame(call_local_data)
-   
+  
     if not puts.empty:
         puts['mid_price'] = (puts['Bid'] + puts['Ask']) / 2
         puts['T'] = (puts['Expiry'] - datetime.today()).dt.days / 365.25
@@ -284,30 +238,103 @@ def calculate_local_vol(full_df, S, r, q):
                 print(f"Warning: Non-monotonic put prices for T={t:.4f}")
         put_points = np.column_stack((puts['Strike'], puts['T']))
         put_values = puts['mid_price'].values
-       
+      
         strikes = np.sort(np.unique(puts['Strike']))
+        min_k = strikes.min()
+        max_k = strikes.max()
         if len(strikes) > 1:
             h_k_base = np.median(np.diff(strikes))
         else:
             h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
         h_k_base = max(h_k_base, 0.1)
-       
+      
         if len(puts) >= 3:
             try:
-                put_interp = CloughTocher2DInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
+                put_interp = RBFInterpolator(put_points, put_values, kernel='gaussian', smoothing=0.01)
             except Exception as e:
                 print(f"Warning: Interpolator fit failed for puts: {e}. Using linear fallback.")
                 put_interp = LinearNDInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
-           
+          
             put_local_data = Parallel(n_jobs=-1, backend='threading')(
-                delayed(compute_local_vol_row)(row, r, q, 'Put', h_k_base, put_interp)
+                delayed(compute_local_vol_row)(row, r, q, 'Put', h_k_base, put_interp, min_k, max_k)
                 for _, row in puts.iterrows()
             )
             put_local_data = [d for d in put_local_data if d is not None]
             if put_local_data:
                 put_local_df = pd.DataFrame(put_local_data)
-   
+  
     return call_local_df, put_local_df
+
+def compute_local_vol_row(row, r, q, option_type, h_k_base, interp, min_k, max_k):
+    k = row['Strike']
+    t = row['T']
+    if t <= 0:
+        return None
+  
+    price = interp((k, t))
+    if np.isnan(price):
+        return None
+  
+    h_t = min(0.01, 0.1 * t) if t > 0.01 else 0.001
+    h_k = 0.01 * k  # adaptive relative to k
+  
+    # dP_dT
+    price_T_plus = interp((k, t + h_t))
+    price_T_minus = interp((k, max(t - h_t, 0.0001)))
+    if np.isnan(price_T_plus) or np.isnan(price_T_minus):
+        return None
+    if t - h_t < 0:
+        dP_dT = (price_T_plus - price) / h_t  # forward
+    else:
+        dP_dT = (price_T_plus - price_T_minus) / (2 * h_t)  # central
+  
+    # Prices for dP_dK and d2P_dK2
+    price_km2 = interp((k - 2 * h_k, t))
+    price_km1 = interp((k - h_k, t))
+    price_kp1 = interp((k + h_k, t))
+    price_kp2 = interp((k + 2 * h_k, t))
+  
+    is_left_edge = (k - 2 * h_k < min_k) or np.isnan(price_km2) or np.isnan(price_km1)
+    is_right_edge = (k + 2 * h_k > max_k) or np.isnan(price_kp2) or np.isnan(price_kp1)
+  
+    if not (is_left_edge or is_right_edge):
+        # Higher-order central
+        dP_dK = (-price_kp2 + 8 * price_kp1 - 8 * price_km1 + price_km2) / (12 * h_k)  # 3rd order
+        d2P_dK2 = (-price_kp2 + 16 * price_kp1 - 30 * price + 16 * price_km1 - price_km2) / (12 * h_k ** 2)  # 4th order
+    else:
+        if is_left_edge and not is_right_edge:
+            # Forward differences
+            dP_dK = (-1.5 * price + 2 * price_kp1 - 0.5 * price_kp2) / h_k
+            d2P_dK2 = (price - 2 * price_kp1 + price_kp2) / h_k ** 2
+        elif is_right_edge and not is_left_edge:
+            # Backward differences
+            dP_dK = (1.5 * price - 2 * price_km1 + 0.5 * price_km2) / h_k
+            d2P_dK2 = (price - 2 * price_km1 + price_km2) / h_k ** 2
+        else:
+            # Fallback to basic central if possible, else None
+            if np.isnan(price_km1) or np.isnan(price_kp1):
+                return None
+            dP_dK = (price_kp1 - price_km1) / (2 * h_k)
+            d2P_dK2 = (price_kp1 - 2 * price + price_km1) / h_k ** 2
+  
+    numer = dP_dT + (r - q) * k * dP_dK + q * price
+    denom = 0.5 * k ** 2 * d2P_dK2
+  
+    if denom <= 1e-10 or numer <= 0:
+        local_vol_sq = 0.0
+    else:
+        local_vol_sq = numer / denom
+  
+    local_vol_sq = max(local_vol_sq, 0.0)  # dampening negative variance
+    local_vol = np.sqrt(local_vol_sq)
+    if local_vol > 2.0:
+        local_vol = np.nan  # cap extreme values
+  
+    return {
+        "Strike": k,
+        "Expiry": row['Expiry'],
+        "Local Vol": local_vol
+    }
 
 def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
@@ -339,7 +366,7 @@ def process_ticker(ticker, df, full_df, r):
         )
     else:
         ticker_df['Put Local Vol'] = np.nan
-    
+   
     ticker_df['Realised Vol 90d'] = rvol90d if rvol90d is not None else np.nan
     return ticker_df
 
@@ -384,4 +411,5 @@ def main():
         print(f"Updated dates list in {dates_file}")
     else:
         print("No processed data to save")
+
 main()
