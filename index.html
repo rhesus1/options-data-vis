@@ -336,7 +336,7 @@
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
-                        'IV_bid-ask'
+                        'IV_mid'
                     ),
                     borderColor: '#FFB3BA',
                     backgroundColor: '#FFB3BA',
@@ -351,7 +351,7 @@
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Expiry',
-                        'IV_bid-ask'
+                        'IV_mid'
                     ),
                     borderColor: '#FFB3BA',
                     backgroundColor: '#FFB3BA',
@@ -511,7 +511,7 @@
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
-                        'IV_bid-ask'
+                        'IV_mid'
                     ),
                     borderColor: '#FFB3BA',
                     backgroundColor: '#FFB3BA',
@@ -526,7 +526,7 @@
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put'),
                         'Moneyness',
-                        'IV_bid-ask'
+                        'IV_mid'
                     ),
                     borderColor: '#FFB3BA',
                     backgroundColor: '#FFB3BA',
@@ -567,11 +567,11 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Local Vol',
+                    label: 'Calls Local Vol',
                     data: aggregateDataByX(
-                        filteredData,
+                        filteredData.filter(item => item.Type === 'Put' && item['Call Local Vol'] > 0),
                         'Moneyness',
-                        'Local Vol'
+                        'Call Local Vol'
                     ),
                     borderColor: '#B4F8C8',
                     backgroundColor: '#B4F8C8',
