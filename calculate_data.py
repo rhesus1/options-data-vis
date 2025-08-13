@@ -141,7 +141,7 @@ def calculate_metrics(df, ticker):
             print(f"- {row['Contract Name']} (Expiry: {row['Expiry']})")
     df['IV_bid'] = np.nan
     df['IV_ask'] = np.nan
-    df['IV_bid-ask'] = np.nan
+    df['IV_mid'] = np.nan
     df['IV_spread'] = np.nan
     for idx, row in df.iterrows():
         if pd.isna(row['Years_to_Expiry']):
@@ -149,9 +149,9 @@ def calculate_metrics(df, ticker):
         T = max(row['Years_to_Expiry'], 0.0001)
         option_type = row['Type'].lower()
         contract_name = row['Contract Name']
-        df.at[idx, 'IV_bid'] = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name) * 100
-        df.at[idx, 'IV_ask'] = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name) * 100
-        df.at[idx, 'IV_bid-ask'] = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name) * 100
+        df.at[idx, 'IV_bid'] = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name)
+        df.at[idx, 'IV_ask'] = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name)
+        df.at[idx, 'IV_mid'] = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
         df.at[idx, 'IV_spread'] = df.at[idx, 'IV_ask'] - df.at[idx, 'IV_bid'] if not np.isnan(df.at[idx, 'IV_bid']) else np.nan
     return df, skew_df, slope_df, S, r, q
 
@@ -206,13 +206,10 @@ def calculate_heston_iv(df, S, r, q, heston_params):
         T = row['Years_to_Expiry']
         K = row['Strike']
         heston_p = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
-        df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower()) * 100
+        df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower())
     return df
 
 def compute_local_vol_row(row, points, values, r, q):
-    """
-    Compute local vol for a single row. Extracted for parallelization.
-    """
     k = row['Strike']
     t = row['T']
     def call_price_interp(kk, tt):
@@ -242,10 +239,10 @@ def compute_local_vol_row(row, points, values, r, q):
         local_vol = np.nan
     else:
         local_vol_sq = numer / denom
-        local_vol = np.sqrt(local_vol_sq) * 100
+        local_vol = np.sqrt(local_vol_sq)
         # Filter local volatility: set to NaN if < 0% or > 300%
-        if local_vol < 0 or local_vol > 300:
-            local_vol = np.nan
+        #if local_vol < 0 or local_vol > 300:
+        #    local_vol = np.nan
 
     return {
         "Strike": k,
@@ -296,9 +293,9 @@ def process_ticker(ticker, df, full_df):
         ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
     else:
         ticker_df['Local Vol'] = np.nan
-    ticker_df['Realised Vol 90d'] = rvol90d * 100 if rvol90d is not None else np.nan
-    ticker_df['Implied Volatility'] = ticker_df['Implied Volatility'] * 100
-    ticker_df['Moneyness'] = ticker_df['Moneyness'] * 100
+    ticker_df['Realised Vol 90d'] = rvol90d if rvol90d is not None else np.nan
+    #ticker_df['Implied Volatility'] = ticker_df['Implied Volatility']
+    #ticker_df['Moneyness'] = ticker_df['Moneyness']
     return ticker_df
 
 def main():
