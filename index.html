@@ -167,9 +167,10 @@
                 .catch(error => console.error('Error loading historic data:', error));
         }
         function populateDropdowns() {
+            const tickerSelect = document.getElementById('ticker-select');
+            const prevTicker = tickerSelect.value;
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
                 .filter(val => val).sort();
-            const tickerSelect = document.getElementById('ticker-select');
             tickerSelect.innerHTML = ''; // Clear previous
             uniqueTickers.forEach(val => {
                 const option = document.createElement('option');
@@ -177,6 +178,11 @@
                 option.text = val;
                 tickerSelect.add(option);
             });
+            if (prevTicker && uniqueTickers.includes(prevTicker)) {
+                tickerSelect.value = prevTicker;
+            } else if (tickerSelect.options.length > 0) {
+                tickerSelect.value = tickerSelect.options[0].value;
+            }
             tickerSelect.addEventListener('change', () => {
                 updateDropdowns();
                 updateCharts();
@@ -189,9 +195,12 @@
         function updateDropdowns() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
+            const moneynessSelect = document.getElementById('moneyness-select');
+            const expirySelect = document.getElementById('expiry-select');
+            const prevMoneyness = moneynessSelect.value;
+            const prevExpiry = expirySelect.value;
             const uniqueMoneyness = [...new Set(tickerData.map(item => item.Moneyness))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
-            const moneynessSelect = document.getElementById('moneyness-select');
             moneynessSelect.innerHTML = ''; // Clear previous options
             uniqueMoneyness.forEach(val => {
                 const option = document.createElement('option');
@@ -199,9 +208,13 @@
                 option.text = `${(val * 100).toFixed(2)}%`;
                 moneynessSelect.add(option);
             });
+            if (prevMoneyness && uniqueMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
+                moneynessSelect.value = prevMoneyness;
+            } else if (moneynessSelect.options.length > 0) {
+                moneynessSelect.value = moneynessSelect.options[0].value;
+            }
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
-            const expirySelect = document.getElementById('expiry-select');
             expirySelect.innerHTML = ''; // Clear previous options
             uniqueExpiries.forEach(val => {
                 const option = document.createElement('option');
@@ -209,6 +222,11 @@
                 option.text = new Date(val).toLocaleDateString('en-GB');
                 expirySelect.add(option);
             });
+            if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
+                expirySelect.value = prevExpiry;
+            } else if (expirySelect.options.length > 0) {
+                expirySelect.value = expirySelect.options[0].value;
+            }
         }
         function updateCharts() {
             updateExpiryVsIV();
