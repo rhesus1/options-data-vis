@@ -1,7 +1,7 @@
-name: Fetch Data
+name: Fetch Options Data
 on:
   schedule:
-    - cron: '0 6,14,16,18,20,21,22 * * *' # Daily at 8 AM, 11 AM, 2 PM, 3 PM, 5 PM, 7 PM, 9 PM, 10 PM UK time
+    - cron: '0 14,16,18,20,21,22 * * *' # Daily at 8 AM, 11 AM, 2 PM, 3 PM, 5 PM, 7 PM, 9 PM, 10 PM UK time
   workflow_dispatch: # Manual trigger option
 jobs:
   fetch:
@@ -13,25 +13,22 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-    - name: Install Chrome and Chromedriver
+    - name: Install Chrome
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget unzip chromium-browser chromium-chromedriver
+        sudo apt-get install -y wget unzip
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb
+        sudo apt-get -f install -y
+    - name: Install Chromedriver
+      run: |
         CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f 3 | cut -d '.' -f 1)
-        CHROMEDRIVER_VERSION=$(chromedriver --version | cut -d ' ' -f 2 | cut -d '.' -f 1)
-        echo "Chrome version: $CHROME_VERSION"
-        echo "Chromedriver version: $CHROMEDRIVER_VERSION"
-        if [ "$CHROME_VERSION" != "$CHROMEDRIVER_VERSION" ]; then
-          echo "Version mismatch detected. Attempting to fix..."
-          wget -N https://chromedriver.storage.googleapis.com/LATEST_RELEASE -O /tmp/LATEST_RELEASE
-          LATEST_VERSION=$(cat /tmp/LATEST_RELEASE)
-          wget -N https://chromedriver.storage.googleapis.com/${LATEST_VERSION}/chromedriver_linux64.zip
-          unzip -o chromedriver_linux64.zip -d /tmp
-          sudo mv /tmp/chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-          CHROMEDRIVER_VERSION=$(chromedriver --version | cut -d ' ' -f 2 | cut -d '.' -f 1)
-          echo "Updated Chromedriver version: $CHROMEDRIVER_VERSION"
-        fi
+        wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION} -O /tmp/LATEST_RELEASE
+        LATEST_VERSION=$(cat /tmp/LATEST_RELEASE)
+        wget https://chromedriver.storage.googleapis.com/${LATEST_VERSION}/chromedriver_linux64.zip
+        unzip chromedriver_linux64.zip
+        sudo mv chromedriver /usr/local/bin/
+        sudo chmod +x /usr/local/bin/chromedriver
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
