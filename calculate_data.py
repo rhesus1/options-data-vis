@@ -358,8 +358,8 @@ def process_ticker(ticker, df, full_df):
     print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
     ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
-    heston_params = calibrate_heston(ticker_df, S, r, q)
-    ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
+    #heston_params = calibrate_heston(ticker_df, S, r, q)
+    #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
     call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
     if not call_local_df.empty:
         ticker_df = ticker_df.merge(
