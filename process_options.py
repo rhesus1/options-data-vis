@@ -124,9 +124,9 @@ def calculate_metrics(df, ticker):
     df["Expiry_dt"] = df["Expiry"]
     df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
     invalid_rows = df[df['Years_to_Expiry'].isna()]
-    if not invalid_rows.empty:
+   # if not invalid_rows.empty:
         #print("Warning: NaN in Years_to_Expiry for the following contracts:")
-        for idx, row in invalid_rows.iterrows():
+       # for idx, row in invalid_rows.iterrows():
            # print(f"- {row['Contract Name']} (Expiry: {row['Expiry']})")
     df['IV_bid'] = np.nan
     df['IV_ask'] = np.nan
