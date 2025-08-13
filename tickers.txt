@@ -1,4 +1,3 @@
-BTC
 COIN
 MSTR
 BABA
@@ -9,4 +8,5 @@ AKAM
 BOX
 DDOG
 ETSY
+
 
