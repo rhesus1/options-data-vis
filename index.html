@@ -253,7 +253,7 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            chart.data.datasets.forEach((dataset, index) => {
+            chart.data.datasets.forEach(dataset => {
                 if (dataset.data.length === 0) return;
                 const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
                 if (ys.length === 0) return;
@@ -262,16 +262,6 @@
                 const sum = ys.reduce((a, b) => a + b, 0);
                 const mean = sum / ys.length;
                 const row = document.createElement('tr');
-                row.style.cursor = 'pointer'; // Make row appear clickable
-                row.addEventListener('click', () => {
-                    // Toggle dataset visibility
-                    chart.setDatasetVisibility(index, !chart.getDatasetVisibility(index));
-                    chart.update();
-                    // Update row style to indicate visibility
-                    row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
-                });
-                // Set initial opacity based on visibility
-                row.style.opacity = chart.getDatasetVisibility(index) ? '1' : '0.5';
                 const labelTd = document.createElement('td');
                 const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 swatch.setAttribute('width', '20');
