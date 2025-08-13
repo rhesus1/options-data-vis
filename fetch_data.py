@@ -103,9 +103,9 @@ def process_ticker_fetch(ticker):
     full_df['Mid Stock'] = (full_df['Bid Stock'] + full_df['Ask Stock'])/2;
 
     if mid > 0:
-        full_df['Moneyness'] = np.round(mid / full_df['Strike'] / 0.05) * 0.05
+        full_df['Moneyness'] = np.round(mid / full_df['Strike'] / 0.01) * 0.01
     else:
-        full_df['Moneyness'] = np.round(S / full_df['Strike'] / 0.05) * 0.05
+        full_df['Moneyness'] = np.round(S / full_df['Strike'] / 0.01) * 0.01
     columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Implied Volatility']
     return full_df[columns]
 
