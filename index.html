@@ -126,7 +126,6 @@
             }
             return fromDate;
         }
- 
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -195,7 +194,7 @@
             uniqueMoneyness.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
-                option.text = `${val.toFixed(2)}%`;
+                option.text = `${(val * 100).toFixed(2)}%`;
                 moneynessSelect.add(option);
             });
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
@@ -231,8 +230,8 @@
                 const group = grouped[x];
                 if (group.count > 0) {
                     return {
-                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x),
-                        y: group.sum / group.count
+                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x) * (xKey === 'Moneyness' ? 100 : 1),
+                        y: (group.sum / group.count) * 100
                     };
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
@@ -439,7 +438,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Volatility',
+                                text: 'Volatility (%)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: true,
@@ -585,7 +584,7 @@
                             type: 'linear',
                             title: {
                                 display: true,
-                                text: 'Moneyness',
+                                text: 'Moneyness (%)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: true,
@@ -599,7 +598,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Volatility',
+                                text: 'Volatility (%)',
                                 color: '#FFFFFF'
                             },
                             beginAtZero: true,
