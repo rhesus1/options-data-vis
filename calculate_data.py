@@ -64,7 +64,7 @@ def calculate_rvol_days(ticker, days):
 def calc_Ivol_Rvol(df, rvol90d):
     if df.empty:
         return df
-    df["Ivol/Rvol90d Ratio"] = df["Implied Volatility"] / rvol90d
+    df["Ivol/Rvol90d Ratio"] = df["IV_mid"] / rvol90d
     return df
 
 def compute_ivs(row, S, r, q):
@@ -85,8 +85,8 @@ def calculate_metrics(df, ticker, r):
     skew_data = []
     for exp in df["Expiry"].unique():
         for strike in df["Strike"].unique():
-            call_iv = df[(df["Type"] == "Call") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["Implied Volatility"]
-            put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["Implied Volatility"]
+            call_iv = df[(df["Type"] == "Call") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
+            put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
             if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
                 skew = put_iv.iloc[0] / call_iv.iloc[0]
                 skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
@@ -96,7 +96,7 @@ def calculate_metrics(df, ticker, r):
         for opt_type in ["Call", "Put"]:
             subset = df[(df["Strike"] == strike) & (df["Type"] == opt_type)].sort_values("Expiry")
             if len(subset) > 1:
-                iv_diff = subset["Implied Volatility"].diff()
+                iv_diff = subset["IV_mid"].diff()
                 subset["Expiry_dt"] = pd.to_datetime(subset["Expiry"])
                 time_diff = (subset["Expiry_dt"] - subset["Expiry_dt"].shift(1)).map(lambda x: x.days / 365.0)
                 slope = iv_diff / time_diff
@@ -108,6 +108,11 @@ def calculate_metrics(df, ticker, r):
                         "IV Slope": slope.iloc[i]
                     })
     slope_df = pd.DataFrame(slope_data)
+    return df, skew_df, slope_df
+
+def calculate_iv_mid(df, ticker, r):
+    if df.empty:
+        return df, pd.DataFrame(), pd.DataFrame(), None, None, None
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
     q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
@@ -120,61 +125,7 @@ def calculate_metrics(df, ticker, r):
     df['IV_spread'] = np.nan
     results = Parallel(n_jobs=-1, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread']] = pd.DataFrame(results, index=df.index)
-    return df, skew_df, slope_df, S, r, q
-
-def heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau):
-    i = 1j
-    d = np.sqrt((rho * sigma_vol * i * phi - kappa)**2 + sigma_vol**2 * (i * phi + phi**2))
-    g = (kappa - rho * sigma_vol * i * phi - d) / (kappa - rho * sigma_vol * i * phi + d)
-    C = r * i * phi * tau + (kappa * theta / sigma_vol**2) * ((kappa - rho * sigma_vol * i * phi - d) * tau - 2 * np.log((1 - g * np.exp(-d * tau)) / (1 - g)))
-    D = ((kappa - rho * sigma_vol * i * phi - d) / sigma_vol**2) * ((1 - np.exp(-d * tau)) / (1 - g * np.exp(-d * tau)))
-    return np.exp(C + D * v0 + i * phi * np.log(S0))
-
-def heston_price_call(S0, K, v0, kappa, theta, sigma_vol, rho, r, tau):
-    i = 1j
-    def integrand(phi):
-        return np.real(np.exp(-i * phi * np.log(K)) / (i * phi) * heston_char_func(phi - i, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / heston_char_func(-i, S0, v0, kappa, theta, sigma_vol, rho, r, tau))
-    phi_vals = np.linspace(0.01, 100, 1000)
-    integral = np.trapz(integrand(phi_vals), dx=phi_vals[1] - phi_vals[0])
-    P1 = 0.5 + (1 / np.pi) * integral
-    def integrand2(phi):
-        return np.real(heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / (i * phi * np.exp(i * phi * np.log(K))))
-    integral2 = np.trapz(integrand2(phi_vals), dx=phi_vals[1] - phi_vals[0])
-    P2 = 0.5 + (1 / np.pi) * integral2
-    return S0 * P1 - K * np.exp(-r * tau) * P2
-
-def calibrate_heston(df, S, r, q):
-    def objective(params):
-        v0, kappa, theta, sigma_vol, rho = params
-        error = 0.0
-        for idx, row in df.iterrows():
-            T = row['Years_to_Expiry']
-            K = row['Strike']
-            market_price = 0.5 * (row['Bid'] + row['Ask'])
-            model_price = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
-            error += (model_price - market_price)**2
-        return error
-    initial = [0.04, 2.0, 0.04, 0.3, -0.7]
-    bounds = [(0.01, 0.2), (0.1, 5.0), (0.01, 0.2), (0.1, 1.0), (-0.99, 0.99)]
-    result = minimize(objective, initial, bounds=bounds, method='L-BFGS-B')
-    if result.success:
-        return result.x
-    else:
-        print("Heston calibration failed:", result.message)
-        return None
-
-def calculate_heston_iv(df, S, r, q, heston_params):
-    if heston_params is None:
-        df['Heston IV'] = np.nan
-        return df
-    v0, kappa, theta, sigma_vol, rho = heston_params
-    df['Heston IV'] = np.nan
-    for idx, row in df.iterrows():
-        T = row['Years_to_Expiry']
-        K = row['Strike']
-        heston_p = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
-        df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower())
-    return df
+    return df, S, r, q
 
 def compute_local_vol_row(row, r, q, option_type, h_k_base, interp):
     k = row['Strike']
@@ -316,7 +267,8 @@ def process_ticker(ticker, df, full_df, r):
     print(f"\nRealised Volatility for {ticker}:")
     print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
-    ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker, r)
+    ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
+    ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
     if not call_local_df.empty:
         ticker_df = ticker_df.merge(
