@@ -1,10 +1,6 @@
-name: Run Option Processing Script
+name: Force Analysis Update
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
     inputs:
       date:
@@ -17,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.12.3
       uses: actions/setup-python@v5
@@ -29,5 +26,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install yfinance pandas numpy scipy joblib
 
+    # === Timestamp Input Used Here ===
     - name: Run the script
       run: python process_options.py ${{ inputs.date }}
+    # ================================
+
+    - name: Commit and push updated data
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data
+        git commit -m "Auto-update processed data for ${{ inputs.date }}" || echo "No changes to commit"
+        git push
