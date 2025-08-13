@@ -126,7 +126,7 @@
             }
             return fromDate;
         }
-  
+ 
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -444,7 +444,7 @@
                 options: {
                     plugins: {
                         legend: {
-                            display: false,
+                            display: true,
                             labels: {
                                 color: '#FFFFFF'
                             }
@@ -601,7 +601,7 @@
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
                         'Moneyness',
-                        '/put Local Vol'
+                        'Put Local Vol'
                     ),
                     borderColor: '#B4F8C8',
                     backgroundColor: '#B4F8C8',
@@ -634,7 +634,7 @@
                 options: {
                     plugins: {
                         legend: {
-                            display: false,
+                            display: true,
                             labels: {
                                 color: '#FFFFFF'
                             }
