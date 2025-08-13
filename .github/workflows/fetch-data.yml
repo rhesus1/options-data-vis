@@ -2,7 +2,7 @@ name: Fetch Options Data
 
 on:
   schedule:
-    - cron: '0 7,10,13,14,16,18,20,21 * * *'  # Daily at 8 AM, 11 AM, 2 PM, 3 PM, 5 PM, 7 PM, 9 PM, 10 PM UK time 
+    - cron: '0 6,14,16,18,20,21 * * *'  # Daily at 8 AM, 11 AM, 2 PM, 3 PM, 5 PM, 7 PM, 9 PM, 10 PM UK time 
   workflow_dispatch:  # Manual trigger option
 
 jobs:
