@@ -209,41 +209,60 @@ def calculate_heston_iv(df, S, r, q, heston_params):
         df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower())
     return df
 
-def compute_local_vol_row(row, points, values, r, q):
+def compute_local_vol_row(row, points, values, S, r, q, option_type):
     k = row['Strike']
     t = row['T']
-    def call_price_interp(kk, tt):
+    
+    # Interpolation function for option prices
+    def price_interp(kk, tt, points, values):
         if tt <= 0:
             return np.nan
         return griddata(points, values, (kk, tt), method='linear', fill_value=np.nan, rescale=False)
-
-    c = call_price_interp(k, t)
-    if np.isnan(c):
+    
+    # Get option price
+    price = price_interp(k, t, points, values)
+    if np.isnan(price):
         return None
-
-    h_t = max(1e-3, t * 1e-3)
-    dC_dT = (call_price_interp(k, t + h_t) - call_price_interp(k, t - h_t)) / (2 * h_t)
-
-    h_k = max(0.1, k * 0.001)
-    dC_dK = (call_price_interp(k + h_k, t) - call_price_interp(k - h_k, t)) / (2 * h_k)
-    d2C_dK2 = (call_price_interp(k + h_k, t) - 2 * c + call_price_interp(k - h_k, t)) / (h_k ** 2)
-
-    if np.isnan(dC_dT) or np.isnan(dC_dK) or np.isnan(d2C_dK2) or d2C_dK2 <= 0:
-        print(f"Warning: Invalid derivatives for K={k}, T={t}; skipping.")
+    
+    # Step sizes matching C++: h_t = 0.01 * T, h_k = 0.005 * K
+    h_t = 0.01 * t
+    h_k = 0.005 * k
+    
+    # Compute dPrice/dT
+    price_T_plus = price_interp(k, t + h_t, points, values)
+    price_T_minus = price_interp(k, t - h_t, points, values)
+    if np.isnan(price_T_plus) or np.isnan(price_T_minus):
+        print(f"Warning: Invalid time perturbations for K={k}, T={t}, Type={option_type}; skipping.")
         return None
-
-    numer = dC_dT + (r - q) * k * dC_dK + q * c
-    denom = 0.5 * k**2 * d2C_dK2
-    if denom == 0 or numer <= 0:
-        print(f"Warning: Non-positive local vol sq for K={k}, T={t} (numer={numer:.2f}, denom={denom:.2f}); setting NaN.")
-        local_vol = np.nan
+    dP_dT = (price_T_plus - price_T_minus) / (2 * h_t)
+    
+    # Compute d2Price/dK2
+    price_K_plus = price_interp(k + h_k, t, points, values)
+    price_K_minus = price_interp(k - h_k, t, points, values)
+    if np.isnan(price_K_plus) or np.isnan(price_K_minus):
+        print(f"Warning: Invalid strike perturbations for K={k}, T={t}, Type={option_type}; skipping.")
+        return None
+    d2P_dK2 = (price_K_plus - 2 * price + price_K_minus) / (h_k ** 2)
+    
+    if np.isnan(dP_dT) or np.isnan(d2P_dK2):
+        print(f"Warning: Invalid derivatives for K={k}, T={t}, Type={option_type}; skipping.")
+        return None
+    
+    # Compute local variance matching C++: 2 * dP_dT / (K^2 * d2P_dK2)
+    if abs(d2P_dK2) <= 1e-10:
+        local_vol = 0.0  # Matching C++ set to 0.0
     else:
-        local_vol_sq = numer / denom
-        local_vol = np.sqrt(local_vol_sq)
-        # Filter local volatility: set to NaN if < 0% or > 300%
-        #if local_vol < 0 or local_vol > 300:
-        #    local_vol = np.nan
-
+        local_vol_sq = 2 * dP_dT / (k ** 2 * d2P_dK2)
+        if local_vol_sq <= 0:
+            print(f"Warning: Non-positive local vol sq for K={k}, T={t}, Type={option_type} (local_vol_sq={local_vol_sq:.2f}); setting 0.")
+            local_vol = 0.0
+        else:
+            local_vol = np.sqrt(local_vol_sq)
+            # Filter extreme volatilities
+            if local_vol > 2.0:  # 200% cap
+                print(f"Warning: Local vol {local_vol:.2%} out of bounds for K={k}, T={t}, Type={option_type}; setting 0.")
+                local_vol = 0.0
+    
     return {
         "Strike": k,
         "Expiry": row['Expiry'],
@@ -251,30 +270,83 @@ def compute_local_vol_row(row, points, values, r, q):
     }
 
 def calculate_local_vol(full_df, S, r, q):
+    # Input validation
+    required_columns = ['Type', 'Strike', 'Expiry', 'Bid', 'Ask']
+    if not all(col in full_df.columns for col in required_columns):
+        raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
+    
+    # Separate calls and puts
     calls = full_df[full_df['Type'] == 'Call'].copy()
-    if calls.empty:
-        return pd.DataFrame()
-    calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
-    calls['T'] = (calls['Expiry'] - datetime.today()).dt.days / 365.25
-    calls = calls[calls['mid_price'] > 0]
-    calls = calls[calls['T'] > 0]
-    calls = calls.sort_values(['T', 'Strike'])
-    if len(calls) < 3:
-        print("Warning: Insufficient call data points for local vol surface interpolation.")
-        return pd.DataFrame()
-    points = np.column_stack((calls['Strike'], calls['T']))
-    values = calls['mid_price'].values
-
-    # Parallelize the loop over rows
-    local_vol_data = Parallel(n_jobs=-1)(
-        delayed(compute_local_vol_row)(row, points, values, r, q) for idx, row in calls.iterrows()
-    )
-
-    # Filter out None
-    local_vol_data = [d for d in local_vol_data if d is not None]
-
-    return pd.DataFrame(local_vol_data)
-
+    puts = full_df[full_df['Type'] == 'Put'].copy()
+    
+    # Initialize empty DataFrames for results
+    call_local_df = pd.DataFrame()
+    put_local_df = pd.DataFrame()
+    
+    # Process calls
+    if not calls.empty:
+        calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
+        calls['T'] = (calls['Expiry'] - datetime.today()).dt.days / 365.25
+        calls = calls[calls['mid_price'] > 0]
+        calls = calls[calls['T'] > 0]
+        calls = calls.sort_values(['T', 'Strike'])
+        # Arbitrage check: ensure call prices decrease with strike
+        for t in calls['T'].unique():
+            group = calls[calls['T'] == t].sort_values('Strike')
+            if not (group['mid_price'].diff().dropna() <= 0).all():
+                print(f"Warning: Non-monotonic call prices for T={t:.4f}")
+        call_points = np.column_stack((calls['Strike'], calls['T']))
+        call_values = calls['mid_price'].values
+        
+        if len(calls) >= 3:
+            # Compute local vol for calls
+            if len(calls) < 1000:
+                call_local_data = [
+                    compute_local_vol_row(row, call_points, call_values, S, r, q, 'Call')
+                    for _, row in calls.iterrows()
+                ]
+            else:
+                call_local_data = Parallel(n_jobs=-1)(
+                    delayed(compute_local_vol_row)(row, call_points, call_values, S, r, q, 'Call')
+                    for _, row in calls.iterrows()
+                )
+            call_local_data = [d for d in call_local_data if d is not None]
+            if call_local_data:
+                call_local_df = pd.DataFrame(call_local_data)
+    
+    # Process puts
+    if not puts.empty:
+        puts['mid_price'] = (puts['Bid'] + puts['Ask']) / 2
+        puts['T'] = (puts['Expiry'] - datetime.today()).dt.days / 365.25
+        puts = puts[puts['mid_price'] > 0]
+        puts = puts[puts['T'] > 0]
+        puts = puts.sort_values(['T', 'Strike'])
+        # Arbitrage check: ensure put prices increase with strike
+        for t in puts['T'].unique():
+            group = puts[puts['T'] == t].sort_values('Strike')
+            if not (group['mid_price'].diff().dropna() >= 0).all():
+                print(f"Warning: Non-monotonic put prices for T={t:.4f}")
+        put_points = np.column_stack((puts['Strike'], puts['T']))
+        put_values = puts['mid_price'].values
+        
+        if len(puts) >= 3:
+            # Compute local vol for puts
+            if len(puts) < 1000:
+                put_local_data = [
+                    compute_local_vol_row(row, put_points, put_values, S, r, q, 'Put')
+                    for _, row in puts.iterrows()
+                ]
+            else:
+                put_local_data = Parallel(n_jobs=-1)(
+                    delayed(compute_local_vol_row)(row, put_points, put_values, S, r, q, 'Put')
+                    for _, row in puts.iterrows()
+                )
+            put_local_data = [d for d in put_local_data if d is not None]
+            if put_local_data:
+                put_local_df = pd.DataFrame(put_local_data)
+    
+    return call_local_df, put_local_df
+    
 def process_ticker(ticker, df, full_df):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
@@ -288,11 +360,25 @@ def process_ticker(ticker, df, full_df):
     ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker)
     # heston_params = calibrate_heston(ticker_df, S, r, q) # Uncomment if needed
     # ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
-    local_df = calculate_local_vol(ticker_full, S, r, q)
-    if not local_df.empty:
-        ticker_df = ticker_df.merge(local_df, on=['Strike', 'Expiry'], how='left')
+    call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
+    if not call_local_df.empty:
+        ticker_df = ticker_df.merge(
+            call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
+            on=['Strike', 'Expiry'],
+            how='left'
+        )
     else:
-        ticker_df['Local Vol'] = np.nan
+        ticker_df['Call Local Vol'] = np.nan
+    
+    if not put_local_df.empty:
+        ticker_df = ticker_df.merge(
+            put_local_df.rename(columns={'Local Vol': 'Put Local Vol'}),
+            on=['Strike', 'Expiry'],
+            how='left'
+        )
+    else:
+        ticker_df['Put Local Vol'] = np.nan
+        
     ticker_df['Realised Vol 90d'] = rvol90d if rvol90d is not None else np.nan
     #ticker_df['Implied Volatility'] = ticker_df['Implied Volatility']
     #ticker_df['Moneyness'] = ticker_df['Moneyness']
