@@ -22,12 +22,11 @@ def main():
         (df['Open Interest'] >= 0) &
         (df['Bid'] >= 0) &
         (df['Ask'] >= 0) &
-        (df['Implied Volatility'] > 0.001),
-        (df['Implied Volatility'] < 3)
+        (df['Implied Volatility'] > 0.001)
     ]
    
-    volume_threshold = df['Volume'].quantile(0.25)
-    oi_threshold = df['Open Interest'].quantile(0.25)
+    volume_threshold = df['Volume'].quantile(0.4)
+    oi_threshold = df['Open Interest'].quantile(0.4)
    
     df = df[
         (df['Volume'] >= volume_threshold) &
