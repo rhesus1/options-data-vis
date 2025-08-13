@@ -7,15 +7,13 @@ import os
 import json
 from scipy.optimize import brentq
 from scipy.stats import norm
-from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator
+from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
 from scipy.optimize import minimize
 from joblib import Parallel, delayed
 import multiprocessing
 import sys
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
-
-from scipy.interpolate import RBFInterpolator
 
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
@@ -178,93 +176,6 @@ def calculate_heston_iv(df, S, r, q, heston_params):
         df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower())
     return df
 
-def calculate_local_vol(full_df, S, r, q):
-    required_columns = ['Type', 'Strike', 'Expiry', 'Bid', 'Ask']
-    if not all(col in full_df.columns for col in required_columns):
-        raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
-  
-    calls = full_df[full_df['Type'] == 'Call'].copy()
-    puts = full_df[full_df['Type'] == 'Put'].copy()
-  
-    call_local_df = pd.DataFrame()
-    put_local_df = pd.DataFrame()
-  
-    if not calls.empty:
-        calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
-        calls['T'] = (calls['Expiry'] - datetime.today()).dt.days / 365.25
-        calls = calls[calls['mid_price'] > 0]
-        calls = calls[calls['T'] > 0]
-        calls = calls.sort_values(['T', 'Strike'])
-        for t in calls['T'].unique():
-            group = calls[calls['T'] == t].sort_values('Strike')
-            if not (group['mid_price'].diff().dropna() <= 0).all():
-                print(f"Warning: Non-monotonic call prices for T={t:.4f}")
-        call_points = np.column_stack((calls['Strike'], calls['T']))
-        call_values = calls['mid_price'].values
-      
-        strikes = np.sort(np.unique(calls['Strike']))
-        min_k = strikes.min()
-        max_k = strikes.max()
-        if len(strikes) > 1:
-            h_k_base = np.median(np.diff(strikes))
-        else:
-            h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
-        h_k_base = max(h_k_base, 0.1)
-      
-        if len(calls) >= 3:
-            try:
-                call_interp = RBFInterpolator(call_points, call_values, kernel='gaussian', smoothing=0.01)
-            except Exception as e:
-                print(f"Warning: Interpolator fit failed for calls: {e}. Using linear fallback.")
-                call_interp = LinearNDInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
-          
-            call_local_data = Parallel(n_jobs=-1, backend='threading')(
-                delayed(compute_local_vol_row)(row, r, q, 'Call', h_k_base, call_interp, min_k, max_k)
-                for _, row in calls.iterrows()
-            )
-            call_local_data = [d for d in call_local_data if d is not None]
-            if call_local_data:
-                call_local_df = pd.DataFrame(call_local_data)
-  
-    if not puts.empty:
-        puts['mid_price'] = (puts['Bid'] + puts['Ask']) / 2
-        puts['T'] = (puts['Expiry'] - datetime.today()).dt.days / 365.25
-        puts = puts[puts['mid_price'] > 0]
-        puts = puts[puts['T'] > 0]
-        puts = puts.sort_values(['T', 'Strike'])
-        for t in puts['T'].unique():
-            group = puts[puts['T'] == t].sort_values('Strike')
-            if not (group['mid_price'].diff().dropna() >= 0).all():
-                print(f"Warning: Non-monotonic put prices for T={t:.4f}")
-        put_points = np.column_stack((puts['Strike'], puts['T']))
-        put_values = puts['mid_price'].values
-      
-        strikes = np.sort(np.unique(puts['Strike']))
-        min_k = strikes.min()
-        max_k = strikes.max()
-        if len(strikes) > 1:
-            h_k_base = np.median(np.diff(strikes))
-        else:
-            h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
-        h_k_base = max(h_k_base, 0.1)
-      
-        if len(puts) >= 3:
-            try:
-                put_interp = RBFInterpolator(put_points, put_values, kernel='gaussian', smoothing=0.01)
-            except Exception as e:
-                print(f"Warning: Interpolator fit failed for puts: {e}. Using linear fallback.")
-                put_interp = LinearNDInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
-          
-            put_local_data = Parallel(n_jobs=-1, backend='threading')(
-                delayed(compute_local_vol_row)(row, r, q, 'Put', h_k_base, put_interp, min_k, max_k)
-                for _, row in puts.iterrows()
-            )
-            put_local_data = [d for d in put_local_data if d is not None]
-            if put_local_data:
-                put_local_df = pd.DataFrame(put_local_data)
-  
-    return call_local_df, put_local_df
-
 def compute_local_vol_row(row, r, q, option_type, h_k_base, interp, min_k, max_k):
     k = row['Strike']
     t = row['T']
@@ -336,19 +247,111 @@ def compute_local_vol_row(row, r, q, option_type, h_k_base, interp, min_k, max_k
         "Local Vol": local_vol
     }
 
+def calculate_local_vol(full_df, S, r, q):
+    required_columns = ['Type', 'Strike', 'Expiry', 'Bid', 'Ask']
+    if not all(col in full_df.columns for col in required_columns):
+        raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
+  
+    calls = full_df[full_df['Type'] == 'Call'].copy()
+    puts = full_df[full_df['Type'] == 'Put'].copy()
+  
+    call_local_df = pd.DataFrame()
+    put_local_df = pd.DataFrame()
+  
+    if not calls.empty:
+        calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
+        calls['T'] = (calls['Expiry'] - datetime.today()).dt.days / 365.25
+        calls = calls[calls['mid_price'] > 0]
+        calls = calls[calls['T'] > 0]
+        calls = calls.sort_values(['T', 'Strike'])
+        for t in calls['T'].unique():
+            group = calls[calls['T'] == t].sort_values('Strike')
+            if not (group['mid_price'].diff().dropna() <= 0).all():
+                print(f"Warning: Non-monotonic call prices for T={t:.4f}")
+        
+        if calls.empty or len(calls) < 3:
+            print(f"Warning: Insufficient valid call data after filtering (rows: {len(calls)})")
+        else:
+            call_points = np.column_stack((calls['Strike'], calls['T']))
+            call_values = calls['mid_price'].values
+      
+            strikes = np.sort(np.unique(calls['Strike']))
+            min_k = S * 0.5 if len(strikes) == 0 else strikes.min()  # Default to 50% of spot if no strikes
+            max_k = S * 1.5 if len(strikes) == 0 else strikes.max()  # Default to 150% of spot
+            if len(strikes) > 1:
+                h_k_base = np.median(np.diff(strikes))
+            else:
+                h_k_base = 0.005 * S if len(strikes) == 0 else 0.005 * np.mean(strikes)
+            h_k_base = max(h_k_base, 0.1)
+      
+            try:
+                call_interp = RBFInterpolator(call_points, call_values, kernel='gaussian', smoothing=0.01)
+            except Exception as e:
+                print(f"Warning: Interpolator fit failed for calls: {e}. Using linear fallback.")
+                call_interp = LinearNDInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
+          
+            call_local_data = Parallel(n_jobs=-1, backend='threading')(
+                delayed(compute_local_vol_row)(row, r, q, 'Call', h_k_base, call_interp, min_k, max_k)
+                for _, row in calls.iterrows()
+            )
+            call_local_data = [d for d in call_local_data if d is not None]
+            if call_local_data:
+                call_local_df = pd.DataFrame(call_local_data)
+  
+    if not puts.empty:
+        puts['mid_price'] = (puts['Bid'] + puts['Ask']) / 2
+        puts['T'] = (puts['Expiry'] - datetime.today()).dt.days / 365.25
+        puts = puts[puts['mid_price'] > 0]
+        puts = puts[puts['T'] > 0]
+        puts = puts.sort_values(['T', 'Strike'])
+        for t in puts['T'].unique():
+            group = puts[puts['T'] == t].sort_values('Strike')
+            if not (group['mid_price'].diff().dropna() >= 0).all():
+                print(f"Warning: Non-monotonic put prices for T={t:.4f}")
+        
+        if puts.empty or len(puts) < 3:
+            print(f"Warning: Insufficient valid put data after filtering (rows: {len(puts)})")
+        else:
+            put_points = np.column_stack((puts['Strike'], puts['T']))
+            put_values = puts['mid_price'].values
+      
+            strikes = np.sort(np.unique(puts['Strike']))
+            min_k = S * 0.5 if len(strikes) == 0 else strikes.min()
+            max_k = S * 1.5 if len(strikes) == 0 else strikes.max()
+            if len(strikes) > 1:
+                h_k_base = np.median(np.diff(strikes))
+            else:
+                h_k_base = 0.005 * S if len(strikes) == 0 else 0.005 * np.mean(strikes)
+            h_k_base = max(h_k_base, 0.1)
+      
+            try:
+                put_interp = RBFInterpolator(put_points, put_values, kernel='gaussian', smoothing=0.01)
+            except Exception as e:
+                print(f"Warning: Interpolator fit failed for puts: {e}. Using linear fallback.")
+                put_interp = LinearNDInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
+          
+            put_local_data = Parallel(n_jobs=-1, backend='threading')(
+                delayed(compute_local_vol_row)(row, r, q, 'Put', h_k_base, put_interp, min_k, max_k)
+                for _, row in puts.iterrows()
+            )
+            put_local_data = [d for d in put_local_data if d is not None]
+            if put_local_data:
+                put_local_df = pd.DataFrame(put_local_data)
+  
+    return call_local_df, put_local_df
+
 def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
     ticker_full = full_df[full_df['Ticker'] == ticker].copy()
     if ticker_df.empty:
+        print(f"Warning: No data for ticker {ticker} in df")
         return None
     rvol90d = calculate_rvol_days(ticker, 90)
     print(f"\nRealised Volatility for {ticker}:")
     print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
     ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker, r)
-    #heston_params = calibrate_heston(ticker_df, S, r, q)
-    #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
     call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
     if not call_local_df.empty:
         ticker_df = ticker_df.merge(
