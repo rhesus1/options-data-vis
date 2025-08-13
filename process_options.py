@@ -284,7 +284,7 @@ def calculate_local_vol(full_df, S, r, q):
         # Arbitrage check: ensure call prices decrease with strike
         for t in calls['T'].unique():
             group = calls[calls['T'] == t].sort_values('Strike')
-            if not (group['mid_price'].diff().dropna() <= 0).all():
+            #if not (group['mid_price'].diff().dropna() <= 0).all():
                 #print(f"Warning: Non-monotonic call prices for T={t:.4f}")
         call_points = np.column_stack((calls['Strike'], calls['T']))
         call_values = calls['mid_price'].values
@@ -323,7 +323,7 @@ def calculate_local_vol(full_df, S, r, q):
         # Arbitrage check: ensure put prices increase with strike
         for t in puts['T'].unique():
             group = puts[puts['T'] == t].sort_values('Strike')
-            if not (group['mid_price'].diff().dropna() >= 0).all():
+           # if not (group['mid_price'].diff().dropna() >= 0).all():
                 #print(f"Warning: Non-monotonic put prices for T={t:.4f}")
         put_points = np.column_stack((puts['Strike'], puts['T']))
         put_values = puts['mid_price'].values
