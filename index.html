@@ -48,6 +48,13 @@
             width: 80%;
             margin: 20px auto;
         }
+        .stats-table tr.hidden {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+        .stats-table tr {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -126,7 +133,7 @@
             }
             return fromDate;
         }
-  
+ 
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -145,6 +152,11 @@
             dateSelect.addEventListener('change', (e) => {
                 loadData(e.target.value);
             });
+            constABLES
+
+System: The response was truncated due to the character limit. Here's the continuation of the modified `createStatsTable` function and the rest of the script:
+
+```html
             const historySelect = document.getElementById('history-select');
             historySelect.addEventListener('change', updateHistoricChart);
         });
@@ -253,7 +265,7 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            chart.data.datasets.forEach(dataset => {
+            chart.data.datasets.forEach((dataset, index) => {
                 if (dataset.data.length === 0) return;
                 const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
                 if (ys.length === 0) return;
@@ -262,6 +274,7 @@
                 const sum = ys.reduce((a, b) => a + b, 0);
                 const mean = sum / ys.length;
                 const row = document.createElement('tr');
+                row.className = dataset.hidden ? 'hidden' : '';
                 const labelTd = document.createElement('td');
                 const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 swatch.setAttribute('width', '20');
@@ -281,6 +294,11 @@
                 labelTd.appendChild(swatch);
                 const labelText = document.createTextNode(` ${dataset.label}`);
                 labelTd.appendChild(labelText);
+                labelTd.addEventListener('click', () => {
+                    dataset.hidden = !dataset.hidden;
+                    row.className = dataset.hidden ? 'hidden' : '';
+                    chart.update();
+                });
                 row.appendChild(labelTd);
                 const minTd = document.createElement('td');
                 minTd.textContent = min.toFixed(2);
