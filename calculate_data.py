@@ -32,10 +32,10 @@ def black_scholes_put(S, K, T, r, q, sigma):
 
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
-        return 0.0
+        return 0.05  # Changed from 0.0 to 0.05
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
     if price < intrinsic * np.exp(-r * T):
-        return 0.0001
+        return 0.05  # Changed from 0.0001 to 0.05
     def objective(sigma):
         if option_type.lower() == 'call':
             return black_scholes_call(S, K, T, r, q, sigma) - price
@@ -43,9 +43,9 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
             return black_scholes_put(S, K, T, r, q, sigma) - price
     try:
         iv = brentq(objective, 0.0001, 50.0)
-        return iv
+        return np.clip(iv, 0.05, 5.0)  # Cap IV between 0.05 and 5.0
     except ValueError as e:
-        return np.nan
+        return 0.05  # Changed from np.nan to 0.05
 
 def calculate_rvol_days(ticker, days):
     try:
