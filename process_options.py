@@ -178,13 +178,13 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
         "Local Vol": local_vol
     }
 
-def calculate_local_vol_from_iv(full_df, S, r, q):
+def calculate_local_vol_from_iv(df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
-    if not all(col in full_df.columns for col in required_columns):
+    if not all(col in df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
     
-    calls = full_df[full_df['Type'] == 'Call'].copy()
-    puts = full_df[full_df['Type'] == 'Put'].copy()
+    calls = df[df['Type'] == 'Call'].copy()
+    puts = df[df['Type'] == 'Put'].copy()
     
     call_local_df = pd.DataFrame()
     put_local_df = pd.DataFrame()
@@ -225,10 +225,9 @@ def calculate_local_vol_from_iv(full_df, S, r, q):
     
     return call_local_df, put_local_df
 
-def process_ticker(ticker, df, full_df, r):
+def process_ticker(ticker, df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
-    ticker_full = full_df[full_df['Ticker'] == ticker].copy()
     if ticker_df.empty:
         print(f"Warning: No data for ticker {ticker} in df")
         return None
@@ -238,7 +237,7 @@ def process_ticker(ticker, df, full_df, r):
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
-    call_local_df, put_local_df = calculate_local_vol_from_iv(ticker_full, S, r, q)
+    call_local_df, put_local_df = calculate_local_vol_from_iv(ticker_df, S, r, q)
     if not call_local_df.empty:
         ticker_df = ticker_df.merge(
             call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
@@ -271,23 +270,17 @@ def main():
         latest_clean = max(clean_files, key=os.path.getctime)
         timestamp = os.path.basename(latest_clean).split('cleaned_')[1].split('.csv')[0]
     df = pd.read_csv(latest_clean, parse_dates=['Expiry'])
-    raw_file = f'data/raw_{timestamp}.csv'
-    if not os.path.exists(raw_file):
-        print(f"Corresponding raw file {raw_file} not found, using cleaned as fallback for full_df")
-        full_df = df.copy()
-    else:
-        full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
     tickers = df['Ticker'].unique()
     if len(tickers) == 0:
         print("No tickers found")
         return
     
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-    r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
+    r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     
     processed_dfs = []
     for ticker in tickers:
-        processed = process_ticker(ticker, df, full_df, r)
+        processed = process_ticker(ticker, df, r)
         if processed is not None:
             processed_dfs.append(processed)
     
