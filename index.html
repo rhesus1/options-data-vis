@@ -115,7 +115,8 @@
             try {
                 const date = new Date(dateStr);
                 if (isNaN(date.getTime())) throw new Error('Invalid date');
-                return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+                // Use local date string to avoid UTC offset
+                return date.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local timezone
             } catch (e) {
                 console.error('Error normalizing date:', dateStr, e);
                 return null;
@@ -149,11 +150,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const dateSelect = document.getElementById('date-select');
+            const timeSelect = document.getElementById('time-select');
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
                 .then(dates => {
-                    const dateSelect = document.getElementById('date-select');
-                    const timeSelect = document.getElementById('time-select');
                     const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
                     uniqueDates.forEach(datePart => {
                         const option = document.createElement('option');
@@ -164,6 +165,7 @@
                     if (dateSelect.options.length > 0) {
                         dateSelect.value = dateSelect.options[0].value;
                         updateTimeOptions(dateSelect.value, dates);
+                        loadData(dateSelect.value + '_' + timeSelect.value);
                     }
                     dateSelect.addEventListener('change', (e) => {
                         updateTimeOptions(e.target.value, dates);
@@ -193,7 +195,6 @@
                 timeSelect.appendChild(option);
             });
             if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
-            loadData(selectedDate + '_' + timeSelect.value);
         }
 
         function loadData(timestamp) {
@@ -299,7 +300,7 @@
             console.log('Selected Ticker:', selectedTicker);
             console.log('Selected Expiry (raw):', selectedExpiry);
             console.log('Normalized Selected Expiry:', normalizedSelectedExpiry);
-            console.log('Raw skewData:', skewData);
+            console.log('Raw skewData Expiries:', skewData.map(item => item.Expiry));
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
             console.log('Filtered skewData by Ticker:', filteredSkewData);
             if (filteredSkewData.length === 0) {
