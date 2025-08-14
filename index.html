@@ -321,44 +321,14 @@
             const filteredData = data.filter(item => item.Ticker === selectedTicker && Math.round(item.Moneyness * 100 / 10) * 0.1 === selectedMoneyness);
             const datasets = [
                 {
-                    label: 'Calls Implied Volatility',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Expiry',
-                        'Implied Volatility'
-                    ),
-                    borderColor: '#A0E7E5',
-                    backgroundColor: '#A0E7E5',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Puts Implied Volatility',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Expiry',
-                        'Implied Volatility'
-                    ),
-                    borderColor: '#A0E7E5',
-                    backgroundColor: '#A0E7E5',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y'
-                },
-                {
                     label: 'Calls Implied Volatility Mid',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Expiry',
                         'IV_mid'
                     ),
-                    borderColor: '#FFB3BA',
-                    backgroundColor: '#FFB3BA',
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -372,8 +342,8 @@
                         'Expiry',
                         'IV_mid'
                     ),
-                    borderColor: '#FFB3BA',
-                    backgroundColor: '#FFB3BA',
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -387,8 +357,8 @@
                         'Expiry',
                         'Call Local Vol'
                     ),
-                    borderColor: '#B4F8C8',
-                    backgroundColor: '#B4F8C8',
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -402,8 +372,8 @@
                         'Expiry',
                         'Put Local Vol'
                     ),
-                    borderColor: '#B4F8C8',
-                    backgroundColor: '#B4F8C8',
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -417,8 +387,8 @@
                         'Expiry',
                         'Realised Vol 90d'
                     ),
-                    borderColor: '#FBE7C6',
-                    backgroundColor: '#FBE7C6',
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -481,44 +451,14 @@
             const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
             const datasets = [
                 {
-                    label: 'Calls Implied Volatility',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Call'),
-                        'Moneyness',
-                        'Implied Volatility'
-                    ),
-                    borderColor: '#A0E7E5',
-                    backgroundColor: '#A0E7E5',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Puts Implied Volatility',
-                    data: aggregateDataByX(
-                        filteredData.filter(item => item.Type === 'Put'),
-                        'Moneyness',
-                        'Implied Volatility'
-                    ),
-                    borderColor: '#A0E7E5',
-                    backgroundColor: '#A0E7E5',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [5, 5],
-                    yAxisID: 'y'
-                },
-                {
                     label: 'Calls Implied Volatility Mid',
                     data: aggregateDataByX(
                         filteredData.filter(item => item.Type === 'Call'),
                         'Moneyness',
                         'IV_mid'
                     ),
-                    borderColor: '#FFB3BA',
-                    backgroundColor: '#FFB3BA',
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -532,8 +472,8 @@
                         'Moneyness',
                         'IV_mid'
                     ),
-                    borderColor: '#FFB3BA',
-                    backgroundColor: '#FFB3BA',
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -547,8 +487,8 @@
                         'Moneyness',
                         'Call Local Vol'
                     ),
-                    borderColor: '#B4F8C8',
-                    backgroundColor: '#B4F8C8',
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -562,8 +502,8 @@
                         'Moneyness',
                         'Put Local Vol'
                     ),
-                    borderColor: '#B4F8C8',
-                    backgroundColor: '#B4F8C8',
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -577,8 +517,8 @@
                         'Moneyness',
                         'Realised Vol 90d'
                     ),
-                    borderColor: '#FBE7C6',
-                    backgroundColor: '#FBE7C6',
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -687,8 +627,8 @@
                 {
                     label: '90-day Realised Vol (%)',
                     data: vol90.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#B4F8C8',
-                    backgroundColor: '#B4F8C8',
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -709,8 +649,8 @@
                 {
                     label: '360-day Realised Vol (%)',
                     data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#D7A1F9',
-                    backgroundColor: '#D7A1F9',
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
