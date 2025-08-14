@@ -49,13 +49,20 @@
             width: 80%;
             margin: 20px auto;
         }
+        .date-time-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
     <h1>Options Data Visualisation</h1>
-    <div>
-        <label for="date-select">Select Date/Time: </label>
+    <div class="date-time-container">
+        <label for="date-select">Select Date: </label>
         <select id="date-select"></select>
+        <label for="time-select">Select Time: </label>
+        <select id="time-select"></select>
     </div>
     <div>
         <label for="ticker-select">Select Ticker: </label>
@@ -146,18 +153,33 @@
                 .then(response => response.json())
                 .then(dates => {
                     const dateSelect = document.getElementById('date-select');
-                    dates.forEach(date => {
+                    const timeSelect = document.getElementById('time-select');
+                    const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
+                    const uniqueTimes = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5')))];
+                    uniqueDates.forEach(datePart => {
                         const option = document.createElement('option');
-                        option.value = date;
-                        option.textContent = date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3 $4:$5');
+                        option.value = datePart.replace(/-/g, '');
+                        option.textContent = datePart;
                         dateSelect.appendChild(option);
                     });
-                    loadData(dates[0]);
+                    uniqueTimes.forEach(timePart => {
+                        const option = document.createElement('option');
+                        option.value = timePart.replace(':', '');
+                        option.textContent = timePart;
+                        timeSelect.appendChild(option);
+                    });
+                    if (dateSelect.options.length > 0) dateSelect.value = dateSelect.options[0].value;
+                    if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
+                    loadData(dateSelect.value + '_' + timeSelect.value);
                 })
                 .catch(error => console.error('Error loading dates:', error));
             const dateSelect = document.getElementById('date-select');
-            dateSelect.addEventListener('change', (e) => {
-                loadData(e.target.value);
+            const timeSelect = document.getElementById('time-select');
+            dateSelect.addEventListener('change', () => {
+                loadData(dateSelect.value + '_' + timeSelect.value);
+            });
+            timeSelect.addEventListener('change', () => {
+                loadData(dateSelect.value + '_' + timeSelect.value);
             });
             const historySelect = document.getElementById('history-select');
             historySelect.addEventListener('change', updateHistoricChart);
@@ -241,7 +263,7 @@
             } else if (moneynessSelect.options.length > 0) {
                 moneynessSelect.value = moneynessSelect.options[0].value;
             }
-            const uniqueExpiries = [...new Set(tickerData.map(item => normalizeDate(item.Expiry) || item.Expiry))]
+            const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
             expirySelect.innerHTML = '';
             uniqueExpiries.forEach(val => {
@@ -260,17 +282,11 @@
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
-            const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
+            const normalizedExpiry = normalizeDate(selectedExpiry);
             const table = document.getElementById('skew-table');
             table.innerHTML = '';
-            console.log('Selected Ticker:', selectedTicker);
-            console.log('Selected Expiry:', selectedExpiry);
-            console.log('Normalized Selected Expiry:', normalizedSelectedExpiry);
-            console.log('Raw skewData:', skewData);
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
-            console.log('Filtered skewData by Ticker:', filteredSkewData);
             if (filteredSkewData.length === 0) {
-                console.log('No skew metrics available for ticker:', selectedTicker);
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No skew metrics available';
@@ -289,9 +305,7 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
-            console.log('Normalized Expiries in skewData:', filteredSkewData.map(item => normalizeDate(item.Expiry)));
-            console.log('Selected Row:', selectedRow);
+            const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedExpiry);
             if (selectedRow) {
                 const row = document.createElement('tr');
                 const expiryCell = document.createElement('td');
@@ -308,23 +322,12 @@
                 row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             } else {
-                console.log('No exact match for expiry, showing all data for ticker:', selectedTicker);
-                filteredSkewData.forEach(item => {
-                    const row = document.createElement('tr');
-                    const expiryCell = document.createElement('td');
-                    expiryCell.textContent = new Date(item.Expiry).toLocaleDateString('en-GB');
-                    row.appendChild(expiryCell);
-                    const skew90110Cell = document.createElement('td');
-                    skew90110Cell.textContent = Number.isFinite(item.Skew_90_110) ? item.Skew_90_110.toFixed(4) : 'N/A';
-                    row.appendChild(skew90110Cell);
-                    const skew80120Cell = document.createElement('td');
-                    skew80120Cell.textContent = Number.isFinite(item.Skew_80_120) ? item.Skew_80_120.toFixed(4) : 'N/A';
-                    row.appendChild(skew80120Cell);
-                    const atmRatioCell = document.createElement('td');
-                    atmRatioCell.textContent = Number.isFinite(item.ATM_12m_3m_Ratio) ? item.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
-                    row.appendChild(atmRatioCell);
-                    tbody.appendChild(row);
-                });
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = 'No data for selected expiry';
+                cell.colSpan = 4;
+                row.appendChild(cell);
+                tbody.appendChild(row);
             }
             table.appendChild(tbody);
         }
@@ -833,4 +836,3 @@
     </script>
 </body>
 </html>
-
