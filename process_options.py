@@ -32,10 +32,10 @@ def black_scholes_put(S, K, T, r, q, sigma):
 
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
-        return 0.05  # Changed from 0.0 to 0.05
+        return 0.05
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
     if price < intrinsic * np.exp(-r * T):
-        return 0.05  # Changed from 0.0001 to 0.05
+        return 0.05
     def objective(sigma):
         if option_type.lower() == 'call':
             return black_scholes_call(S, K, T, r, q, sigma) - price
@@ -43,9 +43,9 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
             return black_scholes_put(S, K, T, r, q, sigma) - price
     try:
         iv = brentq(objective, 0.0001, 50.0)
-        return np.clip(iv, 0.05, 5.0)  # Cap IV between 0.05 and 5.0
+        return np.clip(iv, 0.05, 5.0)
     except ValueError as e:
-        return 0.05  # Changed from np.nan to 0.05
+        return 0.05
 
 def calculate_rvol_days(ticker, days):
     try:
@@ -132,17 +132,30 @@ def calculate_iv_mid(df, ticker, r):
     return df, S, r, q
 
 def smooth_iv_per_expiry(options_df):
-    smoothed_iv = []
+    if options_df.empty:
+        return options_df
+    # Initialize a Series to store smoothed values, aligned with the original index
+    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
+    
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
-            smoothed_iv.append(group['IV_mid'])
-            continue
-        sorted_group = group.sort_values('LogMoneyness')
-        x = sorted_group['LogMoneyness'].values
-        y = sorted_group['IV_mid'].values
-        lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
-        smoothed_iv.append(lowess_smoothed[:, 1])
-    options_df['Smoothed_IV_mid'] = np.concatenate(smoothed_iv)
+            # For small groups, use IV_mid directly
+            smoothed_iv.loc[group.index] = group['IV_mid']
+        else:
+            # Sort by LogMoneyness for LOWESS smoothing
+            sorted_group = group.sort_values('LogMoneyness')
+            x = sorted_group['LogMoneyness'].values
+            y = sorted_group['IV_mid'].values
+            # Apply LOWESS smoothing
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
+            # Map smoothed values back to the original group index
+            smoothed_values = pd.Series(lowess_smoothed[:, 1], index=sorted_group.index)
+            # Reindex to match group index
+            smoothed_values = smoothed_values.reindex(group.index)
+            smoothed_iv.loc[group.index] = smoothed_values
+    
+    # Assign the smoothed values to the DataFrame
+    options_df['Smoothed_IV_mid'] = smoothed_iv
     return options_df
 
 def compute_local_vol_from_iv_row(row, r, q, interp):
@@ -313,7 +326,7 @@ def main():
         print("No tickers found")
         return
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-    r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
+    r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     processed_dfs = []
     skew_metrics_dfs = []
     with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
