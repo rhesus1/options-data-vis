@@ -24,8 +24,8 @@ def main():
         (df['Ask'] >= 0)
     ]
    
-    volume_threshold = df['Volume'].quantile(0.1)
-    oi_threshold = df['Open Interest'].quantile(0.3)
+    volume_threshold = df['Volume'].quantile(0.25)
+    oi_threshold = df['Open Interest'].quantile(0.5)
    
     df = df[
         (df['Volume'] >= volume_threshold) &
