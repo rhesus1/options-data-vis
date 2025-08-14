@@ -9,6 +9,7 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
 from scipy.optimize import minimize
+from scipy.interpolate import interp1d
 from joblib import Parallel, delayed
 import multiprocessing
 import sys
@@ -142,17 +143,29 @@ def smooth_iv_per_expiry(options_df):
             # For small groups, use IV_mid directly
             smoothed_iv.loc[group.index] = group['IV_mid']
         else:
-            # Sort by LogMoneyness for LOWESS smoothing
-            sorted_group = group.sort_values('LogMoneyness')
-            x = sorted_group['LogMoneyness'].values
-            y = sorted_group['IV_mid'].values
+            # Check for duplicate LogMoneyness values
+            if group['LogMoneyness'].duplicated().any():
+                # If duplicates exist, aggregate by taking the mean IV_mid for each LogMoneyness
+                agg_group = group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
+                x = agg_group['LogMoneyness'].values
+                y = agg_group['IV_mid'].values
+            else:
+                sorted_group = group.sort_values('LogMoneyness')
+                x = sorted_group['LogMoneyness'].values
+                y = sorted_group['IV_mid'].values
+            
             # Apply LOWESS smoothing
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
-            # Map smoothed values back to the original group index
-            smoothed_values = pd.Series(lowess_smoothed[:, 1], index=sorted_group.index)
-            # Reindex to match group index
-            smoothed_values = smoothed_values.reindex(group.index)
-            smoothed_iv.loc[group.index] = smoothed_values
+            try:
+                lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
+                x_smooth = lowess_smoothed[:, 0]
+                y_smooth = lowess_smoothed[:, 1]
+                # Interpolate back to the original LogMoneyness values
+                interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
+                smoothed_values = interpolator(group['LogMoneyness'].values)
+                smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
+            except Exception as e:
+                print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
+                smoothed_iv.loc[group.index] = group['IV_mid']
     
     # Assign the smoothed values to the DataFrame
     options_df['Smoothed_IV_mid'] = smoothed_iv
@@ -346,6 +359,8 @@ def main():
         skew_metrics_filename = f'data/skew_metrics_{timestamp}.csv'
         combined_skew_metrics.to_csv(skew_metrics_filename, index=False)
         print(f"Skew metrics saved to {skew_metrics_filename}")
+    else:
+        print("No skew metrics to save")
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
