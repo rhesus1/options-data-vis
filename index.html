@@ -155,35 +155,45 @@
                     const dateSelect = document.getElementById('date-select');
                     const timeSelect = document.getElementById('time-select');
                     const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
-                    const uniqueTimes = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5')))];
                     uniqueDates.forEach(datePart => {
                         const option = document.createElement('option');
                         option.value = datePart.replace(/-/g, '');
                         option.textContent = datePart;
                         dateSelect.appendChild(option);
                     });
-                    uniqueTimes.forEach(timePart => {
-                        const option = document.createElement('option');
-                        option.value = timePart.replace(':', '');
-                        option.textContent = timePart;
-                        timeSelect.appendChild(option);
+                    if (dateSelect.options.length > 0) {
+                        dateSelect.value = dateSelect.options[0].value;
+                        updateTimeOptions(dateSelect.value, dates);
+                    }
+                    dateSelect.addEventListener('change', (e) => {
+                        updateTimeOptions(e.target.value, dates);
+                        loadData(e.target.value + '_' + timeSelect.value);
                     });
-                    if (dateSelect.options.length > 0) dateSelect.value = dateSelect.options[0].value;
-                    if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
-                    loadData(dateSelect.value + '_' + timeSelect.value);
+                    const timeSelect = document.getElementById('time-select');
+                    timeSelect.addEventListener('change', () => {
+                        loadData(dateSelect.value + '_' + timeSelect.value);
+                    });
+                    const historySelect = document.getElementById('history-select');
+                    historySelect.addEventListener('change', updateHistoricChart);
                 })
                 .catch(error => console.error('Error loading dates:', error));
-            const dateSelect = document.getElementById('date-select');
-            const timeSelect = document.getElementById('time-select');
-            dateSelect.addEventListener('change', () => {
-                loadData(dateSelect.value + '_' + timeSelect.value);
-            });
-            timeSelect.addEventListener('change', () => {
-                loadData(dateSelect.value + '_' + timeSelect.value);
-            });
-            const historySelect = document.getElementById('history-select');
-            historySelect.addEventListener('change', updateHistoricChart);
         });
+
+        function updateTimeOptions(selectedDate, dates) {
+            const timeSelect = document.getElementById('time-select');
+            timeSelect.innerHTML = '';
+            const availableTimes = dates
+                .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'))
+                .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
+            const uniqueTimes = [...new Set(availableTimes)];
+            uniqueTimes.forEach(timePart => {
+                const option = document.createElement('option');
+                option.value = timePart.replace(':', '');
+                option.textContent = timePart;
+                timeSelect.appendChild(option);
+            });
+            if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
+        }
 
         function loadData(timestamp) {
             fetch(`data/processed_${timestamp}.json?v=` + Date.now())
@@ -282,11 +292,17 @@
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
-            const normalizedExpiry = normalizeDate(selectedExpiry);
+            const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
             const table = document.getElementById('skew-table');
             table.innerHTML = '';
+            console.log('Selected Ticker:', selectedTicker);
+            console.log('Selected Expiry:', selectedExpiry);
+            console.log('Normalized Selected Expiry:', normalizedSelectedExpiry);
+            console.log('Raw skewData:', skewData);
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            console.log('Filtered skewData by Ticker:', filteredSkewData);
             if (filteredSkewData.length === 0) {
+                console.log('No skew metrics available for ticker:', selectedTicker);
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No skew metrics available';
@@ -305,7 +321,9 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedExpiry);
+            const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
+            console.log('Normalized Expiries in skewData:', filteredSkewData.map(item => normalizeDate(item.Expiry)));
+            console.log('Selected Row:', selectedRow);
             if (selectedRow) {
                 const row = document.createElement('tr');
                 const expiryCell = document.createElement('td');
@@ -322,6 +340,7 @@
                 row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             } else {
+                console.log('No data for selected expiry:', normalizedSelectedExpiry);
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No data for selected expiry';
@@ -550,7 +569,7 @@
         function updateMoneynessVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
-            const filteredData = data.filter(item => item.Ticker === selectedTicker && normalizeDate(item.Expiry) === normalizeDate(selectedExpiry));
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
             const datasets = [
                 {
                     label: 'Calls Implied Volatility Mid',
