@@ -248,6 +248,7 @@
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
+            const normalizedExpiry = new Date(selectedExpiry).toISOString().split('T')[0];
             const table = document.getElementById('skew-table');
             table.innerHTML = '';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
@@ -270,7 +271,7 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            const selectedRow = filteredSkewData.find(item => item.Expiry === selectedExpiry);
+            const selectedRow = filteredSkewData.find(item => item.Expiry === normalizedExpiry);
             if (selectedRow) {
                 const row = document.createElement('tr');
                 const expiryCell = document.createElement('td');
