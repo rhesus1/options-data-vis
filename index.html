@@ -588,9 +588,9 @@
             const prices = filteredHistoric.map(item => parseFloat(item.Close));
             const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
             const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
-            const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_90));
+            const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100));
             const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
-            const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_360));
+            const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252));
             const datasets = [
                 {
                     label: 'Stock Price',
@@ -625,7 +625,7 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: '90-day Realised Vol (%)',
+                    label: '100-day Realised Vol (%)',
                     data: vol90.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#FF0000',
                     backgroundColor: '#FF0000',
@@ -648,7 +648,7 @@
                     yAxisID: 'y1'
                 },
                 {
-                    label: '360-day Realised Vol (%)',
+                    label: '252-day Realised Vol (%)',
                     data: vol360.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#00FF00',
                     backgroundColor: '#00FF00',
