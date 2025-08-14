@@ -14,18 +14,21 @@ import multiprocessing
 import sys
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
+
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(S - K, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(K - S, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
+
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
         return 0.0
@@ -42,6 +45,7 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return iv
     except ValueError as e:
         return np.nan
+
 def calculate_rvol_days(ticker, days):
     try:
         stock = yf.Ticker(ticker)
@@ -56,11 +60,13 @@ def calculate_rvol_days(ticker, days):
         return realised_vol
     except Exception as e:
         return None
+
 def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
         return df
     df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d
     return df
+
 def compute_ivs(row, S, r, q):
     if pd.isna(row['Years_to_Expiry']):
         return np.nan, np.nan, np.nan, np.nan
@@ -72,6 +78,7 @@ def compute_ivs(row, S, r, q):
     iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
     iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
     return iv_bid, iv_ask, iv_mid, iv_spread
+
 def calculate_metrics(df, ticker, r):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
@@ -102,6 +109,7 @@ def calculate_metrics(df, ticker, r):
                     })
     slope_df = pd.DataFrame(slope_data)
     return df, skew_df, slope_df
+
 def calculate_iv_mid(df, ticker, r):
     if df.empty:
         return df, None, None, None
@@ -120,6 +128,7 @@ def calculate_iv_mid(df, ticker, r):
     results = Parallel(n_jobs=-1, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread']] = pd.DataFrame(results, index=df.index)
     return df, S, r, q
+
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
@@ -168,6 +177,7 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
         "Expiry": row['Expiry'],
         "Local Vol": local_vol
     }
+
 def calculate_local_vol_from_iv(full_df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in full_df.columns for col in required_columns):
@@ -214,6 +224,7 @@ def calculate_local_vol_from_iv(full_df, S, r, q):
     put_local_df = process_options(puts, 'Put')
     
     return call_local_df, put_local_df
+
 def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
@@ -244,31 +255,42 @@ def process_ticker(ticker, df, full_df, r):
         )
     else:
         ticker_df['Put Local Vol'] = np.nan
-  
+    
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
     return ticker_df
+
 def main():
-    clean_files = glob.glob('data/cleaned_*.csv')
-    if not clean_files:
-        print("No cleaned data files found")
-        return
-    latest_clean = max(clean_files, key=os.path.getctime)
+    if len(sys.argv) > 1:
+        timestamp = sys.argv[1]
+        latest_clean = f'data/cleaned_{timestamp}.csv'
+    else:
+        clean_files = glob.glob('data/cleaned_*.csv')
+        if not clean_files:
+            print("No cleaned data files found")
+            return
+        latest_clean = max(clean_files, key=os.path.getctime)
+        timestamp = os.path.basename(latest_clean).split('cleaned_')[1].split('.csv')[0]
     df = pd.read_csv(latest_clean, parse_dates=['Expiry'])
-    timestamp = os.path.basename(latest_clean).split('cleaned_')[1].split('.csv')[0]
     raw_file = f'data/raw_{timestamp}.csv'
     if not os.path.exists(raw_file):
-        print(f"Corresponding raw file {raw_file} not found")
-        return
-    full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
+        print(f"Corresponding raw file {raw_file} not found, using cleaned as fallback for full_df")
+        full_df = df.copy()
+    else:
+        full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
     tickers = df['Ticker'].unique()
     if len(tickers) == 0:
         print("No tickers found")
         return
+    
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
     r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
-        processed_dfs = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
-    processed_dfs = [pdf for pdf in processed_dfs if pdf is not None]
+    
+    processed_dfs = []
+    for ticker in tickers:
+        processed = process_ticker(ticker, df, full_df, r)
+        if processed is not None:
+            processed_dfs.append(processed)
+    
     if processed_dfs:
         combined_processed = pd.concat(processed_dfs, ignore_index=True)
         processed_filename = f'data/processed_{timestamp}.json'
@@ -288,4 +310,5 @@ def main():
         print(f"Updated dates list in {dates_file}")
     else:
         print("No processed data to save")
+
 main()
