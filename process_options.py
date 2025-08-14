@@ -208,7 +208,7 @@ def calculate_local_vol_from_iv(df, S, r, q):
         
         # Use RBF for smoother interpolation with some regularization
         try:
-            interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.01)  # Smoothing >0 reduces noise
+            interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)  # Increased smoothing
         except Exception as e:
             print(f"Warning: RBF fit failed for {option_type}: {e}. Using linear fallback.")
             interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
