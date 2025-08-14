@@ -150,7 +150,7 @@ def smooth_iv_per_expiry(options_df):
             lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
             # Map smoothed values back to the original group index
             smoothed_values = pd.Series(lowess_smoothed[:, 1], index=sorted_group.index)
-            # Reindex to match group index (in case of any discrepancies)
+            # Reindex to match group index
             smoothed_values = smoothed_values.reindex(group.index)
             smoothed_iv.loc[group.index] = smoothed_values
     
@@ -322,7 +322,7 @@ def main():
         print("No tickers found")
         return
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-    r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
+    r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     processed_dfs = []
     skew_metrics_dfs = []
     with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
