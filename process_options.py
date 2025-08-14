@@ -15,18 +15,21 @@ import sys
 import warnings
 import statsmodels.api as sm
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
+
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(S - K, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(K - S, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
+
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
         return 0.0
@@ -43,6 +46,7 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return iv
     except ValueError as e:
         return np.nan
+
 def calculate_rvol_days(ticker, days):
     try:
         stock = yf.Ticker(ticker)
@@ -57,11 +61,13 @@ def calculate_rvol_days(ticker, days):
         return realised_vol
     except Exception as e:
         return None
+
 def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
         return df
     df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d
     return df
+
 def compute_ivs(row, S, r, q):
     if pd.isna(row['Years_to_Expiry']):
         return np.nan, np.nan, np.nan, np.nan
@@ -73,6 +79,7 @@ def compute_ivs(row, S, r, q):
     iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
     iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
     return iv_bid, iv_ask, iv_mid, iv_spread
+
 def calculate_metrics(df, ticker, r):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
@@ -103,6 +110,7 @@ def calculate_metrics(df, ticker, r):
                     })
     slope_df = pd.DataFrame(slope_data)
     return df, skew_df, slope_df
+
 def calculate_iv_mid(df, ticker, r):
     if df.empty:
         return df, None, None, None
@@ -113,6 +121,7 @@ def calculate_iv_mid(df, ticker, r):
     df["Expiry_dt"] = df["Expiry"]
     df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
     df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
+    df['Moneyness'] = df['Strike'] / df['Forward']  # Added Moneyness calculation
     df['LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
     df['IV_bid'] = np.nan
     df['IV_ask'] = np.nan
@@ -121,6 +130,7 @@ def calculate_iv_mid(df, ticker, r):
     results = Parallel(n_jobs=-1, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread']] = pd.DataFrame(results, index=df.index)
     return df, S, r, q
+
 def smooth_iv_per_expiry(options_df):
     smoothed_iv = []
     for exp, group in options_df.groupby('Expiry'):
@@ -134,6 +144,7 @@ def smooth_iv_per_expiry(options_df):
         smoothed_iv.append(lowess_smoothed[:, 1])
     options_df['Smoothed_IV_mid'] = np.concatenate(smoothed_iv)
     return options_df
+
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
@@ -144,8 +155,8 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     if np.isnan(w):
         return None
    
-    h_t = max(0.01 * T, 1e-4) # Adaptive, with min to avoid zero
-    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4) # Adaptive to moneyness scale
+    h_t = max(0.01 * T, 1e-4)  # Adaptive, with min to avoid zero
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)  # Adaptive to moneyness scale
    
     # ∂w/∂T
     w_T_plus = interp(np.array([[y, T + h_t]]))[0]
@@ -174,7 +185,7 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     else:
         local_vol_sq = dw_dT / denom
         local_vol = np.sqrt(max(local_vol_sq, 0)) if local_vol_sq > 0 else 0.0
-        if local_vol > 2.0: # Cap outliers
+        if local_vol > 2.0:  # Cap outliers
             local_vol = np.nan
    
     return {
@@ -182,7 +193,8 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
         "Expiry": row['Expiry'],
         "Local Vol": local_vol
     }
-def process_options(options_df, option_type):
+
+def process_options(options_df, option_type, r, q):  # Added r and q parameters
     if options_df.empty:
         return pd.DataFrame(), None
        
@@ -202,7 +214,7 @@ def process_options(options_df, option_type):
        
     # Use RBF for smoother interpolation with some regularization
     try:
-        interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1) # Increased smoothing
+        interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
     except Exception as e:
         print(f"Warning: RBF fit failed for {option_type}: {e}. Using linear fallback.")
         interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
@@ -214,6 +226,7 @@ def process_options(options_df, option_type):
     local_data = [d for d in local_data if d is not None]
     local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
     return local_df, interp
+
 def calculate_local_vol_from_iv(df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in df.columns for col in required_columns):
@@ -222,10 +235,11 @@ def calculate_local_vol_from_iv(df, S, r, q):
     calls = df[df['Type'] == 'Call'].copy()
     puts = df[df['Type'] == 'Put'].copy()
    
-    call_local_df, call_interp = process_options(calls, 'Call')
-    put_local_df, put_interp = process_options(puts, 'Put')
+    call_local_df, call_interp = process_options(calls, 'Call', r, q)
+    put_local_df, put_interp = process_options(puts, 'Put', r, q)
    
     return call_local_df, put_local_df, call_interp, put_interp
+
 def calculate_skew_metrics(df, call_interp, put_interp):
     def get_iv(interp, y, T):
         if interp is None or T <= 0:
@@ -272,6 +286,7 @@ def calculate_skew_metrics(df, call_interp, put_interp):
         print(f"Expiry {row['Expiry']}: Skew 90/110 = {row['Skew_90_110']:.4f}, Skew 80/120 = {row['Skew_80_120']:.4f}")
    
     return skew_metrics_df
+
 def process_ticker(ticker, df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
@@ -306,6 +321,7 @@ def process_ticker(ticker, df, r):
    
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
     return ticker_df, skew_metrics_df
+
 def main():
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
@@ -357,4 +373,5 @@ def main():
     with open(dates_file, 'w') as f:
         json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
+
 main()
