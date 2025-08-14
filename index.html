@@ -164,14 +164,17 @@
                     if (dateSelect.options.length > 0) {
                         dateSelect.value = dateSelect.options[0].value;
                         updateTimeOptions(dateSelect.value, dates);
+                        loadData(dateSelect.value + '_' + timeSelect.value);
                     }
                     dateSelect.addEventListener('change', (e) => {
                         updateTimeOptions(e.target.value, dates);
+                        const timeSelect = document.getElementById('time-select');
                         loadData(e.target.value + '_' + timeSelect.value);
                     });
                     const timeSelect = document.getElementById('time-select');
-                    timeSelect.addEventListener('change', () => {
-                        loadData(dateSelect.value + '_' + timeSelect.value);
+                    timeSelect.addEventListener('change', (e) => {
+                        const dateSelect = document.getElementById('date-select');
+                        loadData(dateSelect.value + '_' + e.target.value);
                     });
                     const historySelect = document.getElementById('history-select');
                     historySelect.addEventListener('change', updateHistoricChart);
@@ -182,8 +185,9 @@
         function updateTimeOptions(selectedDate, dates) {
             const timeSelect = document.getElementById('time-select');
             timeSelect.innerHTML = '';
+            const formattedSelectedDate = selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
             const availableTimes = dates
-                .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'))
+                .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === formattedSelectedDate)
                 .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
             const uniqueTimes = [...new Set(availableTimes)];
             uniqueTimes.forEach(timePart => {
@@ -296,7 +300,7 @@
             const table = document.getElementById('skew-table');
             table.innerHTML = '';
             console.log('Selected Ticker:', selectedTicker);
-            console.log('Selected Expiry:', selectedExpiry);
+            console.log('Selected Expiry (raw):', selectedExpiry);
             console.log('Normalized Selected Expiry:', normalizedSelectedExpiry);
             console.log('Raw skewData:', skewData);
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
@@ -340,7 +344,7 @@
                 row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             } else {
-                console.log('No data for selected expiry:', normalizedSelectedExpiry);
+                console.log('No match for expiry:', normalizedSelectedExpiry);
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No data for selected expiry';
