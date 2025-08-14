@@ -276,10 +276,6 @@ def calculate_skew_metrics(df, call_interp, put_interp):
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
     skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
-    print(f"\nAdditional Metrics for {df['Ticker'].iloc[0] if 'Ticker' in df else 'Ticker'}:")
-    print(f"ATM 12m/3m Ratio: {atm_ratio:.4f}" if not np.isnan(atm_ratio) else "ATM 12m/3m Ratio: N/A")
-    for _, row in skew_metrics_df.iterrows():
-        print(f"Expiry {row['Expiry']}: Skew 90/110 = {row['Skew_90_110']:.4f}, Skew 80/120 = {row['Skew_80_120']:.4f}")
     return skew_metrics_df
 
 def process_ticker(ticker, df, full_df, r):
