@@ -22,18 +22,18 @@
             color: #FFFFFF;
             border: 1px solid #FFFFFF;
         }
-        .stats-table {
+        .stats-table, .skew-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 20px;
         }
-        .stats-table th, .stats-table td {
+        .stats-table th, .stats-table td, .skew-table th, .skew-table td {
             border: 1px solid #FFFFFF;
             padding: 8px;
             text-align: left;
             color: #FFFFFF;
         }
-        .stats-table th {
+        .stats-table th, .skew-table th {
             background-color: #2E3537;
         }
         .line-swatch {
@@ -66,6 +66,7 @@
             <label for="expiry-select">Select Expiry: </label>
             <select id="expiry-select"></select>
             <canvas id="moneyness-vs-iv-chart"></canvas>
+            <table id="skew-table" class="skew-table"></table>
         </div>
         <div class="chart-container">
             <h2>Expiry vs. Volatility</h2>
@@ -90,6 +91,7 @@
     <script>
         let data = [];
         let historicData = [];
+        let skewData = [];
         let expiryChart, moneynessChart, historicChart;
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
@@ -165,6 +167,13 @@
                     updateHistoricChart();
                 })
                 .catch(error => console.error('Error loading historic data:', error));
+            fetch(`data/skew_metrics_${timestamp}.csv?v=` + Date.now())
+                .then(response => response.text())
+                .then(csvText => {
+                    skewData = parseCSV(csvText);
+                    updateSkewTable();
+                })
+                .catch(error => console.error('Error loading skew metrics:', error));
         }
         function populateDropdowns() {
             const tickerSelect = document.getElementById('ticker-select');
@@ -187,10 +196,14 @@
                 updateDropdowns();
                 updateCharts();
                 updateHistoricChart();
+                updateSkewTable();
             });
             updateDropdowns();
             document.getElementById('moneyness-select').addEventListener('change', updateCharts);
-            document.getElementById('expiry-select').addEventListener('change', updateCharts);
+            document.getElementById('expiry-select').addEventListener('change', () => {
+                updateCharts();
+                updateSkewTable();
+            });
         }
         function updateDropdowns() {
             const selectedTicker = document.getElementById('ticker-select').value;
@@ -228,10 +241,56 @@
                 expirySelect.value = expirySelect.options[0].value;
             }
         }
-        function updateCharts() {
-            updateExpiryVsIV();
-            updateMoneynessVsIV();
-            updateHistoricChart();
+        function updateSkewTable() {
+            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const table = document.getElementById('skew-table');
+            table.innerHTML = ''; // Clear previous content
+            const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            if (filteredSkewData.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = 'No skew metrics available';
+                cell.colSpan = 4;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Expiry', 'Skew 90/110', 'Skew 80/120', 'ATM 12m/3m Ratio'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            const selectedRow = filteredSkewData.find(item => item.Expiry === selectedExpiry);
+            if (selectedRow) {
+                const row = document.createElement('tr');
+                const expiryCell = document.createElement('td');
+                expiryCell.textContent = new Date(selectedRow.Expiry).toLocaleDateString('en-GB');
+                row.appendChild(expiryCell);
+                const skew90110Cell = document.createElement('td');
+                skew90110Cell.textContent = parseFloat(selectedRow.Skew_90_110).toFixed(4) || 'N/A';
+                row.appendChild(skew90110Cell);
+                const skew80120Cell = document.createElement('td');
+                skew80120Cell.textContent = parseFloat(selectedRow.Skew_80_120).toFixed(4) || 'N/A';
+                row.appendChild(skew80120Cell);
+                const atmRatioCell = document.createElement('td');
+                atmRatioCell.textContent = parseFloat(selectedRow.ATM_12m_3m_Ratio).toFixed(4) || 'N/A';
+                row.appendChild(atmRatioCell);
+                tbody.appendChild(row);
+            } else {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = 'No data for selected expiry';
+                cell.colSpan = 4;
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            }
+            table.appendChild(tbody);
         }
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
@@ -629,8 +688,8 @@
                     data: vol90.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#FF0000',
                     backgroundColor: '#FF0000',
-                    pointRadius: 5,  // Increased for visibility
-                    pointStyle: 'crossRot',  // Or use 'cross' for '+' shape
+                    pointRadius: 5,
+                    pointStyle: 'crossRot',
                     fill: false,
                     showLine: true,
                     borderDash: [],
@@ -722,6 +781,12 @@
                     backgroundColor: '#1C2526'
                 }
             });
+        }
+        function updateCharts() {
+            updateExpiryVsIV();
+            updateMoneynessVsIV();
+            updateHistoricChart();
+            updateSkewTable();
         }
     </script>
 </body>
