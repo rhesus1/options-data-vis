@@ -1,4 +1,4 @@
-name: Force Analysis Update
+name: Force Calculate Vols
 on:
   workflow_run:
       workflows: ["Force Clean"]
