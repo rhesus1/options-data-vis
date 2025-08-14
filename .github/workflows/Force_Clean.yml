@@ -1,4 +1,4 @@
-name: Clean Options Data
+name: Force Clean
 on:
   workflow_dispatch:
     inputs:
