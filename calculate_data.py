@@ -14,21 +14,18 @@ import multiprocessing
 import sys
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
-
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(S - K, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(K - S, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
-
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
         return 0.0
@@ -45,7 +42,6 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return iv
     except ValueError as e:
         return np.nan
-
 def calculate_rvol_days(ticker, days):
     try:
         stock = yf.Ticker(ticker)
@@ -60,13 +56,11 @@ def calculate_rvol_days(ticker, days):
         return realised_vol
     except Exception as e:
         return None
-
-def calc_Ivol_Rvol(df, rvol90d):
+def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
         return df
-    df["Ivol/Rvol90d Ratio"] = df["IV_mid"] / rvol90d
+    df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d
     return df
-
 def compute_ivs(row, S, r, q):
     if pd.isna(row['Years_to_Expiry']):
         return np.nan, np.nan, np.nan, np.nan
@@ -78,10 +72,9 @@ def compute_ivs(row, S, r, q):
     iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
     iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
     return iv_bid, iv_ask, iv_mid, iv_spread
-
 def calculate_metrics(df, ticker, r):
     if df.empty:
-        return df, pd.DataFrame(), pd.DataFrame(), None, None, None
+        return df, pd.DataFrame(), pd.DataFrame()
     skew_data = []
     for exp in df["Expiry"].unique():
         for strike in df["Strike"].unique():
@@ -109,10 +102,9 @@ def calculate_metrics(df, ticker, r):
                     })
     slope_df = pd.DataFrame(slope_data)
     return df, skew_df, slope_df
-
 def calculate_iv_mid(df, ticker, r):
     if df.empty:
-        return df, pd.DataFrame(), pd.DataFrame(), None, None, None
+        return df, None, None, None
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
     q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
@@ -126,40 +118,39 @@ def calculate_iv_mid(df, ticker, r):
     results = Parallel(n_jobs=-1, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread']] = pd.DataFrame(results, index=df.index)
     return df, S, r, q
-
 def compute_local_vol_row(row, r, q, option_type, h_k_base, interp):
     k = row['Strike']
     t = row['T']
     if t <= 0:
         return None
-    
+   
     price = interp((k, t))
     if np.isnan(price):
         return None
-    
+   
     h_t = 0.01 * t
-    h_k = h_k_base
-    
+    h_k = 0.005 * k # Changed to simpler adaptive step relative to strike
+   
     price_T_plus = interp((k, t + h_t))
-    price_T_minus = interp((k, max(t - h_t, 0.0001)))  # Avoid negative time
+    price_T_minus = interp((k, max(t - h_t, 0.0001))) # Avoid negative time
     if np.isnan(price_T_plus) or np.isnan(price_T_minus):
         return None
     dP_dT = (price_T_plus - price_T_minus) / (2 * h_t)
-    
+   
     price_K_plus = interp((k + h_k, t))
     price_K_minus = interp((k - h_k, t))
     if np.isnan(price_K_plus) or np.isnan(price_K_minus):
         return None
     dP_dK = (price_K_plus - price_K_minus) / (2 * h_k)
-    
+   
     d2P_dK2 = (price_K_plus - 2 * price + price_K_minus) / (h_k ** 2)
-    
+   
     if np.isnan(dP_dT) or np.isnan(dP_dK) or np.isnan(d2P_dK2):
         return None
-    
+   
     numer = dP_dT + (r - q) * k * dP_dK + q * price
     denom = 0.5 * k ** 2 * d2P_dK2
-    
+   
     if denom <= 1e-10 or numer <= 0:
         local_vol = 0.0
     else:
@@ -170,24 +161,23 @@ def compute_local_vol_row(row, r, q, option_type, h_k_base, interp):
             local_vol = np.sqrt(local_vol_sq)
             if local_vol < 0 or local_vol > 2.0:
                 local_vol = np.nan
-    
+   
     return {
         "Strike": k,
         "Expiry": row['Expiry'],
         "Local Vol": local_vol
     }
-
 def calculate_local_vol(full_df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'Bid', 'Ask']
     if not all(col in full_df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
-    
+   
     calls = full_df[full_df['Type'] == 'Call'].copy()
     puts = full_df[full_df['Type'] == 'Put'].copy()
-    
+   
     call_local_df = pd.DataFrame()
     put_local_df = pd.DataFrame()
-    
+   
     # Process calls
     if not calls.empty:
         calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
@@ -197,14 +187,10 @@ def calculate_local_vol(full_df, S, r, q):
         calls = calls.sort_values(['T', 'Strike'])
         call_points = np.column_stack((calls['Strike'], calls['T']))
         call_values = calls['mid_price'].values
-        
+       
         strikes = np.sort(np.unique(calls['Strike']))
-        if len(strikes) > 1:
-            h_k_base = np.median(np.diff(strikes))
-        else:
-            h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
-        h_k_base = max(h_k_base, 0.1)
-        
+        h_k_base = 0.0 # Not used anymore, but keeping for signature compatibility
+       
         if len(calls) >= 3:
             try:
                 call_interp = CloughTocher2DInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
@@ -212,7 +198,7 @@ def calculate_local_vol(full_df, S, r, q):
                 print(f"Warning: Interpolator fit failed for calls: {e}. Using linear fallback.")
                 from scipy.interpolate import LinearNDInterpolator
                 call_interp = LinearNDInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
-            
+           
             call_local_data = Parallel(n_jobs=-1, backend='threading')(
                 delayed(compute_local_vol_row)(row, r, q, 'Call', h_k_base, call_interp)
                 for _, row in calls.iterrows()
@@ -220,7 +206,7 @@ def calculate_local_vol(full_df, S, r, q):
             call_local_data = [d for d in call_local_data if d is not None]
             if call_local_data:
                 call_local_df = pd.DataFrame(call_local_data)
-    
+   
     # Process puts (similar to calls)
     if not puts.empty:
         puts['mid_price'] = (puts['Bid'] + puts['Ask']) / 2
@@ -230,14 +216,10 @@ def calculate_local_vol(full_df, S, r, q):
         puts = puts.sort_values(['T', 'Strike'])
         put_points = np.column_stack((puts['Strike'], puts['T']))
         put_values = puts['mid_price'].values
-        
+       
         strikes = np.sort(np.unique(puts['Strike']))
-        if len(strikes) > 1:
-            h_k_base = np.median(np.diff(strikes))
-        else:
-            h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
-        h_k_base = max(h_k_base, 0.1)
-        
+        h_k_base = 0.0 # Not used anymore, but keeping for signature compatibility
+       
         if len(puts) >= 3:
             try:
                 put_interp = CloughTocher2DInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
@@ -245,7 +227,7 @@ def calculate_local_vol(full_df, S, r, q):
                 print(f"Warning: Interpolator fit failed for puts: {e}. Using linear fallback.")
                 from scipy.interpolate import LinearNDInterpolator
                 put_interp = LinearNDInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
-            
+           
             put_local_data = Parallel(n_jobs=-1, backend='threading')(
                 delayed(compute_local_vol_row)(row, r, q, 'Put', h_k_base, put_interp)
                 for _, row in puts.iterrows()
@@ -253,9 +235,8 @@ def calculate_local_vol(full_df, S, r, q):
             put_local_data = [d for d in put_local_data if d is not None]
             if put_local_data:
                 put_local_df = pd.DataFrame(put_local_data)
-    
+   
     return call_local_df, put_local_df
-
 def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
@@ -263,11 +244,11 @@ def process_ticker(ticker, df, full_df, r):
     if ticker_df.empty:
         print(f"Warning: No data for ticker {ticker} in df")
         return None
-    rvol90d = calculate_rvol_days(ticker, 90)
+    rvol100d = calculate_rvol_days(ticker, 100)
     print(f"\nRealised Volatility for {ticker}:")
-    print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
+    print(f"100-day: {rvol100d * 100:.2f}%" if rvol100d is not None else "100-day: N/A")
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
-    ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
+    ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
     if not call_local_df.empty:
@@ -286,10 +267,9 @@ def process_ticker(ticker, df, full_df, r):
         )
     else:
         ticker_df['Put Local Vol'] = np.nan
-   
-    ticker_df['Realised Vol 90d'] = rvol90d if rvol90d is not None else np.nan
+  
+    ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
     return ticker_df
-
 def main():
     clean_files = glob.glob('data/cleaned_*.csv')
     if not clean_files:
@@ -331,5 +311,4 @@ def main():
         print(f"Updated dates list in {dates_file}")
     else:
         print("No processed data to save")
-
 main()
