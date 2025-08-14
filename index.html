@@ -5,6 +5,7 @@
     <title>Options Data Visualisation</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -93,18 +94,16 @@
         let historicData = [];
         let skewData = [];
         let expiryChart, moneynessChart, historicChart;
+
         function parseCSV(csvText) {
-            const lines = csvText.trim().split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
-            return lines.slice(1).map(line => {
-                const values = line.split(',').map(v => v.trim());
-                const obj = {};
-                headers.forEach((h, i) => {
-                    obj[h] = values[i];
-                });
-                return obj;
+            const result = Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true
             });
+            return result.data;
         }
+
         function calculateDateRange(historyLength) {
             const now = new Date();
             let fromDate = new Date();
@@ -126,10 +125,11 @@
                     break;
                 case 'all':
                 default:
-                    return null; // No filtering
+                    return null;
             }
             return fromDate;
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
@@ -141,7 +141,7 @@
                         option.textContent = date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3 $4:$5');
                         dateSelect.appendChild(option);
                     });
-                    loadData(dates[0]); // Load latest by default
+                    loadData(dates[0]);
                 })
                 .catch(error => console.error('Error loading dates:', error));
             const dateSelect = document.getElementById('date-select');
@@ -151,6 +151,7 @@
             const historySelect = document.getElementById('history-select');
             historySelect.addEventListener('change', updateHistoricChart);
         });
+
         function loadData(timestamp) {
             fetch(`data/processed_${timestamp}.json?v=` + Date.now())
                 .then(response => response.json())
@@ -175,12 +176,13 @@
                 })
                 .catch(error => console.error('Error loading skew metrics:', error));
         }
+
         function populateDropdowns() {
             const tickerSelect = document.getElementById('ticker-select');
             const prevTicker = tickerSelect.value;
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
                 .filter(val => val).sort();
-            tickerSelect.innerHTML = ''; // Clear previous
+            tickerSelect.innerHTML = '';
             uniqueTickers.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
@@ -205,6 +207,7 @@
                 updateSkewTable();
             });
         }
+
         function updateDropdowns() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
@@ -214,7 +217,7 @@
             const prevExpiry = expirySelect.value;
             const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
-            moneynessSelect.innerHTML = ''; // Clear previous options
+            moneynessSelect.innerHTML = '';
             uniqueRoundedMoneyness.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
@@ -228,7 +231,7 @@
             }
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
-            expirySelect.innerHTML = ''; // Clear previous options
+            expirySelect.innerHTML = '';
             uniqueExpiries.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
@@ -241,11 +244,12 @@
                 expirySelect.value = expirySelect.options[0].value;
             }
         }
+
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
             const table = document.getElementById('skew-table');
-            table.innerHTML = ''; // Clear previous content
+            table.innerHTML = '';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
             if (filteredSkewData.length === 0) {
                 const row = document.createElement('tr');
@@ -273,13 +277,13 @@
                 expiryCell.textContent = new Date(selectedRow.Expiry).toLocaleDateString('en-GB');
                 row.appendChild(expiryCell);
                 const skew90110Cell = document.createElement('td');
-                skew90110Cell.textContent = parseFloat(selectedRow.Skew_90_110).toFixed(4) || 'N/A';
+                skew90110Cell.textContent = Number.isFinite(selectedRow.Skew_90_110) ? selectedRow.Skew_90_110.toFixed(4) : 'N/A';
                 row.appendChild(skew90110Cell);
                 const skew80120Cell = document.createElement('td');
-                skew80120Cell.textContent = parseFloat(selectedRow.Skew_80_120).toFixed(4) || 'N/A';
+                skew80120Cell.textContent = Number.isFinite(selectedRow.Skew_80_120) ? selectedRow.Skew_80_120.toFixed(4) : 'N/A';
                 row.appendChild(skew80120Cell);
                 const atmRatioCell = document.createElement('td');
-                atmRatioCell.textContent = parseFloat(selectedRow.ATM_12m_3m_Ratio).toFixed(4) || 'N/A';
+                atmRatioCell.textContent = Number.isFinite(selectedRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
                 row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             } else {
@@ -292,6 +296,7 @@
             }
             table.appendChild(tbody);
         }
+
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
@@ -315,6 +320,7 @@
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
+
         function createStatsTable(chart, canvasId) {
             const container = document.getElementById(canvasId).parentNode;
             let existingTable = container.querySelector('.stats-table');
@@ -374,6 +380,7 @@
             table.appendChild(tbody);
             container.appendChild(table);
         }
+
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
@@ -504,6 +511,7 @@
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
+
         function updateMoneynessVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -634,6 +642,7 @@
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
         }
+
         function updateHistoricChart() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const historyLength = document.getElementById('history-select').value;
@@ -782,6 +791,7 @@
                 }
             });
         }
+
         function updateCharts() {
             updateExpiryVsIV();
             updateMoneynessVsIV();
