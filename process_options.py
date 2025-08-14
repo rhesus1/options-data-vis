@@ -121,7 +121,7 @@ def calculate_iv_mid(df, ticker, r):
     df["Expiry_dt"] = df["Expiry"]
     df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
     df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
-    df['Moneyness'] = df['Strike'] / df['Forward']  # Added Moneyness calculation
+    df['Moneyness'] = df['Strike'] / df['Forward']
     df['LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
     df['IV_bid'] = np.nan
     df['IV_ask'] = np.nan
@@ -150,75 +150,55 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     T = row['Years_to_Expiry']
     if T <= 0:
         return None
-   
     w = interp(np.array([[y, T]]))[0]
     if np.isnan(w):
         return None
-   
-    h_t = max(0.01 * T, 1e-4)  # Adaptive, with min to avoid zero
-    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)  # Adaptive to moneyness scale
-   
-    # ∂w/∂T
+    h_t = max(0.01 * T, 1e-4)
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
     w_T_plus = interp(np.array([[y, T + h_t]]))[0]
     w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
     if np.isnan(w_T_plus) or np.isnan(w_T_minus):
         return None
     dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
-   
-    # ∂w/∂y
     w_y_plus = interp(np.array([[y + h_y, T]]))[0]
     w_y_minus = interp(np.array([[y - h_y, T]]))[0]
     if np.isnan(w_y_plus) or np.isnan(w_y_minus):
         return None
     dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
-   
-    # ∂²w/∂y²
     d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
-   
     if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
         return None
-   
-    # Dupire formula for local vol from IV
     denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
         local_vol = 0.0
     else:
         local_vol_sq = dw_dT / denom
         local_vol = np.sqrt(max(local_vol_sq, 0)) if local_vol_sq > 0 else 0.0
-        if local_vol > 2.0:  # Cap outliers
+        if local_vol > 2.0:
             local_vol = np.nan
-   
     return {
         "Strike": row['Strike'],
         "Expiry": row['Expiry'],
         "Local Vol": local_vol
     }
 
-def process_options(options_df, option_type, r, q):  # Added r and q parameters
+def process_options(options_df, option_type, r, q):
     if options_df.empty:
         return pd.DataFrame(), None
-       
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
     options_df = smooth_iv_per_expiry(options_df)
     options_df = options_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-       
-    # Compute total variance w = IV^2 * T
     options_df['TotalVariance'] = options_df['Smoothed_IV_mid']**2 * options_df['Years_to_Expiry']
-       
     points = np.column_stack((options_df['LogMoneyness'], options_df['Years_to_Expiry']))
     values = options_df['TotalVariance'].values
-       
     if len(options_df) < 3:
         return pd.DataFrame(), None
-       
-    # Use RBF for smoother interpolation with some regularization
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
     except Exception as e:
         print(f"Warning: RBF fit failed for {option_type}: {e}. Using linear fallback.")
         interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
-       
     local_data = Parallel(n_jobs=-1, backend='threading')(
         delayed(compute_local_vol_from_iv_row)(row, r, q, interp)
         for _, row in options_df.iterrows()
@@ -231,13 +211,10 @@ def calculate_local_vol_from_iv(df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
-   
     calls = df[df['Type'] == 'Call'].copy()
     puts = df[df['Type'] == 'Put'].copy()
-   
     call_local_df, call_interp = process_options(calls, 'Call', r, q)
     put_local_df, put_interp = process_options(puts, 'Put', r, q)
-   
     return call_local_df, put_local_df, call_interp, put_interp
 
 def calculate_skew_metrics(df, call_interp, put_interp):
@@ -248,48 +225,41 @@ def calculate_skew_metrics(df, call_interp, put_interp):
         if np.isnan(w):
             return np.nan
         return np.sqrt(w / T)
-   
     skew_data = []
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
-   
         y90 = np.log(0.9)
         iv90 = get_iv(put_interp, y90, T)
         y110 = np.log(1.1)
         iv110 = get_iv(call_interp, y110, T)
         skew90110 = iv90 / iv110 if not np.isnan(iv90) and not np.isnan(iv110) and iv110 > 0 else np.nan
-   
         y80 = np.log(0.8)
         iv80 = get_iv(put_interp, y80, T)
         y120 = np.log(1.2)
         iv120 = get_iv(call_interp, y120, T)
         skew80120 = iv80 / iv120 if not np.isnan(iv80) and not np.isnan(iv120) and iv120 > 0 else np.nan
-   
         skew_data.append({
             'Expiry': exp,
             'Skew_90_110': skew90110,
             'Skew_80_120': skew80120
         })
     skew_metrics_df = pd.DataFrame(skew_data)
-   
-    # ATM ratio 12m/3m
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
     skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
-   
     print(f"\nAdditional Metrics for {df['Ticker'].iloc[0] if 'Ticker' in df else 'Ticker'}:")
     print(f"ATM 12m/3m Ratio: {atm_ratio:.4f}" if not np.isnan(atm_ratio) else "ATM 12m/3m Ratio: N/A")
     for _, row in skew_metrics_df.iterrows():
         print(f"Expiry {row['Expiry']}: Skew 90/110 = {row['Skew_90_110']:.4f}, Skew 80/120 = {row['Skew_80_120']:.4f}")
-   
     return skew_metrics_df
 
-def process_ticker(ticker, df, r):
+def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
+    ticker_full = full_df[full_df['Ticker'] == ticker].copy()
     if ticker_df.empty:
         print(f"Warning: No data for ticker {ticker} in df")
         return None, None
@@ -318,7 +288,6 @@ def process_ticker(ticker, df, r):
         )
     else:
         ticker_df['Put Local Vol'] = np.nan
-   
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
     return ticker_df, skew_metrics_df
 
@@ -334,23 +303,26 @@ def main():
         latest_clean = max(clean_files, key=os.path.getctime)
         timestamp = os.path.basename(latest_clean).split('cleaned_')[1].split('.csv')[0]
     df = pd.read_csv(latest_clean, parse_dates=['Expiry'])
+    raw_file = f'data/raw_{timestamp}.csv'
+    if not os.path.exists(raw_file):
+        print(f"Corresponding raw file {raw_file} not found")
+        return
+    full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
     tickers = df['Ticker'].unique()
     if len(tickers) == 0:
         print("No tickers found")
         return
-   
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-    r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
-   
+    r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
     processed_dfs = []
     skew_metrics_dfs = []
-    for ticker in tickers:
-        processed, skew_metrics = process_ticker(ticker, df, r)
-        if processed is not None:
-            processed_dfs.append(processed)
-        if skew_metrics is not None:
-            skew_metrics_dfs.append(skew_metrics)
-   
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
+        results = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
+    for pdf, sdf in results:
+        if pdf is not None:
+            processed_dfs.append(pdf)
+        if sdf is not None:
+            skew_metrics_dfs.append(sdf)
     if processed_dfs:
         combined_processed = pd.concat(processed_dfs, ignore_index=True)
         processed_filename = f'data/processed_{timestamp}.json'
