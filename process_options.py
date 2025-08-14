@@ -7,29 +7,25 @@ import os
 import json
 from scipy.optimize import brentq
 from scipy.stats import norm
-from scipy.interpolate import griddata, CloughTocher2DInterpolator
+from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
 from scipy.optimize import minimize
-import multiprocessing
 from joblib import Parallel, delayed
+import multiprocessing
 import sys
 import warnings
-
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
-
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(S - K, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(K - S, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
-
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
         return 0.0
@@ -46,24 +42,6 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return iv
     except ValueError as e:
         return np.nan
-
-def calculate_rvol(ticker, period):
-    try:
-        valid_periods = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
-        if period not in valid_periods:
-            return None
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period=period)
-        if hist.empty:
-            return None
-        log_returns = np.log(hist["Close"] / hist["Close"].shift(1)).dropna()
-        if len(log_returns) < 2:
-            return None
-        realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
-        return realised_vol
-    except Exception as e:
-        return None
-
 def calculate_rvol_days(ticker, days):
     try:
         stock = yf.Ticker(ticker)
@@ -78,21 +56,30 @@ def calculate_rvol_days(ticker, days):
         return realised_vol
     except Exception as e:
         return None
-
-def calc_Ivol_Rvol(df, rvol90d):
+def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
         return df
-    df["Ivol/Rvol90d Ratio"] = df["Implied Volatility"] / rvol90d
+    df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d
     return df
-
+def compute_ivs(row, S, r, q):
+    if pd.isna(row['Years_to_Expiry']):
+        return np.nan, np.nan, np.nan, np.nan
+    T = max(row['Years_to_Expiry'], 0.0001)
+    option_type = row['Type'].lower()
+    contract_name = row['Contract Name']
+    iv_bid = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name)
+    iv_ask = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name)
+    iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
+    iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
+    return iv_bid, iv_ask, iv_mid, iv_spread
 def calculate_metrics(df, ticker, r):
     if df.empty:
-        return df, pd.DataFrame(), pd.DataFrame(), None, None, None
+        return df, pd.DataFrame(), pd.DataFrame()
     skew_data = []
     for exp in df["Expiry"].unique():
         for strike in df["Strike"].unique():
-            call_iv = df[(df["Type"] == "Call") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["Implied Volatility"]
-            put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["Implied Volatility"]
+            call_iv = df[(df["Type"] == "Call") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
+            put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
             if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
                 skew = put_iv.iloc[0] / call_iv.iloc[0]
                 skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
@@ -102,7 +89,7 @@ def calculate_metrics(df, ticker, r):
         for opt_type in ["Call", "Put"]:
             subset = df[(df["Strike"] == strike) & (df["Type"] == opt_type)].sort_values("Expiry")
             if len(subset) > 1:
-                iv_diff = subset["Implied Volatility"].diff()
+                iv_diff = subset["IV_mid"].diff()
                 subset["Expiry_dt"] = pd.to_datetime(subset["Expiry"])
                 time_diff = (subset["Expiry_dt"] - subset["Expiry_dt"].shift(1)).map(lambda x: x.days / 365.0)
                 slope = iv_diff / time_diff
@@ -114,116 +101,56 @@ def calculate_metrics(df, ticker, r):
                         "IV Slope": slope.iloc[i]
                     })
     slope_df = pd.DataFrame(slope_data)
+    return df, skew_df, slope_df
+def calculate_iv_mid(df, ticker, r):
+    if df.empty:
+        return df, None, None, None
     stock = yf.Ticker(ticker)
     S = stock.history(period='1d')['Close'].iloc[-1]
     q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
     today = datetime.today()
     df["Expiry_dt"] = df["Expiry"]
     df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
-    invalid_rows = df[df['Years_to_Expiry'].isna()]
     df['IV_bid'] = np.nan
     df['IV_ask'] = np.nan
     df['IV_mid'] = np.nan
     df['IV_spread'] = np.nan
-    for idx, row in df.iterrows():
-        if pd.isna(row['Years_to_Expiry']):
-            continue
-        T = max(row['Years_to_Expiry'], 0.0001)
-        option_type = row['Type'].lower()
-        contract_name = row['Contract Name']
-        df.at[idx, 'IV_bid'] = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name)
-        df.at[idx, 'IV_ask'] = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name)
-        df.at[idx, 'IV_mid'] = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
-        df.at[idx, 'IV_spread'] = df.at[idx, 'IV_ask'] - df.at[idx, 'IV_bid'] if not np.isnan(df.at[idx, 'IV_bid']) else np.nan
-    return df, skew_df, slope_df, S, r, q
-
-def heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau):
-    i = 1j
-    d = np.sqrt((rho * sigma_vol * i * phi - kappa)**2 + sigma_vol**2 * (i * phi + phi**2))
-    g = (kappa - rho * sigma_vol * i * phi - d) / (kappa - rho * sigma_vol * i * phi + d)
-    C = r * i * phi * tau + (kappa * theta / sigma_vol**2) * ((kappa - rho * sigma_vol * i * phi - d) * tau - 2 * np.log((1 - g * np.exp(-d * tau)) / (1 - g)))
-    D = ((kappa - rho * sigma_vol * i * phi - d) / sigma_vol**2) * ((1 - np.exp(-d * tau)) / (1 - g * np.exp(-d * tau)))
-    return np.exp(C + D * v0 + i * phi * np.log(S0))
-
-def heston_price_call(S0, K, v0, kappa, theta, sigma_vol, rho, r, tau):
-    i = 1j
-    def integrand(phi):
-        return np.real(np.exp(-i * phi * np.log(K)) / (i * phi) * heston_char_func(phi - i, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / heston_char_func(-i, S0, v0, kappa, theta, sigma_vol, rho, r, tau))
-    phi_vals = np.linspace(0.01, 100, 1000)
-    integral = np.trapz(integrand(phi_vals), dx=phi_vals[1] - phi_vals[0])
-    P1 = 0.5 + (1 / np.pi) * integral
-    def integrand2(phi):
-        return np.real(heston_char_func(phi, S0, v0, kappa, theta, sigma_vol, rho, r, tau) / (i * phi * np.exp(i * phi * np.log(K))))
-    integral2 = np.trapz(integrand2(phi_vals), dx=phi_vals[1] - phi_vals[0])
-    P2 = 0.5 + (1 / np.pi) * integral2
-    return S0 * P1 - K * np.exp(-r * tau) * P2
-
-def calibrate_heston(df, S, r, q):
-    def objective(params):
-        v0, kappa, theta, sigma_vol, rho = params
-        error = 0.0
-        for idx, row in df.iterrows():
-            T = row['Years_to_Expiry']
-            K = row['Strike']
-            market_price = 0.5 * (row['Bid'] + row['Ask'])
-            model_price = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
-            error += (model_price - market_price)**2
-        return error
-    initial = [0.04, 2.0, 0.04, 0.3, -0.7]
-    bounds = [(0.01, 0.2), (0.1, 5.0), (0.01, 0.2), (0.1, 1.0), (-0.99, 0.99)]
-    result = minimize(objective, initial, bounds=bounds, method='L-BFGS-B')
-    if result.success:
-        return result.x
-    else:
-        print("Heston calibration failed:", result.message)
-        return None
-
-def calculate_heston_iv(df, S, r, q, heston_params):
-    if heston_params is None:
-        df['Heston IV'] = np.nan
-        return df
-    v0, kappa, theta, sigma_vol, rho = heston_params
-    df['Heston IV'] = np.nan
-    for idx, row in df.iterrows():
-        T = row['Years_to_Expiry']
-        K = row['Strike']
-        heston_p = heston_price_call(S, K, v0, kappa, theta, sigma_vol, rho, r, T)
-        df.at[idx, 'Heston IV'] = implied_vol(heston_p, S, K, T, r, q, row['Type'].lower())
-    return df
-
+    results = Parallel(n_jobs=-1, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
+    df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread']] = pd.DataFrame(results, index=df.index)
+    return df, S, r, q
 def compute_local_vol_row(row, r, q, option_type, h_k_base, interp):
     k = row['Strike']
     t = row['T']
     if t <= 0:
         return None
-    
+   
     price = interp((k, t))
     if np.isnan(price):
         return None
-    
+   
     h_t = 0.01 * t
-    h_k = h_k_base
-    
+    h_k = 0.005 * k  # Changed to simpler adaptive step relative to strike
+   
     price_T_plus = interp((k, t + h_t))
-    price_T_minus = interp((k, max(t - h_t, 0.0001)))  # Avoid negative time
+    price_T_minus = interp((k, max(t - h_t, 0.0001))) # Avoid negative time
     if np.isnan(price_T_plus) or np.isnan(price_T_minus):
         return None
     dP_dT = (price_T_plus - price_T_minus) / (2 * h_t)
-    
+   
     price_K_plus = interp((k + h_k, t))
     price_K_minus = interp((k - h_k, t))
     if np.isnan(price_K_plus) or np.isnan(price_K_minus):
         return None
     dP_dK = (price_K_plus - price_K_minus) / (2 * h_k)
-    
+   
     d2P_dK2 = (price_K_plus - 2 * price + price_K_minus) / (h_k ** 2)
-    
+   
     if np.isnan(dP_dT) or np.isnan(dP_dK) or np.isnan(d2P_dK2):
         return None
-    
+   
     numer = dP_dT + (r - q) * k * dP_dK + q * price
     denom = 0.5 * k ** 2 * d2P_dK2
-    
+   
     if denom <= 1e-10 or numer <= 0:
         local_vol = 0.0
     else:
@@ -234,24 +161,24 @@ def compute_local_vol_row(row, r, q, option_type, h_k_base, interp):
             local_vol = np.sqrt(local_vol_sq)
             if local_vol < 0 or local_vol > 2.0:
                 local_vol = np.nan
-    
+   
     return {
         "Strike": k,
         "Expiry": row['Expiry'],
         "Local Vol": local_vol
     }
-
+   
 def calculate_local_vol(full_df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'Bid', 'Ask']
     if not all(col in full_df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
-    
+   
     calls = full_df[full_df['Type'] == 'Call'].copy()
     puts = full_df[full_df['Type'] == 'Put'].copy()
-    
+   
     call_local_df = pd.DataFrame()
     put_local_df = pd.DataFrame()
-    
+   
     # Process calls
     if not calls.empty:
         calls['mid_price'] = (calls['Bid'] + calls['Ask']) / 2
@@ -261,14 +188,10 @@ def calculate_local_vol(full_df, S, r, q):
         calls = calls.sort_values(['T', 'Strike'])
         call_points = np.column_stack((calls['Strike'], calls['T']))
         call_values = calls['mid_price'].values
-        
+       
         strikes = np.sort(np.unique(calls['Strike']))
-        if len(strikes) > 1:
-            h_k_base = np.median(np.diff(strikes))
-        else:
-            h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
-        h_k_base = max(h_k_base, 0.1)
-        
+        h_k_base = 0.0  # Not used anymore, but keeping for signature compatibility
+       
         if len(calls) >= 3:
             try:
                 call_interp = CloughTocher2DInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
@@ -276,7 +199,7 @@ def calculate_local_vol(full_df, S, r, q):
                 print(f"Warning: Interpolator fit failed for calls: {e}. Using linear fallback.")
                 from scipy.interpolate import LinearNDInterpolator
                 call_interp = LinearNDInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
-            
+           
             call_local_data = Parallel(n_jobs=-1, backend='threading')(
                 delayed(compute_local_vol_row)(row, r, q, 'Call', h_k_base, call_interp)
                 for _, row in calls.iterrows()
@@ -284,7 +207,7 @@ def calculate_local_vol(full_df, S, r, q):
             call_local_data = [d for d in call_local_data if d is not None]
             if call_local_data:
                 call_local_df = pd.DataFrame(call_local_data)
-    
+   
     # Process puts (similar to calls)
     if not puts.empty:
         puts['mid_price'] = (puts['Bid'] + puts['Ask']) / 2
@@ -294,14 +217,10 @@ def calculate_local_vol(full_df, S, r, q):
         puts = puts.sort_values(['T', 'Strike'])
         put_points = np.column_stack((puts['Strike'], puts['T']))
         put_values = puts['mid_price'].values
-        
+       
         strikes = np.sort(np.unique(puts['Strike']))
-        if len(strikes) > 1:
-            h_k_base = np.median(np.diff(strikes))
-        else:
-            h_k_base = 0.005 * np.mean(strikes) if len(strikes) > 0 else 1.0
-        h_k_base = max(h_k_base, 0.1)
-        
+        h_k_base = 0.0  # Not used anymore, but keeping for signature compatibility
+       
         if len(puts) >= 3:
             try:
                 put_interp = CloughTocher2DInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
@@ -309,7 +228,7 @@ def calculate_local_vol(full_df, S, r, q):
                 print(f"Warning: Interpolator fit failed for puts: {e}. Using linear fallback.")
                 from scipy.interpolate import LinearNDInterpolator
                 put_interp = LinearNDInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
-            
+           
             put_local_data = Parallel(n_jobs=-1, backend='threading')(
                 delayed(compute_local_vol_row)(row, r, q, 'Put', h_k_base, put_interp)
                 for _, row in puts.iterrows()
@@ -317,22 +236,21 @@ def calculate_local_vol(full_df, S, r, q):
             put_local_data = [d for d in put_local_data if d is not None]
             if put_local_data:
                 put_local_df = pd.DataFrame(put_local_data)
-    
+   
     return call_local_df, put_local_df
-
 def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
     ticker_full = full_df[full_df['Ticker'] == ticker].copy()
     if ticker_df.empty:
+        print(f"Warning: No data for ticker {ticker} in df")
         return None
-    rvol90d = calculate_rvol_days(ticker, 90)
+    rvol100d = calculate_rvol_days(ticker, 100)
     print(f"\nRealised Volatility for {ticker}:")
-    print(f"90-day: {rvol90d * 100:.2f}%" if rvol90d is not None else "90-day: N/A")
-    ticker_df = calc_Ivol_Rvol(ticker_df, rvol90d)
-    ticker_df, skew_df, slope_df, S, r, q = calculate_metrics(ticker_df, ticker, r)
-    #heston_params = calibrate_heston(ticker_df, S, r, q)
-    #ticker_df = calculate_heston_iv(ticker_df, S, r, q, heston_params)
+    print(f"100-day: {rvol100d * 100:.2f}%" if rvol100d is not None else "100-day: N/A")
+    ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
+    ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
+    ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df = calculate_local_vol(ticker_full, S, r, q)
     if not call_local_df.empty:
         ticker_df = ticker_df.merge(
@@ -342,7 +260,6 @@ def process_ticker(ticker, df, full_df, r):
         )
     else:
         ticker_df['Call Local Vol'] = np.nan
-
     if not put_local_df.empty:
         ticker_df = ticker_df.merge(
             put_local_df.rename(columns={'Local Vol': 'Put Local Vol'}),
@@ -351,10 +268,9 @@ def process_ticker(ticker, df, full_df, r):
         )
     else:
         ticker_df['Put Local Vol'] = np.nan
-     
-    ticker_df['Realised Vol 90d'] = rvol90d if rvol90d is not None else np.nan
+  
+    ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
     return ticker_df
-
 def main():
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
@@ -377,16 +293,16 @@ def main():
     if len(tickers) == 0:
         print("No tickers found")
         return
-    
+   
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
     r = float(tnx_data['Close'].iloc[-1] / 100) if not tnx_data.empty else 0.05
-    
+   
     processed_dfs = []
     for ticker in tickers:
         processed = process_ticker(ticker, df, full_df, r)
         if processed is not None:
             processed_dfs.append(processed)
-    
+   
     if processed_dfs:
         combined_processed = pd.concat(processed_dfs, ignore_index=True)
         processed_filename = f'data/processed_{timestamp}.json'
@@ -406,5 +322,4 @@ def main():
         print(f"Updated dates list in {dates_file}")
     else:
         print("No processed data to save")
-
 main()
