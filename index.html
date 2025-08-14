@@ -595,8 +595,8 @@
                 {
                     label: 'Stock Price',
                     data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                    borderColor: '#A0E7E5',
-                    backgroundColor: '#A0E7E5',
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -605,8 +605,8 @@
                 {
                     label: '30-day Realised Vol (%)',
                     data: vol30.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#FFB3BA',
-                    backgroundColor: '#FFB3BA',
+                    borderColor: '#00BFFF',
+                    backgroundColor: '#00BFFF',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -616,8 +616,8 @@
                 {
                     label: '60-day Realised Vol (%)',
                     data: vol60.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#F4A8E4',
-                    backgroundColor: '#F4A8E4',
+                    borderColor: '#8A2BE2',
+                    backgroundColor: '#8A2BE2',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
@@ -629,7 +629,8 @@
                     data: vol90.map((v, i) => ({ x: dates[i], y: v })),
                     borderColor: '#FF0000',
                     backgroundColor: '#FF0000',
-                    pointRadius: 1,
+                    pointRadius: 3,  // Increased for visibility
+                    pointStyle: 'crossRot',  // Or use 'cross' for '+' shape
                     fill: false,
                     showLine: true,
                     borderDash: [],
@@ -638,8 +639,8 @@
                 {
                     label: '180-day Realised Vol (%)',
                     data: vol180.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#FBE7C6',
-                    backgroundColor: '#FBE7C6',
+                    borderColor: '#FFA500',
+                    backgroundColor: '#FFA500',
                     pointRadius: 1,
                     fill: false,
                     showLine: true,
