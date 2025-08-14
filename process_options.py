@@ -135,7 +135,7 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     if T <= 0:
         return None
     
-    w = interp((y, T))
+    w = interp(np.array([[y, T]]))[0]
     if np.isnan(w):
         return None
     
@@ -143,15 +143,15 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)  # Adaptive to moneyness scale
     
     # ∂w/∂T
-    w_T_plus = interp((y, T + h_t))
-    w_T_minus = interp((y, max(T - h_t, 1e-6)))
+    w_T_plus = interp(np.array([[y, T + h_t]]))[0]
+    w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
     if np.isnan(w_T_plus) or np.isnan(w_T_minus):
         return None
     dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
     
     # ∂w/∂y
-    w_y_plus = interp((y + h_y, T))
-    w_y_minus = interp((y - h_y, T))
+    w_y_plus = interp(np.array([[y + h_y, T]]))[0]
+    w_y_minus = interp(np.array([[y - h_y, T]]))[0]
     if np.isnan(w_y_plus) or np.isnan(w_y_minus):
         return None
     dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
