@@ -37,8 +37,8 @@ def main():
     ]
 
     # Apply volume and open interest thresholds
-    volume_threshold = df['Volume'].quantile(0.25)
-    oi_threshold = df['Open Interest'].quantile(0.5)
+    volume_threshold = df['Volume'].quantile(0.1)
+    oi_threshold = df['Open Interest'].quantile(0.25)
 
     df = df[
         (df['Volume'] >= volume_threshold) &
