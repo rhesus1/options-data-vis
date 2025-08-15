@@ -22,7 +22,7 @@ jobs:
     - name: Create data directory
       run: mkdir -p data
     - name: Run calculate script
-      run: python process_options.py
+      run: python calculate_data.py
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
