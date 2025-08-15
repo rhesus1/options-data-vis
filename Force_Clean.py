@@ -50,5 +50,4 @@ def main():
     df.to_csv(clean_filename, index=False)
     print(f"Cleaned data saved to {clean_filename}")
 
-if __name__ == "__main__":
-    main()
+main()
