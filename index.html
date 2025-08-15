@@ -73,14 +73,14 @@
             <h2>Moneyness vs. Volatility</h2>
             <label for="expiry-select">Select Expiry: </label>
             <select id="expiry-select"></select>
-            <canvas id="moneyness-vs-iv-chart"></canvas>
+            <canvas id="moneyness-vs-iv-chart" tabindex="0"></canvas>
             <table id="skew-table" class="skew-table"></table>
         </div>
         <div class="chart-container">
             <h2>Expiry vs. Volatility</h2>
             <label for="moneyness-select">Select Moneyness: </label>
             <select id="moneyness-select"></select>
-            <canvas id="expiry-vs-iv-chart"></canvas>
+            <canvas id="expiry-vs-iv-chart" tabindex="0"></canvas>
         </div>
         <div class="chart-container" style="grid-column: span 2;">
             <h2>Historic Stock Price with Realised Volatility</h2>
@@ -93,7 +93,7 @@
                 <option value="5y">5-year</option>
                 <option value="all" selected>All</option>
             </select>
-            <canvas id="historic-price-chart"></canvas>
+            <canvas id="historic-price-chart" tabindex="0"></canvas>
         </div>
     </div>
     <script>
@@ -101,7 +101,6 @@
         let historicData = [];
         let skewData = [];
         let expiryChart, moneynessChart, historicChart;
-
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -110,7 +109,6 @@
             });
             return result.data;
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -122,7 +120,6 @@
                 return null;
             }
         }
-
         function calculateDateRange(historyLength) {
             const now = new Date();
             let fromDate = new Date();
@@ -148,7 +145,6 @@
             }
             return fromDate;
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             const dateSelect = document.getElementById('date-select');
             const timeSelect = document.getElementById('time-select');
@@ -179,7 +175,6 @@
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
-
         function updateTimeOptions(selectedDate, dates) {
             const timeSelect = document.getElementById('time-select');
             timeSelect.innerHTML = '';
@@ -196,7 +191,6 @@
             });
             if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
         }
-
         function loadData(timestamp) {
             fetch(`data/processed_${timestamp}.json?v=` + Date.now())
                 .then(response => response.json())
@@ -222,7 +216,6 @@
                 })
                 .catch(error => console.error('Error loading skew metrics:', error));
         }
-
         function populateDropdowns() {
             const tickerSelect = document.getElementById('ticker-select');
             const prevTicker = tickerSelect.value;
@@ -253,7 +246,6 @@
                 updateSkewTable();
             });
         }
-
         function updateDropdowns() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
@@ -290,7 +282,6 @@
                 expirySelect.value = expirySelect.options[0].value;
             }
         }
-
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -351,7 +342,6 @@
             }
             table.appendChild(tbody);
         }
-
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
@@ -375,7 +365,6 @@
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
-
         function createStatsTable(chart, canvasId) {
             const container = document.getElementById(canvasId).parentNode;
             let existingTable = container.querySelector('.stats-table');
@@ -435,7 +424,6 @@
             table.appendChild(tbody);
             container.appendChild(table);
         }
-
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
@@ -566,7 +554,6 @@
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
-
         function updateMoneynessVsIV() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -697,7 +684,6 @@
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
         }
-
         function updateHistoricChart() {
             const selectedTicker = document.getElementById('ticker-select').value;
             const historyLength = document.getElementById('history-select').value;
@@ -846,13 +832,54 @@
                 }
             });
         }
-
         function updateCharts() {
             updateExpiryVsIV();
             updateMoneynessVsIV();
             updateHistoricChart();
             updateSkewTable();
         }
+
+        // Add keyboard navigation for charts
+        function addKeyboardNavigation() {
+            const chartConfigs = [
+                {
+                    canvasId: 'moneyness-vs-iv-chart',
+                    selectId: 'expiry-select'
+                },
+                {
+                    canvasId: 'expiry-vs-iv-chart',
+                    selectId: 'moneyness-select'
+                },
+                {
+                    canvasId: 'historic-price-chart',
+                    selectId: 'history-select'
+                }
+            ];
+
+            chartConfigs.forEach(config => {
+                const canvas = document.getElementById(config.canvasId);
+                const select = document.getElementById(config.selectId);
+
+                canvas.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        let newIndex = select.selectedIndex;
+                        if (event.key === 'ArrowLeft') {
+                            newIndex = (newIndex > 0) ? newIndex - 1 : select.options.length - 1; // Wrap around to last
+                        } else if (event.key === 'ArrowRight') {
+                            newIndex = (newIndex < select.options.length - 1) ? newIndex + 1 : 0; // Wrap around to first
+                        }
+                        select.selectedIndex = newIndex;
+                        // Dispatch change event to trigger updates
+                        const changeEvent = new Event('change', { bubbles: true });
+                        select.dispatchEvent(changeEvent);
+                    }
+                });
+            });
+        }
+
+        // Call the function after DOM is loaded
+        document.addEventListener('DOMContentLoaded', addKeyboardNavigation);
     </script>
 </body>
 </html>
