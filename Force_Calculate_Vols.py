@@ -147,28 +147,31 @@ def smooth_iv_per_expiry(options_df):
     if options_df.empty:
         return options_df
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
+    smoothed_iv_for_plot = pd.Series(np.nan, index=options_df.index, dtype=float)  # New column for plotting
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
             smoothed_iv.loc[group.index] = group['IV_mid']
+            smoothed_iv_for_plot.loc[group.index] = group['IV_mid']
             continue
-        
+       
         # Z-score outlier detection with tighter threshold
         if len(group) >= 5:
             mean_iv = np.mean(group['IV_mid'])
             std_iv = np.std(group['IV_mid'])
             if std_iv > 0:
                 z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
-                is_outlier = z_scores > 2  # Tighter threshold
+                is_outlier = z_scores > 3  # Tighter threshold
                 cleaned_group = group[~is_outlier]
             else:
                 cleaned_group = group
         else:
             cleaned_group = group
-        
+       
         if len(cleaned_group) < 3:
             smoothed_iv.loc[group.index] = group['IV_mid']
+            smoothed_iv_for_plot.loc[group.index] = group['IV_mid']
             continue
-        
+       
         if cleaned_group['LogMoneyness'].duplicated().any():
             agg_group = cleaned_group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
             x = agg_group['LogMoneyness'].values
@@ -177,19 +180,22 @@ def smooth_iv_per_expiry(options_df):
             sorted_group = cleaned_group.sort_values('LogMoneyness')
             x = sorted_group['LogMoneyness'].values
             y = sorted_group['IV_mid'].values
-        
+       
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.4, it=3)  # Increased frac
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)  # Increased frac
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
             # Interpolate for ALL original group points and cap the result
             smoothed_values = interpolator(group['LogMoneyness'].values)
-            smoothed_iv.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)
+            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
+            smoothed_iv_for_plot.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)  # Capped for plotting
         except Exception as e:
             print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
             smoothed_iv.loc[group.index] = group['IV_mid']
+            smoothed_iv_for_plot.loc[group.index] = group['IV_mid']
     options_df['Smoothed_IV_mid'] = smoothed_iv
+    options_df['Smoothed_IV'] = smoothed_iv_for_plot  # Add the new column
     return options_df
 
 def compute_local_vol_from_iv_row(row, r, q, interp):
@@ -224,7 +230,7 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
         d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
         if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
             return None
-    
+   
     denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
         local_vol = 0.0
@@ -292,36 +298,36 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         if np.isnan(w) or w <= 0:
             return np.nan
         return np.sqrt(w / T)
-   
+  
     skew_data = []
     target_deltas = [0.25, 0.75]
     target_terms = [0.25, 1.0]
-   
+  
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
-       
+      
         atm_iv = get_iv(call_interp, 0.0, T)
         if np.isnan(atm_iv):
             continue
-       
+      
         call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
         call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
         put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
         put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
-       
+      
         iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
         iv_put_75 = get_iv(put_interp, np.log(put_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_75) else np.nan
-       
+      
         skew_25 = iv_put_25 / iv_call_25 if not np.isnan(iv_put_25) and not np.isnan(iv_call_25) and iv_call_25 > 0 else np.nan
         skew_75 = iv_put_75 / iv_call_75 if not np.isnan(iv_put_75) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
-       
+      
         skew_call_25_75 = iv_call_25 / iv_call_75 if not np.isnan(iv_call_25) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
         skew_put_25_75 = iv_put_25 / iv_put_75 if not np.isnan(iv_put_25) and not np.isnan(iv_put_75) and iv_put_75 > 0 else np.nan
-       
+      
         skew_data.append({
             'Expiry': exp,
             'Skew_25_delta': skew_25,
@@ -337,7 +343,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             'Strike_put_25_delta': put_strike_25,
             'Strike_put_75_delta': put_strike_75
         })
-   
+  
     slope_data = []
     for delta in target_deltas:
         for opt_type in ['call', 'put']:
@@ -348,14 +354,14 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             strike_3m = find_strike_for_delta(S, 0.25, r, q, iv_3m, delta, opt_type)
             log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
             iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
-           
+          
             iv_12m = get_iv(interp, 0.0, 1.0)
             if np.isnan(iv_12m):
                 continue
             strike_12m = find_strike_for_delta(S, 1.0, r, q, iv_12m, delta, opt_type)
             log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
             iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
-           
+          
             slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
             slope_data.append({
                 'Delta': delta,
@@ -366,17 +372,17 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
                 'Strike_3m': strike_3m,
                 'Strike_12m': strike_12m
             })
-   
+  
     skew_metrics_df = pd.DataFrame(skew_data)
     slope_metrics_df = pd.DataFrame(slope_data)
-   
+  
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
     skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
     skew_metrics_df['ATM_IV_3m'] = atm_iv_3m
     skew_metrics_df['ATM_IV_12m'] = atm_iv_12m
-   
+  
     return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, df, full_df, r):
@@ -482,5 +488,5 @@ def main():
     with open(dates_file, 'w') as f:
         json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
-    
+
 main()
