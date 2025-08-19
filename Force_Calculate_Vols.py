@@ -38,7 +38,7 @@ def black_scholes_delta(S, K, T, r, q, sigma, option_type):
     if option_type.lower() == 'call':
         return norm.cdf(d1)
     else:
-        return norm.cdf(d1) - 1  # or -norm.cdf(-d1)
+        return norm.cdf(d1) - 1
 
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
@@ -259,41 +259,36 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         if interp is None or T <= 0:
             return np.nan
         w = interp(np.array([[y, T]]))[0]
-        if np.isnan(w):
+        if np.isnan(w) or w <= 0:
             return np.nan
         return np.sqrt(w / T)
     
     skew_data = []
     target_deltas = [0.25, 0.75]
-    target_terms = [0.25, 1.0]  # 3 months, 12 months
+    target_terms = [0.25, 1.0]
     
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
         
-        # Estimate ATM IV to initialize sigma for delta calculation
         atm_iv = get_iv(call_interp, 0.0, T)
         if np.isnan(atm_iv):
             continue
         
-        # Find strikes for 0.25 and 0.75 delta for calls and puts
         call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
         call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
         put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
         put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
         
-        # Calculate implied volatilities at these strikes
         iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
         iv_put_75 = get_iv(put_interp, np.log(put_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_75) else np.nan
         
-        # Calculate skews: put IV / call IV at 0.25 and 0.75 delta
         skew_25 = iv_put_25 / iv_call_25 if not np.isnan(iv_put_25) and not np.isnan(iv_call_25) and iv_call_25 > 0 else np.nan
         skew_75 = iv_put_75 / iv_call_75 if not np.isnan(iv_put_75) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
         
-        # Calculate call-only and put-only skews
         skew_call_25_75 = iv_call_25 / iv_call_75 if not np.isnan(iv_call_25) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
         skew_put_25_75 = iv_put_25 / iv_put_75 if not np.isnan(iv_put_25) and not np.isnan(iv_put_75) and iv_put_75 > 0 else np.nan
         
@@ -309,16 +304,14 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             'IV_call_75_delta': iv_call_75,
             'Strike_call_25_delta': call_strike_25,
             'Strike_call_75_delta': call_strike_75,
-            'Strike-put_25_delta': put_strike_25,
+            'Strike_put_25_delta': put_strike_25,
             'Strike_put_75_delta': put_strike_75
         })
     
-    # Calculate slopes at 3 months and 12 months for 0.25 and 0.75 delta
     slope_data = []
     for delta in target_deltas:
         for opt_type in ['call', 'put']:
             interp = call_interp if opt_type == 'call' else put_interp
-            # Find strikes for 3 months (0.25 years)
             iv_3m = get_iv(interp, 0.0, 0.25)
             if np.isnan(iv_3m):
                 continue
@@ -326,7 +319,6 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
             iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
             
-            # Find strikes for 12 months (1.0 years)
             iv_12m = get_iv(interp, 0.0, 1.0)
             if np.isnan(iv_12m):
                 continue
@@ -334,7 +326,6 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
             iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
             
-            # Calculate slope
             slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
             slope_data.append({
                 'Delta': delta,
@@ -349,7 +340,6 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
     skew_metrics_df = pd.DataFrame(skew_data)
     slope_metrics_df = pd.DataFrame(slope_data)
     
-    # Calculate ATM IV ratio for reference
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
@@ -377,7 +367,7 @@ def process_ticker(ticker, df, full_df, r):
     skew_metrics_df['Ticker'] = ticker
     slope_metrics_df['Ticker'] = ticker
     if not call_local_df.empty:
-        ticker_df = ticker_df.merge亲自merge(
+        ticker_df = ticker_df.merge(
             call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
             on=['Strike', 'Expiry'],
             how='left'
