@@ -26,18 +26,18 @@
             border: 1px solid #FFFFFF;
             border-radius: 4px;
         }
-        .stats-table, .skew-table, .slope-table {
+        .stats-table, .skew-table, .summary-table {
             border-collapse: collapse;
             width: 100%;
-            margin: 0;
+            margin: 20px 0;
         }
-        .stats-table th, .stats-table td, .skew-table th, .skew-table td, .slope-table th, .slope-table td {
+        .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td {
             border: 1px solid #FFFFFF;
-            padding: 8px;
+            padding: 12px;
             text-align: left;
             color: #FFFFFF;
         }
-        .stats-table th, .skew-table th, .slope-table th {
+        .stats-table th, .skew-table th, .summary-table th {
             background-color: #2E3537;
         }
         .line-swatch {
@@ -120,7 +120,6 @@
             </div>
             <canvas id="moneyness-vs-iv-chart" tabindex="0"></canvas>
             <table id="skew-table" class="skew-table"></table>
-            <table id="slope-table" class="slope-table"></table>
         </div>
         <div class="chart-container">
             <h2>Expiry vs. Volatility</h2>
@@ -143,30 +142,15 @@
             <canvas id="delta-vs-iv-chart" tabindex="0"></canvas>
         </div>
         <div class="chart-container full-width">
-            <h2>Historic Stock Price with Realised Volatility</h2>
-            <div class="select-container">
-                <label for="history-select">Select History Length: </label>
-                <button class="arrow-button" onclick="changeSelect('history-select', -1)">&#9664;</button>
-                <select id="history-select">
-                    <option value="1m">1-month</option>
-                    <option value="3m">3-month</option>
-                    <option value="6m">6-month</option>
-                    <option value="1y">1-year</option>
-                    <option value="5y">5-year</option>
-                    <option value="all" selected>All</option>
-                </select>
-                <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
-            </div>
-            <canvas id="historic-price-chart" tabindex="0"></canvas>
-            <div id="historic-error" style="display: none; color: #FF6666; padding: 5px;">No historic data available</div>
+            <h2>Summary</h2>
+            <table id="summary-table" class="summary-table"></table>
         </div>
     </div>
     <script>
         let data = [];
         let historicData = [];
         let skewData = [];
-        let slopeData = [];
-        let moneynessChart, expiryChart, deltaChart, historicChart;
+        let moneynessChart, expiryChart, deltaChart;
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -184,31 +168,6 @@
                 console.error('Error normalizing date:', dateStr, e);
                 return null;
             }
-        }
-        function calculateDateRange(historyLength) {
-            const now = new Date();
-            let fromDate = new Date();
-            switch (historyLength) {
-                case '1m':
-                    fromDate.setMonth(now.getMonth() - 1);
-                    break;
-                case '3m':
-                    fromDate.setMonth(now.getMonth() - 3);
-                    break;
-                case '6m':
-                    fromDate.setMonth(now.getMonth() - 6);
-                    break;
-                case '1y':
-                    fromDate.setFullYear(now.getFullYear() - 1);
-                    break;
-                case '5y':
-                    fromDate.setFullYear(now.getFullYear() - 5);
-                    break;
-                case 'all':
-                default:
-                    return null;
-            }
-            return fromDate;
         }
         function changeSelect(selectId, direction) {
             const select = document.getElementById(selectId);
@@ -251,11 +210,6 @@
                         updateDropdowns();
                         updateCharts();
                     });
-                    const historySelect = document.getElementById('history-select');
-                    historySelect.addEventListener('change', () => {
-                        console.log('History length changed to:', historySelect.value);
-                        updateHistoricChart();
-                    });
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
@@ -292,14 +246,12 @@
                 .then(csvText => {
                     historicData = parseCSV(csvText);
                     console.log('Historic data loaded:', historicData);
-                    document.getElementById('historic-error').style.display = 'none';
-                    updateHistoricChart();
+                    updateCharts();
                 })
                 .catch(error => {
                     console.error('Error loading historic data:', error);
                     historicData = [];
-                    document.getElementById('historic-error').style.display = 'block';
-                    updateHistoricChart();
+                    updateCharts();
                 });
             fetch(`data/skew_metrics_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
@@ -309,14 +261,6 @@
                     updateSkewTable();
                 })
                 .catch(error => console.error('Error loading skew metrics:', error));
-            fetch(`data/slope_metrics_${timestamp}.csv?v=` + Date.now())
-                .then(response => response.text())
-                .then(csvText => {
-                    slopeData = parseCSV(csvText);
-                    console.log('Slope data loaded:', slopeData);
-                    updateSlopeTable();
-                })
-                .catch(error => console.error('Error loading slope metrics:', error));
         }
         function populateTickerSearch() {
             const tickerSearch = document.getElementById('ticker-search');
@@ -400,7 +344,7 @@
             }
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75', 'ATM 12m/3m Ratio'].forEach(text => {
+            ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -426,9 +370,6 @@
                 const skewPutCell = document.createElement('td');
                 skewPutCell.textContent = Number.isFinite(selectedRow.Skew_put_25_75) ? selectedRow.Skew_put_25_75.toFixed(4) : 'N/A';
                 row.appendChild(skewPutCell);
-                const atmRatioCell = document.createElement('td');
-                atmRatioCell.textContent = Number.isFinite(selectedRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
-                row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             } else {
                 const row = document.createElement('tr');
@@ -440,24 +381,13 @@
             }
             table.appendChild(tbody);
         }
-        function updateSlopeTable() {
+        function updateSummaryTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-            const table = document.getElementById('slope-table');
+            const table = document.getElementById('summary-table');
             table.innerHTML = '';
-            const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
-            console.log('Updating slope table for ticker:', selectedTicker);
-            if (filteredSlopeData.length === 0) {
-                const row = document.createElement('tr');
-                const cell = document.createElement('td');
-                cell.textContent = 'No slope metrics available';
-                cell.colSpan = 4;
-                row.appendChild(cell);
-                table.appendChild(row);
-                return;
-            }
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            ['Delta', 'Type', 'IV Slope 3m/12m'].forEach(text => {
+            ['Metric', 'Value'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -465,19 +395,46 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            filteredSlopeData.forEach(item => {
-                const row = document.createElement('tr');
-                const deltaCell = document.createElement('td');
-                deltaCell.textContent = Number.isFinite(item.Delta) ? item.Delta.toFixed(2) : 'N/A';
-                row.appendChild(deltaCell);
-                const typeCell = document.createElement('td');
-                typeCell.textContent = item.Type || 'N/A';
-                row.appendChild(typeCell);
-                const slopeCell = document.createElement('td');
-                slopeCell.textContent = Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A';
-                row.appendChild(slopeCell);
-                tbody.appendChild(row);
-            });
+            // Realised Vol 30d from historic data (latest)
+            let realisedVol30 = 'N/A';
+            const historicFiltered = historicData.filter(item => item.Ticker === selectedTicker);
+            if (historicFiltered.length > 0) {
+                historicFiltered.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                const latestHistoric = historicFiltered[0];
+                realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) + '%' : 'N/A';
+            }
+            const volRow = document.createElement('tr');
+            const volMetric = document.createElement('td');
+            volMetric.textContent = 'Realised Volatility 30d';
+            volRow.appendChild(volMetric);
+            const volValue = document.createElement('td');
+            volValue.textContent = realisedVol30;
+            volRow.appendChild(volValue);
+            tbody.appendChild(volRow);
+            // Stock Bid-Ask from processed data
+            let underlyingBid = 'N/A';
+            let underlyingAsk = 'N/A';
+            const tickerData = data.filter(item => item.Ticker === selectedTicker);
+            if (tickerData.length > 0) {
+                underlyingBid = Number.isFinite(tickerData[0]["Bid Stock"]) ? tickerData[0]["Bid Stock"].toFixed(2) : 'N/A';
+                underlyingAsk = Number.isFinite(tickerData[0]["Ask Stock"]) ? tickerData[0]["Ask Stock"].toFixed(2) : 'N/A';
+            }
+            const bidRow = document.createElement('tr');
+            const bidMetric = document.createElement('td');
+            bidMetric.textContent = 'Stock Bid';
+            bidRow.appendChild(bidMetric);
+            const bidValue = document.createElement('td');
+            bidValue.textContent = underlyingBid;
+            bidRow.appendChild(bidValue);
+            tbody.appendChild(bidRow);
+            const askRow = document.createElement('tr');
+            const askMetric = document.createElement('td');
+            askMetric.textContent = 'Stock Ask';
+            askRow.appendChild(askMetric);
+            const askValue = document.createElement('td');
+            askValue.textContent = underlyingAsk;
+            askRow.appendChild(askValue);
+            tbody.appendChild(askRow);
             table.appendChild(tbody);
         }
         function aggregateDataByX(data, xKey, yKey) {
@@ -1049,167 +1006,13 @@
             });
             createStatsTable(deltaChart, 'delta-vs-iv-chart');
         }
-        function updateHistoricChart() {
-            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-            const historyLength = document.getElementById('history-select').value;
-            console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength);
-            if (historicData.length === 0) {
-                if (historicChart) historicChart.destroy();
-                return;
-            }
-            let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
-            filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-            const fromDate = calculateDateRange(historyLength);
-            if (fromDate) {
-                filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
-            }
-            const dates = filteredHistoric.map(item => new Date(item.Date));
-            const prices = filteredHistoric.map(item => parseFloat(item.Close));
-            const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
-            const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
-            const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100));
-            const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
-            const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252));
-            const datasets = [
-                {
-                    label: 'Stock Price',
-                    data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                    borderColor: '#FFFF00',
-                    backgroundColor: '#FFFF00',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    yAxisID: 'y'
-                },
-                {
-                    label: '30-day Realised Vol (%)',
-                    data: vol30.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#00BFFF',
-                    backgroundColor: '#00BFFF',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: '60-day Realised Vol (%)',
-                    data: vol60.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#8A2BE2',
-                    backgroundColor: '#8A2BE2',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: '100-day Realised Vol (%)',
-                    data: vol90.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#FF0000',
-                    backgroundColor: '#FF0000',
-                    pointRadius: 5,
-                    pointStyle: 'crossRot',
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: '180-day Realised Vol (%)',
-                    data: vol180.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#FFA500',
-                    backgroundColor: '#FFA500',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                },
-                {
-                    label: '252-day Realised Vol (%)',
-                    data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                    borderColor: '#00FF00',
-                    backgroundColor: '#00FF00',
-                    pointRadius: 1,
-                    fill: false,
-                    showLine: true,
-                    borderDash: [],
-                    yAxisID: 'y1'
-                }
-            ];
-            if (historicChart) historicChart.destroy();
-            historicChart = new Chart(document.getElementById('historic-price-chart').getContext('2d'), {
-                type: 'line',
-                data: { datasets },
-                options: {
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: {
-                                color: '#FFFFFF'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'month' },
-                            title: {
-                                display: true,
-                                text: 'Date',
-                                color: '#FFFFFF'
-                            },
-                            grid: {
-                                color: '#FFFFFF33'
-                            },
-                            ticks: {
-                                color: '#FFFFFF'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Stock Price ($)',
-                                color: '#FFFFFF'
-                            },
-                            beginAtZero: false,
-                            grid: {
-                                color: '#FFFFFF33'
-                            },
-                            ticks: {
-                                color: '#FFFFFF'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Realised Volatility (%)',
-                                color: '#FFFFFF'
-                            },
-                            beginAtZero: false,
-                            grid: {
-                                color: '#FFFFFF33'
-                            },
-                            ticks: {
-                                color: '#FFFFFF'
-                            }
-                        }
-                    },
-                    backgroundColor: '#1C2526'
-                }
-            });
-        }
         function updateCharts() {
             console.log('Updating all charts and tables');
             updateMoneynessVsIV();
             updateExpiryVsIV();
             updateDeltaVsIV();
-            updateHistoricChart();
             updateSkewTable();
-            updateSlopeTable();
+            updateSummaryTable();
         }
         function addKeyboardNavigation() {
             const chartConfigs = [
@@ -1224,10 +1027,6 @@
                 {
                     canvasId: 'delta-vs-iv-chart',
                     selectId: 'delta-expiry-select'
-                },
-                {
-                    canvasId: 'historic-price-chart',
-                    selectId: 'history-select'
                 }
             ];
             chartConfigs.forEach(config => {
