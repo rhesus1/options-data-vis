@@ -197,14 +197,15 @@
                         loadData(dateSelect.value + '_' + e.target.value);
                     });
                     tickerSearch.addEventListener('change', () => {
+                        console.log('Ticker changed to:', tickerSearch.value);
                         updateDropdowns();
                         updateCharts();
-                        updateHistoricChart();
-                        updateSkewTable();
-                        updateSlopeTable();
                     });
                     const historySelect = document.getElementById('history-select');
-                    historySelect.addEventListener('change', updateHistoricChart);
+                    historySelect.addEventListener('change', () => {
+                        console.log('History length changed to:', historySelect.value);
+                        updateHistoricChart();
+                    });
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
@@ -227,10 +228,12 @@
         }
 
         function loadData(timestamp) {
+            console.log('Loading data for timestamp:', timestamp);
             fetch(`data/processed_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     data = parseCSV(csvText);
+                    console.log('Processed data loaded:', data);
                     populateTickerSearch();
                     updateDropdowns();
                     updateCharts();
@@ -240,6 +243,7 @@
                 .then(response => response.text())
                 .then(csvText => {
                     historicData = parseCSV(csvText);
+                    console.log('Historic data loaded:', historicData);
                     document.getElementById('historic-error').style.display = 'none';
                     updateHistoricChart();
                 })
@@ -253,6 +257,7 @@
                 .then(response => response.text())
                 .then(csvText => {
                     skewData = parseCSV(csvText);
+                    console.log('Skew data loaded:', skewData);
                     updateSkewTable();
                 })
                 .catch(error => console.error('Error loading skew metrics:', error));
@@ -260,6 +265,7 @@
                 .then(response => response.text())
                 .then(csvText => {
                     slopeData = parseCSV(csvText);
+                    console.log('Slope data loaded:', slopeData);
                     updateSlopeTable();
                 })
                 .catch(error => console.error('Error loading slope metrics:', error));
@@ -276,25 +282,24 @@
                 option.value = val;
                 tickerDatalist.appendChild(option);
             });
-            // Set default to COIN if available, else first ticker
             if (uniqueTickers.includes('COIN')) {
                 tickerSearch.value = 'COIN';
             } else if (uniqueTickers.length > 0) {
                 tickerSearch.value = uniqueTickers[0];
             }
-            updateDropdowns();
+            console.log('Ticker search populated, default:', tickerSearch.value);
         }
 
         function updateDropdowns() {
             const tickerSearch = document.getElementById('ticker-search');
             const selectedTicker = tickerSearch.value.toUpperCase();
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
+            console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
             const moneynessSelect = document.getElementById('moneyness-select');
             const expirySelect = document.getElementById('expiry-select');
             const deltaExpirySelect = document.getElementById('delta-expiry-select');
             const prevMoneyness = moneynessSelect.value;
             const prevExpiry = expirySelect.value;
-            const prevDeltaExpiry = deltaExpirySelect.value;
 
             const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
@@ -310,6 +315,7 @@
             } else if (moneynessSelect.options.length > 0) {
                 moneynessSelect.value = moneynessSelect.options[0].value;
             }
+            console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
 
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
@@ -320,8 +326,7 @@
                 option.value = val;
                 option.text = new Date(val).toLocaleDateString('en-GB');
                 expirySelect.add(option);
-                const deltaOption = option.cloneNode(true);
-                deltaExpirySelect.add(deltaOption);
+                deltaExpirySelect.add(option.cloneNode(true));
             });
             if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
                 expirySelect.value = prevExpiry;
@@ -330,6 +335,7 @@
                 expirySelect.value = expirySelect.options[0].value;
                 deltaExpirySelect.value = expirySelect.options[0].value;
             }
+            console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
 
         function updateSkewTable() {
@@ -339,6 +345,7 @@
             const table = document.getElementById('skew-table');
             table.innerHTML = '';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
             if (filteredSkewData.length === 0) {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
@@ -396,6 +403,7 @@
             const table = document.getElementById('slope-table');
             table.innerHTML = '';
             const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
+            console.log('Updating slope table for ticker:', selectedTicker);
             if (filteredSlopeData.length === 0) {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
@@ -522,6 +530,7 @@
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
             const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            console.log('Updating Moneyness vs. IV chart for ticker:', selectedTicker, 'Expiry:', selectedExpiry);
             const datasets = [
                 {
                     label: 'Calls Implied Volatility Mid',
@@ -653,6 +662,7 @@
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
             const filteredData = data.filter(item => item.Ticker === selectedTicker && Math.round(item.Moneyness * 100 / 10) * 0.1 === selectedMoneyness);
+            console.log('Updating Expiry vs. IV chart for ticker:', selectedTicker, 'Moneyness:', selectedMoneyness);
             const datasets = [
                 {
                     label: 'Calls Implied Volatility Mid',
@@ -784,6 +794,7 @@
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('delta-expiry-select').value;
             const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            console.log('Updating Delta vs. IV chart for ticker:', selectedTicker, 'Expiry:', selectedExpiry);
             const datasets = [
                 {
                     label: 'Calls Implied Volatility Mid',
@@ -918,6 +929,7 @@
         function updateHistoricChart() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const historyLength = document.getElementById('history-select').value;
+            console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength);
             if (historicData.length === 0) {
                 if (historicChart) historicChart.destroy();
                 return;
@@ -1069,6 +1081,7 @@
         }
 
         function updateCharts() {
+            console.log('Updating all charts and tables');
             updateMoneynessVsIV();
             updateExpiryVsIV();
             updateDeltaVsIV();
@@ -1113,6 +1126,23 @@
                         select.dispatchEvent(changeEvent);
                     }
                 });
+            });
+            // Synchronize expiry-select and delta-expiry-select
+            const expirySelect = document.getElementById('expiry-select');
+            const deltaExpirySelect = document.getElementById('delta-expiry-select');
+            expirySelect.addEventListener('change', () => {
+                console.log('Expiry select changed to:', expirySelect.value);
+                deltaExpirySelect.value = expirySelect.value;
+                updateCharts();
+            });
+            deltaExpirySelect.addEventListener('change', () => {
+                console.log('Delta expiry select changed to:', deltaExpirySelect.value);
+                expirySelect.value = deltaExpirySelect.value;
+                updateCharts();
+            });
+            document.getElementById('moneyness-select').addEventListener('change', () => {
+                console.log('Moneyness select changed to:', document.getElementById('moneyness-select').value);
+                updateCharts();
             });
         }
 
