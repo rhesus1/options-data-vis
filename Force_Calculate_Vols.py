@@ -146,14 +146,11 @@ def calculate_iv_mid(df, ticker, r):
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
         return options_df
-    smoothed_iv_mid = pd.Series(np.nan, index=options_df.index, dtype=float)  # Uncapped for calculations
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)      # Capped for plotting
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
-            smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
-       
         # Z-score outlier detection with tighter threshold
         if len(group) >= 5:
             mean_iv = np.mean(group['IV_mid'])
@@ -168,7 +165,6 @@ def smooth_iv_per_expiry(options_df):
             cleaned_group = group
        
         if len(cleaned_group) < 3:
-            smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
        
@@ -188,13 +184,10 @@ def smooth_iv_per_expiry(options_df):
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
             # Interpolate for ALL original group points
             smoothed_values = interpolator(group['LogMoneyness'].values)
-            smoothed_iv_mid.loc[group.index] = pd.Series(smoothed_values, index=group.index)  # Uncapped
-            smoothed_iv.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)  # Capped
+            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)  # Uncapped
         except Exception as e:
             print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
-            smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
-    options_df['Smoothed_IV_mid'] = smoothed_iv_mid
     options_df['Smoothed_IV'] = smoothed_iv
     return options_df
 
@@ -203,9 +196,10 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     T = row['Years_to_Expiry']
     if T <= 0:
         return None
-    if pd.isna(row['Smoothed_IV_mid']):
-        print(f"Warning: Smoothed_IV_mid is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
+    if pd.isna(row['Smoothed_IV']):
+        print(f"Warning: Smoothed_IV is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
         iv = np.clip(row['IV_mid'], 0.05, 5.0)
+        #iv = row['Smoother_IV'])
         w = iv ** 2 * T
         # For fallback, assume constant vol, so derivatives in y are 0
         dw_dy = 0
@@ -253,7 +247,7 @@ def process_options(options_df, option_type, r, q):
     options_df = smooth_iv_per_expiry(options_df)  # Adds Smoothed_IV_mid and Smoothed_IV
     smoothed_df = options_df.copy()  # Preserve the smoothed DataFrame
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-    smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV_mid']**2 * smoothed_df['Years_to_Expiry']
+    smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
     values = smoothed_df['TotalVariance'].values
     if len(smoothed_df) < 3:
