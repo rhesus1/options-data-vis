@@ -146,8 +146,8 @@ def calculate_iv_mid(df, ticker, r):
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
         return options_df
-    smoothed_iv_mid = pd.Series(np.nan, index=options_df.index, dtype=float)  # Renamed for clarity
-    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)  # For plotting
+    smoothed_iv_mid = pd.Series(np.nan, index=options_df.index, dtype=float)  # Uncapped for calculations
+    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)      # Capped for plotting
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
             smoothed_iv_mid.loc[group.index] = group['IV_mid']
@@ -189,13 +189,13 @@ def smooth_iv_per_expiry(options_df):
             # Interpolate for ALL original group points
             smoothed_values = interpolator(group['LogMoneyness'].values)
             smoothed_iv_mid.loc[group.index] = pd.Series(smoothed_values, index=group.index)  # Uncapped
-            smoothed_iv.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)  # Capped for plotting
+            smoothed_iv.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)  # Capped
         except Exception as e:
             print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
             smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
     options_df['Smoothed_IV_mid'] = smoothed_iv_mid
-    options_df['Smoothed_IV'] = smoothed_iv  # Add the new column
+    options_df['Smoothed_IV'] = smoothed_iv
     return options_df
 
 def compute_local_vol_from_iv_row(row, r, q, interp):
@@ -250,7 +250,7 @@ def process_options(options_df, option_type, r, q):
         return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
-    options_df = smooth_iv_per_expiry(options_df)  # Smoothed_IV_mid and Smoothed_IV are added here
+    options_df = smooth_iv_per_expiry(options_df)  # Adds Smoothed_IV_mid and Smoothed_IV
     smoothed_df = options_df.copy()  # Preserve the smoothed DataFrame
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV_mid']**2 * smoothed_df['Years_to_Expiry']
@@ -272,7 +272,7 @@ def process_options(options_df, option_type, r, q):
     return local_df, interp, smoothed_df
 
 def calculate_local_vol_from_iv(df, S, r, q):
-    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'Smoothed_IV_mid']
+    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
     calls = df[df['Type'] == 'Call'].copy()
