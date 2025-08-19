@@ -33,7 +33,7 @@ def clean_data(file_path):
 
 def main():
     # Find the latest raw files
-    raw_files = glob.glob('data/raw_*.csv')
+    raw_files = glob.glob('data/raw_[0-9]*.csv')
     raw_yfinance_files = glob.glob('data/raw_yfinance_*.csv')
 
     if not raw_files and not raw_yfinance_files:
