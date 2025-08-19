@@ -499,9 +499,9 @@ def main():
     for clean_timestamp in clean_timestamp:
         if clean_timestamp not in dates:
             dates.append(clean_timestamp)
-    dates.sort(reverse=True)
-    with open(dates_file, 'w') as f:
-        json.dump(dates, f)
-    print(f"Updated dates list in {dates_file} with timestamps: {clean_timestamp}")
+            dates.sort(reverse=True)
+            with open(dates_file, 'w') as f:
+                json.dump(dates, f)
+            print(f"Updated dates list in {dates_file} with timestamps: {clean_timestamp}")
 
 main()
