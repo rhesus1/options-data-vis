@@ -250,12 +250,13 @@ def process_options(options_df, option_type, r, q):
         return pd.DataFrame(), None
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
-    options_df = smooth_iv_per_expiry(options_df)  # Smoothed_IV is added here
-    options_df = options_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-    options_df['TotalVariance'] = options_df['Smoothed_IV_mid']**2 * options_df['Years_to_Expiry']
-    points = np.column_stack((options_df['LogMoneyness'], options_df['Years_to_Expiry']))
-    values = options_df['TotalVariance'].values
-    if len(options_df) < 3:
+    options_df = smooth_iv_per_expiry(options_df)  # Smoothed_IV and Smoothed_IV_mid are added here
+    smoothed_df = options_df.copy()  # Preserve the smoothed DataFrame
+    smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
+    smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV_mid']**2 * smoothed_df['Years_to_Expiry']
+    points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
+    values = smoothed_df['TotalVariance'].values
+    if len(smoothed_df) < 3:
         return pd.DataFrame(), None
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
@@ -264,14 +265,14 @@ def process_options(options_df, option_type, r, q):
         interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
     local_data = Parallel(n_jobs=-1, backend='threading')(
         delayed(compute_local_vol_from_iv_row)(row, r, q, interp)
-        for _, row in options_df.iterrows()
+        for _, row in smoothed_df.iterrows()
     )
     local_data = [d for d in local_data if d is not None]
     local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
     return local_df, interp
 
 def calculate_local_vol_from_iv(df, S, r, q):
-    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'Smoothed_IV']
+    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'Smoothed_IV_mid']
     if not all(col in df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
     calls = df[df['Type'] == 'Call'].copy()
@@ -398,7 +399,13 @@ def process_ticker(ticker, df, full_df, r):
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
-    call_local_df, put_local_df, call_interp, put_interp = calculate_local_vol_from_iv(ticker_df, S, r, q)
+    # Apply smoothing and local volatility calculation
+    calls = ticker_df[ticker_df['Type'] == 'Call'].copy()
+    puts = ticker_df[ticker_df['Type'] == 'Put'].copy()
+    call_local_df, call_interp = process_options(calls, 'Call', r, q)
+    put_local_df, put_interp = process_options(puts, 'Put', r, q)
+    # Update ticker_df with the smoothed DataFrame from process_options
+    ticker_df = pd.concat([calls, puts]).sort_index()  # Reconstruct ticker_df with smoothed data
     skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q)
     skew_metrics_df['Ticker'] = ticker
     slope_metrics_df['Ticker'] = ticker
@@ -419,9 +426,6 @@ def process_ticker(ticker, df, full_df, r):
     else:
         ticker_df['Put Local Vol'] = np.nan
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-    # Ensure Smoothed_IV is preserved in the final DataFrame
-    if 'Smoothed_IV' not in ticker_df.columns:
-        ticker_df['Smoothed_IV'] = np.nan
     return ticker_df, skew_metrics_df, slope_metrics_df
 
 def main():
