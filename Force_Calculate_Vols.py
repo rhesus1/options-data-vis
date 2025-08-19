@@ -146,12 +146,12 @@ def calculate_iv_mid(df, ticker, r):
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
         return options_df
-    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
-    smoothed_iv_for_plot = pd.Series(np.nan, index=options_df.index, dtype=float)  # New column for plotting
+    smoothed_iv_mid = pd.Series(np.nan, index=options_df.index, dtype=float)  # Renamed for clarity
+    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)  # For plotting
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
+            smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
-            smoothed_iv_for_plot.loc[group.index] = group['IV_mid']
             continue
        
         # Z-score outlier detection with tighter threshold
@@ -168,8 +168,8 @@ def smooth_iv_per_expiry(options_df):
             cleaned_group = group
        
         if len(cleaned_group) < 3:
+            smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
-            smoothed_iv_for_plot.loc[group.index] = group['IV_mid']
             continue
        
         if cleaned_group['LogMoneyness'].duplicated().any():
@@ -186,16 +186,16 @@ def smooth_iv_per_expiry(options_df):
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
-            # Interpolate for ALL original group points and cap the result
+            # Interpolate for ALL original group points
             smoothed_values = interpolator(group['LogMoneyness'].values)
-            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
-            smoothed_iv_for_plot.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)  # Capped for plotting
+            smoothed_iv_mid.loc[group.index] = pd.Series(smoothed_values, index=group.index)  # Uncapped
+            smoothed_iv.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)  # Capped for plotting
         except Exception as e:
             print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
+            smoothed_iv_mid.loc[group.index] = group['IV_mid']
             smoothed_iv.loc[group.index] = group['IV_mid']
-            smoothed_iv_for_plot.loc[group.index] = group['IV_mid']
-    options_df['Smoothed_IV_mid'] = smoothed_iv
-    options_df['Smoothed_IV'] = smoothed_iv_for_plot  # Add the new column
+    options_df['Smoothed_IV_mid'] = smoothed_iv_mid
+    options_df['Smoothed_IV'] = smoothed_iv  # Add the new column
     return options_df
 
 def compute_local_vol_from_iv_row(row, r, q, interp):
@@ -247,17 +247,17 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
 
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
-        return pd.DataFrame(), None
+        return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
-    options_df = smooth_iv_per_expiry(options_df)  # Smoothed_IV and Smoothed_IV_mid are added here
+    options_df = smooth_iv_per_expiry(options_df)  # Smoothed_IV_mid and Smoothed_IV are added here
     smoothed_df = options_df.copy()  # Preserve the smoothed DataFrame
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV_mid']**2 * smoothed_df['Years_to_Expiry']
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
     values = smoothed_df['TotalVariance'].values
     if len(smoothed_df) < 3:
-        return pd.DataFrame(), None
+        return pd.DataFrame(), None, smoothed_df
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
     except Exception as e:
@@ -269,7 +269,7 @@ def process_options(options_df, option_type, r, q):
     )
     local_data = [d for d in local_data if d is not None]
     local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
-    return local_df, interp
+    return local_df, interp, smoothed_df
 
 def calculate_local_vol_from_iv(df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'Smoothed_IV_mid']
@@ -277,9 +277,11 @@ def calculate_local_vol_from_iv(df, S, r, q):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
     calls = df[df['Type'] == 'Call'].copy()
     puts = df[df['Type'] == 'Put'].copy()
-    call_local_df, call_interp = process_options(calls, 'Call', r, q)
-    put_local_df, put_interp = process_options(puts, 'Put', r, q)
-    return call_local_df, put_local_df, call_interp, put_interp
+    call_local_df, call_interp, calls_smoothed = process_options(calls, 'Call', r, q)
+    put_local_df, put_interp, puts_smoothed = process_options(puts, 'Put', r, q)
+    # Combine the smoothed DataFrames back into the original df structure
+    smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index()
+    return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
 
 def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
     def delta_diff(K):
@@ -400,12 +402,9 @@ def process_ticker(ticker, df, full_df, r):
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     # Apply smoothing and local volatility calculation
-    calls = ticker_df[ticker_df['Type'] == 'Call'].copy()
-    puts = ticker_df[ticker_df['Type'] == 'Put'].copy()
-    call_local_df, call_interp = process_options(calls, 'Call', r, q)
-    put_local_df, put_interp = process_options(puts, 'Put', r, q)
-    # Update ticker_df with the smoothed DataFrame from process_options
-    ticker_df = pd.concat([calls, puts]).sort_index()  # Reconstruct ticker_df with smoothed data
+    call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q)
+    # Update ticker_df with the smoothed DataFrame
+    ticker_df = smoothed_df
     skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q)
     skew_metrics_df['Ticker'] = ticker
     slope_metrics_df['Ticker'] = ticker
