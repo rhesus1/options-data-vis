@@ -474,7 +474,7 @@
             const table = document.getElementById('skew-table');
             table.innerHTML = '';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
-            console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
+            console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Skew data size:', filteredSkewData.length);
             if (filteredSkewData.length === 0) {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
@@ -534,6 +534,8 @@
             const source = document.getElementById('source-select').value;
             const table = document.getElementById('summary-table');
             table.innerHTML = '';
+            console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Source:', source);
+
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
             ['Metric', 'Value'].forEach(text => {
@@ -544,13 +546,17 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            // Realised Vol 30d from historic data (latest)
+
+            // Realised Volatility 30d from historic data (latest)
             let realisedVol30 = 'N/A';
             const historicFiltered = historicData.filter(item => item.Ticker === selectedTicker);
+            console.log('Historic data filtered size:', historicFiltered.length);
             if (historicFiltered.length > 0) {
                 historicFiltered.sort((a, b) => new Date(b.Date) - new Date(a.Date));
                 const latestHistoric = historicFiltered[0];
                 realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) + '%' : 'N/A';
+            } else {
+                console.warn('No historic data for ticker:', selectedTicker);
             }
             const volRow = document.createElement('tr');
             const volMetric = document.createElement('td');
@@ -560,13 +566,17 @@
             volValue.textContent = realisedVol30;
             volRow.appendChild(volValue);
             tbody.appendChild(volRow);
-            // Stock Bid-Ask from processed data (first row for the ticker)
+
+            // Stock Bid and Ask from processed data (first row for the ticker)
             let underlyingBid = 'N/A';
             let underlyingAsk = 'N/A';
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
+            console.log('Processed data filtered size:', tickerData.length);
             if (tickerData.length > 0) {
                 underlyingBid = Number.isFinite(tickerData[0]["Bid Stock"]) ? tickerData[0]["Bid Stock"].toFixed(2) : 'N/A';
                 underlyingAsk = Number.isFinite(tickerData[0]["Ask Stock"]) ? tickerData[0]["Ask Stock"].toFixed(2) : 'N/A';
+            } else {
+                console.warn('No processed data for ticker:', selectedTicker);
             }
             const bidRow = document.createElement('tr');
             const bidMetric = document.createElement('td');
@@ -576,6 +586,7 @@
             bidValue.textContent = underlyingBid;
             bidRow.appendChild(bidValue);
             tbody.appendChild(bidRow);
+
             const askRow = document.createElement('tr');
             const askMetric = document.createElement('td');
             askMetric.textContent = 'Stock Ask';
@@ -584,10 +595,13 @@
             askValue.textContent = underlyingAsk;
             askRow.appendChild(askValue);
             tbody.appendChild(askRow);
+
             // Total Volume from raw data
             let totalVolume = 0;
             if (rawData.length > 0) {
                 totalVolume = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item.Volume || 0), 0);
+            } else {
+                console.warn('No raw data available for ticker:', selectedTicker);
             }
             const volumeRow = document.createElement('tr');
             const volumeMetric = document.createElement('td');
@@ -597,12 +611,16 @@
             volumeValue.textContent = totalVolume;
             volumeRow.appendChild(volumeValue);
             tbody.appendChild(volumeRow);
+
             // ATM 12m/3m Ratio from skew data
             let atmRatio = 'N/A';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            console.log('Skew data filtered size:', filteredSkewData.length);
             const selectedSkewRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
             if (selectedSkewRow) {
-                atmRatio = Number.isFinite(selectedSkewRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
+                atmRatio = Number.isFinite(selectedSkewRow.ATM_12m_3m_Ratio) ? selectedSkewRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
+            } else {
+                console.warn('No skew data for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
             }
             const atmRow = document.createElement('tr');
             const atmMetric = document.createElement('td');
@@ -612,8 +630,10 @@
             atmValue.textContent = atmRatio;
             atmRow.appendChild(atmValue);
             tbody.appendChild(atmRow);
+
             // Slope data from slope_metrics
             const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
+            console.log('Slope data filtered size:', filteredSlopeData.length);
             if (filteredSlopeData.length > 0) {
                 filteredSlopeData.forEach(item => {
                     const row = document.createElement('tr');
