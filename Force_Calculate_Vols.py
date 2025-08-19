@@ -126,7 +126,8 @@ def calculate_iv_mid(df, ticker, r):
     if df.empty:
         return df, None, None, None
     stock = yf.Ticker(ticker)
-    S = stock.history(period='1d')['Close'].iloc[-1]
+    S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
+    #S = stock.history(period='1d')['Close'].iloc[-1]
     q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
     today = datetime.today()
     df["Expiry_dt"] = df["Expiry"]
