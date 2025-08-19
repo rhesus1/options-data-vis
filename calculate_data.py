@@ -458,7 +458,7 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
     return combined_processed, combined_skew_metrics, combined_slope_metrics
 
 def main():
-    # Use specific glob pattern to match only cleaned_{timestamp}.csv, excluding cleaned_yfinance_*.csv
+    # Use specific glob patterns to match Nasdaq and yfinance files
     clean_files = glob.glob('data/cleaned_[0-9]*.csv')
     clean_yfinance_files = glob.glob('data/cleaned_yfinance_*.csv')
     if not clean_files and not clean_yfinance_files:
@@ -476,23 +476,25 @@ def main():
     # Collect unique timestamps
     timestamps = set()
     
-    # Process Nasdaq data
-    for clean_file in clean_files:
-        timestamp = os.path.basename(clean_file).split('cleaned_')[1].split('.csv')[0]
+    # Process the most recent Nasdaq file
+    if clean_files:
+        latest_clean = max(clean_files, key=os.path.getctime)
+        timestamp = os.path.basename(latest_clean).split('cleaned_')[1].split('.csv')[0]
         timestamps.add(timestamp)
         raw_file = f'data/raw_{timestamp}.csv'
-        print(f"Processing Nasdaq data: {clean_file}")
-        result = process_data(clean_file, raw_file, timestamp, prefix="")
+        print(f"Processing Nasdaq data: {latest_clean}")
+        result = process_data(latest_clean, raw_file, timestamp, prefix="")
         if result[0] is None and result[1] is None and result[2] is None:
             print(f"Failed to process Nasdaq data for {timestamp}")
     
-    # Process yfinance data
-    for clean_yfinance_file in clean_yfinance_files:
-        timestamp = os.path.basename(clean_yfinance_file).split('cleaned_yfinance_')[1].split('.csv')[0]
+    # Process the most recent yfinance file
+    if clean_yfinance_files:
+        latest_yfinance_clean = max(clean_yfinance_files, key=os.path.getctime)
+        timestamp = os.path.basename(latest_yfinance_clean).split('cleaned_yfinance_')[1].split('.csv')[0]
         timestamps.add(timestamp)
         raw_yfinance_file = f'data/raw_yfinance_{timestamp}.csv'
-        print(f"Processing yfinance data: {clean_yfinance_file}")
-        result = process_data(clean_yfinance_file, raw_yfinance_file, timestamp, prefix="yfinance_")
+        print(f"Processing yfinance data: {latest_yfinance_clean}")
+        result = process_data(latest_yfinance_clean, raw_yfinance_file, timestamp, prefix="yfinance_")
         if result[0] is None and result[1] is None and result[2] is None:
             print(f"Failed to process yfinance data for {timestamp}")
     
