@@ -16,18 +16,30 @@ import sys
 import warnings
 import statsmodels.api as sm
 warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
+
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(S - K, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
 def black_scholes_put(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
         return max(K - S, 0)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
+
+def black_scholes_delta(S, K, T, r, q, sigma, option_type):
+    if T <= 0 or sigma <= 0:
+        return 0.0
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    if option_type.lower() == 'call':
+        return norm.cdf(d1)
+    else:
+        return norm.cdf(d1) - 1  # or -norm.cdf(-d1)
+
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
         return 0.05
@@ -42,8 +54,9 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     try:
         iv = brentq(objective, 0.0001, 50.0)
         return np.clip(iv, 0.05, 5.0)
-    except ValueError as e:
+    except ValueError:
         return 0.05
+
 def calculate_rvol_days(ticker, days):
     try:
         stock = yf.Ticker(ticker)
@@ -56,16 +69,18 @@ def calculate_rvol_days(ticker, days):
             return None
         realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
         return realised_vol
-    except Exception as e:
+    except Exception:
         return None
+
 def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
         return df
     df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d
     return df
+
 def compute_ivs(row, S, r, q):
     if pd.isna(row['Years_to_Expiry']):
-        return np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan
     T = max(row['Years_to_Expiry'], 0.0001)
     option_type = row['Type'].lower()
     contract_name = row['Contract Name']
@@ -73,7 +88,9 @@ def compute_ivs(row, S, r, q):
     iv_ask = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name)
     iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
     iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
-    return iv_bid, iv_ask, iv_mid, iv_spread
+    delta = black_scholes_delta(S, row['Strike'], T, r, q, iv_mid, option_type)
+    return iv_bid, iv_ask, iv_mid, iv_spread, delta
+
 def calculate_metrics(df, ticker, r):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
@@ -104,6 +121,7 @@ def calculate_metrics(df, ticker, r):
                     })
     slope_df = pd.DataFrame(slope_data)
     return df, skew_df, slope_df
+
 def calculate_iv_mid(df, ticker, r):
     if df.empty:
         return df, None, None, None
@@ -120,23 +138,20 @@ def calculate_iv_mid(df, ticker, r):
     df['IV_ask'] = np.nan
     df['IV_mid'] = np.nan
     df['IV_spread'] = np.nan
+    df['Delta'] = np.nan
     results = Parallel(n_jobs=-1, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
-    df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread']] = pd.DataFrame(results, index=df.index)
+    df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
     return df, S, r, q
+
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
         return options_df
-    # Initialize a Series to store smoothed values, aligned with the original index
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
-   
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
-            # For small groups, use IV_mid directly
             smoothed_iv.loc[group.index] = group['IV_mid']
         else:
-            # Check for duplicate LogMoneyness values
             if group['LogMoneyness'].duplicated().any():
-                # If duplicates exist, aggregate by taking the mean IV_mid for each LogMoneyness
                 agg_group = group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
                 x = agg_group['LogMoneyness'].values
                 y = agg_group['IV_mid'].values
@@ -144,23 +159,19 @@ def smooth_iv_per_expiry(options_df):
                 sorted_group = group.sort_values('LogMoneyness')
                 x = sorted_group['LogMoneyness'].values
                 y = sorted_group['IV_mid'].values
-           
-            # Apply LOWESS smoothing
             try:
                 lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
                 x_smooth = lowess_smoothed[:, 0]
                 y_smooth = lowess_smoothed[:, 1]
-                # Interpolate back to the original LogMoneyness values
                 interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
                 smoothed_values = interpolator(group['LogMoneyness'].values)
                 smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
             except Exception as e:
                 print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
                 smoothed_iv.loc[group.index] = group['IV_mid']
-   
-    # Assign the smoothed values to the DataFrame
     options_df['Smoothed_IV_mid'] = smoothed_iv
     return options_df
+
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
@@ -197,6 +208,7 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
         "Expiry": row['Expiry'],
         "Local Vol": local_vol
     }
+
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
         return pd.DataFrame(), None
@@ -221,6 +233,7 @@ def process_options(options_df, option_type, r, q):
     local_data = [d for d in local_data if d is not None]
     local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
     return local_df, interp
+
 def calculate_local_vol_from_iv(df, S, r, q):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in df.columns for col in required_columns):
@@ -230,7 +243,18 @@ def calculate_local_vol_from_iv(df, S, r, q):
     call_local_df, call_interp = process_options(calls, 'Call', r, q)
     put_local_df, put_interp = process_options(puts, 'Put', r, q)
     return call_local_df, put_local_df, call_interp, put_interp
-def calculate_skew_metrics(df, call_interp, put_interp):
+
+def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
+    def delta_diff(K):
+        delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
+        return delta - target_delta if option_type.lower() == 'call' else delta - (-target_delta)
+    try:
+        K = brentq(delta_diff, S * 0.5, S * 2.0)
+        return K
+    except ValueError:
+        return np.nan
+
+def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
     def get_iv(interp, y, T):
         if interp is None or T <= 0:
             return np.nan
@@ -238,63 +262,110 @@ def calculate_skew_metrics(df, call_interp, put_interp):
         if np.isnan(w):
             return np.nan
         return np.sqrt(w / T)
+    
     skew_data = []
+    target_deltas = [0.25, 0.75]
+    target_terms = [0.25, 1.0]  # 3 months, 12 months
+    
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
-        y90 = np.log(0.9)
-        iv_put_90 = get_iv(put_interp, y90, T)
-        y110 = np.log(1.1)
-        iv_call_110 = get_iv(call_interp, y110, T)
-        skew90110 = iv_put_90 / iv_call_110 if not np.isnan(iv_put_90) and not np.isnan(iv_call_110) and iv_call_110 > 0 else np.nan
-        y80 = np.log(0.8)
-        iv_put_80 = get_iv(put_interp, y80, T)
-        y120 = np.log(1.2)
-        iv_call_120 = get_iv(call_interp, y120, T)
-        skew80120 = iv_put_80 / iv_call_120 if not np.isnan(iv_put_80) and not np.isnan(iv_call_120) and iv_call_120 > 0 else np.nan
-        # Calculate separate skews for calls
-        iv_call_90 = get_iv(call_interp, y90, T)
-        iv_call_80 = get_iv(call_interp, y80, T)
-        skew_call_90110 = iv_call_90 / iv_call_110 if not np.isnan(iv_call_90) and not np.isnan(iv_call_110) and iv_call_110 > 0 else np.nan
-        skew_call_80120 = iv_call_80 / iv_call_120 if not np.isnan(iv_call_80) and not np.isnan(iv_call_120) and iv_call_120 > 0 else np.nan
-        # Calculate separate skews for puts
-        iv_put_110 = get_iv(put_interp, y110, T)
-        iv_put_120 = get_iv(put_interp, y120, T)
-        skew_put_90110 = iv_put_90 / iv_put_110 if not np.isnan(iv_put_90) and not np.isnan(iv_put_110) and iv_put_110 > 0 else np.nan
-        skew_put_80120 = iv_put_80 / iv_put_120 if not np.isnan(iv_put_80) and not np.isnan(iv_put_120) and iv_put_120 > 0 else np.nan
+        
+        # Estimate ATM IV to initialize sigma for delta calculation
+        atm_iv = get_iv(call_interp, 0.0, T)
+        if np.isnan(atm_iv):
+            continue
+        
+        # Find strikes for 0.25 and 0.75 delta for calls and puts
+        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
+        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
+        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
+        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
+        
+        # Calculate implied volatilities at these strikes
+        iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
+        iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
+        iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
+        iv_put_75 = get_iv(put_interp, np.log(put_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_75) else np.nan
+        
+        # Calculate skews: put IV / call IV at 0.25 and 0.75 delta
+        skew_25 = iv_put_25 / iv_call_25 if not np.isnan(iv_put_25) and not np.isnan(iv_call_25) and iv_call_25 > 0 else np.nan
+        skew_75 = iv_put_75 / iv_call_75 if not np.isnan(iv_put_75) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
+        
+        # Calculate call-only and put-only skews
+        skew_call_25_75 = iv_call_25 / iv_call_75 if not np.isnan(iv_call_25) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
+        skew_put_25_75 = iv_put_25 / iv_put_75 if not np.isnan(iv_put_25) and not np.isnan(iv_put_75) and iv_put_75 > 0 else np.nan
+        
         skew_data.append({
             'Expiry': exp,
-            'Skew_90_110': skew90110,
-            'Skew_80_120': skew80120,
-            'Skew_call_90_110': skew_call_90110,
-            'Skew_call_80_120': skew_call_80120,
-            'Skew_put_90_110': skew_put_90110,
-            'Skew_put_80_120': skew_put_80120,
-            'IV_put_90': iv_put_90,
-            'IV_put_80': iv_put_80,
-            'IV_put_110': iv_put_110,
-            'IV_put_120': iv_put_120,
-            'IV_call_90': iv_call_90,
-            'IV_call_80': iv_call_80,
-            'IV_call_110': iv_call_110,
-            'IV_call_120': iv_call_120
+            'Skew_25_delta': skew_25,
+            'Skew_75_delta': skew_75,
+            'Skew_call_25_75': skew_call_25_75,
+            'Skew_put_25_75': skew_put_25_75,
+            'IV_put_25_delta': iv_put_25,
+            'IV_put_75_delta': iv_put_75,
+            'IV_call_25_delta': iv_call_25,
+            'IV_call_75_delta': iv_call_75,
+            'Strike_call_25_delta': call_strike_25,
+            'Strike_call_75_delta': call_strike_75,
+            'Strike-put_25_delta': put_strike_25,
+            'Strike_put_75_delta': put_strike_75
         })
+    
+    # Calculate slopes at 3 months and 12 months for 0.25 and 0.75 delta
+    slope_data = []
+    for delta in target_deltas:
+        for opt_type in ['call', 'put']:
+            interp = call_interp if opt_type == 'call' else put_interp
+            # Find strikes for 3 months (0.25 years)
+            iv_3m = get_iv(interp, 0.0, 0.25)
+            if np.isnan(iv_3m):
+                continue
+            strike_3m = find_strike_for_delta(S, 0.25, r, q, iv_3m, delta, opt_type)
+            log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
+            iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
+            
+            # Find strikes for 12 months (1.0 years)
+            iv_12m = get_iv(interp, 0.0, 1.0)
+            if np.isnan(iv_12m):
+                continue
+            strike_12m = find_strike_for_delta(S, 1.0, r, q, iv_12m, delta, opt_type)
+            log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
+            iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
+            
+            # Calculate slope
+            slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
+            slope_data.append({
+                'Delta': delta,
+                'Type': opt_type.capitalize(),
+                'IV_Slope_3m_12m': slope,
+                'IV_3m': iv_3m_delta,
+                'IV_12m': iv_12m_delta,
+                'Strike_3m': strike_3m,
+                'Strike_12m': strike_12m
+            })
+    
     skew_metrics_df = pd.DataFrame(skew_data)
+    slope_metrics_df = pd.DataFrame(slope_data)
+    
+    # Calculate ATM IV ratio for reference
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
     skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
     skew_metrics_df['ATM_IV_3m'] = atm_iv_3m
     skew_metrics_df['ATM_IV_12m'] = atm_iv_12m
-    return skew_metrics_df
+    
+    return skew_metrics_df, slope_metrics_df
+
 def process_ticker(ticker, df, full_df, r):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df[df['Ticker'] == ticker].copy()
     ticker_full = full_df[full_df['Ticker'] == ticker].copy()
     if ticker_df.empty:
         print(f"Warning: No data for ticker {ticker} in df")
-        return None, None
+        return None, None, None
     rvol100d = calculate_rvol_days(ticker, 100)
     print(f"\nRealised Volatility for {ticker}:")
     print(f"100-day: {rvol100d * 100:.2f}%" if rvol100d is not None else "100-day: N/A")
@@ -302,10 +373,11 @@ def process_ticker(ticker, df, full_df, r):
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df, call_interp, put_interp = calculate_local_vol_from_iv(ticker_df, S, r, q)
-    skew_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp)
+    skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q)
     skew_metrics_df['Ticker'] = ticker
+    slope_metrics_df['Ticker'] = ticker
     if not call_local_df.empty:
-        ticker_df = ticker_df.merge(
+        ticker_df = ticker_df.merge亲自merge(
             call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
             on=['Strike', 'Expiry'],
             how='left'
@@ -321,7 +393,8 @@ def process_ticker(ticker, df, full_df, r):
     else:
         ticker_df['Put Local Vol'] = np.nan
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-    return ticker_df, skew_metrics_df
+    return ticker_df, skew_metrics_df, slope_metrics_df
+
 def main():
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
@@ -347,25 +420,36 @@ def main():
     r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     processed_dfs = []
     skew_metrics_dfs = []
+    slope_metrics_dfs = []
     with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
         results = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
-    for pdf, sdf in results:
+    for pdf, sdf, slope_df in results:
         if pdf is not None:
             processed_dfs.append(pdf)
         if sdf is not None:
             skew_metrics_dfs.append(sdf)
+        if slope_df is not None:
+            slope_metrics_dfs.append(slope_df)
     if processed_dfs:
         combined_processed = pd.concat(processed_dfs, ignore_index=True)
-        processed_filename = f'data/processed_{timestamp}.json'
-        combined_processed.to_json(processed_filename, orient='records', date_format='iso')
-        print(f"Processed data saved to {processed_filename}")
+        processed_json_filename = f'data/processed_{timestamp}.json'
+        combined_processed.to_json(processed_json_filename, orient='records', date_format='iso')
+        print(f"Processed data saved to {processed_json_filename}")
+        processed_csv_filename = f'data/processed_{timestamp}.csv'
+        combined_processed.to_csv(processed_csv_filename, index=False)
+        print(f"Processed data saved to {processed_csv_filename}")
     if skew_metrics_dfs:
         combined_skew_metrics = pd.concat(skew_metrics_dfs, ignore_index=True)
         skew_metrics_filename = f'data/skew_metrics_{timestamp}.csv'
         combined_skew_metrics.to_csv(skew_metrics_filename, index=False)
         print(f"Skew metrics saved to {skew_metrics_filename}")
+    if slope_metrics_dfs:
+        combined_slope_metrics = pd.concat(slope_metrics_dfs, ignore_index=True)
+        slope_metrics_filename = f'data/slope_metrics_{timestamp}.csv'
+        combined_slope_metrics.to_csv(slope_metrics_filename, index=False)
+        print(f"Slope metrics saved to {slope_metrics_filename}")
     else:
-        print("No skew metrics to save")
+        print("No skew or slope metrics to save")
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
@@ -378,4 +462,5 @@ def main():
     with open(dates_file, 'w') as f:
         json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
+
 main()
