@@ -160,7 +160,7 @@ def smooth_iv_per_expiry(options_df):
             std_iv = np.std(group['IV_mid'])
             if std_iv > 0:
                 z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
-                is_outlier = z_scores > 3  # Tighter threshold
+                is_outlier = z_scores > 2  # Tighter threshold
                 cleaned_group = group[~is_outlier]
             else:
                 cleaned_group = group
@@ -182,7 +182,7 @@ def smooth_iv_per_expiry(options_df):
             y = sorted_group['IV_mid'].values
        
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)  # Increased frac
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.4, it=3)  # Increased frac
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
@@ -250,7 +250,7 @@ def process_options(options_df, option_type, r, q):
         return pd.DataFrame(), None
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
-    options_df = smooth_iv_per_expiry(options_df)
+    options_df = smooth_iv_per_expiry(options_df)  # Smoothed_IV is added here
     options_df = options_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     options_df['TotalVariance'] = options_df['Smoothed_IV_mid']**2 * options_df['Years_to_Expiry']
     points = np.column_stack((options_df['LogMoneyness'], options_df['Years_to_Expiry']))
@@ -271,7 +271,7 @@ def process_options(options_df, option_type, r, q):
     return local_df, interp
 
 def calculate_local_vol_from_iv(df, S, r, q):
-    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
+    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'Smoothed_IV']
     if not all(col in df.columns for col in required_columns):
         raise ValueError(f"Input DataFrame must contain columns: {required_columns}")
     calls = df[df['Type'] == 'Call'].copy()
@@ -419,6 +419,9 @@ def process_ticker(ticker, df, full_df, r):
     else:
         ticker_df['Put Local Vol'] = np.nan
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
+    # Ensure Smoothed_IV is preserved in the final DataFrame
+    if 'Smoothed_IV' not in ticker_df.columns:
+        ticker_df['Smoothed_IV'] = np.nan
     return ticker_df, skew_metrics_df, slope_metrics_df
 
 def main():
