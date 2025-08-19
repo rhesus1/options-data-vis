@@ -191,7 +191,6 @@ def smooth_iv_per_expiry(options_df):
     options_df['Smoothed_IV'] = smoothed_iv
     return options_df
 
-5.9s
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
