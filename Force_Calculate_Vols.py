@@ -53,7 +53,7 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
             return black_scholes_put(S, K, T, r, q, sigma) - price
     try:
         iv = brentq(objective, 0.0001, 50.0)
-        return np.clip(iv, 0.05, 5.0)  # Cap implied vol to avoid extreme values
+        return np.clip(iv, 0.05, 5.0)
     except ValueError:
         return 0.05
 
@@ -149,63 +149,83 @@ def smooth_iv_per_expiry(options_df):
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
-            smoothed_iv.loc[group.index] = group['IV_mid'].clip(0.05, 2.0)  # Cap outliers
+            smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         
-        if group['LogMoneyness'].duplicated().any():
-            agg_group = group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
-            x = agg_group['LogMoneyness'].values
-            y = agg_group['IV_mid'].clip(0.05, 2.0).values  # Cap outliers before smoothing
+        # Z-score outlier detection (better adaptive method)
+        if len(group) >= 5:
+            mean_iv = np.mean(group['IV_mid'])
+            std_iv = np.std(group['IV_mid'])
+            if std_iv > 0:
+                z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
+                is_outlier = z_scores > 3
+                cleaned_group = group[~is_outlier]
+            else:
+                cleaned_group = group
         else:
-            sorted_group = group.sort_values('LogMoneyness')
+            cleaned_group = group
+        
+        if len(cleaned_group) < 3:
+            smoothed_iv.loc[group.index] = group['IV_mid']
+            continue
+        
+        if cleaned_group['LogMoneyness'].duplicated().any():
+            agg_group = cleaned_group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
+            x = agg_group['LogMoneyness'].values
+            y = agg_group['IV_mid'].values
+        else:
+            sorted_group = cleaned_group.sort_values('LogMoneyness')
             x = sorted_group['LogMoneyness'].values
-            y = sorted_group['IV_mid'].clip(0.05, 2.0).values  # Cap outliers before smoothing
+            y = sorted_group['IV_mid'].values
         
         try:
             lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
-            interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value=np.nan)
+            interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
+            # Interpolate for ALL original group points (outliers get smoothed values too)
             smoothed_values = interpolator(group['LogMoneyness'].values)
-            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index).clip(0.05, 2.0)  # Cap after smoothing
+            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
         except Exception as e:
-            print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using clipped IV_mid directly.")
-            smoothed_iv.loc[group.index] = group['IV_mid'].clip(0.05, 2.0)
+            print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
+            smoothed_iv.loc[group.index] = group['IV_mid']
     options_df['Smoothed_IV_mid'] = smoothed_iv
     return options_df
 
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
-    if T <= 0 or pd.isna(T) or pd.isna(y) or pd.isna(row['Smoothed_IV_mid']):
-        # Fall back to clipped IV_mid if Smoothed_IV_mid is NaN
-        if pd.isna(row['Smoothed_IV_mid']):
-            print(f"Warning: Smoothed_IV_mid is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using clipped IV_mid.")
-            iv = row['IV_mid'].clip(0.05, 2.0)
-            w = iv ** 2 * T if iv > 0 else 0.05 ** 2 * T
-        else:
-            iv = row['Smoothed_IV_mid']
-            w = iv ** 2 * T
+    if T <= 0:
+        return None
+    if pd.isna(row['Smoothed_IV_mid']):
+        print(f"Warning: Smoothed_IV_mid is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
+        iv = np.clip(row['IV_mid'], 0.05, 5.0)
+        w = iv ** 2 * T
+        # For fallback, assume constant vol, so derivatives in y are 0
+        dw_dy = 0
+        d2w_dy2 = 0
+        dw_dT = iv ** 2
     else:
         w = interp(np.array([[y, T]]))[0]
-    if np.isnan(w) or w <= 0:
-        return None
-    h_t = max(0.01 * T, 1e-4)
-    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
-    w_T_plus = interp(np.array([[y, T + h_t]]))[0] if not pd.isna(row['Smoothed_IV_mid']) else (row['IV_mid'].clip(0.05, 2.0) ** 2 * (T + h_t))
-    w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0] if not pd.isna(row['Smoothed_IV_mid']) else (row['IV_mid'].clip(0.05, 2.0) ** 2 * max(T - h_t, 1e-6))
-    if np.isnan(w_T_plus) or np.isnan(w_T_minus):
-        return None
-    dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
-    w_y_plus = interp(np.array([[y + h_y, T]]))[0] if not pd.isna(row['Smoothed_IV_mid']) else (row['IV_mid'].clip(0.05, 2.0) ** 2 * T)
-    w_y_minus = interp(np.array([[y - h_y, T]]))[0] if not pd.isna(row['Smoothed_IV_mid']) else (row['IV_mid'].clip(0.05, 2.0) ** 2 * T)
-    if np.isnan(w_y_plus) or np.isnan(w_y_minus):
-        return None
-    dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
-    d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
-    if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
-        return None
-    denom = 1 - (y / np.sqrt(w / T)) * dw_dy + 0.25 * (-0.25 - 1/(np.sqrt(w / T)) + (y**2 / (w / T))) * (dw_dy ** 2) + 0.5 * d2w_dy2
+        if np.isnan(w):
+            return None
+        h_t = max(0.01 * T, 1e-4)
+        h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+        w_T_plus = interp(np.array([[y, T + h_t]]))[0]
+        w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
+        if np.isnan(w_T_plus) or np.isnan(w_T_minus):
+            return None
+        dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
+        w_y_plus = interp(np.array([[y + h_y, T]]))[0]
+        w_y_minus = interp(np.array([[y - h_y, T]]))[0]
+        if np.isnan(w_y_plus) or np.isnan(w_y_minus):
+            return None
+        dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
+        d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
+        if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
+            return None
+    
+    denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
         local_vol = 0.0
     else:
@@ -226,15 +246,11 @@ def process_options(options_df, option_type, r, q):
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
     options_df = smooth_iv_per_expiry(options_df)
     options_df = options_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-    options_df['TotalVariance'] = options_df['Smoothed_IV_mid'].fillna(options_df['IV_mid'].clip(0.05, 2.0) ** 2 * options_df['Years_to_Expiry'])
+    options_df['TotalVariance'] = options_df['Smoothed_IV_mid']**2 * options_df['Years_to_Expiry']
     points = np.column_stack((options_df['LogMoneyness'], options_df['Years_to_Expiry']))
     values = options_df['TotalVariance'].values
-    valid_mask = ~np.isnan(values) & (values > 0)
-    if np.sum(valid_mask) < 3:
-        print(f"Warning: Insufficient valid points ({np.sum(valid_mask)}) for {option_type} after smoothing. Using clipped IV_mid for fallback.")
-        options_df['TotalVariance'] = options_df['IV_mid'].clip(0.05, 2.0) ** 2 * options_df['Years_to_Expiry']
-        points = np.column_stack((options_df['LogMoneyness'], options_df['Years_to_Expiry']))
-        values = options_df['TotalVariance'].values
+    if len(options_df) < 3:
+        return pd.DataFrame(), None
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
     except Exception as e:
@@ -466,5 +482,5 @@ def main():
     with open(dates_file, 'w') as f:
         json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
-
+    
 main()
