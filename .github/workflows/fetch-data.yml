@@ -1,8 +1,8 @@
 name: Fetch Options Data
 on:
   schedule:
-    - cron: '0 22 * * *'  # Daily at 8 AM, 11 AM, 2 PM, 3 PM, 5 PM, 7 PM, 9 PM, 10 PM UK time 
-  workflow_dispatch: # Manual trigger option
+    - cron: '30 19 * * *' # Daily at 8:30 PM BST (7:30 PM UTC)
+    - cron: '0 21 * * *'  # Daily at 10:00 PM BST (9:00 PM UTC)  workflow_dispatch: # Manual trigger option
 jobs:
   fetch:
     runs-on: ubuntu-latest
