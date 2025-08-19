@@ -167,7 +167,6 @@
         let skewData = [];
         let slopeData = [];
         let moneynessChart, expiryChart, deltaChart, historicChart;
-
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -176,7 +175,6 @@
             });
             return result.data;
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -187,7 +185,6 @@
                 return null;
             }
         }
-
         function calculateDateRange(historyLength) {
             const now = new Date();
             let fromDate = new Date();
@@ -213,7 +210,6 @@
             }
             return fromDate;
         }
-
         function changeSelect(selectId, direction) {
             const select = document.getElementById(selectId);
             let newIndex = select.selectedIndex + direction;
@@ -224,7 +220,6 @@
             select.dispatchEvent(changeEvent);
             console.log(`Changed ${selectId} to:`, select.value);
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             const dateSelect = document.getElementById('date-select');
             const timeSelect = document.getElementById('time-select');
@@ -264,7 +259,6 @@
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
-
         function updateTimeOptions(selectedDate, dates) {
             const timeSelect = document.getElementById('time-select');
             timeSelect.innerHTML = '';
@@ -281,7 +275,6 @@
             });
             if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
         }
-
         function loadData(timestamp) {
             console.log('Loading data for timestamp:', timestamp);
             fetch(`data/processed_${timestamp}.csv?v=` + Date.now())
@@ -325,7 +318,6 @@
                 })
                 .catch(error => console.error('Error loading slope metrics:', error));
         }
-
         function populateTickerSearch() {
             const tickerSearch = document.getElementById('ticker-search');
             const tickerDatalist = document.getElementById('ticker-datalist');
@@ -344,7 +336,6 @@
             }
             console.log('Ticker search populated, default:', tickerSearch.value);
         }
-
         function updateDropdowns() {
             const tickerSearch = document.getElementById('ticker-search');
             const selectedTicker = tickerSearch.value.toUpperCase();
@@ -355,7 +346,6 @@
             const deltaExpirySelect = document.getElementById('delta-expiry-select');
             const prevMoneyness = moneynessSelect.value;
             const prevExpiry = expirySelect.value;
-
             const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             moneynessSelect.innerHTML = '';
@@ -371,7 +361,6 @@
                 moneynessSelect.value = moneynessSelect.options[0].value;
             }
             console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
-
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
             expirySelect.innerHTML = '';
@@ -392,7 +381,6 @@
             }
             console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
-
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -452,7 +440,6 @@
             }
             table.appendChild(tbody);
         }
-
         function updateSlopeTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const table = document.getElementById('slope-table');
@@ -496,7 +483,6 @@
             });
             table.appendChild(tbody);
         }
-
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
@@ -520,7 +506,6 @@
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
-
         function createStatsTable(chart, canvasId) {
             const container = document.getElementById(canvasId).parentNode;
             let existingTable = container.querySelector('.stats-table');
@@ -580,7 +565,6 @@
             table.appendChild(tbody);
             container.appendChild(table);
         }
-
         function updateMoneynessVsIV() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -615,6 +599,36 @@
                     fill: false,
                     showLine: true,
                     borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080', // Purple for Smoothed IV
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080', // Purple for Smoothed IV
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
                     yAxisID: 'y'
                 },
                 {
@@ -712,7 +726,6 @@
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
         }
-
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
@@ -747,6 +760,36 @@
                     fill: false,
                     showLine: true,
                     borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080', // Purple for Smoothed IV
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080', // Purple for Smoothed IV
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
                     yAxisID: 'y'
                 },
                 {
@@ -844,7 +887,6 @@
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
-
         function updateDeltaVsIV() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('delta-expiry-select').value;
@@ -879,6 +921,36 @@
                     fill: false,
                     showLine: true,
                     borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Delta',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080', // Purple for Smoothed IV
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Delta',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080', // Purple for Smoothed IV
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
                     yAxisID: 'y'
                 },
                 {
@@ -980,7 +1052,6 @@
             });
             createStatsTable(deltaChart, 'delta-vs-iv-chart');
         }
-
         function updateHistoricChart() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const historyLength = document.getElementById('history-select').value;
@@ -1134,7 +1205,6 @@
                 }
             });
         }
-
         function updateCharts() {
             console.log('Updating all charts and tables');
             updateMoneynessVsIV();
@@ -1144,7 +1214,6 @@
             updateSkewTable();
             updateSlopeTable();
         }
-
         function addKeyboardNavigation() {
             const chartConfigs = [
                 {
@@ -1196,7 +1265,6 @@
                 updateCharts();
             });
         }
-
         document.addEventListener('DOMContentLoaded', addKeyboardNavigation);
     </script>
 </body>
