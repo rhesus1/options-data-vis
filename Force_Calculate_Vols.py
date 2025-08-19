@@ -191,48 +191,53 @@ def smooth_iv_per_expiry(options_df):
     options_df['Smoothed_IV'] = smoothed_iv
     return options_df
 
-def compute_local_vol_from_iv_row(row, r, q, interp):
-    y = row['LogMoneyness']
-    T = row['Years_to_Expiry']
+def compute_local_vol_from_iv_row(row, r, q, interp=None):
+    y = row['LogMoneyness']  # Log moneyness
+    T = row['Years_to_Expiry']  # Time to expiry
     if T <= 0:
         return None
+    
+    # Use Smoothed_IV as the base volatility (uncapped in this version)
     if pd.isna(row['Smoothed_IV']):
-        print(f"Warning: Smoothed_IV is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
-        iv = np.clip(row['IV_mid'], 0.05, 5.0)
-        #iv = row['Smoother_IV'])
-        w = iv ** 2 * T
-        # For fallback, assume constant vol, so derivatives in y are 0
-        dw_dy = 0
-        d2w_dy2 = 0
-        dw_dT = iv ** 2
+        print(f"Warning: Smoothed_IV is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using clipped IV_mid.")
+        sigma = np.clip(row['IV_mid'], 0.05, 5.0)  # Fallback to uncapped IV_mid
     else:
-        w = interp(np.array([[y, T]]))[0]
-        if np.isnan(w):
-            return None
-        h_t = max(0.01 * T, 1e-4)
-        h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
-        w_T_plus = interp(np.array([[y, T + h_t]]))[0]
-        w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
-        if np.isnan(w_T_plus) or np.isnan(w_T_minus):
-            return None
-        dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
-        w_y_plus = interp(np.array([[y + h_y, T]]))[0]
-        w_y_minus = interp(np.array([[y - h_y, T]]))[0]
-        if np.isnan(w_y_plus) or np.isnan(w_y_minus):
-            return None
-        dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
-        d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
-        if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
-            return None
-   
+        sigma = row['Smoothed_IV']  # Use uncapped Smoothed_IV
+    
+    # Direct calculation of total variance
+    w = sigma ** 2 * T
+    
+    # Finite difference steps
+    h_t = max(0.01 * T, 1e-4)  # Time step
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)  # Log moneyness step
+    
+    # Approximate w at neighboring points using Smoothed_IV
+    sigma_T_plus = row['Smoothed_IV'] + 0.01  # Small perturbation
+    sigma_T_minus = row['Smoothed_IV'] - 0.01
+    w_T_plus = sigma_T_plus ** 2 * (T + h_t)
+    w_T_minus = sigma_T_minus ** 2 * max(T - h_t, 1e-6)
+    
+    sigma_y_plus = row['Smoothed_IV'] + 0.01
+    sigma_y_minus = row['Smoothed_IV'] - 0.01
+    w_y_plus = sigma_y_plus ** 2 * T
+    w_y_minus = sigma_y_minus ** 2 * T
+    
+    # Compute derivatives
+    dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
+    dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
+    d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
+    
+    if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
+        return None
+    
+    # Dupire local volatility equation
     denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
         local_vol = 0.0
     else:
         local_vol_sq = dw_dT / denom
-        local_vol = np.sqrt(max(local_vol_sq, 0)) if local_vol_sq > 0 else 0.0
-        if local_vol > 2.0:
-            local_vol = np.nan
+        local_vol = np.sqrt(max(local_vol_sq, 0))
+    
     return {
         "Strike": row['Strike'],
         "Expiry": row['Expiry'],
