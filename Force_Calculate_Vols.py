@@ -158,7 +158,7 @@ def smooth_iv_per_expiry(options_df):
             std_iv = np.std(group['IV_mid'])
             if std_iv > 0:
                 z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
-                is_outlier = z_scores > 2.5  # Tighter threshold
+                is_outlier = z_scores > 2  # Tighter threshold
                 cleaned_group = group[~is_outlier]
             else:
                 cleaned_group = group
@@ -179,7 +179,7 @@ def smooth_iv_per_expiry(options_df):
             y = sorted_group['IV_mid'].values
         
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)  # Increased frac
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.4 it=3)  # Increased frac
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
