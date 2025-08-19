@@ -171,6 +171,7 @@
         let skewData = [];
         let slopeData = [];
         let eventsData = [];
+        let rawData = [];
         let moneynessChart, expiryChart, deltaChart, historicChart;
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
@@ -292,6 +293,14 @@
                     updateCharts();
                 })
                 .catch(error => console.error('Error loading processed data:', error));
+            fetch(`data/raw_${timestamp}.csv?v=` + Date.now())
+                .then(response => response.text())
+                .then(csvText => {
+                    rawData = parseCSV(csvText);
+                    console.log('Raw data loaded:', rawData);
+                    updateSummaryTable();
+                })
+                .catch(error => console.error('Error loading raw data:', error));
             fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
@@ -406,14 +415,14 @@
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No skew metrics available';
-                cell.colSpan = 5;
+                cell.colSpan = 6;
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
             }
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75'].forEach(text => {
+            ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75', 'ATM 12m/3m Ratio'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -439,12 +448,15 @@
                 const skewPutCell = document.createElement('td');
                 skewPutCell.textContent = Number.isFinite(selectedRow.Skew_put_25_75) ? selectedRow.Skew_put_25_75.toFixed(4) : 'N/A';
                 row.appendChild(skewPutCell);
+                const atmRatioCell = document.createElement('td');
+                atmRatioCell.textContent = Number.isFinite(selectedRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
+                row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             } else {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No data for selected expiry';
-                cell.colSpan = 5;
+                cell.colSpan = 6;
                 row.appendChild(cell);
                 tbody.appendChild(row);
             }
@@ -504,6 +516,19 @@
             askValue.textContent = underlyingAsk;
             askRow.appendChild(askValue);
             tbody.appendChild(askRow);
+            // Total Volume from raw data
+            let totalVolume = 0;
+            if (rawData.length > 0) {
+                totalVolume = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item.Volume || 0), 0);
+            }
+            const volumeRow = document.createElement('tr');
+            const volumeMetric = document.createElement('td');
+            volumeMetric.textContent = 'Total Volume';
+            volumeRow.appendChild(volumeMetric);
+            const volumeValue = document.createElement('td');
+            volumeValue.textContent = totalVolume;
+            volumeRow.appendChild(volumeValue);
+            tbody.appendChild(volumeRow);
             // Slope data from slope_metrics
             const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
             if (filteredSlopeData.length > 0) {
