@@ -31,15 +31,16 @@
         table.dataTable {
             width: 100%;
             background-color: #1C2526;
-            color: #FFFFFF;
         }
         table.dataTable thead th {
             background-color: #2E3537;
             border: 1px solid #FFFFFF;
+            color: #FFFFFF;
         }
         table.dataTable tbody td {
+            background-color: #FFFFFF;
             border: 1px solid #FFFFFF;
-            color: #000000; /* Set cell text color to black */
+            color: #000000;
         }
         .dataTables_wrapper .dataTables_filter input {
             background-color: #2E3537;
@@ -58,6 +59,7 @@
         }
         .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
             background-color: #3E4547;
+            color: #FFFFFF !important;
         }
         .filter-container {
             display: flex;
@@ -262,19 +264,16 @@
                             const expiryFilter = document.getElementById('expiry-filter').value;
                             const strikeFilter = document.getElementById('strike-filter').value;
                             const deltaFilter = document.getElementById('delta-filter').value;
-
                             const ticker = data[0] || '';
                             const type = data[1] || '';
                             const expiry = data[3] ? normalizeDate(data[3]) : '';
                             const strike = parseFloat(data[2]);
                             const delta = parseFloat(data[4]);
-
                             if (tickerFilter && ticker !== tickerFilter) return false;
                             if (typeFilter && type !== typeFilter) return false;
                             if (expiryFilter && normalizeDate(expiryFilter) !== expiry) return false;
                             if (strikeFilter && (isNaN(strike) || Math.abs(strike - parseFloat(strikeFilter)) > 0.01)) return false;
                             if (deltaFilter && (isNaN(delta) || Math.abs(delta - parseFloat(deltaFilter)) > 0.01)) return false;
-
                             return true;
                         }
                     );
