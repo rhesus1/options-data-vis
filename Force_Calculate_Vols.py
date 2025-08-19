@@ -179,7 +179,7 @@ def smooth_iv_per_expiry(options_df):
             y = sorted_group['IV_mid'].values
         
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.4 it=3)  # Increased frac
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.4, it=3)  # Increased frac
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
