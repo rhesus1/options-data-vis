@@ -247,7 +247,7 @@
                     }
                     dateSelect.addEventListener('change', (e) => {
                         updateTimeOptions(e.target.value, dates);
-                        loadData(e.target.value + '_' + timeSelect.value);
+                        loadData(e.target.value + '_' + e.target.value);
                     });
                     timeSelect.addEventListener('change', (e) => {
                         loadData(dateSelect.value + '_' + e.target.value);
@@ -321,6 +321,7 @@
                     skewData = parseCSV(csvText);
                     console.log('Skew data loaded:', skewData);
                     updateSkewTable();
+                    updateSummaryTable();
                 })
                 .catch(error => console.error('Error loading skew metrics:', error));
             fetch(`data/slope_metrics_${timestamp}.csv?v=` + Date.now())
@@ -367,7 +368,6 @@
             const expirySelect = document.getElementById('expiry-select');
             const deltaExpirySelect = document.getElementById('delta-expiry-select');
             const prevMoneyness = moneynessSelect.value;
-            const prevExpiry = expirySelect.value;
             const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             moneynessSelect.innerHTML = '';
@@ -377,10 +377,18 @@
                 option.text = `${(val * 100).toFixed(0)}%`;
                 moneynessSelect.add(option);
             });
+            // Set default to 100% (1.0) if available, otherwise closest to 1.0
+            const targetMoneyness = 1.0;
+            let closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) => 
+                Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev, 
+                uniqueRoundedMoneyness[0]
+            );
             if (prevMoneyness && uniqueRoundedMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
                 moneynessSelect.value = prevMoneyness;
-            } else if (moneynessSelect.options.length > 0) {
-                moneynessSelect.value = moneynessSelect.options[0].value;
+            } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
+                moneynessSelect.value = targetMoneyness.toString();
+            } else if (uniqueRoundedMoneyness.length > 0) {
+                moneynessSelect.value = closestMoneyness.toString();
             }
             console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
@@ -464,6 +472,8 @@
         }
         function updateSummaryTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
             const table = document.getElementById('summary-table');
             table.innerHTML = '';
             const thead = document.createElement('thead');
@@ -529,6 +539,21 @@
             volumeValue.textContent = totalVolume;
             volumeRow.appendChild(volumeValue);
             tbody.appendChild(volumeRow);
+            // ATM 12m/3m Ratio from skew data
+            let atmRatio = 'N/A';
+            const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            const selectedSkewRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
+            if (selectedSkewRow) {
+                atmRatio = Number.isFinite(selectedSkewRow.ATM_12m_3m_Ratio) ? selectedSkewRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
+            }
+            const atmRow = document.createElement('tr');
+            const atmMetric = document.createElement('td');
+            atmMetric.textContent = 'ATM 12m/3m Ratio';
+            atmRow.appendChild(atmMetric);
+            const atmValue = document.createElement('td');
+            atmValue.textContent = atmRatio;
+            atmRow.appendChild(atmValue);
+            tbody.appendChild(atmRow);
             // Slope data from slope_metrics
             const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
             if (filteredSlopeData.length > 0) {
