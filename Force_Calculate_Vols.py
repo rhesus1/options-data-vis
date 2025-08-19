@@ -152,13 +152,13 @@ def smooth_iv_per_expiry(options_df):
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         
-        # Z-score outlier detection (better adaptive method)
+        # Z-score outlier detection with tighter threshold
         if len(group) >= 5:
             mean_iv = np.mean(group['IV_mid'])
             std_iv = np.std(group['IV_mid'])
             if std_iv > 0:
                 z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
-                is_outlier = z_scores > 3
+                is_outlier = z_scores > 2.5  # Tighter threshold
                 cleaned_group = group[~is_outlier]
             else:
                 cleaned_group = group
@@ -179,13 +179,13 @@ def smooth_iv_per_expiry(options_df):
             y = sorted_group['IV_mid'].values
         
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.2, it=3)
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)  # Increased frac
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
-            # Interpolate for ALL original group points (outliers get smoothed values too)
+            # Interpolate for ALL original group points and cap the result
             smoothed_values = interpolator(group['LogMoneyness'].values)
-            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
+            smoothed_iv.loc[group.index] = pd.Series(np.clip(smoothed_values, 0.05, 2.0), index=group.index)
         except Exception as e:
             print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
             smoothed_iv.loc[group.index] = group['IV_mid']
