@@ -412,12 +412,12 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
     df = pd.read_csv(clean_file, parse_dates=['Expiry'])
     if not os.path.exists(raw_file):
         print(f"Corresponding raw file {raw_file} not found")
-        return
+        return None, None, None
     full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
     tickers = df['Ticker'].unique()
     if len(tickers) == 0:
         print(f"No tickers found in {clean_file}")
-        return
+        return None, None, None
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
     r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     processed_dfs = []
@@ -432,6 +432,9 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
             skew_metrics_dfs.append(sdf)
         if slope_df is not None:
             slope_metrics_dfs.append(slope_df)
+    combined_processed = None
+    combined_skew_metrics = None
+    combined_slope_metrics = None
     if processed_dfs:
         combined_processed = pd.concat(processed_dfs, ignore_index=True)
         processed_json_filename = f'data/processed_{prefix}{timestamp}.json'
@@ -452,6 +455,7 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
         print(f"Slope metrics {prefix}saved to {slope_metrics_filename}")
     else:
         print(f"No skew or slope metrics to save for {prefix}")
+    return combined_processed, combined_skew_metrics, combined_slope_metrics
 
 def main():
     clean_files = glob.glob('data/cleaned_*.csv')
@@ -459,10 +463,19 @@ def main():
     if not clean_files and not clean_yfinance_files:
         print("No cleaned data files found")
         return
+    # Update dates.json only once with clean timestamp
+    dates_file = 'data/dates.json'
+    if os.path.exists(dates_file):
+        with open(dates_file, 'r') as f:
+            dates = json.load(f)
+    else:
+        dates = []
+    clean_timestamp = None
     # Process Nasdaq data
     if clean_files:
         latest_clean = max(clean_files, key=os.path.getctime)
         timestamp = os.path.basename(latest_clean).split('cleaned_')[1].split('.csv')[0]
+        clean_timestamp = timestamp
         raw_file = f'data/raw_{timestamp}.csv'
         print(f"Processing Nasdaq data: {latest_clean}")
         process_data(latest_clean, raw_file, timestamp, prefix="")
@@ -472,33 +485,18 @@ def main():
     if clean_yfinance_files:
         latest_yfinance_clean = max(clean_yfinance_files, key=os.path.getctime)
         timestamp = os.path.basename(latest_yfinance_clean).split('cleaned_yfinance_')[1].split('.csv')[0]
+        clean_timestamp = timestamp
         raw_yfinance_file = f'data/raw_yfinance_{timestamp}.csv'
         print(f"Processing yfinance data: {latest_yfinance_clean}")
         process_data(latest_yfinance_clean, raw_yfinance_file, timestamp, prefix="yfinance_")
     else:
         print("No yfinance cleaned data files found")
-    # Update dates.json
-    dates_file = 'data/dates.json'
-    if os.path.exists(dates_file):
-        with open(dates_file, 'r') as f:
-            dates = json.load(f)
-    else:
-        dates = []
-    if clean_files:
-        timestamp = os.path.basename(max(clean_files, key=os.path.getctime)).split('cleaned_')[1].split('.csv')[0]
-        if timestamp not in dates:
-            dates.append(timestamp)
-            dates.sort(reverse=True)
-            with open(dates_file, 'w') as f:
-                json.dump(dates, f)
-            print(f"Updated dates list in {dates_file}")
-    if clean_yfinance_files:
-        timestamp = os.path.basename(max(clean_yfinance_files, key=os.path.getctime)).split('cleaned_yfinance_')[1].split('.csv')[0]
-        if timestamp not in dates:
-            dates.append(timestamp)
-            dates.sort(reverse=True)
-            with open(dates_file, 'w') as f:
-                json.dump(dates, f)
-            print(f"Updated dates list in {dates_file}")
+    # Update dates.json with clean timestamp
+    if clean_timestamp and clean_timestamp not in dates:
+        dates.append(clean_timestamp)
+        dates.sort(reverse=True)
+        with open(dates_file, 'w') as f:
+            json.dump(dates, f)
+        print(f"Updated dates list in {dates_file} with {clean_timestamp}")
 
 main()
