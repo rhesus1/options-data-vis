@@ -476,9 +476,6 @@
                 const slopeCell = document.createElement('td');
                 slopeCell.textContent = Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A';
                 row.appendChild(slopeCell);
-                const atmRatioCell = document.createElement('td');
-                atmRatioCell.textContent = Number.isFinite(item.ATM_12m_3m_Ratio) ? item.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
-                row.appendChild(atmRatioCell);
                 tbody.appendChild(row);
             });
             table.appendChild(tbody);
