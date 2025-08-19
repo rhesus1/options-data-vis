@@ -42,10 +42,10 @@ def black_scholes_delta(S, K, T, r, q, sigma, option_type):
 
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
-        return 0.05
+        return np.nan
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
     if price < intrinsic * np.exp(-r * T):
-        return 0.05
+        return np.nan
     def objective(sigma):
         if option_type.lower() == 'call':
             return black_scholes_call(S, K, T, r, q, sigma) - price
@@ -55,7 +55,7 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         iv = brentq(objective, 0.0001, 50.0)
         return np.clip(iv, 0.05, 5.0)
     except ValueError:
-        return 0.05
+        return np.nan
 
 def calculate_rvol_days(ticker, days):
     try:
@@ -160,7 +160,7 @@ def smooth_iv_per_expiry(options_df):
             std_iv = np.std(group['IV_mid'])
             if std_iv > 0:
                 z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
-                is_outlier = z_scores > 2  # Tighter threshold
+                is_outlier = z_scores > 3  # Tighter threshold
                 cleaned_group = group[~is_outlier]
             else:
                 cleaned_group = group
@@ -182,7 +182,7 @@ def smooth_iv_per_expiry(options_df):
             y = sorted_group['IV_mid'].values
        
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.4, it=3)  # Increased frac
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)  # Increased frac
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
