@@ -197,8 +197,8 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     T = row['Years_to_Expiry']
     if T <= 0:
         return None
-    if pd.isna(row['Smoothed_IV_mid']):
-        print(f"Warning: Smoothed_IV_mid is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
+    if pd.isna(row['Smoothed_IV']):
+        print(f"Warning: Smoothed_IV is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
         iv = np.clip(row['IV_mid'], 0.05, 5.0)
         w = iv ** 2 * T
         # For fallback, assume constant vol, so derivatives in y are 0
