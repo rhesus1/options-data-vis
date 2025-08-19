@@ -25,23 +25,22 @@ def setup_driver(headless=True):
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_argument("--start-maximized")
-    chrome_options.binary_location = "/usr/bin/chromium-browser"  # Explicitly set Chromium binary
+    chrome_options.binary_location = "/usr/bin/chromium-browser"
     driver = webdriver.Chrome(options=chrome_options)
     driver.set_page_load_timeout(40)
     return driver
 
-def fetch_option_data(ticker, driver, max_retries=3):
+def fetch_option_data_nasdaq(ticker, driver, max_retries=3):
     option_data = []
     url = f"https://www.nasdaq.com/market-activity/stocks/{ticker.lower()}/option-chain"
-    last_expiry_group = pd.to_datetime(datetime.now().year, format='%Y') # Default to current year as fallback
-    
+    last_expiry_group = pd.to_datetime(datetime.now().year, format='%Y')
+
     for attempt in range(max_retries):
         try:
             print(f"Attempt {attempt + 1} to fetch option data for {ticker} from Nasdaq")
             driver.get(url)
             time.sleep(random.uniform(4, 6))
-            
-            # Handle cookie consent with retry and fallback
+
             for _ in range(5):
                 try:
                     consent_banner = WebDriverWait(driver, 15).until(
@@ -59,25 +58,21 @@ def fetch_option_data(ticker, driver, max_retries=3):
                     time.sleep(random.uniform(2, 4))
             else:
                 print(f"Cookie consent banner not found for {ticker}, proceeding without consent")
-                # Removed 'continue' to proceed to the next steps
-            
-            # Scroll to ensure filters are in view
+
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 2);")
             time.sleep(random.uniform(2, 3))
-            
-            # Wait for the table to be present
+
             WebDriverWait(driver, 40).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "jupiter22-options-chain__table"))
             )
-            
-            # Open and select "All" for Expiration Dates
+
             try:
                 expiry_toggle = WebDriverWait(driver, 15).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'jupiter22-option-chain-filter-toggle-month')]"))
                 )
                 driver.execute_script("arguments[0].click();", expiry_toggle)
                 time.sleep(random.uniform(2, 3))
-                
+
                 expiry_all = WebDriverWait(driver, 15).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'jupiter22-option-chain-filter-option-month') and @data-value='all']"))
                 )
@@ -86,19 +81,18 @@ def fetch_option_data(ticker, driver, max_retries=3):
             except (TimeoutException, NoSuchElementException) as e:
                 print(f"Failed to set expiration filter for {ticker}: {e}")
                 continue
-            
-            # Open and select "All (Moneyness)" for Moneyness
+
             try:
                 moneyness_toggle = WebDriverWait(driver, 20).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'jupiter22-option-chain-filter-toggle-moneyness')]"))
                 )
                 driver.execute_script("arguments[0].click();", moneyness_toggle)
                 time.sleep(random.uniform(2, 3))
-                
+
                 WebDriverWait(driver, 20).until(
                     EC.visibility_of_element_located((By.CLASS_NAME, "jupiter22-option-chain-filter-options-moneyness"))
                 )
-                
+
                 moneyness_all = WebDriverWait(driver, 20).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[@class='jupiter22-option-chain-filter-option-month jupiter22-options-chain__dropdown-option' and @data-value='all' and contains(@aria-label, 'All (Moneyness)')]"))
                 )
@@ -107,34 +101,31 @@ def fetch_option_data(ticker, driver, max_retries=3):
             except (TimeoutException, NoSuchElementException) as e:
                 print(f"Failed to set moneyness filter for {ticker}: {e}")
                 continue
-            
+
             while True:
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 table = soup.find('table', class_='jupiter22-options-chain__table')
                 if not table:
                     print(f"No option chain table found for {ticker}")
                     break
-                
+
                 rows = table.find('tbody').find_all('tr')
                 for row in rows:
                     cells = row.find_all('td')
                     if len(cells) < 17:
                         continue
-                    
-                    # Check if this is a new expiry group heading
+
                     if cells[0].get('class', []) and 'jupiter22-options-chain__cell--expirygroup' in cells[0].get('class', []):
                         expiry_group_text = cells[0].text.strip()
                         if expiry_group_text:
                             last_expiry_group = pd.to_datetime(expiry_group_text, format='%B %d, %Y')
-                    
-                    expiry_date_str = cells[1].text.strip() # e.g., "Aug 15"
+
+                    expiry_date_str = cells[1].text.strip()
                     if last_expiry_group and expiry_date_str:
-                        # Combine month and day with year from the last expiry group
                         expiry_date = pd.to_datetime(f"{expiry_date_str} {last_expiry_group.year}", format='%b %d %Y', errors='coerce')
                     else:
-                        # Fallback to current year if no expiry group is set
                         expiry_date = pd.to_datetime(f"{expiry_date_str} {datetime.now().year}", format='%b %d %Y', errors='coerce')
-                    
+
                     call_last = cells[2].text.strip() or np.nan
                     call_change = cells[3].text.strip() or np.nan
                     call_bid = cells[4].text.strip() or np.nan
@@ -148,7 +139,7 @@ def fetch_option_data(ticker, driver, max_retries=3):
                     put_ask = cells[13].text.strip() or np.nan
                     put_volume = cells[14].text.strip() or np.nan
                     put_open_int = cells[15].text.strip() or np.nan
-                    
+
                     if call_last != '--' or call_bid != '--' or call_ask != '--':
                         option_data.append({
                             "Type": "Call",
@@ -166,7 +157,7 @@ def fetch_option_data(ticker, driver, max_retries=3):
                             "Ticker": ticker,
                             "Last Trade Date": np.nan
                         })
-                    
+
                     if put_last != '--' or put_bid != '--' or put_ask != '--':
                         option_data.append({
                             "Type": "Put",
@@ -184,7 +175,7 @@ def fetch_option_data(ticker, driver, max_retries=3):
                             "Ticker": ticker,
                             "Last Trade Date": np.nan
                         })
-                
+
                 try:
                     next_button = WebDriverWait(driver, 5).until(
                         EC.element_to_be_clickable((By.XPATH, "//button[@class='pagination__next' and @aria-label='click to go to the next page']"))
@@ -195,17 +186,85 @@ def fetch_option_data(ticker, driver, max_retries=3):
                     time.sleep(random.uniform(2, 4))
                 except (TimeoutException, NoSuchElementException):
                     break
-            
+
             return pd.DataFrame(option_data)
-        
+
         except Exception as e:
             print(f"Attempt {attempt + 1} failed for {ticker}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(random.uniform(5, 7))
             continue
-    
+
     return pd.DataFrame()
-    
+
+def fetch_option_data_yfinance(ticker):
+    print(f"Fetching option data for {ticker} from yfinance...")
+    try:
+        stock = yf.Ticker(ticker)
+        option_data = []
+        # Get all expiration dates
+        expiration_dates = stock.options
+        for expiry in expiration_dates:
+            try:
+                opt_chain = stock.option_chain(expiry)
+                expiry_date = pd.to_datetime(expiry, errors='coerce')
+                if pd.isna(expiry_date):
+                    continue
+
+                # Process calls
+                calls = opt_chain.calls
+                for _, row in calls.iterrows():
+                    strike = row['strike']
+                    contract_symbol = row['contractSymbol']
+                    option_data.append({
+                        "Type": "Call",
+                        "Strike": float(strike),
+                        "Expiry": expiry_date,
+                        "Last Price": float(row['lastPrice']) if pd.notna(row['lastPrice']) else np.nan,
+                        "Bid": float(row['bid']) if pd.notna(row['bid']) else np.nan,
+                        "Ask": float(row['ask']) if pd.notna(row['ask']) else np.nan,
+                        "Change": float(row['change']) if pd.notna(row['change']) else np.nan,
+                        "% Change": float(row['percentChange']) if pd.notna(row['percentChange']) else np.nan,
+                        "Volume": int(row['volume']) if pd.notna(row['volume']) else 0,
+                        "Open Interest": int(row['openInterest']) if pd.notna(row['openInterest']) else 0,
+                        "Implied Volatility": float(row['impliedVolatility']) if pd.notna(row['impliedVolatility']) else np.nan,
+                        "Contract Name": contract_symbol,
+                        "Ticker": ticker,
+                        "Last Trade Date": row['lastTradeDate'] if pd.notna(row['lastTradeDate']) else np.nan
+                    })
+
+                # Process puts
+                puts = opt_chain.puts
+                for _, row in puts.iterrows():
+                    strike = row['strike']
+                    contract_symbol = row['contractSymbol']
+                    option_data.append({
+                        "Type": "Put",
+                        "Strike": float(strike),
+                        "Expiry": expiry_date,
+                        "Last Price": float(row['lastPrice']) if pd.notna(row['lastPrice']) else np.nan,
+                        "Bid": float(row['bid']) if pd.notna(row['bid']) else np.nan,
+                        "Ask": float(row['ask']) if pd.notna(row['ask']) else np.nan,
+                        "Change": float(row['change']) if pd.notna(row['change']) else np.nan,
+                        "% Change": float(row['percentChange']) if pd.notna(row['percentChange']) else np.nan,
+                        "Volume": int(row['volume']) if pd.notna(row['volume']) else 0,
+                        "Open Interest": int(row['openInterest']) if pd.notna(row['openInterest']) else 0,
+                        "Implied Volatility": float(row['impliedVolatility']) if pd.notna(row['impliedVolatility']) else np.nan,
+                        "Contract Name": contract_symbol,
+                        "Ticker": ticker,
+                        "Last Trade Date": row['lastTradeDate'] if pd.notna(row['lastTradeDate']) else np.nan
+                    })
+
+            except Exception as e:
+                print(f"Failed to fetch option chain for {ticker} expiry {expiry}: {e}")
+                continue
+
+        return pd.DataFrame(option_data)
+
+    except Exception as e:
+        print(f"Failed to fetch yfinance option data for {ticker}: {e}")
+        return pd.DataFrame()
+
 def process_ticker_fetch(ticker, driver):
     print(f"Fetching data for {ticker}...")
     stock = yf.Ticker(ticker)
@@ -217,24 +276,39 @@ def process_ticker_fetch(ticker, driver):
         mid = (bid + ask)/2 if bid is not None and ask is not None else 0
     except:
         print(f"Failed to fetch stock price for {ticker}")
-        return pd.DataFrame()
-    
-    full_df = fetch_option_data(ticker, driver)
-    if full_df.empty:
-        return pd.DataFrame()
-    
-    full_df['Last Stock Price'] = S
-    full_df['Bid Stock'] = bid
-    full_df['Ask Stock'] = ask
-    full_df['Mid Option'] = (full_df['Bid'] + full_df['Ask'])/2
-    full_df['Mid Stock'] = (full_df['Bid Stock'] + full_df['Ask Stock'])/2 if bid is not None and ask is not None else 0
-    if mid > 0:
-        full_df['Moneyness'] = np.round(mid / full_df['Strike'] / 0.01) * 0.01
-    else:
-        full_df['Moneyness'] = np.round(S / full_df['Strike'] / 0.01) * 0.01
-    
+        return pd.DataFrame(), pd.DataFrame()
+
+    # Fetch Nasdaq data
+    nasdaq_df = fetch_option_data_nasdaq(ticker, driver)
+    # Fetch yfinance data
+    yfinance_df = fetch_option_data_yfinance(ticker)
+
+    # Process Nasdaq data
+    if not nasdaq_df.empty:
+        nasdaq_df['Last Stock Price'] = S
+        nasdaq_df['Bid Stock'] = bid
+        nasdaq_df['Ask Stock'] = ask
+        nasdaq_df['Mid Option'] = (nasdaq_df['Bid'] + nasdaq_df['Ask'])/2
+        nasdaq_df['Mid Stock'] = (nasdaq_df['Bid Stock'] + nasdaq_df['Ask Stock'])/2 if bid is not None and ask is not None else 0
+        if mid > 0:
+            nasdaq_df['Moneyness'] = np.round(mid / nasdaq_df['Strike'] / 0.01) * 0.01
+        else:
+            nasdaq_df['Moneyness'] = np.round(S / nasdaq_df['Strike'] / 0.01) * 0.01
+
+    # Process yfinance data
+    if not yfinance_df.empty:
+        yfinance_df['Last Stock Price'] = S
+        yfinance_df['Bid Stock'] = bid
+        yfinance_df['Ask Stock'] = ask
+        yfinance_df['Mid Option'] = (yfinance_df['Bid'] + yfinance_df['Ask'])/2
+        yfinance_df['Mid Stock'] = (yfinance_df['Bid Stock'] + yfinance_df['Ask Stock'])/2 if bid is not None and ask is not None else 0
+        if mid > 0:
+            yfinance_df['Moneyness'] = np.round(mid / yfinance_df['Strike'] / 0.01) * 0.01
+        else:
+            yfinance_df['Moneyness'] = np.round(S / yfinance_df['Strike'] / 0.01) * 0.01
+
     columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Implied Volatility']
-    return full_df[columns]
+    return nasdaq_df[columns], yfinance_df[columns]
 
 def fetch_historic_data(ticker):
     print(f"Fetching historic data for {ticker}...")
@@ -253,38 +327,49 @@ def fetch_historic_data(ticker):
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
     return hist[['Ticker', 'Date', 'Close', 'Realised_Vol_30', 'Realised_Vol_60', 'Realised_Vol_100', 'Realised_Vol_180', 'Realised_Vol_252']]
-    
+
 def main():
     with open('tickers.txt', 'r') as file:
         tickers = [line.strip() for line in file if line.strip()]
-    
-    driver = setup_driver(headless=True) # Set to False for debugging
-    all_data = []
+
+    driver = setup_driver(headless=True)
+    all_nasdaq_data = []
+    all_yfinance_data = []
     all_hist = []
-    
+
     try:
         for ticker in tickers:
-            df = process_ticker_fetch(ticker, driver)
-            if not df.empty:
-                all_data.append(df)
-            
+            nasdaq_df, yfinance_df = process_ticker_fetch(ticker, driver)
+            if not nasdaq_df.empty:
+                all_nasdaq_data.append(nasdaq_df)
+            if not yfinance_df.empty:
+                all_yfinance_data.append(yfinance_df)
+
             df_hist = fetch_historic_data(ticker)
             if not df_hist.empty:
                 all_hist.append(df_hist)
-            
-            time.sleep(1) # Avoid rate limiting
-        
+
+            time.sleep(1)
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         os.makedirs('data', exist_ok=True)
-        
-        if all_data:
-            combined_df = pd.concat(all_data, ignore_index=True)
-            filename = f'data/raw_{timestamp}.csv'
-            combined_df.to_csv(filename, index=False)
-            print(f"Raw data saved to {filename}")
+
+        if all_nasdaq_data:
+            combined_nasdaq_df = pd.concat(all_nasdaq_data, ignore_index=True)
+            nasdaq_filename = f'data/raw_{timestamp}.csv'
+            combined_nasdaq_df.to_csv(nasdaq_filename, index=False)
+            print(f"Nasdaq raw data saved to {nasdaq_filename}")
         else:
-            print("No data to save")
-        
+            print("No Nasdaq data to save")
+
+        if all_yfinance_data:
+            combined_yfinance_df = pd.concat(all_yfinance_data, ignore_index=True)
+            yfinance_filename = f'data/raw_yfinance_{timestamp}.csv'
+            combined_yfinance_df.to_csv(yfinance_filename, index=False)
+            print(f"yfinance raw data saved to {yfinance_filename}")
+        else:
+            print("No yfinance data to save")
+
         if all_hist:
             combined_hist_df = pd.concat(all_hist, ignore_index=True)
             hist_filename = f'data/historic_{timestamp}.csv'
@@ -292,7 +377,7 @@ def main():
             print(f"Historic data saved to {hist_filename}")
         else:
             print("No historic data to save")
-    
+
     finally:
         driver.quit()
 
