@@ -56,7 +56,7 @@
         .full-width {
             grid-column: span 2;
         }
-        .date-time-container {
+        .date-time-container, .source-container {
             display: flex;
             align-items: center;
             gap: 5px;
@@ -100,6 +100,11 @@
 <body>
     <div><a href="data-table.html" class="nav-link">View Data Table</a></div>
     <div class="date-time-container">
+        <label for="source-select">Select Data Source: </label>
+        <select id="source-select">
+            <option value="nasdaq" selected>Nasdaq</option>
+            <option value="yfinance">yfinance</option>
+        </select>
         <label for="date-select">Select Date: </label>
         <select id="date-select"></select>
         <label for="time-select">Select Time: </label>
@@ -173,6 +178,7 @@
         let eventsData = [];
         let rawData = [];
         let moneynessChart, expiryChart, deltaChart, historicChart;
+
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -181,6 +187,7 @@
             });
             return result.data;
         }
+
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -191,6 +198,7 @@
                 return null;
             }
         }
+
         function calculateDateRange(historyLength) {
             const now = new Date();
             let fromDate = new Date();
@@ -216,6 +224,7 @@
             }
             return fromDate;
         }
+
         function changeSelect(selectId, direction) {
             const select = document.getElementById(selectId);
             let newIndex = select.selectedIndex + direction;
@@ -226,10 +235,13 @@
             select.dispatchEvent(changeEvent);
             console.log(`Changed ${selectId} to:`, select.value);
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             const dateSelect = document.getElementById('date-select');
             const timeSelect = document.getElementById('time-select');
             const tickerSearch = document.getElementById('ticker-search');
+            const sourceSelect = document.getElementById('source-select');
+
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
                 .then(dates => {
@@ -247,7 +259,7 @@
                     }
                     dateSelect.addEventListener('change', (e) => {
                         updateTimeOptions(e.target.value, dates);
-                        loadData(e.target.value + '_' + e.target.value);
+                        loadData(e.target.value + '_' + timeSelect.value);
                     });
                     timeSelect.addEventListener('change', (e) => {
                         loadData(dateSelect.value + '_' + e.target.value);
@@ -257,6 +269,10 @@
                         updateDropdowns();
                         updateCharts();
                     });
+                    sourceSelect.addEventListener('change', () => {
+                        console.log('Data source changed to:', sourceSelect.value);
+                        loadData(dateSelect.value + '_' + timeSelect.value);
+                    });
                     const historySelect = document.getElementById('history-select');
                     historySelect.addEventListener('change', () => {
                         console.log('History length changed to:', historySelect.value);
@@ -265,6 +281,7 @@
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
+
         function updateTimeOptions(selectedDate, dates) {
             const timeSelect = document.getElementById('time-select');
             timeSelect.innerHTML = '';
@@ -281,26 +298,32 @@
             });
             if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
         }
+
         function loadData(timestamp) {
-            console.log('Loading data for timestamp:', timestamp);
-            fetch(`data/processed_${timestamp}.csv?v=` + Date.now())
+            const source = document.getElementById('source-select').value;
+            const prefix = source === 'yfinance' ? 'yfinance_' : '';
+            console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
+
+            fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     data = parseCSV(csvText);
-                    console.log('Processed data loaded:', data);
+                    console.log(`Processed ${source} data loaded:`, data);
                     populateTickerSearch();
                     updateDropdowns();
                     updateCharts();
                 })
-                .catch(error => console.error('Error loading processed data:', error));
-            fetch(`data/raw_${timestamp}.csv?v=` + Date.now())
+                .catch(error => console.error(`Error loading processed ${source} data:`, error));
+
+            fetch(`data/raw_${prefix}${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     rawData = parseCSV(csvText);
-                    console.log('Raw data loaded:', rawData);
+                    console.log(`Raw ${source} data loaded:`, rawData);
                     updateSummaryTable();
                 })
-                .catch(error => console.error('Error loading raw data:', error));
+                .catch(error => console.error(`Error loading raw ${source} data:`, error));
+
             fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
@@ -315,23 +338,26 @@
                     document.getElementById('historic-error').style.display = 'block';
                     updateHistoricChart();
                 });
-            fetch(`data/skew_metrics_${timestamp}.csv?v=` + Date.now())
+
+            fetch(`data/skew_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     skewData = parseCSV(csvText);
-                    console.log('Skew data loaded:', skewData);
+                    console.log(`Skew ${source} data loaded:`, skewData);
                     updateSkewTable();
                     updateSummaryTable();
                 })
-                .catch(error => console.error('Error loading skew metrics:', error));
-            fetch(`data/slope_metrics_${timestamp}.csv?v=` + Date.now())
+                .catch(error => console.error(`Error loading skew ${source} metrics:`, error));
+
+            fetch(`data/slope_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     slopeData = parseCSV(csvText);
-                    console.log('Slope data loaded:', slopeData);
+                    console.log(`Slope ${source} data loaded:`, slopeData);
                     updateSummaryTable();
                 })
-                .catch(error => console.error('Error loading slope metrics:', error));
+                .catch(error => console.error(`Error loading slope ${source} metrics:`, error));
+
             fetch(`data/Events.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
@@ -341,6 +367,7 @@
                 })
                 .catch(error => console.error('Error loading events data:', error));
         }
+
         function populateTickerSearch() {
             const tickerSearch = document.getElementById('ticker-search');
             const tickerDatalist = document.getElementById('ticker-datalist');
@@ -359,6 +386,7 @@
             }
             console.log('Ticker search populated, default:', tickerSearch.value);
         }
+
         function updateDropdowns() {
             const tickerSearch = document.getElementById('ticker-search');
             const selectedTicker = tickerSearch.value.toUpperCase();
@@ -368,6 +396,7 @@
             const expirySelect = document.getElementById('expiry-select');
             const deltaExpirySelect = document.getElementById('delta-expiry-select');
             const prevMoneyness = moneynessSelect.value;
+            const prevExpiry = expirySelect.value;
             const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             moneynessSelect.innerHTML = '';
@@ -377,10 +406,9 @@
                 option.text = `${(val * 100).toFixed(0)}%`;
                 moneynessSelect.add(option);
             });
-            // Set default to 100% (1.0) if available, otherwise closest to 1.0
             const targetMoneyness = 1.0;
-            let closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) => 
-                Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev, 
+            let closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
+                Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev,
                 uniqueRoundedMoneyness[0]
             );
             if (prevMoneyness && uniqueRoundedMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
@@ -411,6 +439,7 @@
             }
             console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
+
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -470,10 +499,12 @@
             }
             table.appendChild(tbody);
         }
+
         function updateSummaryTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
             const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
+            const source = document.getElementById('source-select').value;
             const table = document.getElementById('summary-table');
             table.innerHTML = '';
             const thead = document.createElement('thead');
@@ -533,7 +564,7 @@
             }
             const volumeRow = document.createElement('tr');
             const volumeMetric = document.createElement('td');
-            volumeMetric.textContent = 'Total Volume';
+            volumeMetric.textContent = `Total Volume (${source})`;
             volumeRow.appendChild(volumeMetric);
             const volumeValue = document.createElement('td');
             volumeValue.textContent = totalVolume;
@@ -577,6 +608,7 @@
             }
             table.appendChild(tbody);
         }
+
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
@@ -600,6 +632,7 @@
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
+
         function createStatsTable(chart, canvasId) {
             const container = document.getElementById(canvasId).parentNode;
             let existingTable = container.querySelector('.stats-table');
@@ -659,6 +692,7 @@
             table.appendChild(tbody);
             container.appendChild(table);
         }
+
         function updateMoneynessVsIV() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -820,6 +854,7 @@
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
         }
+
         function updateExpiryVsIV() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
@@ -981,6 +1016,7 @@
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
+
         function updateDeltaVsIV() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('delta-expiry-select').value;
@@ -1146,6 +1182,7 @@
             });
             createStatsTable(deltaChart, 'delta-vs-iv-chart');
         }
+
         function updateHistoricChart() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const historyLength = document.getElementById('history-select').value;
@@ -1238,16 +1275,12 @@
                     yAxisID: 'y1'
                 }
             ];
-            // Prepare annotations for events within history length and data range
             const annotations = eventsData
                 .filter(event => {
                     const startDate = new Date(event.Start_Date);
                     const endDate = new Date(event.End_Date);
-                    // Filter by ticker
                     if (!(event.Ticker === 'ALL' || event.Ticker === selectedTicker)) return false;
-                    // Filter by data range
                     if (startDate > maxHistoricDate || endDate < minHistoricDate) return false;
-                    // Filter by history length
                     if (fromDate && (endDate < fromDate)) return false;
                     return true;
                 })
@@ -1338,6 +1371,7 @@
             });
             document.getElementById('historic-error').style.display = 'none';
         }
+
         function updateCharts() {
             console.log('Updating all charts and tables');
             updateMoneynessVsIV();
@@ -1347,6 +1381,7 @@
             updateSummaryTable();
             updateHistoricChart();
         }
+
         function addKeyboardNavigation() {
             const chartConfigs = [
                 {
@@ -1398,6 +1433,7 @@
                 updateCharts();
             });
         }
+
         document.addEventListener('DOMContentLoaded', addKeyboardNavigation);
     </script>
 </body>
