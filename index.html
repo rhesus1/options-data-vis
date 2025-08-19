@@ -19,9 +19,11 @@
         }
         select, input {
             margin: 10px;
+            padding: 5px;
             background-color: #2E3537;
             color: #FFFFFF;
             border: 1px solid #FFFFFF;
+            border-radius: 4px;
         }
         .stats-table, .skew-table, .slope-table {
             border-collapse: collapse;
@@ -49,10 +51,20 @@
             width: 80%;
             margin: 20px auto;
         }
+        .full-width {
+            grid-column: span 2;
+        }
         .date-time-container {
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+        #ticker-search {
+            width: 200px;
+        }
+        #ticker-datalist {
+            background-color: #2E3537;
+            color: #FFFFFF;
         }
     </style>
 </head>
@@ -65,15 +77,16 @@
         <select id="time-select"></select>
     </div>
     <div>
-        <label for="ticker-select">Select Ticker: </label>
-        <select id="ticker-select"></select>
+        <label for="ticker-search">Search Ticker: </label>
+        <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Type to search ticker...">
+        <datalist id="ticker-datalist"></datalist>
     </div>
     <div class="grid-container">
         <div class="chart-container">
-            <h2>Delta vs. Volatility</h2>
+            <h2>Moneyness vs. Volatility</h2>
             <label for="expiry-select">Select Expiry: </label>
             <select id="expiry-select"></select>
-            <canvas id="delta-vs-iv-chart" tabindex="0"></canvas>
+            <canvas id="moneyness-vs-iv-chart" tabindex="0"></canvas>
             <table id="skew-table" class="skew-table"></table>
             <table id="slope-table" class="slope-table"></table>
         </div>
@@ -83,7 +96,13 @@
             <select id="moneyness-select"></select>
             <canvas id="expiry-vs-iv-chart" tabindex="0"></canvas>
         </div>
-        <div class="chart-container" style="grid-column: span 2;">
+        <div class="chart-container">
+            <h2>Delta vs. Volatility</h2>
+            <label for="delta-expiry-select">Select Expiry: </label>
+            <select id="delta-expiry-select"></select>
+            <canvas id="delta-vs-iv-chart" tabindex="0"></canvas>
+        </div>
+        <div class="chart-container full-width">
             <h2>Historic Stock Price with Realised Volatility</h2>
             <label for="history-select">Select History Length: </label>
             <select id="history-select">
@@ -95,6 +114,7 @@
                 <option value="all" selected>All</option>
             </select>
             <canvas id="historic-price-chart" tabindex="0"></canvas>
+            <div id="historic-error" style="display: none; color: #FF6666;">No historic data available</div>
         </div>
     </div>
     <script>
@@ -102,7 +122,8 @@
         let historicData = [];
         let skewData = [];
         let slopeData = [];
-        let expiryChart, deltaChart, historicChart;
+        let moneynessChart, expiryChart, deltaChart, historicChart;
+
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -111,6 +132,7 @@
             });
             return result.data;
         }
+
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -121,6 +143,7 @@
                 return null;
             }
         }
+
         function calculateDateRange(historyLength) {
             const now = new Date();
             let fromDate = new Date();
@@ -146,9 +169,11 @@
             }
             return fromDate;
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             const dateSelect = document.getElementById('date-select');
             const timeSelect = document.getElementById('time-select');
+            const tickerSearch = document.getElementById('ticker-search');
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
                 .then(dates => {
@@ -171,11 +196,19 @@
                     timeSelect.addEventListener('change', (e) => {
                         loadData(dateSelect.value + '_' + e.target.value);
                     });
+                    tickerSearch.addEventListener('change', () => {
+                        updateDropdowns();
+                        updateCharts();
+                        updateHistoricChart();
+                        updateSkewTable();
+                        updateSlopeTable();
+                    });
                     const historySelect = document.getElementById('history-select');
                     historySelect.addEventListener('change', updateHistoricChart);
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
+
         function updateTimeOptions(selectedDate, dates) {
             const timeSelect = document.getElementById('time-select');
             timeSelect.innerHTML = '';
@@ -192,22 +225,30 @@
             });
             if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
         }
+
         function loadData(timestamp) {
             fetch(`data/processed_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     data = parseCSV(csvText);
-                    populateDropdowns();
+                    populateTickerSearch();
+                    updateDropdowns();
                     updateCharts();
                 })
-                .catch(error => console.error('Error loading data:', error));
+                .catch(error => console.error('Error loading processed data:', error));
             fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     historicData = parseCSV(csvText);
+                    document.getElementById('historic-error').style.display = 'none';
                     updateHistoricChart();
                 })
-                .catch(error => console.error('Error loading historic data:', error));
+                .catch(error => {
+                    console.error('Error loading historic data:', error);
+                    historicData = [];
+                    document.getElementById('historic-error').style.display = 'block';
+                    updateHistoricChart();
+                });
             fetch(`data/skew_metrics_${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
@@ -223,45 +264,38 @@
                 })
                 .catch(error => console.error('Error loading slope metrics:', error));
         }
-        function populateDropdowns() {
-            const tickerSelect = document.getElementById('ticker-select');
-            const prevTicker = tickerSelect.value;
+
+        function populateTickerSearch() {
+            const tickerSearch = document.getElementById('ticker-search');
+            const tickerDatalist = document.getElementById('ticker-datalist');
+            tickerDatalist.innerHTML = '';
             const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
                 .filter(val => val).sort();
-            tickerSelect.innerHTML = '';
             uniqueTickers.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
-                option.text = val;
-                tickerSelect.add(option);
+                tickerDatalist.appendChild(option);
             });
-            if (prevTicker && uniqueTickers.includes(prevTicker)) {
-                tickerSelect.value = prevTicker;
-            } else if (tickerSelect.options.length > 0) {
-                tickerSelect.value = tickerSelect.options[0].value;
+            // Set default to COIN if available, else first ticker
+            if (uniqueTickers.includes('COIN')) {
+                tickerSearch.value = 'COIN';
+            } else if (uniqueTickers.length > 0) {
+                tickerSearch.value = uniqueTickers[0];
             }
-            tickerSelect.addEventListener('change', () => {
-                updateDropdowns();
-                updateCharts();
-                updateHistoricChart();
-                updateSkewTable();
-                updateSlopeTable();
-            });
             updateDropdowns();
-            document.getElementById('moneyness-select').addEventListener('change', updateCharts);
-            document.getElementById('expiry-select').addEventListener('change', () => {
-                updateCharts();
-                updateSkewTable();
-                updateSlopeTable();
-            });
         }
+
         function updateDropdowns() {
-            const selectedTicker = document.getElementById('ticker-select').value;
+            const tickerSearch = document.getElementById('ticker-search');
+            const selectedTicker = tickerSearch.value.toUpperCase();
             const tickerData = data.filter(item => item.Ticker === selectedTicker);
             const moneynessSelect = document.getElementById('moneyness-select');
             const expirySelect = document.getElementById('expiry-select');
+            const deltaExpirySelect = document.getElementById('delta-expiry-select');
             const prevMoneyness = moneynessSelect.value;
             const prevExpiry = expirySelect.value;
+            const prevDeltaExpiry = deltaExpirySelect.value;
+
             const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                 .filter(val => !isNaN(val)).sort((a, b) => a - b);
             moneynessSelect.innerHTML = '';
@@ -276,23 +310,30 @@
             } else if (moneynessSelect.options.length > 0) {
                 moneynessSelect.value = moneynessSelect.options[0].value;
             }
+
             const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                 .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
             expirySelect.innerHTML = '';
+            deltaExpirySelect.innerHTML = '';
             uniqueExpiries.forEach(val => {
                 const option = document.createElement('option');
                 option.value = val;
                 option.text = new Date(val).toLocaleDateString('en-GB');
                 expirySelect.add(option);
+                const deltaOption = option.cloneNode(true);
+                deltaExpirySelect.add(deltaOption);
             });
             if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
                 expirySelect.value = prevExpiry;
+                deltaExpirySelect.value = prevExpiry;
             } else if (expirySelect.options.length > 0) {
                 expirySelect.value = expirySelect.options[0].value;
+                deltaExpirySelect.value = expirySelect.options[0].value;
             }
         }
+
         function updateSkewTable() {
-            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
             const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
             const table = document.getElementById('skew-table');
@@ -349,8 +390,9 @@
             }
             table.appendChild(tbody);
         }
+
         function updateSlopeTable() {
-            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const table = document.getElementById('slope-table');
             table.innerHTML = '';
             const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
@@ -391,6 +433,7 @@
             });
             table.appendChild(tbody);
         }
+
         function aggregateDataByX(data, xKey, yKey) {
             const grouped = data.reduce((acc, item) => {
                 const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
@@ -414,6 +457,7 @@
                 }
             }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
+
         function createStatsTable(chart, canvasId) {
             const container = document.getElementById(canvasId).parentNode;
             let existingTable = container.querySelector('.stats-table');
@@ -473,8 +517,140 @@
             table.appendChild(tbody);
             container.appendChild(table);
         }
+
+        function updateMoneynessVsIV() {
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Call Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
+                        'Moneyness',
+                        'Call Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Put Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
+                        'Moneyness',
+                        'Put Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realised Vol 100d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Realised Vol 100d'
+                    ),
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                }
+            ];
+            if (moneynessChart) moneynessChart.destroy();
+            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Moneyness (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
+        }
+
         function updateExpiryVsIV() {
-            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
             const filteredData = data.filter(item => item.Ticker === selectedTicker && Math.round(item.Moneyness * 100 / 10) * 0.1 === selectedMoneyness);
             const datasets = [
@@ -603,9 +779,10 @@
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
+
         function updateDeltaVsIV() {
-            const selectedTicker = document.getElementById('ticker-select').value;
-            const selectedExpiry = document.getElementById('expiry-select').value;
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('delta-expiry-select').value;
             const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
             const datasets = [
                 {
@@ -737,9 +914,14 @@
             });
             createStatsTable(deltaChart, 'delta-vs-iv-chart');
         }
+
         function updateHistoricChart() {
-            const selectedTicker = document.getElementById('ticker-select').value;
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const historyLength = document.getElementById('history-select').value;
+            if (historicData.length === 0) {
+                if (historicChart) historicChart.destroy();
+                return;
+            }
             let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
             filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
             const fromDate = calculateDateRange(historyLength);
@@ -885,22 +1067,29 @@
                 }
             });
         }
+
         function updateCharts() {
+            updateMoneynessVsIV();
             updateExpiryVsIV();
             updateDeltaVsIV();
             updateHistoricChart();
             updateSkewTable();
             updateSlopeTable();
         }
+
         function addKeyboardNavigation() {
             const chartConfigs = [
                 {
-                    canvasId: 'delta-vs-iv-chart',
+                    canvasId: 'moneyness-vs-iv-chart',
                     selectId: 'expiry-select'
                 },
                 {
                     canvasId: 'expiry-vs-iv-chart',
                     selectId: 'moneyness-select'
+                },
+                {
+                    canvasId: 'delta-vs-iv-chart',
+                    selectId: 'delta-expiry-select'
                 },
                 {
                     canvasId: 'historic-price-chart',
@@ -926,6 +1115,7 @@
                 });
             });
         }
+
         document.addEventListener('DOMContentLoaded', addKeyboardNavigation);
     </script>
 </body>
