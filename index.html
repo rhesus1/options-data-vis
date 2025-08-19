@@ -11,14 +11,15 @@
             font-family: Arial, sans-serif;
             background-color: #1C2526;
             color: #FFFFFF;
+            margin: 0;
+            padding: 0;
         }
         .chart-container {
             width: 100%;
-            margin: 0;
             background-color: #1C2526;
+            padding: 0;
         }
         select, input {
-            margin: 10px;
             padding: 5px;
             background-color: #2E3537;
             color: #FFFFFF;
@@ -28,7 +29,7 @@
         .stats-table, .skew-table, .slope-table {
             border-collapse: collapse;
             width: 100%;
-            margin-top: 20px;
+            margin: 0;
         }
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .slope-table th, .slope-table td {
             border: 1px solid #FFFFFF;
@@ -47,9 +48,9 @@
         .grid-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            width: 80%;
-            margin: 20px auto;
+            gap: 5px;
+            width: 100%;
+            margin: 0;
         }
         .full-width {
             grid-column: span 2;
@@ -57,7 +58,8 @@
         .date-time-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 5px;
+            padding: 5px;
         }
         #ticker-search {
             width: 200px;
@@ -70,6 +72,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            padding: 5px;
         }
         .arrow-button {
             background-color: #2E3537;
@@ -83,9 +86,10 @@
             background-color: #3E4547;
         }
         .nav-link {
-            margin: 10px;
             color: #00BFFF;
             text-decoration: none;
+            padding: 5px;
+            display: inline-block;
         }
         .nav-link:hover {
             text-decoration: underline;
@@ -93,7 +97,6 @@
     </style>
 </head>
 <body>
-    <h1>Options Data Visualisation</h1>
     <div><a href="data-table.html" class="nav-link">View Data Table</a></div>
     <div class="date-time-container">
         <label for="date-select">Select Date: </label>
@@ -155,7 +158,7 @@
                 <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
             </div>
             <canvas id="historic-price-chart" tabindex="0"></canvas>
-            <div id="historic-error" style="display: none; color: #FF6666;">No historic data available</div>
+            <div id="historic-error" style="display: none; color: #FF6666; padding: 5px;">No historic data available</div>
         </div>
     </div>
     <script>
