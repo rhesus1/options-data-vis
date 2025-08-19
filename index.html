@@ -1158,6 +1158,8 @@
             let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
             filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
             const fromDate = calculateDateRange(historyLength);
+            const minHistoricDate = new Date(Math.min(...filteredHistoric.map(item => new Date(item.Date))));
+            const maxHistoricDate = new Date(Math.max(...filteredHistoric.map(item => new Date(item.Date))));
             if (fromDate) {
                 filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
             }
@@ -1236,13 +1238,23 @@
                     yAxisID: 'y1'
                 }
             ];
-            // Prepare annotations for events
+            // Prepare annotations for events within history length and data range
             const annotations = eventsData
-                .filter(event => event.Ticker === 'ALL' || event.Ticker === selectedTicker)
+                .filter(event => {
+                    const startDate = new Date(event.Start_Date);
+                    const endDate = new Date(event.End_Date);
+                    // Filter by ticker
+                    if (!(event.Ticker === 'ALL' || event.Ticker === selectedTicker)) return false;
+                    // Filter by data range
+                    if (startDate > maxHistoricDate || endDate < minHistoricDate) return false;
+                    // Filter by history length
+                    if (fromDate && (endDate < fromDate)) return false;
+                    return true;
+                })
                 .map((event, index) => ({
                     type: 'box',
-                    xMin: new Date(event.Start_Date),
-                    xMax: new Date(event.End_Date),
+                    xMin: new Date(Math.max(new Date(event.Start_Date), fromDate || minHistoricDate)),
+                    xMax: new Date(Math.min(new Date(event.End_Date), maxHistoricDate)),
                     yMin: 'y',
                     yMax: 'y',
                     backgroundColor: event.Impact === 'dip' ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)',
