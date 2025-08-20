@@ -495,5 +495,4 @@ def main():
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
         print(f"Updated dates list in {dates_file} with timestamps: {timestamps}")
-
- main()
+main()
