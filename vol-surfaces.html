@@ -17,23 +17,23 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 10px;
+            padding: 5px;
         }
         .controls {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
         select, input {
-            padding: 5px;
+            padding: 4px;
             background-color: #2E3537;
             color: #FFFFFF;
             border: 1px solid #FFFFFF;
             border-radius: 4px;
         }
         #ticker-search {
-            width: 200px;
+            width: 180px;
         }
         #ticker-datalist {
             background-color: #2E3537;
@@ -42,7 +42,7 @@
         .nav-link {
             color: #00BFFF;
             text-decoration: none;
-            padding: 5px;
+            padding: 4px;
             display: inline-block;
         }
         .nav-link:hover {
@@ -50,18 +50,23 @@
         }
         .plot-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1000px;
         }
         .plot-container {
             width: 100%;
-            height: 400px;
+            height: 600px;
+            margin: 5px 0;
+        }
+        .plot-container h2 {
+            margin: 5px 0;
+            font-size: 1.2em;
         }
         #error-message {
             color: #FF6666;
-            padding: 10px;
+            padding: 5px;
             display: none;
         }
     </style>
@@ -73,17 +78,17 @@
             <a href="data-table.html" class="nav-link">View Data Table</a>
         </div>
         <div class="controls">
-            <label for="source-select">Select Data Source: </label>
+            <label for="source-select">Source: </label>
             <select id="source-select">
                 <option value="nasdaq" selected>Nasdaq</option>
                 <option value="yfinance">yfinance</option>
             </select>
-            <label for="date-select">Select Date: </label>
+            <label for="date-select">Date: </label>
             <select id="date-select"></select>
-            <label for="time-select">Select Time: </label>
+            <label for="time-select">Time: </label>
             <select id="time-select"></select>
-            <label for="ticker-search">Search Ticker: </label>
-            <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Type to search ticker...">
+            <label for="ticker-search">Ticker: </label>
+            <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search ticker...">
             <datalist id="ticker-datalist"></datalist>
         </div>
         <div id="error-message">No data available for selected ticker</div>
@@ -272,48 +277,50 @@
 
                 document.getElementById('error-message').style.display = filteredData.length === 0 ? 'block' : 'none';
 
+                const jetColorscale = [
+                    [0, 'rgb(0,0,255)'],
+                    [0.25, 'rgb(0,255,255)'],
+                    [0.5, 'rgb(0,255,0)'],
+                    [0.75, 'rgb(255,255,0)'],
+                    [1, 'rgb(255,0,0)']
+                ];
+
                 const plotConfigs = [
                     {
                         id: 'iv-mid-calls',
                         title: 'IV Mid (Calls)',
                         data: filteredData.filter(item => item.Type === 'Call'),
-                        zKey: 'IV_mid',
-                        colorscale: 'Viridis'
+                        zKey: 'IV_mid'
                     },
                     {
                         id: 'iv-mid-puts',
                         title: 'IV Mid (Puts)',
                         data: filteredData.filter(item => item.Type === 'Put'),
-                        zKey: 'IV_mid',
-                        colorscale: 'Viridis'
+                        zKey: 'IV_mid'
                     },
                     {
                         id: 'smoothed-iv-calls',
                         title: 'Smoothed IV (Calls)',
                         data: filteredData.filter(item => item.Type === 'Call'),
-                        zKey: 'Smoothed_IV',
-                        colorscale: 'Plasma'
+                        zKey: 'Smoothed_IV'
                     },
                     {
                         id: 'smoothed-iv-puts',
                         title: 'Smoothed IV (Puts)',
                         data: filteredData.filter(item => item.Type === 'Put'),
-                        zKey: 'Smoothed_IV',
-                        colorscale: 'Plasma'
+                        zKey: 'Smoothed_IV'
                     },
                     {
                         id: 'local-vol-calls',
                         title: 'Local Volatility (Calls)',
                         data: filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
-                        zKey: 'Call Local Vol',
-                        colorscale: 'Magma'
+                        zKey: 'Call Local Vol'
                     },
                     {
                         id: 'local-vol-puts',
                         title: 'Local Volatility (Puts)',
                         data: filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
-                        zKey: 'Put Local Vol',
-                        colorscale: 'Magma'
+                        zKey: 'Put Local Vol'
                     }
                 ];
 
@@ -322,7 +329,8 @@
                     const layout = {
                         title: {
                             text: config.title,
-                            font: { color: '#FFFFFF' }
+                            font: { color: '#FFFFFF', size: 16 },
+                            y: 0.95
                         },
                         scene: {
                             xaxis: {
@@ -342,7 +350,7 @@
                             },
                             bgcolor: '#1C2526'
                         },
-                        margin: { l: 40, r: 40, t: 60, b: 40 },
+                        margin: { l: 30, r: 30, t: 50, b: 30 },
                         paper_bgcolor: '#1C2526',
                         plot_bgcolor: '#1C2526'
                     };
@@ -352,7 +360,7 @@
                         x: surfaceData.x,
                         y: surfaceData.y,
                         z: surfaceData.z,
-                        colorscale: config.colorscale,
+                        colorscale: jetColorscale,
                         showscale: true
                     }], layout);
                 });
