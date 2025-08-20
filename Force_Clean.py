@@ -14,7 +14,7 @@ def clean_data(df):
     cleaned_groups = []
     for ticker, group in df.groupby('Ticker'):
         # 1. Remove options with empty Bid or empty Ask
-        group = group.dropna(subset=['Bid', 'Ask'])
+        group = group.dropna(subset=['Bid', 'Ask', 'Strike'])
         
         # 2. Filter moneyness: keep >= 0.3 and <= 3.5
         group = group[(group['Moneyness'] >= 0.3) & (group['Moneyness'] <= 3.5)]
