@@ -75,7 +75,7 @@
             gap: 5px;
             padding: 5px;
         }
-        .arrow-button {
+        .arrow-button, .toggle-button {
             background-color: #2E3537;
             color: #FFFFFF;
             border: 1px solid #FFFFFF;
@@ -83,7 +83,7 @@
             padding: 5px 10px;
             cursor: pointer;
         }
-        .arrow-button:hover {
+        .arrow-button:hover, .toggle-button:hover {
             background-color: #3E4547;
         }
         .nav-link {
@@ -109,6 +109,7 @@
         <select id="date-select"></select>
         <label for="time-select">Select Time: </label>
         <select id="time-select"></select>
+        <button class="toggle-button" onclick="toggleStatsTables()">Toggle Stats Tables</button>
     </div>
     <div>
         <label for="ticker-search">Search Ticker: </label>
@@ -178,6 +179,7 @@
         let eventsData = [];
         let rawData = [];
         let moneynessChart, expiryChart, deltaChart, historicChart;
+        let statsTablesVisible = true;
 
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
@@ -234,6 +236,17 @@
             const changeEvent = new Event('change', { bubbles: true });
             select.dispatchEvent(changeEvent);
             console.log(`Changed ${selectId} to:`, select.value);
+        }
+
+        function toggleStatsTables() {
+            statsTablesVisible = !statsTablesVisible;
+            const statsTables = document.querySelectorAll('.stats-table');
+            statsTables.forEach(table => {
+                table.style.display = statsTablesVisible ? 'table' : 'none';
+            });
+            const toggleButton = document.querySelector('.toggle-button');
+            toggleButton.textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
+            console.log(`Stats tables visibility set to: ${statsTablesVisible}`);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -520,7 +533,7 @@
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No data for selected expiry';
-                cell.colSpan = 6;
+                colSpan = 6;
                 row.appendChild(cell);
                 tbody.appendChild(row);
             }
@@ -686,6 +699,7 @@
             if (existingTable) existingTable.remove();
             const table = document.createElement('table');
             table.className = 'stats-table';
+            table.style.display = statsTablesVisible ? 'table' : 'none';
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
             ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
@@ -1348,7 +1362,7 @@
                         font: {
                             size: 12
                         },
-                        rotation: 90 // Rotate labels to be vertical
+                        rotation: 90
                     }
                 }));
             if (historicChart) historicChart.destroy();
