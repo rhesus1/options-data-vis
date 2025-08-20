@@ -139,7 +139,6 @@
         let datasetDate = null;
         let maxT = 5;
         let maxMoneyness = 2; // Default, updated in loadData
-        let minMoneyness = 0;
         let selectedMinMoneyness = 0;
         let selectedMaxMoneyness = 2;
 
@@ -442,23 +441,26 @@
 
                 plotConfigs.forEach(config => {
                     const surfaceData = prepareSurfaceData(config.data, config.zKey);
-                    const maxZ = surfaceData.maxZ;
                     const minZ = surfaceData.minZ;
-                    const colorMax = Math.min(maxZ, 200); // Cap red at 200% for jet colorscale
+                    const maxZ = surfaceData.maxZ;
                     const colorscale = [
-                        [0, 'rgb(0,0,255)'],                           // Blue at minZ
-                        [(50 - minZ) / (colorMax - minZ), 'rgb(0,255,255)'], // Cyan at 50
-                        [(75 - minZ) / (colorMax - minZ), 'rgb(0,128,128)'], // Teal at 75
-                        [(100 - minZ) / (colorMax - minZ), 'rgb(0,255,0)'], // Green at 100
-                        [(125 - minZ) / (colorMax - minZ), 'rgb(128,255,0)'], // Lime at 125
-                        [(150 - minZ) / (colorMax - minZ), 'rgb(255,255,0)'], // Yellow at 150
-                        [(colorMax - minZ) / (colorMax - minZ), 'rgb(255,0,0)'], // Red at colorMax (≤200)
-                        [1, maxZ > 200 ? 'rgb(255,0,255)' : 'rgb(255,0,0)'] // Magenta if maxZ > 200
-                    ].filter(point => point[0] >= 0 && point[0] <= 1); // Ensure valid range
+                        [0, 'rgb(0,0,255)'],       // Blue at minZ
+                        [0.25, 'rgb(0,255,255)'],  // Cyan at 25% of range
+                        [0.5, 'rgb(0,255,0)'],     // Green at 50% of range
+                        [0.75, 'rgb(255,255,0)'],  // Yellow at 75% of range
+                        [1, 'rgb(255,0,0)']        // Red at maxZ
+                    ];
 
-                    const tickvals = [minZ, 50, 75, 100, 125, 150, maxZ]
-                        .filter(v => v >= minZ && v <= maxZ && Number.isFinite(v));
-                    const ticktext = tickvals.map(v => v.toFixed(0));
+                    // Evenly spaced ticks
+                    const numTicks = 6;
+                    const tickInterval = (maxZ - minZ) / (numTicks - 1);
+                    const tickvals = [];
+                    const ticktext = [];
+                    for (let i = 0; i < numTicks; i++) {
+                        const val = minZ + i * tickInterval;
+                        tickvals.push(val);
+                        ticktext.push(val.toFixed(0));
+                    }
 
                     const layout = {
                         title: {
