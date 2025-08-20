@@ -143,10 +143,11 @@ def calculate_iv_mid(df, ticker, r):
 
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
+        options_df['Smoothed_IV'] = np.nan
         return options_df
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
-        if len(group) < 3:
+        if len(group) < 3 or group['IV_mid'].isna().all():
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if len(group) >= 5:
@@ -160,7 +161,7 @@ def smooth_iv_per_expiry(options_df):
                 cleaned_group = group
         else:
             cleaned_group = group
-        if len(cleaned_group) < 3:
+        if len(cleaned_group) < 3 or cleaned_group['IV_mid'].isna().all():
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if cleaned_group['LogMoneyness'].duplicated().any():
@@ -187,34 +188,25 @@ def smooth_iv_per_expiry(options_df):
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
-    if T <= 0:
+    if T <= 0 or pd.isna(row['Smoothed_IV']):
+        print(f"Warning: Invalid Smoothed_IV or Years_to_Expiry for Strike {row['Strike']}, Expiry {row['Expiry']}. Skipping local vol calculation.")
         return None
-    if pd.isna(row['Smoothed_IV']):
-        print(f"Warning: Smoothed_IV is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
-        iv = np.clip(row['IV_mid'], 0.05, 5.0)
-        w = iv ** 2 * T
-        dw_dy = 0
-        d2w_dy2 = 0
-        dw_dT = iv ** 2
-    else:
-        w = interp(np.array([[y, T]]))[0]
-        if np.isnan(w):
-            return None
-        h_t = max(0.01 * T, 1e-4)
-        h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+    w = row['Smoothed_IV'] ** 2 * T
+    h_t = max(0.01 * T, 1e-4)
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+    try:
         w_T_plus = interp(np.array([[y, T + h_t]]))[0]
         w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
-        if np.isnan(w_T_plus) or np.isnan(w_T_minus):
-            return None
         dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
         w_y_plus = interp(np.array([[y + h_y, T]]))[0]
         w_y_minus = interp(np.array([[y - h_y, T]]))[0]
-        if np.isnan(w_y_plus) or np.isnan(w_y_minus):
-            return None
         dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
         d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
         if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
             return None
+    except Exception as e:
+        print(f"Warning: Interpolation failed for Strike {row['Strike']}, Expiry {row['Expiry']}: {e}. Skipping local vol calculation.")
+        return None
     denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
         local_vol = 0.0
@@ -231,10 +223,13 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
 
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
+        options_df['Smoothed_IV'] = np.nan
         return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
     options_df = smooth_iv_per_expiry(options_df)
+    if 'Smoothed_IV' not in options_df.columns:
+        options_df['Smoothed_IV'] = options_df['IV_mid']
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
@@ -284,36 +279,36 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         if np.isnan(w) or w <= 0:
             return np.nan
         return np.sqrt(w / T)
-    
+   
     skew_data = []
     target_deltas = [0.25, 0.75]
     target_terms = [0.25, 1.0]
-    
+   
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
-        
+       
         atm_iv = get_iv(call_interp, 0.0, T)
         if np.isnan(atm_iv):
             continue
-        
+       
         call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
         call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
         put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
         put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
-        
+       
         iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
         iv_put_75 = get_iv(put_interp, np.log(put_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_75) else np.nan
-        
+       
         skew_25 = iv_put_25 / iv_call_25 if not np.isnan(iv_put_25) and not np.isnan(iv_call_25) and iv_call_25 > 0 else np.nan
         skew_75 = iv_put_75 / iv_call_75 if not np.isnan(iv_put_75) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
-        
+       
         skew_call_25_75 = iv_call_25 / iv_call_75 if not np.isnan(iv_call_25) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
         skew_put_25_75 = iv_put_25 / iv_put_75 if not np.isnan(iv_put_25) and not np.isnan(iv_put_75) and iv_put_75 > 0 else np.nan
-        
+       
         skew_data.append({
             'Expiry': exp,
             'Skew_25_delta': skew_25,
@@ -329,7 +324,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             'Strike_put_25_delta': put_strike_25,
             'Strike_put_75_delta': put_strike_75
         })
-    
+   
     slope_data = []
     for delta in target_deltas:
         for opt_type in ['call', 'put']:
@@ -340,14 +335,14 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             strike_3m = find_strike_for_delta(S, 0.25, r, q, iv_3m, delta, opt_type)
             log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
             iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
-            
+           
             iv_12m = get_iv(interp, 0.0, 1.0)
             if np.isnan(iv_12m):
                 continue
             strike_12m = find_strike_for_delta(S, 1.0, r, q, iv_12m, delta, opt_type)
             log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
             iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
-            
+           
             slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
             slope_data.append({
                 'Delta': delta,
@@ -358,17 +353,17 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
                 'Strike_3m': strike_3m,
                 'Strike_12m': strike_12m
             })
-    
+   
     skew_metrics_df = pd.DataFrame(skew_data)
     slope_metrics_df = pd.DataFrame(slope_data)
-    
+   
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
     skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
     skew_metrics_df['ATM_IV_3m'] = atm_iv_3m
     skew_metrics_df['ATM_IV_12m'] = atm_iv_12m
-    
+   
     return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, df, full_df, r):
@@ -464,7 +459,7 @@ def main():
     if not clean_files and not clean_yfinance_files:
         print("No cleaned data files found")
         return
-    
+   
     # Initialize dates.json
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
@@ -472,10 +467,10 @@ def main():
             dates = json.load(f)
     else:
         dates = []
-    
+   
     # Collect unique timestamps
     timestamps = set()
-    
+   
     # Process the most recent Nasdaq file
     if clean_files:
         latest_clean = max(clean_files, key=os.path.getctime)
@@ -486,7 +481,7 @@ def main():
         result = process_data(latest_clean, raw_file, timestamp, prefix="")
         if result[0] is None and result[1] is None and result[2] is None:
             print(f"Failed to process Nasdaq data for {timestamp}")
-    
+   
     # Process the most recent yfinance file
     if clean_yfinance_files:
         latest_yfinance_clean = max(clean_yfinance_files, key=os.path.getctime)
@@ -497,7 +492,7 @@ def main():
         result = process_data(latest_yfinance_clean, raw_yfinance_file, timestamp, prefix="yfinance_")
         if result[0] is None and result[1] is None and result[2] is None:
             print(f"Failed to process yfinance data for {timestamp}")
-    
+   
     # Update dates.json with all unique timestamps
     for timestamp in timestamps:
         if timestamp not in dates:
@@ -507,5 +502,5 @@ def main():
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
         print(f"Updated dates list in {dates_file} with timestamps: {timestamps}")
-        
+       
 main()
