@@ -258,14 +258,17 @@
                     }
                 });
 
+                const maxZ = Math.max(...zData.flat().filter(v => Number.isFinite(v)), 0);
+
                 return {
                     x: expiryValues,
                     y: moneynessValues.map(val => val * 100),
-                    z: zData
+                    z: zData,
+                    maxZ: maxZ
                 };
             } catch (error) {
                 console.error('Error preparing surface data:', error);
-                return { x: [], y: [], z: [] };
+                return { x: [], y: [], z: [], maxZ: 0 };
             }
         }
 
@@ -276,14 +279,6 @@
                 console.log('Updating plots for ticker:', selectedTicker, 'Data size:', filteredData.length);
 
                 document.getElementById('error-message').style.display = filteredData.length === 0 ? 'block' : 'none';
-
-                const jetColorscale = [
-                    [0, 'rgb(0,0,255)'],
-                    [0.25, 'rgb(0,255,255)'],
-                    [0.5, 'rgb(0,255,0)'],
-                    [0.75, 'rgb(255,255,0)'],
-                    [1, 'rgb(255,0,0)']
-                ];
 
                 const plotConfigs = [
                     {
@@ -326,6 +321,16 @@
 
                 plotConfigs.forEach(config => {
                     const surfaceData = prepareSurfaceData(config.data, config.zKey);
+                    const maxZ = Math.max(200, surfaceData.maxZ);
+                    const colorscale = [
+                        [0, 'rgb(0,0,255)'],         // Blue at z=0
+                        [0.25 * 200 / maxZ, 'rgb(0,255,255)'], // Cyan at z=50 (scaled)
+                        [0.5 * 200 / maxZ, 'rgb(0,255,0)'],   // Green at z=100 (scaled)
+                        [0.75 * 200 / maxZ, 'rgb(255,255,0)'], // Yellow at z=150 (scaled)
+                        [1 * 200 / maxZ, 'rgb(255,0,0)'],     // Red at z=200 (scaled)
+                        [1, 'rgb(255,0,255)']                 // Magenta for z>=maxZ
+                    ];
+
                     const layout = {
                         title: {
                             text: config.title,
@@ -346,7 +351,9 @@
                             },
                             zaxis: {
                                 title: 'Volatility (%)',
-                                color: '#FFFFFF'
+                                color: '#FFFFFF',
+                                range: [0, maxZ],
+                                autorange: false
                             },
                             bgcolor: '#1C2526'
                         },
@@ -360,8 +367,16 @@
                         x: surfaceData.x,
                         y: surfaceData.y,
                         z: surfaceData.z,
-                        colorscale: jetColorscale,
-                        showscale: true
+                        colorscale: colorscale,
+                        cmin: 0,
+                        cmax: maxZ,
+                        showscale: true,
+                        colorbar: {
+                            title: 'Volatility (%)',
+                            titleside: 'right',
+                            titlefont: { color: '#FFFFFF' },
+                            tickfont: { color: '#FFFFFF' }
+                        }
                     }], layout);
                 });
             } catch (error) {
