@@ -296,11 +296,11 @@
                             return t !== null && Number.isFinite(t) ? Math.max(max, t) : max;
                         }, 0);
                         maxT = Math.ceil(maxT * 10) / 10; // Round up to nearest 0.1
-                        // Update T slider, preserving selected value if possible, default to 0.2
+                        // Update T slider, preserving selected value or default to 0.2
                         const minTSlider = document.getElementById('min-t-slider');
                         minTSlider.max = maxT;
                         minTSlider.value = Math.min(selectedMinT, maxT, 0.2);
-                        selectedMinT = parseFloat(minTSlider.value) || 0.2; // Default to 0.2 if unset
+                        selectedMinT = parseFloat(minTSlider.value) || 0.2;
                         document.getElementById('min-t-value').textContent = selectedMinT.toFixed(1);
                         console.log('Max T set to:', maxT, 'Selected T:', selectedMinT);
                         // Calculate max Moneyness
@@ -308,11 +308,10 @@
                             return Number.isFinite(item.Moneyness) ? Math.max(max, item.Moneyness) : max;
                         }, 0);
                         maxMoneyness = Math.ceil(maxMoneyness * 100) / 100; // Round up to nearest 0.01
-                        // Update Moneyness slider, preserving selected values if possible, default to [20, 200]
+                        // Update Moneyness slider, preserving selected values or default to [20, 200]
                         const moneynessSlider = document.getElementById('moneyness-range-slider');
-                        const currentMoneyness = moneynessSlider.noUiSlider.get();
-                        const defaultMinMoneyness = 20; // Default 20%
-                        const defaultMaxMoneyness = 200; // Default 200%
+                        const defaultMinMoneyness = 20;
+                        const defaultMaxMoneyness = 200;
                         const newMinMoneyness = selectedMinMoneyness * 100 > 0 ? Math.min(selectedMinMoneyness * 100, maxMoneyness * 100, defaultMinMoneyness) : defaultMinMoneyness;
                         const newMaxMoneyness = selectedMaxMoneyness * 100 > 0 ? Math.min(selectedMaxMoneyness * 100, maxMoneyness * 100, defaultMaxMoneyness) : Math.min(maxMoneyness * 100, defaultMaxMoneyness);
                         moneynessSlider.noUiSlider.updateOptions({
@@ -495,6 +494,12 @@
                                 color: '#FFFFFF',
                                 range: [minZ, maxZ],
                                 autorange: false
+                            },
+                            aspectmode: 'manual',
+                            aspectratio: {
+                                x: 1,
+                                y: 1,
+                                z: 0.5
                             },
                             bgcolor: '#1C2526'
                         },
