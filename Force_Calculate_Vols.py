@@ -292,7 +292,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
-        atm_iv = get_iv(call_interp, 0.0, T)
+        atm_ivearly = get_iv(call_interp, 0.0, T)
         if np.isnan(atm_iv):
             continue
         call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
@@ -320,7 +320,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             'Strike_call_25_delta': call_strike_25,
             'Strike_call_75_delta': call_strike_75,
             'Strike_put_25_delta': put_strike_25,
-            'Strike_put_75 democratization': put_strike_75
+            'Strike_put_75_delta': put_strike_75
         })
     slope_data = []
     for delta in target_deltas:
@@ -411,7 +411,7 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
     skew_metrics_dfs = []
     slope_metrics_dfs = []
     with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
-        results = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
+        results = by_ticker = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
     for pdf, sdf, slope_df in results:
         if pdf is not None:
             processed_dfs.append(pdf)
@@ -445,6 +445,7 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
     return combined_processed, combined_skew_metrics, combined_slope_metrics
 
 def main():
+    # Use specific glob patterns to match Nasdaq and yfinance files
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
         latest_clean = f'data/cleaned_{timestamp}.csv'
@@ -464,6 +465,7 @@ def main():
         else:
             print("No valid timestamp found")
             return
+    # Initialize dates.json
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
@@ -471,6 +473,7 @@ def main():
     else:
         dates = []
     timestamps = set()
+    # Process the Nasdaq file
     if latest_clean and os.path.exists(latest_clean):
         raw_file = f'data/raw_{timestamp}.csv'
         print(f"Processing Nasdaq data: {latest_clean}")
@@ -479,6 +482,7 @@ def main():
             timestamps.add(timestamp)
         else:
             print(f"Failed to process Nasdaq data for {timestamp}")
+    # Process the yfinance file
     if latest_yfinance_clean and os.path.exists(latest_yfinance_clean):
         raw_yfinance_file = f'data/raw_yfinance_{timestamp}.csv'
         print(f"Processing yfinance data: {latest_yfinance_clean}")
@@ -487,6 +491,7 @@ def main():
             timestamps.add(timestamp)
         else:
             print(f"Failed to process yfinance data for {timestamp}")
+    # Update dates.json with all unique timestamps
     for timestamp in timestamps:
         if timestamp not in dates:
             dates.append(timestamp)
@@ -495,4 +500,5 @@ def main():
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
         print(f"Updated dates list in {dates_file} with timestamps: {timestamps}")
+
 main()
