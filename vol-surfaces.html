@@ -69,6 +69,12 @@
             padding: 5px;
             display: none;
         }
+        #min-t-slider {
+            width: 150px;
+        }
+        #min-t-value {
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -90,6 +96,9 @@
             <label for="ticker-search">Ticker: </label>
             <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search ticker...">
             <datalist id="ticker-datalist"></datalist>
+            <label for="min-t-slider">Min T (years): </label>
+            <input type="range" id="min-t-slider" min="0" max="5" step="0.1" value="0">
+            <span id="min-t-value">0.0</span>
         </div>
         <div id="error-message">No data available for selected ticker</div>
         <div class="plot-grid">
@@ -103,6 +112,8 @@
     </div>
     <script>
         let data = [];
+        let datasetDate = null;
+        let maxT = 5;
 
         function parseCSV(csvText) {
             try {
@@ -129,12 +140,31 @@
             }
         }
 
+        function calculateTimeToExpiry(expiryDate, referenceDate) {
+            try {
+                const expiry = new Date(expiryDate);
+                const ref = new Date(referenceDate);
+                const diffMs = expiry - ref;
+                return diffMs / (365 * 24 * 60 * 60 * 1000); // Convert to years
+            } catch (error) {
+                console.error('Error calculating time to expiry:', error);
+                return null;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
                 const timeSelect = document.getElementById('time-select');
                 const tickerSearch = document.getElementById('ticker-search');
                 const sourceSelect = document.getElementById('source-select');
+                const minTSlider = document.getElementById('min-t-slider');
+                const minTValue = document.getElementById('min-t-value');
+
+                minTSlider.addEventListener('input', () => {
+                    minTValue.textContent = parseFloat(minTSlider.value).toFixed(1);
+                    updatePlots();
+                });
 
                 fetch('data/dates.json?v=' + Date.now())
                     .then(response => response.json())
@@ -200,12 +230,24 @@
                 const source = document.getElementById('source-select').value;
                 const prefix = source === 'yfinance' ? 'yfinance_' : '';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
+                datasetDate = new Date(timestamp.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3'));
 
                 fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
                         data = parseCSV(csvText);
                         console.log(`Processed ${source} data loaded:`, data);
+                        // Calculate max T
+                        maxT = data.reduce((max, item) => {
+                            const t = calculateTimeToExpiry(item.Expiry, datasetDate);
+                            return t !== null && Number.isFinite(t) ? Math.max(max, t) : max;
+                        }, 0);
+                        maxT = Math.ceil(maxT * 10) / 10; // Round up to nearest 0.1
+                        const minTSlider = document.getElementById('min-t-slider');
+                        minTSlider.max = maxT;
+                        minTSlider.value = 0;
+                        document.getElementById('min-t-value').textContent = '0.0';
+                        console.log('Max T set to:', maxT);
                         populateTickerSearch();
                         updatePlots();
                     })
@@ -243,14 +285,21 @@
 
         function prepareSurfaceData(filteredData, zKey) {
             try {
-                const moneynessValues = [...new Set(filteredData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
+                const minT = parseFloat(document.getElementById('min-t-slider').value);
+                // Filter by minimum time to expiry
+                const tFilteredData = filteredData.filter(item => {
+                    const t = calculateTimeToExpiry(item.Expiry, datasetDate);
+                    return t !== null && Number.isFinite(t) && t >= minT;
+                });
+
+                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                     .filter(val => !isNaN(val)).sort((a, b) => a - b);
-                const expiryValues = [...new Set(filteredData.map(item => normalizeDate(item.Expiry)))]
+                const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
                     .filter(val => val).sort();
                 const zData = [];
                 moneynessValues.forEach(() => zData.push(new Array(expiryValues.length).fill(null)));
 
-                filteredData.forEach(item => {
+                tFilteredData.forEach(item => {
                     const moneynessIndex = moneynessValues.indexOf(Math.round(item.Moneyness * 100 / 10) * 0.1);
                     const expiryIndex = expiryValues.indexOf(normalizeDate(item.Expiry));
                     if (moneynessIndex >= 0 && expiryIndex >= 0 && Number.isFinite(item[zKey])) {
@@ -258,17 +307,20 @@
                     }
                 });
 
-                const maxZ = Math.max(...zData.flat().filter(v => Number.isFinite(v)), 0);
+                const zValues = zData.flat().filter(v => Number.isFinite(v));
+                const minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
+                const maxZ = zValues.length > 0 ? Math.max(...zValues) : 0;
 
                 return {
                     x: expiryValues,
                     y: moneynessValues.map(val => val * 100),
                     z: zData,
+                    minZ: minZ,
                     maxZ: maxZ
                 };
             } catch (error) {
                 console.error('Error preparing surface data:', error);
-                return { x: [], y: [], z: [], maxZ: 0 };
+                return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
             }
         }
 
@@ -321,17 +373,23 @@
 
                 plotConfigs.forEach(config => {
                     const surfaceData = prepareSurfaceData(config.data, config.zKey);
-                    const maxZ = Math.max(200, surfaceData.maxZ);
+                    const maxZ = surfaceData.maxZ;
+                    const minZ = surfaceData.minZ;
+                    const colorMax = Math.min(maxZ, 200); // Cap red at 200% for jet colorscale
                     const colorscale = [
-                        [0, 'rgb(0,0,255)'],               // Blue at z=0
-                        [50 / maxZ, 'rgb(0,255,255)'],     // Cyan at z=50
-                        [75 / maxZ, 'rgb(0,128,128)'],     // Teal at z=75
-                        [100 / maxZ, 'rgb(0,255,0)'],      // Green at z=100
-                        [125 / maxZ, 'rgb(128,255,0)'],    // Lime at z=125
-                        [150 / maxZ, 'rgb(255,255,0)'],    // Yellow at z=150
-                        [200 / maxZ, 'rgb(255,0,0)'],      // Red at z=200
-                        [1, 'rgb(255,0,255)']              // Magenta for z>=maxZ
-                    ];
+                        [0, 'rgb(0,0,255)'],                           // Blue at minZ
+                        [(50 - minZ) / (colorMax - minZ), 'rgb(0,255,255)'], // Cyan at 50
+                        [(75 - minZ) / (colorMax - minZ), 'rgb(0,128,128)'], // Teal at 75
+                        [(100 - minZ) / (colorMax - minZ), 'rgb(0,255,0)'], // Green at 100
+                        [(125 - minZ) / (colorMax - minZ), 'rgb(128,255,0)'], // Lime at 125
+                        [(150 - minZ) / (colorMax - minZ), 'rgb(255,255,0)'], // Yellow at 150
+                        [(colorMax - minZ) / (colorMax - minZ), 'rgb(255,0,0)'], // Red at colorMax (≤200)
+                        [1, maxZ > 200 ? 'rgb(255,0,255)' : 'rgb(255,0,0)'] // Magenta if maxZ > 200, else red
+                    ].filter(point => point[0] >= 0 && point[0] <= 1); // Ensure valid range
+
+                    const tickvals = [minZ, 50, 75, 100, 125, 150, maxZ]
+                        .filter(v => v >= minZ && v <= maxZ && Number.isFinite(v));
+                    const ticktext = tickvals.map(v => v.toFixed(0));
 
                     const layout = {
                         title: {
@@ -344,7 +402,8 @@
                                 title: 'Expiry',
                                 type: 'date',
                                 tickformat: '%Y-%m-%d',
-                                color: '#FFFFFF'
+                                color: '#FFFFFF',
+                                range: surfaceData.x.length > 0 ? [surfaceData.x[0], surfaceData.x[surfaceData.x.length - 1]] : undefined
                             },
                             yaxis: {
                                 title: 'Moneyness (%)',
@@ -354,7 +413,7 @@
                             zaxis: {
                                 title: 'Volatility (%)',
                                 color: '#FFFFFF',
-                                range: [0, maxZ],
+                                range: [minZ, maxZ],
                                 autorange: false
                             },
                             bgcolor: '#1C2526'
@@ -370,7 +429,7 @@
                         y: surfaceData.y,
                         z: surfaceData.z,
                         colorscale: colorscale,
-                        cmin: 0,
+                        cmin: minZ,
                         cmax: maxZ,
                         showscale: true,
                         colorbar: {
@@ -378,8 +437,8 @@
                             titleside: 'right',
                             titlefont: { color: '#FFFFFF' },
                             tickfont: { color: '#FFFFFF' },
-                            tickvals: [0, 50, 75, 100, 125, 150, 200, maxZ > 200 ? maxZ : null].filter(v => v !== null),
-                            ticktext: [0, 50, 75, 100, 125, 150, 200, maxZ > 200 ? maxZ.toFixed(0) : null].filter(v => v !== null)
+                            tickvals: tickvals,
+                            ticktext: ticktext
                         }
                     }], layout);
                 });
