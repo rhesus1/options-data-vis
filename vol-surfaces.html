@@ -323,12 +323,14 @@
                     const surfaceData = prepareSurfaceData(config.data, config.zKey);
                     const maxZ = Math.max(200, surfaceData.maxZ);
                     const colorscale = [
-                        [0, 'rgb(0,0,255)'],         // Blue at z=0
-                        [0.25 * 200 / maxZ, 'rgb(0,255,255)'], // Cyan at z=50 (scaled)
-                        [0.5 * 200 / maxZ, 'rgb(0,255,0)'],   // Green at z=100 (scaled)
-                        [0.75 * 200 / maxZ, 'rgb(255,255,0)'], // Yellow at z=150 (scaled)
-                        [1 * 200 / maxZ, 'rgb(255,0,0)'],     // Red at z=200 (scaled)
-                        [1, 'rgb(255,0,255)']                 // Magenta for z>=maxZ
+                        [0, 'rgb(0,0,255)'],               // Blue at z=0
+                        [50 / maxZ, 'rgb(0,255,255)'],     // Cyan at z=50
+                        [75 / maxZ, 'rgb(0,128,128)'],     // Teal at z=75
+                        [100 / maxZ, 'rgb(0,255,0)'],      // Green at z=100
+                        [125 / maxZ, 'rgb(128,255,0)'],    // Lime at z=125
+                        [150 / maxZ, 'rgb(255,255,0)'],    // Yellow at z=150
+                        [200 / maxZ, 'rgb(255,0,0)'],      // Red at z=200
+                        [1, 'rgb(255,0,255)']              // Magenta for z>=maxZ
                     ];
 
                     const layout = {
@@ -375,7 +377,9 @@
                             title: 'Volatility (%)',
                             titleside: 'right',
                             titlefont: { color: '#FFFFFF' },
-                            tickfont: { color: '#FFFFFF' }
+                            tickfont: { color: '#FFFFFF' },
+                            tickvals: [0, 50, 75, 100, 125, 150, 200, maxZ > 200 ? maxZ : null].filter(v => v !== null),
+                            ticktext: [0, 50, 75, 100, 125, 150, 200, maxZ > 200 ? maxZ.toFixed(0) : null].filter(v => v !== null)
                         }
                     }], layout);
                 });
