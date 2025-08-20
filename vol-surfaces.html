@@ -118,11 +118,11 @@
             <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search ticker...">
             <datalist id="ticker-datalist"></datalist>
             <label for="min-t-slider">Min T (years): </label>
-            <input type="range" id="min-t-slider" min="0" max="5" step="0.1" value="0">
-            <span id="min-t-value">0.0</span>
+            <input type="range" id="min-t-slider" min="0" max="5" step="0.1" value="0.2">
+            <span id="min-t-value">0.2</span>
             <label for="moneyness-range-slider">Moneyness Range (%): </label>
             <div id="moneyness-range-slider"></div>
-            <span id="moneyness-range-values">0 - 200</span>
+            <span id="moneyness-range-values">20 - 200</span>
         </div>
         <div id="error-message">No data available for selected ticker</div>
         <div class="plot-grid">
@@ -139,8 +139,9 @@
         let datasetDate = null;
         let maxT = 5;
         let maxMoneyness = 2; // Default, updated in loadData
-        let selectedMinMoneyness = 0;
-        let selectedMaxMoneyness = 2;
+        let selectedMinT = 0.2; // Default T
+        let selectedMinMoneyness = 0.2; // Default min Moneyness
+        let selectedMaxMoneyness = 2; // Default max Moneyness
 
         function parseCSV(csvText) {
             try {
@@ -192,7 +193,7 @@
 
                 // Initialize noUISlider for Moneyness range
                 noUiSlider.create(moneynessSlider, {
-                    start: [0, 200],
+                    start: [20, 200],
                     connect: true,
                     range: {
                         'min': 0,
@@ -213,7 +214,8 @@
                 });
 
                 minTSlider.addEventListener('input', () => {
-                    minTValue.textContent = parseFloat(minTSlider.value).toFixed(1);
+                    selectedMinT = parseFloat(minTSlider.value);
+                    minTValue.textContent = selectedMinT.toFixed(1);
                     updatePlots();
                 });
 
@@ -294,27 +296,36 @@
                             return t !== null && Number.isFinite(t) ? Math.max(max, t) : max;
                         }, 0);
                         maxT = Math.ceil(maxT * 10) / 10; // Round up to nearest 0.1
-                        document.getElementById('min-t-slider').max = maxT;
-                        document.getElementById('min-t-slider').value = 0;
-                        document.getElementById('min-t-value').textContent = '0.0';
-                        console.log('Max T set to:', maxT);
+                        // Update T slider, preserving selected value if possible, default to 0.2
+                        const minTSlider = document.getElementById('min-t-slider');
+                        minTSlider.max = maxT;
+                        minTSlider.value = Math.min(selectedMinT, maxT, 0.2);
+                        selectedMinT = parseFloat(minTSlider.value) || 0.2; // Default to 0.2 if unset
+                        document.getElementById('min-t-value').textContent = selectedMinT.toFixed(1);
+                        console.log('Max T set to:', maxT, 'Selected T:', selectedMinT);
                         // Calculate max Moneyness
                         maxMoneyness = data.reduce((max, item) => {
                             return Number.isFinite(item.Moneyness) ? Math.max(max, item.Moneyness) : max;
                         }, 0);
                         maxMoneyness = Math.ceil(maxMoneyness * 100) / 100; // Round up to nearest 0.01
+                        // Update Moneyness slider, preserving selected values if possible, default to [20, 200]
                         const moneynessSlider = document.getElementById('moneyness-range-slider');
+                        const currentMoneyness = moneynessSlider.noUiSlider.get();
+                        const defaultMinMoneyness = 20; // Default 20%
+                        const defaultMaxMoneyness = 200; // Default 200%
+                        const newMinMoneyness = selectedMinMoneyness * 100 > 0 ? Math.min(selectedMinMoneyness * 100, maxMoneyness * 100, defaultMinMoneyness) : defaultMinMoneyness;
+                        const newMaxMoneyness = selectedMaxMoneyness * 100 > 0 ? Math.min(selectedMaxMoneyness * 100, maxMoneyness * 100, defaultMaxMoneyness) : Math.min(maxMoneyness * 100, defaultMaxMoneyness);
                         moneynessSlider.noUiSlider.updateOptions({
                             range: {
                                 'min': 0,
                                 'max': maxMoneyness * 100
                             },
-                            start: [0, maxMoneyness * 100]
+                            start: [newMinMoneyness, newMaxMoneyness]
                         });
-                        selectedMinMoneyness = 0;
-                        selectedMaxMoneyness = maxMoneyness;
-                        document.getElementById('moneyness-range-values').textContent = `0 - ${maxMoneyness * 100}`;
-                        console.log('Max Moneyness set to:', maxMoneyness);
+                        selectedMinMoneyness = newMinMoneyness / 100;
+                        selectedMaxMoneyness = newMaxMoneyness / 100;
+                        document.getElementById('moneyness-range-values').textContent = `${newMinMoneyness} - ${newMaxMoneyness}`;
+                        console.log('Max Moneyness set to:', maxMoneyness, 'Selected Moneyness:', [selectedMinMoneyness, selectedMaxMoneyness]);
                         populateTickerSearch();
                         updatePlots();
                     })
@@ -352,11 +363,9 @@
 
         function prepareSurfaceData(filteredData, zKey) {
             try {
-                const minT = parseFloat(document.getElementById('min-t-slider').value);
-                // Filter by minimum time to expiry and Moneyness range
                 const tFilteredData = filteredData.filter(item => {
                     const t = calculateTimeToExpiry(item.Expiry, datasetDate);
-                    return t !== null && Number.isFinite(t) && t >= minT &&
+                    return t !== null && Number.isFinite(t) && t >= selectedMinT &&
                            item.Moneyness >= selectedMinMoneyness && item.Moneyness <= selectedMaxMoneyness;
                 });
 
