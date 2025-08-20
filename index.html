@@ -118,6 +118,11 @@
     </div>
     <div class="grid-container">
         <div class="chart-container">
+            <h2>Summary</h2>
+            <table id="summary-table" class="summary-table"></table>
+            <table id="skew-table" class="skew-table"></table>
+        </div>
+        <div class="chart-container">
             <h2>Moneyness vs. Volatility</h2>
             <div class="select-container">
                 <label for="expiry-select">Select Expiry: </label>
@@ -126,7 +131,6 @@
                 <button class="arrow-button" onclick="changeSelect('expiry-select', 1)">&#9654;</button>
             </div>
             <canvas id="moneyness-vs-iv-chart" tabindex="0"></canvas>
-            <table id="skew-table" class="skew-table"></table>
         </div>
         <div class="chart-container">
             <h2>Expiry vs. Volatility</h2>
@@ -147,10 +151,6 @@
                 <button class="arrow-button" onclick="changeSelect('delta-expiry-select', 1)">&#9654;</button>
             </div>
             <canvas id="delta-vs-iv-chart" tabindex="0"></canvas>
-        </div>
-        <div class="chart-container">
-            <h2>Summary</h2>
-            <table id="summary-table" class="summary-table"></table>
         </div>
     </div>
     <div class="chart-container full-width">
@@ -533,7 +533,7 @@
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No data for selected expiry';
-                colSpan = 6;
+                cell.colSpan = 6;
                 row.appendChild(cell);
                 tbody.appendChild(row);
             }
@@ -887,7 +887,8 @@
                                 text: 'Moneyness (%)',
                                 color: '#FFFFFF'
                             },
-                            beginAtZero: false,
+                            min: 0,
+                            max: 200,
                             grid: {
                                 color: '#FFFFFF33'
                             },
