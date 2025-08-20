@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <title>Options Data Visualisation</title>
@@ -8,23 +8,47 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
+        :root {
+            --background-color: #1C2526;
+            --text-color: #FFFFFF;
+            --table-header-bg: #2E3537;
+            --input-bg: #2E3537;
+            --input-border: #FFFFFF;
+            --grid-line-color: #FFFFFF33;
+            --link-color: #00BFFF;
+            --button-hover-bg: #3E4547;
+            --error-color: #FF6666;
+            --chart-bg: #1C2526;
+        }
+        [data-theme="light"] {
+            --background-color: #FFFFFF;
+            --text-color: #000000;
+            --table-header-bg: #E0E0E0;
+            --input-bg: #F0F0F0;
+            --input-border: #000000;
+            --grid-line-color: #00000033;
+            --link-color: #1E90FF;
+            --button-hover-bg: #D0D0D0;
+            --error-color: #FF3333;
+            --chart-bg: #FFFFFF;
+        }
         body {
             font-family: Arial, sans-serif;
-            background-color: #1C2526;
-            color: #FFFFFF;
+            background-color: var(--background-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
         }
         .chart-container {
             width: 100%;
-            background-color: #1C2526;
+            background-color: var(--chart-bg);
             padding: 0;
         }
         select, input {
             padding: 5px;
-            background-color: #2E3537;
-            color: #FFFFFF;
-            border: 1px solid #FFFFFF;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
             border-radius: 4px;
         }
         .stats-table, .skew-table, .summary-table {
@@ -33,13 +57,13 @@
             margin: 20px 0;
         }
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td {
-            border: 1px solid #FFFFFF;
+            border: 1px solid var(--input-border);
             padding: 12px;
             text-align: left;
-            color: #FFFFFF;
+            color: var(--text-color);
         }
         .stats-table th, .skew-table th, .summary-table th {
-            background-color: #2E3537;
+            background-color: var(--table-header-bg);
         }
         .line-swatch {
             display: inline-block;
@@ -66,8 +90,8 @@
             width: 200px;
         }
         #ticker-datalist {
-            background-color: #2E3537;
-            color: #FFFFFF;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
         .select-container {
             display: flex;
@@ -76,24 +100,28 @@
             padding: 5px;
         }
         .arrow-button, .toggle-button {
-            background-color: #2E3537;
-            color: #FFFFFF;
-            border: 1px solid #FFFFFF;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
             border-radius: 4px;
             padding: 5px 10px;
             cursor: pointer;
         }
         .arrow-button:hover, .toggle-button:hover {
-            background-color: #3E4547;
+            background-color: var(--button-hover-bg);
         }
         .nav-link {
-            color: #00BFFF;
+            color: var(--link-color);
             text-decoration: none;
             padding: 5px;
             display: inline-block;
         }
         .nav-link:hover {
             text-decoration: underline;
+        }
+        #historic-error {
+            color: var(--error-color);
+            padding: 5px;
         }
     </style>
 </head>
@@ -110,6 +138,7 @@
         <label for="time-select">Select Time: </label>
         <select id="time-select"></select>
         <button class="toggle-button" onclick="toggleStatsTables()">Toggle Stats Tables</button>
+        <button class="toggle-button" onclick="toggleTheme()">Light</button>
     </div>
     <div>
         <label for="ticker-search">Search Ticker: </label>
@@ -169,7 +198,7 @@
             <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
         </div>
         <canvas id="historic-price-chart" tabindex="0"></canvas>
-        <div id="historic-error" style="display: none; color: #FF6666; padding: 5px;">No historic data available</div>
+        <div id="historic-error" style="display: none;">No historic data available</div>
     </div>
     <script>
         let data = [];
@@ -244,12 +273,31 @@
             statsTables.forEach(table => {
                 table.style.display = statsTablesVisible ? 'table' : 'none';
             });
-            const toggleButton = document.querySelector('.toggle-button');
+            const toggleButton = document.querySelector('.toggle-button[onclick="toggleStatsTables()"]');
             toggleButton.textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
             console.log(`Stats tables visibility set to: ${statsTablesVisible}`);
         }
 
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            const themeButton = document.querySelector('.toggle-button[onclick="toggleTheme()"]');
+            themeButton.textContent = newTheme === 'dark' ? 'Light' : 'Dark';
+            console.log(`Theme switched to: ${newTheme}`);
+            // Update charts to refresh canvas background
+            updateCharts();
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const themeButton = document.querySelector('.toggle-button[onclick="toggleTheme()"]');
+            themeButton.textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+
             const dateSelect = document.getElementById('date-select');
             const timeSelect = document.getElementById('time-select');
             const tickerSearch = document.getElementById('ticker-search');
@@ -479,6 +527,7 @@
             }
             console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
+
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -487,7 +536,7 @@
             table.innerHTML = '';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
             console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Skew data size:', filteredSkewData.length);
-            if (filteredSkewData.length === 0) {
+            if (filteredSkewData.length == 0) {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
                 cell.textContent = 'No skew metrics available';
@@ -538,6 +587,7 @@
             }
             table.appendChild(tbody);
         }
+
         function updateSummaryTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -881,7 +931,7 @@
                         legend: {
                             display: true,
                             labels: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
@@ -891,33 +941,33 @@
                             title: {
                                 display: true,
                                 text: 'Moneyness (%)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             min: 0,
                             max: 200,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Volatility (%)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             beginAtZero: true,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
-                    backgroundColor: '#1C2526'
+                    backgroundColor: var(--chart-bg)
                 }
             });
             createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
@@ -1044,7 +1094,7 @@
                         legend: {
                             display: true,
                             labels: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
@@ -1055,31 +1105,31 @@
                             title: {
                                 display: true,
                                 text: 'Expiry Date',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Volatility (%)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             beginAtZero: true,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
-                    backgroundColor: '#1C2526'
+                    backgroundColor: var(--chart-bg)
                 }
             });
             createStatsTable(expiryChart, 'expiry-vs-iv-chart');
@@ -1206,7 +1256,7 @@
                         legend: {
                             display: true,
                             labels: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
@@ -1216,15 +1266,15 @@
                             title: {
                                 display: true,
                                 text: 'Delta (%)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             min: -100,
                             max: 100,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF',
+                                color: var(--text-color),
                                 callback: function(value) {
                                     return Math.abs(value).toFixed(0);
                                 }
@@ -1234,18 +1284,18 @@
                             title: {
                                 display: true,
                                 text: 'Volatility (%)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             beginAtZero: true,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
-                    backgroundColor: '#1C2526'
+                    backgroundColor: var(--chart-bg)
                 }
             });
             createStatsTable(deltaChart, 'delta-vs-iv-chart');
@@ -1365,7 +1415,7 @@
                         content: event.Event,
                         display: true,
                         position: 'center',
-                        color: '#FFFFFF',
+                        color: var(--text-color),
                         font: {
                             size: 12
                         },
@@ -1381,7 +1431,7 @@
                         legend: {
                             display: true,
                             labels: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         },
                         annotation: {
@@ -1395,27 +1445,27 @@
                             title: {
                                 display: true,
                                 text: 'Date',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Stock Price ($)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             beginAtZero: false,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         },
                         y1: {
@@ -1424,18 +1474,18 @@
                             title: {
                                 display: true,
                                 text: 'Realised Volatility (%)',
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             },
                             beginAtZero: false,
                             grid: {
-                                color: '#FFFFFF33'
+                                color: var(--grid-line-color)
                             },
                             ticks: {
-                                color: '#FFFFFF'
+                                color: var(--text-color)
                             }
                         }
                     },
-                    backgroundColor: '#1C2526'
+                    backgroundColor: var(--chart-bg)
                 }
             });
             document.getElementById('historic-error').style.display = 'none';
