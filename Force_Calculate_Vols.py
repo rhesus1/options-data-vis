@@ -144,10 +144,11 @@ def calculate_iv_mid(df, ticker, r):
 
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
+        options_df['Smoothed_IV'] = np.nan
         return options_df
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
-        if len(group) < 3:
+        if len(group) < 3 or group['IV_mid'].isna().all():
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if len(group) >= 5:
@@ -161,7 +162,7 @@ def smooth_iv_per_expiry(options_df):
                 cleaned_group = group
         else:
             cleaned_group = group
-        if len(cleaned_group) < 3:
+        if len(cleaned_group) < 3 or cleaned_group['IV_mid'].isna().all():
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if cleaned_group['LogMoneyness'].duplicated().any():
@@ -188,34 +189,25 @@ def smooth_iv_per_expiry(options_df):
 def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
-    if T <= 0:
+    if T <= 0 or pd.isna(row['Smoothed_IV']):
+        print(f"Warning: Invalid Smoothed_IV or Years_to_Expiry for Strike {row['Strike']}, Expiry {row['Expiry']}. Skipping local vol calculation.")
         return None
-    if pd.isna(row['Smoothed_IV']):
-        print(f"Warning: Smoothed_IV is NaN for Strike {row['Strike']}, Expiry {row['Expiry']}. Using IV_mid.")
-        iv = np.clip(row['IV_mid'], 0.05, 5.0)
-        w = iv ** 2 * T
-        dw_dy = 0
-        d2w_dy2 = 0
-        dw_dT = iv ** 2
-    else:
-        w = interp(np.array([[y, T]]))[0]
-        if np.isnan(w):
-            return None
-        h_t = max(0.01 * T, 1e-4)
-        h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+    w = row['Smoothed_IV'] ** 2 * T
+    h_t = max(0.01 * T, 1e-4)
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+    try:
         w_T_plus = interp(np.array([[y, T + h_t]]))[0]
         w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
-        if np.isnan(w_T_plus) or np.isnan(w_T_minus):
-            return None
         dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
         w_y_plus = interp(np.array([[y + h_y, T]]))[0]
         w_y_minus = interp(np.array([[y - h_y, T]]))[0]
-        if np.isnan(w_y_plus) or np.isnan(w_y_minus):
-            return None
         dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
         d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
         if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
             return None
+    except Exception as e:
+        print(f"Warning: Interpolation failed for Strike {row['Strike']}, Expiry {row['Expiry']}: {e}. Skipping local vol calculation.")
+        return None
     denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
         local_vol = 0.0
@@ -232,10 +224,13 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
 
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
+        options_df['Smoothed_IV'] = np.nan
         return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
     options_df = smooth_iv_per_expiry(options_df)
+    if 'Smoothed_IV' not in options_df.columns:
+        options_df['Smoothed_IV'] = options_df['IV_mid']
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
@@ -292,13 +287,13 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
             continue
-        atm_ivearly = get_iv(call_interp, 0.0, T)
-        if np.isnan(atm_ivearly):
+        atm_iv = get_iv(call_interp, 0.0, T)
+        if np.isnan(atm_iv):
             continue
-        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.25, 'call')
-        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.75, 'call')
-        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.25, 'put')
-        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.75, 'put')
+        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
+        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
+        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
+        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
         iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
@@ -501,4 +496,4 @@ def main():
             json.dump(dates, f)
         print(f"Updated dates list in {dates_file} with timestamps: {timestamps}")
 
-main()
+ main()
