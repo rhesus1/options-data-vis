@@ -479,7 +479,6 @@
             }
             console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
-
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -539,7 +538,6 @@
             }
             table.appendChild(tbody);
         }
-
         function updateSummaryTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -548,7 +546,6 @@
             const table = document.getElementById('summary-table');
             table.innerHTML = '';
             console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Source:', source);
-
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
             ['Metric', 'Value'].forEach(text => {
@@ -559,7 +556,6 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-
             // Realised Volatility 30d from historic data (latest)
             let realisedVol30 = 'N/A';
             const historicFiltered = historicData.filter(item => item.Ticker === selectedTicker);
@@ -579,7 +575,6 @@
             volValue.textContent = realisedVol30;
             volRow.appendChild(volValue);
             tbody.appendChild(volRow);
-
             // Stock Bid and Ask from processed data (first row for the ticker)
             let underlyingBid = 'N/A';
             let underlyingAsk = 'N/A';
@@ -599,7 +594,6 @@
             bidValue.textContent = underlyingBid;
             bidRow.appendChild(bidValue);
             tbody.appendChild(bidRow);
-
             const askRow = document.createElement('tr');
             const askMetric = document.createElement('td');
             askMetric.textContent = 'Stock Ask';
@@ -608,7 +602,6 @@
             askValue.textContent = underlyingAsk;
             askRow.appendChild(askValue);
             tbody.appendChild(askRow);
-
             // Total Volume from raw data
             let totalVolume = 0;
             if (rawData.length > 0) {
@@ -624,7 +617,21 @@
             volumeValue.textContent = totalVolume;
             volumeRow.appendChild(volumeValue);
             tbody.appendChild(volumeRow);
-
+            // Total Open Interest from raw data
+            let totalOpenInterest = 0;
+            if (rawData.length > 0) {
+                totalOpenInterest = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item['Open Interest'] || 0), 0);
+            } else {
+                console.warn('No raw data available for ticker:', selectedTicker);
+            }
+            const openInterestRow = document.createElement('tr');
+            const openInterestMetric = document.createElement('td');
+            openInterestMetric.textContent = `Total Open Interest (${source})`;
+            openInterestRow.appendChild(openInterestMetric);
+            const openInterestValue = document.createElement('td');
+            openInterestValue.textContent = totalOpenInterest;
+            openInterestRow.appendChild(openInterestValue);
+            tbody.appendChild(openInterestRow);
             // ATM 12m/3m Ratio from skew data
             let atmRatio = 'N/A';
             const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
@@ -643,7 +650,6 @@
             atmValue.textContent = atmRatio;
             atmRow.appendChild(atmValue);
             tbody.appendChild(atmRow);
-
             // Slope data from slope_metrics
             const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
             console.log('Slope data filtered size:', filteredSlopeData.length);
