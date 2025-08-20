@@ -95,10 +95,17 @@
         .nav-link:hover {
             text-decoration: underline;
         }
+        #historic-error {
+            color: #FF6666;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
-    <div><a href="data-table.html" class="nav-link">View Data Table</a></div>
+    <div>
+        <a href="data-table.html" class="nav-link">View Data Table</a>
+        <a href="vol-surfaces.html" class="nav-link">View Volatility Surfaces</a>
+    </div>
     <div class="date-time-container">
         <label for="source-select">Select Data Source: </label>
         <select id="source-select">
@@ -169,7 +176,7 @@
             <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
         </div>
         <canvas id="historic-price-chart" tabindex="0"></canvas>
-        <div id="historic-error" style="display: none; color: #FF6666; padding: 5px;">No historic data available</div>
+        <div id="historic-error" style="display: none;">No historic data available</div>
     </div>
     <script>
         let data = [];
@@ -317,7 +324,6 @@
             const prefix = source === 'yfinance' ? 'yfinance_' : '';
             console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
 
-            // Check if files exist for the selected source and timestamp
             const checkFileExists = (url) => {
                 return fetch(url, { method: 'HEAD' })
                     .then(response => response.ok)
@@ -337,7 +343,6 @@
                 if (!slopeExists) console.error(`Slope metrics file data/slope_metrics_${prefix}${timestamp}.csv not found`);
                 if (!historicExists) console.error(`Historic file data/historic_${timestamp}.csv not found`);
 
-                // Load processed data
                 fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -349,7 +354,6 @@
                     })
                     .catch(error => console.error(`Error loading processed ${source} data:`, error));
 
-                // Load raw data
                 fetch(`data/raw_${prefix}${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -359,7 +363,6 @@
                     })
                     .catch(error => console.error(`Error loading raw ${source} data:`, error));
 
-                // Load historic data
                 fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -375,7 +378,6 @@
                         updateHistoricChart();
                     });
 
-                // Load skew metrics
                 fetch(`data/skew_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -386,7 +388,6 @@
                     })
                     .catch(error => console.error(`Error loading skew ${source} metrics:`, error));
 
-                // Load slope metrics
                 fetch(`data/slope_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -396,7 +397,6 @@
                     })
                     .catch(error => console.error(`Error loading slope ${source} metrics:`, error));
 
-                // Load events data
                 fetch(`data/Events.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -479,6 +479,7 @@
             }
             console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
+
         function updateSkewTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
@@ -538,6 +539,7 @@
             }
             table.appendChild(tbody);
         }
+
         function updateSummaryTable() {
             const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
             const selectedExpiry = document.getElementById('expiry-select').value;
