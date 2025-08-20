@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Options Data Visualisation</title>
@@ -8,47 +8,23 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
-        :root {
-            --background-color: #1C2526;
-            --text-color: #FFFFFF;
-            --table-header-bg: #2E3537;
-            --input-bg: #2E3537;
-            --input-border: #FFFFFF;
-            --grid-line-color: #FFFFFF33;
-            --link-color: #00BFFF;
-            --button-hover-bg: #3E4547;
-            --error-color: #FF6666;
-            --chart-bg: #1C2526;
-        }
-        [data-theme="light"] {
-            --background-color: #FFFFFF;
-            --text-color: #000000;
-            --table-header-bg: #E0E0E0;
-            --input-bg: #F0F0F0;
-            --input-border: #000000;
-            --grid-line-color: #00000033;
-            --link-color: #1E90FF;
-            --button-hover-bg: #D0D0D0;
-            --error-color: #FF3333;
-            --chart-bg: #FFFFFF;
-        }
         body {
             font-family: Arial, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            background-color: #1C2526;
+            color: #FFFFFF;
             margin: 0;
             padding: 0;
         }
         .chart-container {
             width: 100%;
-            background-color: var(--chart-bg);
+            background-color: #1C2526;
             padding: 0;
         }
         select, input {
             padding: 5px;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid var(--input-border);
+            background-color: #2E3537;
+            color: #FFFFFF;
+            border: 1px solid #FFFFFF;
             border-radius: 4px;
         }
         .stats-table, .skew-table, .summary-table {
@@ -57,13 +33,13 @@
             margin: 20px 0;
         }
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td {
-            border: 1px solid var(--input-border);
+            border: 1px solid #FFFFFF;
             padding: 12px;
             text-align: left;
-            color: var(--text-color);
+            color: #FFFFFF;
         }
         .stats-table th, .skew-table th, .summary-table th {
-            background-color: var(--table-header-bg);
+            background-color: #2E3537;
         }
         .line-swatch {
             display: inline-block;
@@ -90,8 +66,8 @@
             width: 200px;
         }
         #ticker-datalist {
-            background-color: var(--input-bg);
-            color: var(--text-color);
+            background-color: #2E3537;
+            color: #FFFFFF;
         }
         .select-container {
             display: flex;
@@ -100,28 +76,24 @@
             padding: 5px;
         }
         .arrow-button, .toggle-button {
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid var(--input-border);
+            background-color: #2E3537;
+            color: #FFFFFF;
+            border: 1px solid #FFFFFF;
             border-radius: 4px;
             padding: 5px 10px;
             cursor: pointer;
         }
         .arrow-button:hover, .toggle-button:hover {
-            background-color: var(--button-hover-bg);
+            background-color: #3E4547;
         }
         .nav-link {
-            color: var(--link-color);
+            color: #00BFFF;
             text-decoration: none;
             padding: 5px;
             display: inline-block;
         }
         .nav-link:hover {
             text-decoration: underline;
-        }
-        #historic-error {
-            color: var(--error-color);
-            padding: 5px;
         }
     </style>
 </head>
@@ -138,7 +110,6 @@
         <label for="time-select">Select Time: </label>
         <select id="time-select"></select>
         <button class="toggle-button" onclick="toggleStatsTables()">Toggle Stats Tables</button>
-        <button class="toggle-button" id="theme-toggle" onclick="toggleTheme()">Light</button>
     </div>
     <div>
         <label for="ticker-search">Search Ticker: </label>
@@ -198,7 +169,7 @@
             <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
         </div>
         <canvas id="historic-price-chart" tabindex="0"></canvas>
-        <div id="historic-error" style="display: none;">No historic data available</div>
+        <div id="historic-error" style="display: none; color: #FF6666; padding: 5px;">No historic data available</div>
     </div>
     <script>
         let data = [];
@@ -273,1346 +244,1263 @@
             statsTables.forEach(table => {
                 table.style.display = statsTablesVisible ? 'table' : 'none';
             });
-            const toggleButton = document.querySelector('.toggle-button[onclick="toggleStatsTables()"]');
+            const toggleButton = document.querySelector('.toggle-button');
             toggleButton.textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
             console.log(`Stats tables visibility set to: ${statsTablesVisible}`);
         }
 
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            document.getElementById('theme-toggle').textContent = newTheme === 'dark' ? 'Light' : 'Dark';
-            console.log(`Theme switched to: ${newTheme}`);
-            // Update charts only if they are initialized
-            if (moneynessChart || expiryChart || deltaChart || historicChart) {
-                updateCharts();
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                // Load saved theme
-                const savedTheme = localStorage.getItem('theme') || 'dark';
-                document.documentElement.setAttribute('data-theme', savedTheme);
-                document.getElementById('theme-toggle').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
-                console.log(`Initialized theme: ${savedTheme}`);
+            const dateSelect = document.getElementById('date-select');
+            const timeSelect = document.getElementById('time-select');
+            const tickerSearch = document.getElementById('ticker-search');
+            const sourceSelect = document.getElementById('source-select');
 
-                const dateSelect = document.getElementById('date-select');
-                const timeSelect = document.getElementById('time-select');
-                const tickerSearch = document.getElementById('ticker-search');
-                const sourceSelect = document.getElementById('source-select');
-
-                fetch('data/dates.json?v=' + Date.now())
-                    .then(response => response.json())
-                    .then(dates => {
-                        const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
-                        uniqueDates.forEach(datePart => {
-                            const option = document.createElement('option');
-                            option.value = datePart.replace(/-/g, '');
-                            option.textContent = datePart;
-                            dateSelect.appendChild(option);
-                        });
-                        if (dateSelect.options.length > 0) {
-                            dateSelect.value = dateSelect.options[0].value;
-                            updateTimeOptions(dateSelect.value, dates);
-                            loadData(dateSelect.value + '_' + timeSelect.value);
-                        }
-                        dateSelect.addEventListener('change', (e) => {
-                            updateTimeOptions(e.target.value, dates);
-                            loadData(e.target.value + '_' + timeSelect.value);
-                        });
-                        timeSelect.addEventListener('change', (e) => {
-                            loadData(dateSelect.value + '_' + e.target.value);
-                        });
-                        tickerSearch.addEventListener('change', () => {
-                            console.log('Ticker changed to:', tickerSearch.value);
-                            updateDropdowns();
-                            updateCharts();
-                        });
-                        sourceSelect.addEventListener('change', () => {
-                            console.log('Data source changed to:', sourceSelect.value);
-                            loadData(dateSelect.value + '_' + timeSelect.value);
-                        });
-                        const historySelect = document.getElementById('history-select');
-                        historySelect.addEventListener('change', () => {
-                            console.log('History length changed to:', historySelect.value);
-                            updateHistoricChart();
-                        });
-                    })
-                    .catch(error => console.error('Error loading dates:', error));
-            } catch (error) {
-                console.error('Error in DOMContentLoaded:', error);
-            }
+            fetch('data/dates.json?v=' + Date.now())
+                .then(response => response.json())
+                .then(dates => {
+                    const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
+                    uniqueDates.forEach(datePart => {
+                        const option = document.createElement('option');
+                        option.value = datePart.replace(/-/g, '');
+                        option.textContent = datePart;
+                        dateSelect.appendChild(option);
+                    });
+                    if (dateSelect.options.length > 0) {
+                        dateSelect.value = dateSelect.options[0].value;
+                        updateTimeOptions(dateSelect.value, dates);
+                        loadData(dateSelect.value + '_' + timeSelect.value);
+                    }
+                    dateSelect.addEventListener('change', (e) => {
+                        updateTimeOptions(e.target.value, dates);
+                        loadData(e.target.value + '_' + timeSelect.value);
+                    });
+                    timeSelect.addEventListener('change', (e) => {
+                        loadData(dateSelect.value + '_' + e.target.value);
+                    });
+                    tickerSearch.addEventListener('change', () => {
+                        console.log('Ticker changed to:', tickerSearch.value);
+                        updateDropdowns();
+                        updateCharts();
+                    });
+                    sourceSelect.addEventListener('change', () => {
+                        console.log('Data source changed to:', sourceSelect.value);
+                        loadData(dateSelect.value + '_' + timeSelect.value);
+                    });
+                    const historySelect = document.getElementById('history-select');
+                    historySelect.addEventListener('change', () => {
+                        console.log('History length changed to:', historySelect.value);
+                        updateHistoricChart();
+                    });
+                })
+                .catch(error => console.error('Error loading dates:', error));
         });
 
         function updateTimeOptions(selectedDate, dates) {
-            try {
-                const timeSelect = document.getElementById('time-select');
-                timeSelect.innerHTML = '';
-                const formattedSelectedDate = selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-                const availableTimes = dates
-                    .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === formattedSelectedDate)
-                    .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
-                const uniqueTimes = [...new Set(availableTimes)];
-                uniqueTimes.forEach(timePart => {
-                    const option = document.createElement('option');
-                    option.value = timePart.replace(':', '');
-                    option.textContent = timePart;
-                    timeSelect.appendChild(option);
-                });
-                if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
-                console.log('Time options updated:', uniqueTimes);
-            } catch (error) {
-                console.error('Error updating time options:', error);
-            }
+            const timeSelect = document.getElementById('time-select');
+            timeSelect.innerHTML = '';
+            const formattedSelectedDate = selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+            const availableTimes = dates
+                .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === formattedSelectedDate)
+                .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
+            const uniqueTimes = [...new Set(availableTimes)];
+            uniqueTimes.forEach(timePart => {
+                const option = document.createElement('option');
+                option.value = timePart.replace(':', '');
+                option.textContent = timePart;
+                timeSelect.appendChild(option);
+            });
+            if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
         }
 
         function loadData(timestamp) {
-            try {
-                const source = document.getElementById('source-select').value;
-                const prefix = source === 'yfinance' ? 'yfinance_' : '';
-                console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
+            const source = document.getElementById('source-select').value;
+            const prefix = source === 'yfinance' ? 'yfinance_' : '';
+            console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
 
-                const checkFileExists = (url) => {
-                    return fetch(url, { method: 'HEAD' })
-                        .then(response => response.ok)
-                        .catch(() => false);
-                };
+            // Check if files exist for the selected source and timestamp
+            const checkFileExists = (url) => {
+                return fetch(url, { method: 'HEAD' })
+                    .then(response => response.ok)
+                    .catch(() => false);
+            };
 
-                Promise.all([
-                    checkFileExists(`data/processed_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/raw_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/skew_metrics_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/slope_metrics_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/historic_${timestamp}.csv`)
-                ]).then(([processedExists, rawExists, skewExists, slopeExists, historicExists]) => {
-                    if (!processedExists) console.error(`Processed file data/processed_${prefix}${timestamp}.csv not found`);
-                    if (!rawExists) console.error(`Raw file data/raw_${prefix}${timestamp}.csv not found`);
-                    if (!skewExists) console.error(`Skew metrics file data/skew_metrics_${prefix}${timestamp}.csv not found`);
-                    if (!slopeExists) console.error(`Slope metrics file data/slope_metrics_${prefix}${timestamp}.csv not found`);
-                    if (!historicExists) console.error(`Historic file data/historic_${timestamp}.csv not found`);
+            Promise.all([
+                checkFileExists(`data/processed_${prefix}${timestamp}.csv`),
+                checkFileExists(`data/raw_${prefix}${timestamp}.csv`),
+                checkFileExists(`data/skew_metrics_${prefix}${timestamp}.csv`),
+                checkFileExists(`data/slope_metrics_${prefix}${timestamp}.csv`),
+                checkFileExists(`data/historic_${timestamp}.csv`)
+            ]).then(([processedExists, rawExists, skewExists, slopeExists, historicExists]) => {
+                if (!processedExists) console.error(`Processed file data/processed_${prefix}${timestamp}.csv not found`);
+                if (!rawExists) console.error(`Raw file data/raw_${prefix}${timestamp}.csv not found`);
+                if (!skewExists) console.error(`Skew metrics file data/skew_metrics_${prefix}${timestamp}.csv not found`);
+                if (!slopeExists) console.error(`Slope metrics file data/slope_metrics_${prefix}${timestamp}.csv not found`);
+                if (!historicExists) console.error(`Historic file data/historic_${timestamp}.csv not found`);
 
-                    // Load processed data
-                    fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            data = parseCSV(csvText);
-                            console.log(`Processed ${source} data loaded:`, data);
-                            populateTickerSearch();
-                            updateDropdowns();
-                            updateCharts();
-                        })
-                        .catch(error => console.error(`Error loading processed ${source} data:`, error));
+                // Load processed data
+                fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        data = parseCSV(csvText);
+                        console.log(`Processed ${source} data loaded:`, data);
+                        populateTickerSearch();
+                        updateDropdowns();
+                        updateCharts();
+                    })
+                    .catch(error => console.error(`Error loading processed ${source} data:`, error));
 
-                    // Load raw data
-                    fetch(`data/raw_${prefix}${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            rawData = parseCSV(csvText);
-                            console.log(`Raw ${source} data loaded:`, rawData);
-                            updateSummaryTable();
-                        })
-                        .catch(error => console.error(`Error loading raw ${source} data:`, error));
+                // Load raw data
+                fetch(`data/raw_${prefix}${timestamp}.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        rawData = parseCSV(csvText);
+                        console.log(`Raw ${source} data loaded:`, rawData);
+                        updateSummaryTable();
+                    })
+                    .catch(error => console.error(`Error loading raw ${source} data:`, error));
 
-                    // Load historic data
-                    fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            historicData = parseCSV(csvText);
-                            console.log('Historic data loaded:', historicData);
-                            document.getElementById('historic-error').style.display = 'none';
-                            updateHistoricChart();
-                        })
-                        .catch(error => {
-                            console.error('Error loading historic data:', error);
-                            historicData = [];
-                            document.getElementById('historic-error').style.display = 'block';
-                            updateHistoricChart();
-                        });
+                // Load historic data
+                fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        historicData = parseCSV(csvText);
+                        console.log('Historic data loaded:', historicData);
+                        document.getElementById('historic-error').style.display = 'none';
+                        updateHistoricChart();
+                    })
+                    .catch(error => {
+                        console.error('Error loading historic data:', error);
+                        historicData = [];
+                        document.getElementById('historic-error').style.display = 'block';
+                        updateHistoricChart();
+                    });
 
-                    // Load skew metrics
-                    fetch(`data/skew_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            skewData = parseCSV(csvText);
-                            console.log(`Skew ${source} data loaded:`, skewData);
-                            updateSkewTable();
-                            updateSummaryTable();
-                        })
-                        .catch(error => console.error(`Error loading skew ${source} metrics:`, error));
+                // Load skew metrics
+                fetch(`data/skew_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        skewData = parseCSV(csvText);
+                        console.log(`Skew ${source} data loaded:`, skewData);
+                        updateSkewTable();
+                        updateSummaryTable();
+                    })
+                    .catch(error => console.error(`Error loading skew ${source} metrics:`, error));
 
-                    // Load slope metrics
-                    fetch(`data/slope_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            slopeData = parseCSV(csvText);
-                            console.log(`Slope ${source} data loaded:`, slopeData);
-                            updateSummaryTable();
-                        })
-                        .catch(error => console.error(`Error loading slope ${source} metrics:`, error));
+                // Load slope metrics
+                fetch(`data/slope_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        slopeData = parseCSV(csvText);
+                        console.log(`Slope ${source} data loaded:`, slopeData);
+                        updateSummaryTable();
+                    })
+                    .catch(error => console.error(`Error loading slope ${source} metrics:`, error));
 
-                    // Load events data
-                    fetch(`data/Events.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            eventsData = parseCSV(csvText);
-                            console.log('Events data loaded:', eventsData);
-                            updateHistoricChart();
-                        })
-                        .catch(error => console.error('Error loading events data:', error));
-                });
-            } catch (error) {
-                console.error('Error in loadData:', error);
-            }
+                // Load events data
+                fetch(`data/Events.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        eventsData = parseCSV(csvText);
+                        console.log('Events data loaded:', eventsData);
+                        updateHistoricChart();
+                    })
+                    .catch(error => console.error('Error loading events data:', error));
+            });
         }
 
         function populateTickerSearch() {
-            try {
-                const tickerSearch = document.getElementById('ticker-search');
-                const tickerDatalist = document.getElementById('ticker-datalist');
-                tickerDatalist.innerHTML = '';
-                const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
-                    .filter(val => val).sort();
-                uniqueTickers.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    tickerDatalist.appendChild(option);
-                });
-                if (uniqueTickers.includes('COIN')) {
-                    tickerSearch.value = 'COIN';
-                } else if (uniqueTickers.length > 0) {
-                    tickerSearch.value = uniqueTickers[0];
-                }
-                console.log('Ticker search populated, default:', tickerSearch.value);
-            } catch (error) {
-                console.error('Error populating ticker search:', error);
+            const tickerSearch = document.getElementById('ticker-search');
+            const tickerDatalist = document.getElementById('ticker-datalist');
+            tickerDatalist.innerHTML = '';
+            const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
+                .filter(val => val).sort();
+            uniqueTickers.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                tickerDatalist.appendChild(option);
+            });
+            if (uniqueTickers.includes('COIN')) {
+                tickerSearch.value = 'COIN';
+            } else if (uniqueTickers.length > 0) {
+                tickerSearch.value = uniqueTickers[0];
             }
+            console.log('Ticker search populated, default:', tickerSearch.value);
         }
 
         function updateDropdowns() {
-            try {
-                const tickerSearch = document.getElementById('ticker-search');
-                const selectedTicker = tickerSearch.value.toUpperCase();
-                const tickerData = data.filter(item => item.Ticker === selectedTicker);
-                console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
-                const moneynessSelect = document.getElementById('moneyness-select');
-                const expirySelect = document.getElementById('expiry-select');
-                const deltaExpirySelect = document.getElementById('delta-expiry-select');
-                const prevMoneyness = moneynessSelect.value;
-                const prevExpiry = expirySelect.value;
-                const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
-                    .filter(val => !isNaN(val)).sort((a, b) => a - b);
-                moneynessSelect.innerHTML = '';
-                uniqueRoundedMoneyness.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.text = `${(val * 100).toFixed(0)}%`;
-                    moneynessSelect.add(option);
-                });
-                const targetMoneyness = 1.0;
-                let closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
-                    Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev,
-                    uniqueRoundedMoneyness[0]
-                );
-                if (prevMoneyness && uniqueRoundedMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
-                    moneynessSelect.value = prevMoneyness;
-                } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
-                    moneynessSelect.value = targetMoneyness.toString();
-                } else if (uniqueRoundedMoneyness.length > 0) {
-                    moneynessSelect.value = closestMoneyness.toString();
-                }
-                console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
-                const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
-                    .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
-                expirySelect.innerHTML = '';
-                deltaExpirySelect.innerHTML = '';
-                uniqueExpiries.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.text = new Date(val).toLocaleDateString('en-GB');
-                    expirySelect.add(option);
-                    deltaExpirySelect.add(option.cloneNode(true));
-                });
-                if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
-                    expirySelect.value = prevExpiry;
-                    deltaExpirySelect.value = prevExpiry;
-                } else if (expirySelect.options.length > 0) {
-                    expirySelect.value = expirySelect.options[0].value;
-                    deltaExpirySelect.value = expirySelect.options[0].value;
-                }
-                console.log('Expiry dropdowns updated, selected:', expirySelect.value);
-            } catch (error) {
-                console.error('Error updating dropdowns:', error);
+            const tickerSearch = document.getElementById('ticker-search');
+            const selectedTicker = tickerSearch.value.toUpperCase();
+            const tickerData = data.filter(item => item.Ticker === selectedTicker);
+            console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
+            const moneynessSelect = document.getElementById('moneyness-select');
+            const expirySelect = document.getElementById('expiry-select');
+            const deltaExpirySelect = document.getElementById('delta-expiry-select');
+            const prevMoneyness = moneynessSelect.value;
+            const prevExpiry = expirySelect.value;
+            const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
+                .filter(val => !isNaN(val)).sort((a, b) => a - b);
+            moneynessSelect.innerHTML = '';
+            uniqueRoundedMoneyness.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = `${(val * 100).toFixed(0)}%`;
+                moneynessSelect.add(option);
+            });
+            const targetMoneyness = 1.0;
+            let closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
+                Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev,
+                uniqueRoundedMoneyness[0]
+            );
+            if (prevMoneyness && uniqueRoundedMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
+                moneynessSelect.value = prevMoneyness;
+            } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
+                moneynessSelect.value = targetMoneyness.toString();
+            } else if (uniqueRoundedMoneyness.length > 0) {
+                moneynessSelect.value = closestMoneyness.toString();
             }
+            console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
+            const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
+                .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
+            expirySelect.innerHTML = '';
+            deltaExpirySelect.innerHTML = '';
+            uniqueExpiries.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = new Date(val).toLocaleDateString('en-GB');
+                expirySelect.add(option);
+                deltaExpirySelect.add(option.cloneNode(true));
+            });
+            if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
+                expirySelect.value = prevExpiry;
+                deltaExpirySelect.value = prevExpiry;
+            } else if (expirySelect.options.length > 0) {
+                expirySelect.value = expirySelect.options[0].value;
+                deltaExpirySelect.value = expirySelect.options[0].value;
+            }
+            console.log('Expiry dropdowns updated, selected:', expirySelect.value);
         }
-
         function updateSkewTable() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedExpiry = document.getElementById('expiry-select').value;
-                const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
-                const table = document.getElementById('skew-table');
-                table.innerHTML = '';
-                const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
-                console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Skew data size:', filteredSkewData.length);
-                if (filteredSkewData.length === 0) {
-                    const row = document.createElement('tr');
-                    const cell = document.createElement('td');
-                    cell.textContent = 'No skew metrics available';
-                    cell.colSpan = 6;
-                    row.appendChild(cell);
-                    table.appendChild(row);
-                    return;
-                }
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75', 'ATM 12m/3m Ratio'].forEach(text => {
-                    const th = document.createElement('th');
-                    th.textContent = text;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
-                if (selectedRow) {
-                    const row = document.createElement('tr');
-                    const expiryCell = document.createElement('td');
-                    expiryCell.textContent = new Date(selectedRow.Expiry).toLocaleDateString('en-GB');
-                    row.appendChild(expiryCell);
-                    const skew25Cell = document.createElement('td');
-                    skew25Cell.textContent = Number.isFinite(selectedRow.Skew_25_delta) ? selectedRow.Skew_25_delta.toFixed(4) : 'N/A';
-                    row.appendChild(skew25Cell);
-                    const skew75Cell = document.createElement('td');
-                    skew75Cell.textContent = Number.isFinite(selectedRow.Skew_75_delta) ? selectedRow.Skew_75_delta.toFixed(4) : 'N/A';
-                    row.appendChild(skew75Cell);
-                    const skewCallCell = document.createElement('td');
-                    skewCallCell.textContent = Number.isFinite(selectedRow.Skew_call_25_75) ? selectedRow.Skew_call_25_75.toFixed(4) : 'N/A';
-                    row.appendChild(skewCallCell);
-                    const skewPutCell = document.createElement('td');
-                    skewPutCell.textContent = Number.isFinite(selectedRow.Skew_put_25_75) ? selectedRow.Skew_put_25_75.toFixed(4) : 'N/A';
-                    row.appendChild(skewPutCell);
-                    const atmRatioCell = document.createElement('td');
-                    atmRatioCell.textContent = Number.isFinite(selectedRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
-                    row.appendChild(atmRatioCell);
-                    tbody.appendChild(row);
-                } else {
-                    const row = document.createElement('tr');
-                    const cell = document.createElement('td');
-                    cell.textContent = 'No data for selected expiry';
-                    cell.colSpan = 6;
-                    row.appendChild(cell);
-                    tbody.appendChild(row);
-                }
-                table.appendChild(tbody);
-            } catch (error) {
-                console.error('Error updating skew table:', error);
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
+            const table = document.getElementById('skew-table');
+            table.innerHTML = '';
+            const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Skew data size:', filteredSkewData.length);
+            if (filteredSkewData.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = 'No skew metrics available';
+                cell.colSpan = 6;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
             }
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75', 'ATM 12m/3m Ratio'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
+            if (selectedRow) {
+                const row = document.createElement('tr');
+                const expiryCell = document.createElement('td');
+                expiryCell.textContent = new Date(selectedRow.Expiry).toLocaleDateString('en-GB');
+                row.appendChild(expiryCell);
+                const skew25Cell = document.createElement('td');
+                skew25Cell.textContent = Number.isFinite(selectedRow.Skew_25_delta) ? selectedRow.Skew_25_delta.toFixed(4) : 'N/A';
+                row.appendChild(skew25Cell);
+                const skew75Cell = document.createElement('td');
+                skew75Cell.textContent = Number.isFinite(selectedRow.Skew_75_delta) ? selectedRow.Skew_75_delta.toFixed(4) : 'N/A';
+                row.appendChild(skew75Cell);
+                const skewCallCell = document.createElement('td');
+                skewCallCell.textContent = Number.isFinite(selectedRow.Skew_call_25_75) ? selectedRow.Skew_call_25_75.toFixed(4) : 'N/A';
+                row.appendChild(skewCallCell);
+                const skewPutCell = document.createElement('td');
+                skewPutCell.textContent = Number.isFinite(selectedRow.Skew_put_25_75) ? selectedRow.Skew_put_25_75.toFixed(4) : 'N/A';
+                row.appendChild(skewPutCell);
+                const atmRatioCell = document.createElement('td');
+                atmRatioCell.textContent = Number.isFinite(selectedRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
+                row.appendChild(atmRatioCell);
+                tbody.appendChild(row);
+            } else {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = 'No data for selected expiry';
+                cell.colSpan = 6;
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            }
+            table.appendChild(tbody);
         }
-
         function updateSummaryTable() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedExpiry = document.getElementById('expiry-select').value;
-                const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
-                const source = document.getElementById('source-select').value;
-                const table = document.getElementById('summary-table');
-                table.innerHTML = '';
-                console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Source:', source);
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                ['Metric', 'Value'].forEach(text => {
-                    const th = document.createElement('th');
-                    th.textContent = text;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                // Realised Volatility 30d from historic data (latest)
-                let realisedVol30 = 'N/A';
-                const historicFiltered = historicData.filter(item => item.Ticker === selectedTicker);
-                console.log('Historic data filtered size:', historicFiltered.length);
-                if (historicFiltered.length > 0) {
-                    historicFiltered.sort((a, b) => new Date(b.Date) - new Date(a.Date));
-                    const latestHistoric = historicFiltered[0];
-                    realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) + '%' : 'N/A';
-                } else {
-                    console.warn('No historic data for ticker:', selectedTicker);
-                }
-                const volRow = document.createElement('tr');
-                const volMetric = document.createElement('td');
-                volMetric.textContent = 'Realised Volatility 30d';
-                volRow.appendChild(volMetric);
-                const volValue = document.createElement('td');
-                volValue.textContent = realisedVol30;
-                volRow.appendChild(volValue);
-                tbody.appendChild(volRow);
-                // Stock Bid and Ask from processed data (first row for the ticker)
-                let underlyingBid = 'N/A';
-                let underlyingAsk = 'N/A';
-                const tickerData = data.filter(item => item.Ticker === selectedTicker);
-                console.log('Processed data filtered size:', tickerData.length);
-                if (tickerData.length > 0) {
-                    underlyingBid = Number.isFinite(tickerData[0]["Bid Stock"]) ? tickerData[0]["Bid Stock"].toFixed(2) : 'N/A';
-                    underlyingAsk = Number.isFinite(tickerData[0]["Ask Stock"]) ? tickerData[0]["Ask Stock"].toFixed(2) : 'N/A';
-                } else {
-                    console.warn('No processed data for ticker:', selectedTicker);
-                }
-                const bidRow = document.createElement('tr');
-                const bidMetric = document.createElement('td');
-                bidMetric.textContent = 'Stock Bid';
-                bidRow.appendChild(bidMetric);
-                const bidValue = document.createElement('td');
-                bidValue.textContent = underlyingBid;
-                bidRow.appendChild(bidValue);
-                tbody.appendChild(bidRow);
-                const askRow = document.createElement('tr');
-                const askMetric = document.createElement('td');
-                askMetric.textContent = 'Stock Ask';
-                askRow.appendChild(askMetric);
-                const askValue = document.createElement('td');
-                askValue.textContent = underlyingAsk;
-                askRow.appendChild(askValue);
-                tbody.appendChild(askRow);
-                // Total Volume from raw data
-                let totalVolume = 0;
-                if (rawData.length > 0) {
-                    totalVolume = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item.Volume || 0), 0);
-                } else {
-                    console.warn('No raw data available for ticker:', selectedTicker);
-                }
-                const volumeRow = document.createElement('tr');
-                const volumeMetric = document.createElement('td');
-                volumeMetric.textContent = `Total Volume (${source})`;
-                volumeRow.appendChild(volumeMetric);
-                const volumeValue = document.createElement('td');
-                volumeValue.textContent = totalVolume;
-                volumeRow.appendChild(volumeValue);
-                tbody.appendChild(volumeRow);
-                // Total Open Interest from raw data
-                let totalOpenInterest = 0;
-                if (rawData.length > 0) {
-                    totalOpenInterest = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item['Open Interest'] || 0), 0);
-                } else {
-                    console.warn('No raw data available for ticker:', selectedTicker);
-                }
-                const openInterestRow = document.createElement('tr');
-                const openInterestMetric = document.createElement('td');
-                openInterestMetric.textContent = `Total Open Interest (${source})`;
-                openInterestRow.appendChild(openInterestMetric);
-                const openInterestValue = document.createElement('td');
-                openInterestValue.textContent = totalOpenInterest;
-                openInterestRow.appendChild(openInterestValue);
-                tbody.appendChild(openInterestRow);
-                // ATM 12m/3m Ratio from skew data
-                let atmRatio = 'N/A';
-                const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
-                console.log('Skew data filtered size:', filteredSkewData.length);
-                const selectedSkewRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
-                if (selectedSkewRow) {
-                    atmRatio = Number.isFinite(selectedSkewRow.ATM_12m_3m_Ratio) ? selectedSkewRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
-                } else {
-                    console.warn('No skew data for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
-                }
-                const atmRow = document.createElement('tr');
-                const atmMetric = document.createElement('td');
-                atmMetric.textContent = 'ATM 12m/3m Ratio';
-                atmRow.appendChild(atmMetric);
-                const atmValue = document.createElement('td');
-                atmValue.textContent = atmRatio;
-                atmRow.appendChild(atmValue);
-                tbody.appendChild(atmRow);
-                // Slope data from slope_metrics
-                const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
-                console.log('Slope data filtered size:', filteredSlopeData.length);
-                if (filteredSlopeData.length > 0) {
-                    filteredSlopeData.forEach(item => {
-                        const row = document.createElement('tr');
-                        const metricCell = document.createElement('td');
-                        metricCell.textContent = `IV Slope 3m/12m (${item.Type} Delta ${Number.isFinite(item.Delta) ? item.Delta.toFixed(2) : 'N/A'})`;
-                        row.appendChild(metricCell);
-                        const valueCell = document.createElement('td');
-                        valueCell.textContent = Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A';
-                        row.appendChild(valueCell);
-                        tbody.appendChild(row);
-                    });
-                } else {
-                    const row = document.createElement('tr');
-                    const cell = document.createElement('td');
-                    cell.textContent = 'No slope metrics available';
-                    cell.colSpan = 2;
-                    row.appendChild(cell);
-                    tbody.appendChild(row);
-                }
-                table.appendChild(tbody);
-            } catch (error) {
-                console.error('Error updating summary table:', error);
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
+            const source = document.getElementById('source-select').value;
+            const table = document.getElementById('summary-table');
+            table.innerHTML = '';
+            console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Source:', source);
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Metric', 'Value'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            // Realised Volatility 30d from historic data (latest)
+            let realisedVol30 = 'N/A';
+            const historicFiltered = historicData.filter(item => item.Ticker === selectedTicker);
+            console.log('Historic data filtered size:', historicFiltered.length);
+            if (historicFiltered.length > 0) {
+                historicFiltered.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                const latestHistoric = historicFiltered[0];
+                realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) + '%' : 'N/A';
+            } else {
+                console.warn('No historic data for ticker:', selectedTicker);
             }
+            const volRow = document.createElement('tr');
+            const volMetric = document.createElement('td');
+            volMetric.textContent = 'Realised Volatility 30d';
+            volRow.appendChild(volMetric);
+            const volValue = document.createElement('td');
+            volValue.textContent = realisedVol30;
+            volRow.appendChild(volValue);
+            tbody.appendChild(volRow);
+            // Stock Bid and Ask from processed data (first row for the ticker)
+            let underlyingBid = 'N/A';
+            let underlyingAsk = 'N/A';
+            const tickerData = data.filter(item => item.Ticker === selectedTicker);
+            console.log('Processed data filtered size:', tickerData.length);
+            if (tickerData.length > 0) {
+                underlyingBid = Number.isFinite(tickerData[0]["Bid Stock"]) ? tickerData[0]["Bid Stock"].toFixed(2) : 'N/A';
+                underlyingAsk = Number.isFinite(tickerData[0]["Ask Stock"]) ? tickerData[0]["Ask Stock"].toFixed(2) : 'N/A';
+            } else {
+                console.warn('No processed data for ticker:', selectedTicker);
+            }
+            const bidRow = document.createElement('tr');
+            const bidMetric = document.createElement('td');
+            bidMetric.textContent = 'Stock Bid';
+            bidRow.appendChild(bidMetric);
+            const bidValue = document.createElement('td');
+            bidValue.textContent = underlyingBid;
+            bidRow.appendChild(bidValue);
+            tbody.appendChild(bidRow);
+            const askRow = document.createElement('tr');
+            const askMetric = document.createElement('td');
+            askMetric.textContent = 'Stock Ask';
+            askRow.appendChild(askMetric);
+            const askValue = document.createElement('td');
+            askValue.textContent = underlyingAsk;
+            askRow.appendChild(askValue);
+            tbody.appendChild(askRow);
+            // Total Volume from raw data
+            let totalVolume = 0;
+            if (rawData.length > 0) {
+                totalVolume = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item.Volume || 0), 0);
+            } else {
+                console.warn('No raw data available for ticker:', selectedTicker);
+            }
+            const volumeRow = document.createElement('tr');
+            const volumeMetric = document.createElement('td');
+            volumeMetric.textContent = `Total Volume (${source})`;
+            volumeRow.appendChild(volumeMetric);
+            const volumeValue = document.createElement('td');
+            volumeValue.textContent = totalVolume;
+            volumeRow.appendChild(volumeValue);
+            tbody.appendChild(volumeRow);
+            // Total Open Interest from raw data
+            let totalOpenInterest = 0;
+            if (rawData.length > 0) {
+                totalOpenInterest = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item['Open Interest'] || 0), 0);
+            } else {
+                console.warn('No raw data available for ticker:', selectedTicker);
+            }
+            const openInterestRow = document.createElement('tr');
+            const openInterestMetric = document.createElement('td');
+            openInterestMetric.textContent = `Total Open Interest (${source})`;
+            openInterestRow.appendChild(openInterestMetric);
+            const openInterestValue = document.createElement('td');
+            openInterestValue.textContent = totalOpenInterest;
+            openInterestRow.appendChild(openInterestValue);
+            tbody.appendChild(openInterestRow);
+            // ATM 12m/3m Ratio from skew data
+            let atmRatio = 'N/A';
+            const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+            console.log('Skew data filtered size:', filteredSkewData.length);
+            const selectedSkewRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
+            if (selectedSkewRow) {
+                atmRatio = Number.isFinite(selectedSkewRow.ATM_12m_3m_Ratio) ? selectedSkewRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
+            } else {
+                console.warn('No skew data for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
+            }
+            const atmRow = document.createElement('tr');
+            const atmMetric = document.createElement('td');
+            atmMetric.textContent = 'ATM 12m/3m Ratio';
+            atmRow.appendChild(atmMetric);
+            const atmValue = document.createElement('td');
+            atmValue.textContent = atmRatio;
+            atmRow.appendChild(atmValue);
+            tbody.appendChild(atmRow);
+            // Slope data from slope_metrics
+            const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
+            console.log('Slope data filtered size:', filteredSlopeData.length);
+            if (filteredSlopeData.length > 0) {
+                filteredSlopeData.forEach(item => {
+                    const row = document.createElement('tr');
+                    const metricCell = document.createElement('td');
+                    metricCell.textContent = `IV Slope 3m/12m (${item.Type} Delta ${Number.isFinite(item.Delta) ? item.Delta.toFixed(2) : 'N/A'})`;
+                    row.appendChild(metricCell);
+                    const valueCell = document.createElement('td');
+                    valueCell.textContent = Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A';
+                    row.appendChild(valueCell);
+                    tbody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.textContent = 'No slope metrics available';
+                cell.colSpan = 2;
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            }
+            table.appendChild(tbody);
         }
 
         function aggregateDataByX(data, xKey, yKey) {
-            try {
-                const grouped = data.reduce((acc, item) => {
-                    const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
-                    const yValue = item[yKey];
-                    if (!acc[xValue]) {
-                        acc[xValue] = { sum: 0, count: 0 };
-                    }
-                    if (!isNaN(yValue) && yValue !== null) {
-                        acc[xValue].sum += yValue;
-                        acc[xValue].count += 1;
-                    }
-                    return acc;
-                }, {});
-                return Object.keys(grouped).map(x => {
-                    const group = grouped[x];
-                    if (group.count > 0) {
-                        return {
-                            x: xKey === 'Expiry' ? new Date(x) : parseFloat(x) * (xKey === 'Moneyness' || xKey === 'Delta' ? 100 : 1),
-                            y: (group.sum / group.count) * 100
-                        };
-                    }
-                }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
-            } catch (error) {
-                console.error('Error aggregating data:', error);
-                return [];
-            }
+            const grouped = data.reduce((acc, item) => {
+                const xValue = xKey === 'Expiry' ? new Date(item[xKey]).toISOString() : item[xKey];
+                const yValue = item[yKey];
+                if (!acc[xValue]) {
+                    acc[xValue] = { sum: 0, count: 0 };
+                }
+                if (!isNaN(yValue) && yValue !== null) {
+                    acc[xValue].sum += yValue;
+                    acc[xValue].count += 1;
+                }
+                return acc;
+            }, {});
+            return Object.keys(grouped).map(x => {
+                const group = grouped[x];
+                if (group.count > 0) {
+                    return {
+                        x: xKey === 'Expiry' ? new Date(x) : parseFloat(x) * (xKey === 'Moneyness' || xKey === 'Delta' ? 100 : 1),
+                        y: (group.sum / group.count) * 100
+                    };
+                }
+            }).filter(point => point !== undefined).sort((a, b) => a.x - b.x);
         }
 
         function createStatsTable(chart, canvasId) {
-            try {
-                const container = document.getElementById(canvasId).parentNode;
-                let existingTable = container.querySelector('.stats-table');
-                if (existingTable) existingTable.remove();
-                const table = document.createElement('table');
-                table.className = 'stats-table';
-                table.style.display = statsTablesVisible ? 'table' : 'none';
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
-                    const th = document.createElement('th');
-                    th.textContent = text;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                chart.data.datasets.forEach(dataset => {
-                    if (dataset.data.length === 0) return;
-                    const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
-                    if (ys.length === 0) return;
-                    const min = Math.min(...ys);
-                    const max = Math.max(...ys);
-                    const sum = ys.reduce((a, b) => a + b, 0);
-                    const mean = sum / ys.length;
-                    const row = document.createElement('tr');
-                    const labelTd = document.createElement('td');
-                    const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    swatch.setAttribute('width', '20');
-                    swatch.setAttribute('height', '10');
-                    swatch.setAttribute('class', 'line-swatch');
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', '0');
-                    line.setAttribute('y1', '5');
-                    line.setAttribute('x2', '20');
-                    line.setAttribute('y2', '5');
-                    line.setAttribute('stroke', dataset.borderColor);
-                    line.setAttribute('stroke-width', '2');
-                    if (dataset.borderDash && dataset.borderDash.length > 0) {
-                        line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
-                    }
-                    swatch.appendChild(line);
-                    labelTd.appendChild(swatch);
-                    const labelText = document.createTextNode(` ${dataset.label}`);
-                    labelTd.appendChild(labelText);
-                    row.appendChild(labelTd);
-                    const minTd = document.createElement('td');
-                    minTd.textContent = min.toFixed(2);
-                    row.appendChild(minTd);
-                    const maxTd = document.createElement('td');
-                    maxTd.textContent = max.toFixed(2);
-                    row.appendChild(maxTd);
-                    const meanTd = document.createElement('td');
-                    meanTd.textContent = mean.toFixed(2);
-                    row.appendChild(meanTd);
-                    tbody.appendChild(row);
-                });
-                table.appendChild(tbody);
-                container.appendChild(table);
-            } catch (error) {
-                console.error('Error creating stats table:', error);
-            }
+            const container = document.getElementById(canvasId).parentNode;
+            let existingTable = container.querySelector('.stats-table');
+            if (existingTable) existingTable.remove();
+            const table = document.createElement('table');
+            table.className = 'stats-table';
+            table.style.display = statsTablesVisible ? 'table' : 'none';
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Label', 'Min', 'Max', 'Mean'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            chart.data.datasets.forEach(dataset => {
+                if (dataset.data.length === 0) return;
+                const ys = dataset.data.map(point => point.y).filter(y => !isNaN(y));
+                if (ys.length === 0) return;
+                const min = Math.min(...ys);
+                const max = Math.max(...ys);
+                const sum = ys.reduce((a, b) => a + b, 0);
+                const mean = sum / ys.length;
+                const row = document.createElement('tr');
+                const labelTd = document.createElement('td');
+                const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                swatch.setAttribute('width', '20');
+                swatch.setAttribute('height', '10');
+                swatch.setAttribute('class', 'line-swatch');
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '0');
+                line.setAttribute('y1', '5');
+                line.setAttribute('x2', '20');
+                line.setAttribute('y2', '5');
+                line.setAttribute('stroke', dataset.borderColor);
+                line.setAttribute('stroke-width', '2');
+                if (dataset.borderDash && dataset.borderDash.length > 0) {
+                    line.setAttribute('stroke-dasharray', dataset.borderDash.join(' '));
+                }
+                swatch.appendChild(line);
+                labelTd.appendChild(swatch);
+                const labelText = document.createTextNode(` ${dataset.label}`);
+                labelTd.appendChild(labelText);
+                row.appendChild(labelTd);
+                const minTd = document.createElement('td');
+                minTd.textContent = min.toFixed(2);
+                row.appendChild(minTd);
+                const maxTd = document.createElement('td');
+                maxTd.textContent = max.toFixed(2);
+                row.appendChild(maxTd);
+                const meanTd = document.createElement('td');
+                meanTd.textContent = mean.toFixed(2);
+                row.appendChild(meanTd);
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
         }
 
         function updateMoneynessVsIV() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedExpiry = document.getElementById('expiry-select').value;
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
-                console.log('Updating Moneyness vs. IV chart for ticker:', selectedTicker, 'Expiry:', selectedExpiry);
-                const datasets = [
-                    {
-                        label: 'Calls Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Moneyness',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('expiry-select').value;
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            console.log('Updating Moneyness vs. IV chart for ticker:', selectedTicker, 'Expiry:', selectedExpiry);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Moneyness',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080',
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Moneyness',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080',
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Call Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
+                        'Moneyness',
+                        'Call Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Put Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
+                        'Moneyness',
+                        'Put Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realised Vol 100d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Moneyness',
+                        'Realised Vol 100d'
+                    ),
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                }
+            ];
+            if (moneynessChart) moneynessChart.destroy();
+            moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
+                        }
                     },
-                    {
-                        label: 'Puts Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Moneyness',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Smoothed IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Moneyness',
-                            'Smoothed_IV'
-                        ),
-                        borderColor: '#800080',
-                        backgroundColor: '#800080',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Smoothed IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Moneyness',
-                            'Smoothed_IV'
-                        ),
-                        borderColor: '#800080',
-                        backgroundColor: '#800080',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Call Local Vol',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
-                            'Moneyness',
-                            'Call Local Vol'
-                        ),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Put Local Vol',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
-                            'Moneyness',
-                            'Put Local Vol'
-                        ),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Realised Vol 100d',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Moneyness',
-                            'Realised Vol 100d'
-                        ),
-                        borderColor: '#FFFF00',
-                        backgroundColor: '#FFFF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    }
-                ];
-                if (moneynessChart) moneynessChart.destroy();
-                moneynessChart = new Chart(document.getElementById('moneyness-vs-iv-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
                                 display: true,
-                                labels: {
-                                    color: var(--text-color)
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                title: {
-                                    display: true,
-                                    text: 'Moneyness (%)',
-                                    color: var(--text-color)
-                                },
-                                min: 0,
-                                max: 200,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
+                                text: 'Moneyness (%)',
+                                color: '#FFFFFF'
                             },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Volatility (%)',
-                                    color: var(--text-color)
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
+                            min: 0,
+                            max: 200,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
                             }
                         },
-                        backgroundColor: var(--chart-bg)
-                    }
-                });
-                createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
-            } catch (error) {
-                console.error('Error updating Moneyness vs. IV chart:', error);
-            }
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
         }
 
         function updateExpiryVsIV() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && Math.round(item.Moneyness * 100 / 10) * 0.1 === selectedMoneyness);
-                console.log('Updating Expiry vs. IV chart for ticker:', selectedTicker, 'Moneyness:', selectedMoneyness);
-                const datasets = [
-                    {
-                        label: 'Calls Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Expiry',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedMoneyness = parseFloat(document.getElementById('moneyness-select').value);
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && Math.round(item.Moneyness * 100 / 10) * 0.1 === selectedMoneyness);
+            console.log('Updating Expiry vs. IV chart for ticker:', selectedTicker, 'Moneyness:', selectedMoneyness);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Expiry',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080',
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Expiry',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080',
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Call Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
+                        'Expiry',
+                        'Call Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Put Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
+                        'Expiry',
+                        'Put Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realised Vol 100d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Expiry',
+                        'Realised Vol 100d'
+                    ),
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                }
+            ];
+            if (expiryChart) expiryChart.destroy();
+            expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
+                        }
                     },
-                    {
-                        label: 'Puts Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Expiry',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Smoothed IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Expiry',
-                            'Smoothed_IV'
-                        ),
-                        borderColor: '#800080',
-                        backgroundColor: '#800080',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Smoothed IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Expiry',
-                            'Smoothed_IV'
-                        ),
-                        borderColor: '#800080',
-                        backgroundColor: '#800080',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [10, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Call Local Vol',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
-                            'Expiry',
-                            'Call Local Vol'
-                        ),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Put Local Vol',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
-                            'Expiry',
-                            'Put Local Vol'
-                        ),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Realised Vol 100d',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Expiry',
-                            'Realised Vol 100d'
-                        ),
-                        borderColor: '#FFFF00',
-                        backgroundColor: '#FFFF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    }
-                ];
-                if (expiryChart) expiryChart.destroy();
-                expiryChart = new Chart(document.getElementById('expiry-vs-iv-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' },
+                            title: {
                                 display: true,
-                                labels: {
-                                    color: var(--text-color)
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: { unit: 'day' },
-                                title: {
-                                    display: true,
-                                    text: 'Expiry Date',
-                                    color: var(--text-color)
-                                },
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
+                                text: 'Expiry Date',
+                                color: '#FFFFFF'
                             },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Volatility (%)',
-                                    color: var(--text-color)
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
                             }
                         },
-                        backgroundColor: var(--chart-bg)
-                    }
-                });
-                createStatsTable(expiryChart, 'expiry-vs-iv-chart');
-            } catch (error) {
-                console.error('Error updating Expiry vs. IV chart:', error);
-            }
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            createStatsTable(expiryChart, 'expiry-vs-iv-chart');
         }
 
         function updateDeltaVsIV() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedExpiry = document.getElementById('delta-expiry-select').value;
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
-                console.log('Updating Delta vs. IV chart for ticker:', selectedTicker, 'Expiry:', selectedExpiry);
-                const datasets = [
-                    {
-                        label: 'Calls Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Delta',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const selectedExpiry = document.getElementById('delta-expiry-select').value;
+            const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+            console.log('Updating Delta vs. IV chart for ticker:', selectedTicker, 'Expiry:', selectedExpiry);
+            const datasets = [
+                {
+                    label: 'Calls Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Delta',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Implied Volatility Mid',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Delta',
+                        'IV_mid'
+                    ),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Calls Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call'),
+                        'Delta',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080',
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Puts Smoothed IV',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put'),
+                        'Delta',
+                        'Smoothed_IV'
+                    ),
+                    borderColor: '#800080',
+                    backgroundColor: '#800080',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [10, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Call Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
+                        'Delta',
+                        'Call Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Put Local Vol',
+                    data: aggregateDataByX(
+                        filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
+                        'Delta',
+                        'Put Local Vol'
+                    ),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [5, 5],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Realised Vol 100d',
+                    data: aggregateDataByX(
+                        filteredData,
+                        'Delta',
+                        'Realised Vol 100d'
+                    ),
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y'
+                }
+            ];
+            if (deltaChart) deltaChart.destroy();
+            deltaChart = new Chart(document.getElementById('delta-vs-iv-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
+                        }
                     },
-                    {
-                        label: 'Puts Implied Volatility Mid',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Delta',
-                            'IV_mid'
-                        ),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Calls Smoothed IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call'),
-                            'Delta',
-                            'Smoothed_IV'
-                        ),
-                        borderColor: '#800080',
-                        backgroundColor: '#800080',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Smoothed IV',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put'),
-                            'Delta',
-                            'Smoothed_IV'
-                        ),
-                        borderColor: '#800080',
-                        backgroundColor: '#800080',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [10, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Call Local Vol',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Call' && item['Call Local Vol'] > 0),
-                            'Delta',
-                            'Call Local Vol'
-                        ),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Put Local Vol',
-                        data: aggregateDataByX(
-                            filteredData.filter(item => item.Type === 'Put' && item['Put Local Vol'] > 0),
-                            'Delta',
-                            'Put Local Vol'
-                        ),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [5, 5],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Realised Vol 100d',
-                        data: aggregateDataByX(
-                            filteredData,
-                            'Delta',
-                            'Realised Vol 100d'
-                        ),
-                        borderColor: '#FFFF00',
-                        backgroundColor: '#FFFF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    }
-                ];
-                if (deltaChart) deltaChart.destroy();
-                deltaChart = new Chart(document.getElementById('delta-vs-iv-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
                                 display: true,
-                                labels: {
-                                    color: var(--text-color)
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                title: {
-                                    display: true,
-                                    text: 'Delta (%)',
-                                    color: var(--text-color)
-                                },
-                                min: -100,
-                                max: 100,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color),
-                                    callback: function(value) {
-                                        return Math.abs(value).toFixed(0);
-                                    }
-                                }
+                                text: 'Delta (%)',
+                                color: '#FFFFFF'
                             },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Volatility (%)',
-                                    color: var(--text-color)
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
+                            min: -100,
+                            max: 100,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF',
+                                callback: function(value) {
+                                    return Math.abs(value).toFixed(0);
                                 }
                             }
                         },
-                        backgroundColor: var(--chart-bg)
-                    }
-                });
-                createStatsTable(deltaChart, 'delta-vs-iv-chart');
-            } catch (error) {
-                console.error('Error updating Delta vs. IV chart:', error);
-            }
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            createStatsTable(deltaChart, 'delta-vs-iv-chart');
         }
 
         function updateHistoricChart() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const historyLength = document.getElementById('history-select').value;
-                console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength);
-                if (historicData.length === 0) {
-                    if (historicChart) historicChart.destroy();
-                    document.getElementById('historic-error').style.display = 'block';
-                    return;
-                }
-                let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
-                filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                const fromDate = calculateDateRange(historyLength);
-                const minHistoricDate = new Date(Math.min(...filteredHistoric.map(item => new Date(item.Date))));
-                const maxHistoricDate = new Date(Math.max(...filteredHistoric.map(item => new Date(item.Date))));
-                if (fromDate) {
-                    filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
-                }
-                const dates = filteredHistoric.map(item => new Date(item.Date));
-                const prices = filteredHistoric.map(item => parseFloat(item.Close));
-                const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
-                const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
-                const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100));
-                const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
-                const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252));
-                const datasets = [
-                    {
-                        label: 'Stock Price',
-                        data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                        borderColor: '#FFFF00',
-                        backgroundColor: '#FFFF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: '30-day Realised Vol (%)',
-                        data: vol30.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#00BFFF',
-                        backgroundColor: '#00BFFF',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '60-day Realised Vol (%)',
-                        data: vol60.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#8A2BE2',
-                        backgroundColor: '#8A2BE2',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '100-day Realised Vol (%)',
-                        data: vol90.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FF0000',
-                        backgroundColor: '#FF0000',
-                        pointRadius: 5,
-                        pointStyle: 'crossRot',
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '180-day Realised Vol (%)',
-                        data: vol180.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FFA500',
-                        backgroundColor: '#FFA500',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: '252-day Realised Vol (%)',
-                        data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#00FF00',
-                        backgroundColor: '#00FF00',
-                        pointRadius: 1,
-                        fill: false,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y1'
-                    }
-                ];
-                const annotations = eventsData
-                    .filter(event => {
-                        const startDate = new Date(event.Start_Date);
-                        const endDate = new Date(event.End_Date);
-                        if (!(event.Ticker === 'ALL' || event.Ticker === selectedTicker)) return false;
-                        if (startDate > maxHistoricDate || endDate < minHistoricDate) return false;
-                        if (fromDate && (endDate < fromDate)) return false;
-                        return true;
-                    })
-                    .map((event, index) => ({
-                        type: 'box',
-                        xMin: new Date(Math.max(new Date(event.Start_Date), fromDate || minHistoricDate)),
-                        xMax: new Date(Math.min(new Date(event.End_Date), maxHistoricDate)),
-                        yMin: 'y',
-                        yMax: 'y',
-                        backgroundColor: event.Impact === 'dip' ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)',
-                        borderColor: event.Impact === 'dip' ? 'rgba(255, 99, 132, 0.5)' : 'rgba(75, 192, 192, 0.5)',
-                        borderWidth: 1,
-                        label: {
-                            content: event.Event,
-                            display: true,
-                            position: 'center',
-                            color: var(--text-color),
-                            font: {
-                                size: 12
-                            },
-                            rotation: 90
-                        }
-                    }));
+            const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+            const historyLength = document.getElementById('history-select').value;
+            console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength);
+            if (historicData.length === 0) {
                 if (historicChart) historicChart.destroy();
-                historicChart = new Chart(document.getElementById('historic-price-chart').getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: true,
-                                labels: {
-                                    color: var(--text-color)
-                                }
-                            },
-                            annotation: {
-                                annotations: annotations
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: { unit: 'month' },
-                                title: {
-                                    display: true,
-                                    text: 'Date',
-                                    color: var(--text-color)
-                                },
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Stock Price ($)',
-                                    color: var(--text-color)
-                                },
-                                beginAtZero: false,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
-                            },
-                            y1: {
-                                type: 'linear',
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: 'Realised Volatility (%)',
-                                    color: var(--text-color)
-                                },
-                                beginAtZero: false,
-                                grid: {
-                                    color: var(--grid-line-color)
-                                },
-                                ticks: {
-                                    color: var(--text-color)
-                                }
-                            }
-                        },
-                        backgroundColor: var(--chart-bg)
-                    }
-                });
-                document.getElementById('historic-error').style.display = 'none';
-            } catch (error) {
-                console.error('Error updating Historic chart:', error);
+                document.getElementById('historic-error').style.display = 'block';
+                return;
             }
+            let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
+            filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const fromDate = calculateDateRange(historyLength);
+            const minHistoricDate = new Date(Math.min(...filteredHistoric.map(item => new Date(item.Date))));
+            const maxHistoricDate = new Date(Math.max(...filteredHistoric.map(item => new Date(item.Date))));
+            if (fromDate) {
+                filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
+            }
+            const dates = filteredHistoric.map(item => new Date(item.Date));
+            const prices = filteredHistoric.map(item => parseFloat(item.Close));
+            const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
+            const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
+            const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100));
+            const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
+            const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252));
+            const datasets = [
+                {
+                    label: 'Stock Price',
+                    data: prices.map((p, i) => ({ x: dates[i], y: p })),
+                    borderColor: '#FFFF00',
+                    backgroundColor: '#FFFF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '30-day Realised Vol (%)',
+                    data: vol30.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#00BFFF',
+                    backgroundColor: '#00BFFF',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '60-day Realised Vol (%)',
+                    data: vol60.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#8A2BE2',
+                    backgroundColor: '#8A2BE2',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '100-day Realised Vol (%)',
+                    data: vol90.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#FF0000',
+                    backgroundColor: '#FF0000',
+                    pointRadius: 5,
+                    pointStyle: 'crossRot',
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '180-day Realised Vol (%)',
+                    data: vol180.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#FFA500',
+                    backgroundColor: '#FFA500',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '252-day Realised Vol (%)',
+                    data: vol360.map((v, i) => ({ x: dates[i], y: v })),
+                    borderColor: '#00FF00',
+                    backgroundColor: '#00FF00',
+                    pointRadius: 1,
+                    fill: false,
+                    showLine: true,
+                    borderDash: [],
+                    yAxisID: 'y1'
+                }
+            ];
+            const annotations = eventsData
+                .filter(event => {
+                    const startDate = new Date(event.Start_Date);
+                    const endDate = new Date(event.End_Date);
+                    if (!(event.Ticker === 'ALL' || event.Ticker === selectedTicker)) return false;
+                    if (startDate > maxHistoricDate || endDate < minHistoricDate) return false;
+                    if (fromDate && (endDate < fromDate)) return false;
+                    return true;
+                })
+                .map((event, index) => ({
+                    type: 'box',
+                    xMin: new Date(Math.max(new Date(event.Start_Date), fromDate || minHistoricDate)),
+                    xMax: new Date(Math.min(new Date(event.End_Date), maxHistoricDate)),
+                    yMin: 'y',
+                    yMax: 'y',
+                    backgroundColor: event.Impact === 'dip' ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+                    borderColor: event.Impact === 'dip' ? 'rgba(255, 99, 132, 0.5)' : 'rgba(75, 192, 192, 0.5)',
+                    borderWidth: 1,
+                    label: {
+                        content: event.Event,
+                        display: true,
+                        position: 'center',
+                        color: '#FFFFFF',
+                        font: {
+                            size: 12
+                        },
+                        rotation: 90
+                    }
+                }));
+            if (historicChart) historicChart.destroy();
+            historicChart = new Chart(document.getElementById('historic-price-chart').getContext('2d'), {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        annotation: {
+                            annotations: annotations
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'month' },
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                color: '#FFFFFF'
+                            },
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Stock Price ($)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Realised Volatility (%)',
+                                color: '#FFFFFF'
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: '#FFFFFF33'
+                            },
+                            ticks: {
+                                color: '#FFFFFF'
+                            }
+                        }
+                    },
+                    backgroundColor: '#1C2526'
+                }
+            });
+            document.getElementById('historic-error').style.display = 'none';
         }
 
         function updateCharts() {
-            try {
-                console.log('Updating all charts and tables');
-                updateMoneynessVsIV();
-                updateExpiryVsIV();
-                updateDeltaVsIV();
-                updateSkewTable();
-                updateSummaryTable();
-                updateHistoricChart();
-            } catch (error) {
-                console.error('Error updating charts:', error);
-            }
+            console.log('Updating all charts and tables');
+            updateMoneynessVsIV();
+            updateExpiryVsIV();
+            updateDeltaVsIV();
+            updateSkewTable();
+            updateSummaryTable();
+            updateHistoricChart();
         }
 
         function addKeyboardNavigation() {
-            try {
-                const chartConfigs = [
-                    {
-                        canvasId: 'moneyness-vs-iv-chart',
-                        selectId: 'expiry-select'
-                    },
-                    {
-                        canvasId: 'expiry-vs-iv-chart',
-                        selectId: 'moneyness-select'
-                    },
-                    {
-                        canvasId: 'delta-vs-iv-chart',
-                        selectId: 'delta-expiry-select'
-                    },
-                    {
-                        canvasId: 'historic-price-chart',
-                        selectId: 'history-select'
+            const chartConfigs = [
+                {
+                    canvasId: 'moneyness-vs-iv-chart',
+                    selectId: 'expiry-select'
+                },
+                {
+                    canvasId: 'expiry-vs-iv-chart',
+                    selectId: 'moneyness-select'
+                },
+                {
+                    canvasId: 'delta-vs-iv-chart',
+                    selectId: 'delta-expiry-select'
+                },
+                {
+                    canvasId: 'historic-price-chart',
+                    selectId: 'history-select'
+                }
+            ];
+            chartConfigs.forEach(config => {
+                const canvas = document.getElementById(config.canvasId);
+                const select = document.getElementById(config.selectId);
+                canvas.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        let newIndex = select.selectedIndex + (event.key === 'ArrowLeft' ? -1 : 1);
+                        if (newIndex < 0) newIndex = select.options.length - 1;
+                        if (newIndex >= select.options.length) newIndex = 0;
+                        select.selectedIndex = newIndex;
+                        const changeEvent = new Event('change', { bubbles: true });
+                        select.dispatchEvent(changeEvent);
                     }
-                ];
-                chartConfigs.forEach(config => {
-                    const canvas = document.getElementById(config.canvasId);
-                    const select = document.getElementById(config.selectId);
-                    canvas.addEventListener('keydown', (event) => {
-                        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                            event.preventDefault();
-                            let newIndex = select.selectedIndex + (event.key === 'ArrowLeft' ? -1 : 1);
-                            if (newIndex < 0) newIndex = select.options.length - 1;
-                            if (newIndex >= select.options.length) newIndex = 0;
-                            select.selectedIndex = newIndex;
-                            const changeEvent = new Event('change', { bubbles: true });
-                            select.dispatchEvent(changeEvent);
-                        }
-                    });
                 });
-                const expirySelect = document.getElementById('expiry-select');
-                const deltaExpirySelect = document.getElementById('delta-expiry-select');
-                expirySelect.addEventListener('change', () => {
-                    console.log('Expiry select changed to:', expirySelect.value);
-                    deltaExpirySelect.value = expirySelect.value;
-                    updateCharts();
-                });
-                deltaExpirySelect.addEventListener('change', () => {
-                    console.log('Delta expiry select changed to:', deltaExpirySelect.value);
-                    expirySelect.value = deltaExpirySelect.value;
-                    updateCharts();
-                });
-                document.getElementById('moneyness-select').addEventListener('change', () => {
-                    console.log('Moneyness select changed to:', document.getElementById('moneyness-select').value);
-                    updateCharts();
-                });
-            } catch (error) {
-                console.error('Error adding keyboard navigation:', error);
-            }
+            });
+            const expirySelect = document.getElementById('expiry-select');
+            const deltaExpirySelect = document.getElementById('delta-expiry-select');
+            expirySelect.addEventListener('change', () => {
+                console.log('Expiry select changed to:', expirySelect.value);
+                deltaExpirySelect.value = expirySelect.value;
+                updateCharts();
+            });
+            deltaExpirySelect.addEventListener('change', () => {
+                console.log('Delta expiry select changed to:', deltaExpirySelect.value);
+                expirySelect.value = deltaExpirySelect.value;
+                updateCharts();
+            });
+            document.getElementById('moneyness-select').addEventListener('change', () => {
+                console.log('Moneyness select changed to:', document.getElementById('moneyness-select').value);
+                updateCharts();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', addKeyboardNavigation);
