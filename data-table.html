@@ -81,6 +81,11 @@
     <h1>Options Data Table</h1>
     <div><a href="index.html" class="nav-link">Back to Visualisation</a></div>
     <div class="date-time-container">
+        <label for="source-select">Select Data Source: </label>
+        <select id="source-select">
+            <option value="nasdaq" selected>Nasdaq</option>
+            <option value="yfinance">yfinance</option>
+        </select>
         <label for="date-select">Select Date: </label>
         <select id="date-select"></select>
         <label for="time-select">Select Time: </label>
@@ -131,6 +136,7 @@
     </table>
     <script>
         let data = [];
+
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -139,6 +145,7 @@
             });
             return result.data;
         }
+
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -149,9 +156,12 @@
                 return null;
             }
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             const dateSelect = document.getElementById('date-select');
             const timeSelect = document.getElementById('time-select');
+            const sourceSelect = document.getElementById('source-select');
+
             fetch('data/dates.json?v=' + Date.now())
                 .then(response => response.json())
                 .then(dates => {
@@ -174,9 +184,14 @@
                     timeSelect.addEventListener('change', (e) => {
                         loadData(dateSelect.value + '_' + e.target.value);
                     });
+                    sourceSelect.addEventListener('change', () => {
+                        console.log('Data source changed to:', sourceSelect.value);
+                        loadData(dateSelect.value + '_' + timeSelect.value);
+                    });
                 })
                 .catch(error => console.error('Error loading dates:', error));
         });
+
         function updateTimeOptions(selectedDate, dates) {
             const timeSelect = document.getElementById('time-select');
             timeSelect.innerHTML = '';
@@ -193,18 +208,27 @@
             });
             if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
         }
+
         function loadData(timestamp) {
-            console.log('Loading data for timestamp:', timestamp);
-            fetch(`data/processed_${timestamp}.csv?v=` + Date.now())
+            const source = document.getElementById('source-select').value;
+            const prefix = source === 'yfinance' ? 'yfinance_' : '';
+            console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
+            fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
                 .then(response => response.text())
                 .then(csvText => {
                     data = parseCSV(csvText);
-                    console.log('Processed data loaded:', data);
+                    console.log(`Processed ${source} data loaded:`, data);
+                    // Destroy existing DataTable if it exists
+                    if ($.fn.DataTable.isDataTable('#data-table')) {
+                        $('#data-table').DataTable().destroy();
+                        $('#data-table tbody').empty();
+                    }
                     initializeTable();
                     populateFilters();
                 })
-                .catch(error => console.error('Error loading processed data:', error));
+                .catch(error => console.error(`Error loading processed ${source} data:`, error));
         }
+
         function populateFilters() {
             const tickerFilter = document.getElementById('ticker-filter');
             const expiryFilter = document.getElementById('expiry-filter');
@@ -233,6 +257,7 @@
             document.getElementById('strike-filter').addEventListener('input', () => $('#data-table').DataTable().draw());
             document.getElementById('delta-filter').addEventListener('input', () => $('#data-table').DataTable().draw());
         }
+
         function initializeTable() {
             $('#data-table').DataTable({
                 data: data,
