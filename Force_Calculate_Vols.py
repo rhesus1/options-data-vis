@@ -293,12 +293,12 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         if np.isnan(T):
             continue
         atm_ivearly = get_iv(call_interp, 0.0, T)
-        if np.isnan(atm_iv):
+        if np.isnan(atm_ivearly):
             continue
-        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
-        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
-        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
-        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
+        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.25, 'call')
+        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.75, 'call')
+        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.25, 'put')
+        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_ivearly, 0.75, 'put')
         iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
@@ -411,7 +411,7 @@ def process_data(clean_file, raw_file, timestamp, prefix=""):
     skew_metrics_dfs = []
     slope_metrics_dfs = []
     with multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1) as pool:
-        results = by_ticker = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
+        results = pool.starmap(process_ticker, [(ticker, df, full_df, r) for ticker in tickers])
     for pdf, sdf, slope_df in results:
         if pdf is not None:
             processed_dfs.append(pdf)
