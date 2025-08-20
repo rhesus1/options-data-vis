@@ -260,6 +260,7 @@ def process_ticker_fetch(ticker, driver, use_nasdaq=True):
         nasdaq_df = fetch_option_data_nasdaq(ticker, driver)
     # Always fetch yfinance data
     yfinance_df = fetch_option_data_yfinance(ticker)
+    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Implied Volatility']
     # Process Nasdaq data
     if not nasdaq_df.empty:
         nasdaq_df['Last Stock Price'] = S
@@ -271,6 +272,7 @@ def process_ticker_fetch(ticker, driver, use_nasdaq=True):
             nasdaq_df['Moneyness'] = np.round(mid / nasdaq_df['Strike'] / 0.01) * 0.01
         else:
             nasdaq_df['Moneyness'] = np.round(S / nasdaq_df['Strike'] / 0.01) * 0.01
+        nasdaq_df = nasdaq_df[columns]
     # Process yfinance data
     if not yfinance_df.empty:
         yfinance_df['Last Stock Price'] = S
@@ -282,8 +284,8 @@ def process_ticker_fetch(ticker, driver, use_nasdaq=True):
             yfinance_df['Moneyness'] = np.round(mid / yfinance_df['Strike'] / 0.01) * 0.01
         else:
             yfinance_df['Moneyness'] = np.round(S / yfinance_df['Strike'] / 0.01) * 0.01
-    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Implied Volatility']
-    return nasdaq_df[columns], yfinance_df[columns]
+        yfinance_df = yfinance_df[columns]
+    return nasdaq_df, yfinance_df
 
 def fetch_historic_data(ticker):
     print(f"Fetching historic data for {ticker}...")
