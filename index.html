@@ -117,7 +117,7 @@
         <select id="date-select"></select>
         <label for="time-select">Select Time: </label>
         <select id="time-select"></select>
-        <button class="toggle-button" onclick="toggleStatsTables()">Toggle Stats Tables</button>
+        <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
     </div>
     <div>
         <label for="ticker-search">Search Ticker: </label>
@@ -195,7 +195,7 @@
         let eventsData = [];
         let rawData = [];
         let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart;
-        let statsTablesVisible = true;
+        let statsTablesVisible = false;
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -266,7 +266,7 @@
         function toggleStatsTables() {
             try {
                 statsTablesVisible = !statsTablesVisible;
-                const statsTables = document.querySelectorAll('.stats-table');
+                const statsTables = document.querySelectorAll('.stats-table:not(#historic-price-chart + .stats-table)');
                 statsTables.forEach(table => {
                     table.style.display = statsTablesVisible ? 'table' : 'none';
                 });
@@ -882,7 +882,7 @@
                 if (existingTable) existingTable.remove();
                 const table = document.createElement('table');
                 table.className = 'stats-table';
-                table.style.display = statsTablesVisible ? 'table' : 'none';
+                table.style.display = canvasId === 'historic-price-chart' ? 'table' : (statsTablesVisible ? 'table' : 'none');
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
                 ['Label', 'Last', 'Min', 'Max', 'Mean', 'SD', 'SD Change'].forEach(text => {
