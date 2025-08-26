@@ -347,7 +347,7 @@
                         maxMoneyness = Math.ceil(maxMoneyness * 100) / 100; // Round up to nearest 0.01
                         // Update Moneyness slider, preserving selected values or default to [20, 200]
                         const moneynessSlider = document.getElementById('moneyness-range-slider');
-                        const defaultMinMoneyness = 20;
+                        const defaultMinMoneyness = 50;
                         const defaultMaxMoneyness = 200;
                         const newMinMoneyness = selectedMinMoneyness * 100 > 0 ? Math.min(selectedMinMoneyness * 100, maxMoneyness * 100, defaultMinMoneyness) : defaultMinMoneyness;
                         const newMaxMoneyness = selectedMaxMoneyness * 100 > 0 ? Math.min(selectedMaxMoneyness * 100, maxMoneyness * 100, defaultMaxMoneyness) : Math.min(maxMoneyness * 100, defaultMaxMoneyness);
