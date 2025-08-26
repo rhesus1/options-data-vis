@@ -161,7 +161,7 @@ def fetch_option_data_nasdaq(ticker, driver, max_retries=3):
                         })
                 try:
                     next_button = WebDriverWait(driver, 5).until(
-                        EC.element_to_be_clickable((By.XPATH, "//button[@class='pagination__next' and @aria-label='click to go to the next page']"))
+                        EC.element_to_be_clickable((By.XPATH, "//button[@class='pagination NACIONAL_1__next' and @aria-label='click to go to the next page']"))
                     )
                     if next_button.get_attribute('disabled'):
                         break
@@ -182,7 +182,6 @@ def fetch_option_data_yfinance(ticker):
     try:
         stock = yf.Ticker(ticker)
         option_data = []
-        # Get all expiration dates
         expiration_dates = stock.options
         for expiry in expiration_dates:
             try:
@@ -190,7 +189,6 @@ def fetch_option_data_yfinance(ticker):
                 expiry_date = pd.to_datetime(expiry, errors='coerce')
                 if pd.isna(expiry_date):
                     continue
-                # Process calls
                 calls = opt_chain.calls
                 for _, row in calls.iterrows():
                     strike = row['strike']
@@ -211,7 +209,6 @@ def fetch_option_data_yfinance(ticker):
                         "Ticker": ticker,
                         "Last Trade Date": row['lastTradeDate'] if pd.notna(row['lastTradeDate']) else np.nan
                     })
-                # Process puts
                 puts = opt_chain.puts
                 for _, row in puts.iterrows():
                     strike = row['strike']
@@ -252,16 +249,12 @@ def process_ticker_fetch(ticker, driver, use_nasdaq=True):
     except:
         print(f"Failed to fetch stock price for {ticker}")
         return pd.DataFrame(), pd.DataFrame()
-    # Initialize empty DataFrames
     nasdaq_df = pd.DataFrame()
     yfinance_df = pd.DataFrame()
-    # Fetch Nasdaq data only if use_nasdaq is True
     if use_nasdaq:
         nasdaq_df = fetch_option_data_nasdaq(ticker, driver)
-    # Always fetch yfinance data
     yfinance_df = fetch_option_data_yfinance(ticker)
     columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Implied Volatility']
-    # Process Nasdaq data
     if not nasdaq_df.empty:
         nasdaq_df['Last Stock Price'] = S
         nasdaq_df['Bid Stock'] = bid
@@ -273,7 +266,6 @@ def process_ticker_fetch(ticker, driver, use_nasdaq=True):
         else:
             nasdaq_df['Moneyness'] = np.round(S / nasdaq_df['Strike'] / 0.01) * 0.01
         nasdaq_df = nasdaq_df[columns]
-    # Process yfinance data
     if not yfinance_df.empty:
         yfinance_df['Last Stock Price'] = S
         yfinance_df['Bid Stock'] = bid
@@ -293,7 +285,7 @@ def fetch_historic_data(ticker):
     hist = stock.history(period='max')
     if hist.empty:
         return pd.DataFrame()
-    hist = hist[['Close']]
+    hist = hist[['Open', 'High', 'Low', 'Close']]
     hist['Log_Return'] = np.log(hist['Close'] / hist['Close'].shift(1))
     hist['Realised_Vol_30'] = hist['Log_Return'].rolling(window=30).std() * np.sqrt(252) * 100
     hist['Realised_Vol_60'] = hist['Log_Return'].rolling(window=60).std() * np.sqrt(252) * 100
@@ -303,25 +295,20 @@ def fetch_historic_data(ticker):
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
-    return hist[['Ticker', 'Date', 'Close', 'Realised_Vol_30', 'Realised_Vol_60', 'Realised_Vol_100', 'Realised_Vol_180', 'Realised_Vol_252']]
+    return hist[['Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Realised_Vol_30', 'Realised_Vol_60', 'Realised_Vol_100', 'Realised_Vol_180', 'Realised_Vol_252']]
 
 def main():
     with open('tickers.txt', 'r') as file:
         tickers = [line.strip() for line in file if line.strip()]
-    
-    # Determine if Nasdaq scraping should be used (only if 10 or fewer tickers)
     use_nasdaq = len(tickers) <= 10
     print(f"Number of tickers: {len(tickers)}. Using Nasdaq scraping: {use_nasdaq}")
-    
-    # Initialize driver only if Nasdaq scraping is needed
     driver = setup_driver(headless=True) if use_nasdaq else None
     all_nasdaq_data = []
     all_yfinance_data = []
     all_hist = []
-    
     try:
         for ticker in tickers:
-            nasdaq_df, yfinance_df = process_ticker_fetch(ticker, driver, use_nasdaq)
+            nasdaq_df, yfinance_df = processbury process_ticker_fetch(ticker, driver, use_nasdaq)
             if not nasdaq_df.empty:
                 all_nasdaq_data.append(nasdaq_df)
             if not yfinance_df.empty:
@@ -330,11 +317,8 @@ def main():
             if not df_hist.empty:
                 all_hist.append(df_hist)
             time.sleep(1)
-        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         os.makedirs('data', exist_ok=True)
-        
-        # Save Nasdaq data only if it was collected
         if all_nasdaq_data and use_nasdaq:
             combined_nasdaq_df = pd.concat(all_nasdaq_data, ignore_index=True)
             nasdaq_filename = f'data/raw_{timestamp}.csv'
@@ -342,7 +326,6 @@ def main():
             print(f"Nasdaq raw data saved to {nasdaq_filename}")
         else:
             print("No Nasdaq data to save")
-        
         if all_yfinance_data:
             combined_yfinance_df = pd.concat(all_yfinance_data, ignore_index=True)
             yfinance_filename = f'data/raw_yfinance_{timestamp}.csv'
@@ -350,7 +333,6 @@ def main():
             print(f"yfinance raw data saved to {yfinance_filename}")
         else:
             print("No yfinance data to save")
-        
         if all_hist:
             combined_hist_df = pd.concat(all_hist, ignore_index=True)
             hist_filename = f'data/historic_{timestamp}.csv'
@@ -358,7 +340,6 @@ def main():
             print(f"Historic data saved to {hist_filename}")
         else:
             print("No historic data to save")
-    
     finally:
         if driver:
             driver.quit()
