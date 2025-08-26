@@ -93,6 +93,15 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             weighted_iv = np.average(ticker_df.loc[valid, 'IV_mid'], weights=weights[valid])
             return weighted_iv
         
+        def calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
+            past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
+            vols = past_year['Realised_Vol_100'].dropna()
+            if vols.empty or len(vols) < 2 or current_vol == 'N/A':
+                return 'N/A'
+            # Calculate percentile: (number of values < current_vol) / total number * 100
+            percentile = (vols < current_vol).sum() / len(vols) * 100
+            return percentile
+        
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
         past_year_start = current_dt - timedelta(days=365)
@@ -133,6 +142,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict['Rvol 100d Percentile (%)'] = 'N/A'
             else:
                 latest_close = latest['Close'].values[0]
                 rank_dict['Latest Close'] = latest_close
@@ -159,11 +169,13 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             min_vol = vols.min()
                             max_vol = vols.max()
                             mean_vol = vols.mean()
+                            percentile = calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
                         else:
-                            min_vol = max_vol = mean_vol = 'N/A'
+                            min_vol = max_vol = mean_vol = percentile = 'N/A'
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol
+                        rank_dict['Rvol 100d Percentile (%)'] = percentile
             ranking.append(rank_dict)
         
         df_ranking = pd.DataFrame(ranking)
