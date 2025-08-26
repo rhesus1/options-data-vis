@@ -108,7 +108,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             percentile = (vols < current_vol).sum() / len(vols) * 100
             return percentile
         
-        def calculate_rvol_z_score(ticker, current_vol, df_historic, past_year_start, current_dt):
+        def calculate_rvol_z_score_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
             past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
             vols = past_year['Realised_Vol_100'].dropna()
             if vols.empty or len(vols) < 2 or current_vol == 'N/A':
@@ -118,7 +118,8 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             if std_vol == 0:
                 return 'N/A'  # Avoid division by zero
             z_score = (current_vol - mean_vol) / std_vol
-            return z_score
+            percentile = norm.cdf(z_score) * 100
+            return percentile
         
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
@@ -158,7 +159,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 'Max Realised Volatility 100d (1y)': 'N/A',
                 'Mean Realised Volatility 100d (1y)': 'N/A',
                 'Rvol 100d Percentile (%)': 'N/A',
-                'Rvol 100d Z-Score': 'N/A',
+                'Rvol 100d Z-Score Percentile (%)': 'N/A',
                 'Realised Volatility 180d (%)': 'N/A',
                 'Realised Volatility 252d (%)': 'N/A',
                 'Weighted IV (%)': weighted_iv * 100 if not np.isnan(weighted_iv) else 'N/A',
@@ -199,14 +200,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             max_vol = vols.max()
                             mean_vol = vols.mean()
                             percentile = calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
-                            z_score = calculate_rvol_z_score(ticker, current_vol, df_historic, past_year_start, current_dt)
+                            z_score_percentile = calculate_rvol_z_score_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
                         else:
-                            min_vol = max_vol = mean_vol = percentile = z_score = 'N/A'
+                            min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol
                         rank_dict['Rvol 100d Percentile (%)'] = percentile
-                        rank_dict['Rvol 100d Z-Score'] = z_score
+                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile
                         rvol100d_minus_weighted_iv = current_vol - (weighted_iv * 100) if current_vol != 'N/A' and not np.isnan(weighted_iv) else 'N/A'
                         rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv
             ranking.append(rank_dict)
@@ -225,7 +226,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'Max Realised Volatility 100d (1y)',
             'Mean Realised Volatility 100d (1y)',
             'Rvol 100d Percentile (%)',
-            'Rvol 100d Z-Score',
+            'Rvol 100d Z-Score Percentile (%)',
             'Realised Volatility 180d (%)',
             'Realised Volatility 252d (%)',
             'Weighted IV (%)',
