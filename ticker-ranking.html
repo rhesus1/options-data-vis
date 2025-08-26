@@ -96,22 +96,22 @@
                 <th data-sort="high1w">High 1w (%)</th>
                 <th data-sort="low1d">Low 1d (%)</th>
                 <th data-sort="low1w">Low 1w (%)</th>
-                <th data-sort="realisedVolClose30">Rvol Close 30d (%)</th>
-                <th data-sort="realisedVolClose60">Rvol Close 60d (%)</th>
-                <th data-sort="realisedVolClose100">Rvol Close 100d (%)</th>
-                <th data-sort="realisedVolClose100_1d">Rvol Close 100d 1d (%)</th>
-                <th data-sort="realisedVolClose100_1w">Rvol Close 100d 1w (%)</th>
-                <th data-sort="minRealisedVolClose100">Min Rvol Close 100d (1y)</th>
-                <th data-sort="maxRealisedVolClose100">Max Rvol Close 100d (1y)</th>
-                <th data-sort="meanRealisedVolClose100">Mean Rvol Close 100d (1y)</th>
-                <th data-sort="rvolClose100Percentile">Rvol Close 100d Percentile (%)</th>
-                <th data-sort="rvolClose100ZScorePercentile">Rvol Close 100d Z-Score Percentile (%)</th>
-                <th data-sort="realisedVolClose180">Rvol Close 180d (%)</th>
-                <th data-sort="realisedVolClose252">Rvol Close 252d (%)</th>
+                <th data-sort="realisedVol30">Rvol 30d (%)</th>
+                <th data-sort="realisedVol60">Rvol 60d (%)</th>
+                <th data-sort="realisedVol100">Rvol 100d (%)</th>
+                <th data-sort="realisedVol100_1d">Rvol 100d 1d (%)</th>
+                <th data-sort="realisedVol100_1w">Rvol 100d 1w (%)</th>
+                <th data-sort="minRealisedVol100">Min Rvol 100d (1y)</th>
+                <th data-sort="maxRealisedVol100">Max Rvol 100d (1y)</th>
+                <th data-sort="meanRealisedVol100">Mean Rvol 100d (1y)</th>
+                <th data-sort="rvol100Percentile">Rvol 100d Percentile (%)</th>
+                <th data-sort="rvol100ZScorePercentile">Rvol 100d Z-Score Percentile (%)</th>
+                <th data-sort="realisedVol180">Rvol 180d (%)</th>
+                <th data-sort="realisedVol252">Rvol 252d (%)</th>
                 <th data-sort="weightedIV">Weighted IV (%)</th>
                 <th data-sort="weightedIV_1d">Weighted IV 1d (%)</th>
                 <th data-sort="weightedIV_1w">Weighted IV 1w (%)</th>
-                <th data-sort="rvolClose100dMinusWeightedIV">Rvol Close 100d - Weighted IV</th>
+                <th data-sort="rvol100dMinusWeightedIV">Rvol 100d - Weighted IV</th>
                 <th data-sort="volume">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
@@ -125,7 +125,6 @@
     <script>
         let rankingData = [];
         let currentSort = { column: 'openInterest', direction: 'desc' };
-
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -138,8 +137,8 @@
                     openInterest: { raw: item['Open Interest'], type: typeof item['Open Interest'] },
                     volume: { raw: item['Volume'], type: typeof item['Volume'] },
                     weightedIV: typeof item['Weighted IV (%)'],
-                    rvolClose100Percentile: typeof item['Rvol Close 100d Percentile (%)'],
-                    rvolClose100ZScorePercentile: typeof item['Rvol Close 100d Z-Score Percentile (%)']
+                    rvol100Percentile: typeof item['Rvol 100d Percentile (%)'],
+                    rvol100ZScorePercentile: typeof item['Rvol 100d Z-Score Percentile (%)']
                 })));
                 return result.data;
             } catch (error) {
@@ -147,14 +146,12 @@
                 return [];
             }
         }
-
         function formatNumberWithCommas(number) {
             if (number === 'N/A' || number === null || number === undefined || isNaN(number)) {
                 return 'N/A';
             }
             return Number(number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
-
         function formatValue(value, isNumericColumn) {
             if (value === 'N/A' || value === null || value === undefined) {
                 return 'N/A';
@@ -164,7 +161,6 @@
             }
             return value;
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -175,7 +171,6 @@
                 return null;
             }
         }
-
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
@@ -197,7 +192,6 @@
                 console.error('Error updating time options:', error);
             }
         }
-
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
@@ -218,19 +212,18 @@
                 console.error('Error in loadData:', error);
             }
         }
-
         function updateTable() {
             try {
                 const tbody = document.querySelector('#data-table tbody');
                 tbody.innerHTML = '';
                 const numericColumns = [
-                    'openInterest', 'volume', 'realisedVolClose30', 'realisedVolClose60', 'realisedVolClose100',
-                    'realisedVolClose100_1d', 'realisedVolClose100_1w', 'minRealisedVolClose100',
-                    'maxRealisedVolClose100', 'meanRealisedVolClose100', 'rvolClose100Percentile',
-                    'rvolClose100ZScorePercentile', 'realisedVolClose180', 'realisedVolClose252',
+                    'openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100',
+                    'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100',
+                    'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile',
+                    'rvol100ZScorePercentile', 'realisedVol180', 'realisedVol252',
                     'latestClose', 'latestHigh', 'latestLow', 'close1d', 'close1w', 'high1d', 'high1w',
                     'low1d', 'low1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'weightedIV', 'weightedIV_1d',
-                    'weightedIV_1w', 'rvolClose100dMinusWeightedIV'
+                    'weightedIV_1w', 'rvol100dMinusWeightedIV'
                 ];
                 const tableData = rankingData.map((item, index) => {
                     const ticker = item.Ticker;
@@ -255,25 +248,24 @@
                         high1w: formatValue(item['High 1w (%)'], true),
                         low1d: formatValue(item['Low 1d (%)'], true),
                         low1w: formatValue(item['Low 1w (%)'], true),
-                        realisedVolClose30: formatValue(item['Realised Volatility Close 30d (%)'], true),
-                        realisedVolClose60: formatValue(item['Realised Volatility Close 60d (%)'], true),
-                        realisedVolClose100: formatValue(item['Realised Volatility Close 100d (%)'], true),
-                        realisedVolClose100_1d: formatValue(item['Realised Volatility Close 100d 1d (%)'], true),
-                        realisedVolClose100_1w: formatValue(item['Realised Volatility Close 100d 1w (%)'], true),
-                        minRealisedVolClose100: formatValue(item['Min Realised Volatility Close 100d (1y)'], true),
-                        maxRealisedVolClose100: formatValue(item['Max Realised Volatility Close 100d (1y)'], true),
-                        meanRealisedVolClose100: formatValue(item['Mean Realised Volatility Close 100d (1y)'], true),
-                        rvolClose100Percentile: formatValue(item['Rvol Close 100d Percentile (%)'], true),
-                        rvolClose100ZScorePercentile: formatValue(item['Rvol Close 100d Z-Score Percentile (%)'], true),
-                        realisedVolClose180: formatValue(item['Realised Volatility Close 180d (%)'], true),
-                        realisedVolClose252: formatValue(item['Realised Volatility Close 252d (%)'], true),
+                        realisedVol30: formatValue(item['Realised Volatility 30d (%)'], true),
+                        realisedVol60: formatValue(item['Realised Volatility 60d (%)'], true),
+                        realisedVol100: formatValue(item['Realised Volatility 100d (%)'], true),
+                        realisedVol100_1d: formatValue(item['Realised Volatility 100d 1d (%)'], true),
+                        realisedVol100_1w: formatValue(item['Realised Volatility 100d 1w (%)'], true),
+                        minRealisedVol100: formatValue(item['Min Realised Volatility 100d (1y)'], true),
+                        maxRealisedVol100: formatValue(item['Max Realised Volatility 100d (1y)'], true),
+                        meanRealisedVol100: formatValue(item['Mean Realised Volatility 100d (1y)'], true),
+                        rvol100Percentile: formatValue(item['Rvol 100d Percentile (%)'], true),
+                        rvol100ZScorePercentile: formatValue(item['Rvol 100d Z-Score Percentile (%)'], true),
+                        realisedVol180: formatValue(item['Realised Volatility 180d (%)'], true),
+                        realisedVol252: formatValue(item['Realised Volatility 252d (%)'], true),
                         weightedIV: formatValue(item['Weighted IV (%)'], true),
                         weightedIV_1d: formatValue(item['Weighted IV 1d (%)'], true),
                         weightedIV_1w: formatValue(item['Weighted IV 1w (%)'], true),
-                        rvolClose100dMinusWeightedIV: formatValue(item['Rvol Close 100d - Weighted IV'], true)
+                        rvol100dMinusWeightedIV: formatValue(item['Rvol100d - Weighted IV'], true)
                     };
                 });
-
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
@@ -291,14 +283,19 @@
                     if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
-
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
-
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    const columns = ['order', 'ticker', 'latestClose', 'latestHigh', 'latestLow', 'close1d', 'close1w', 'high1d', 'high1w', 'low1d', 'low1w', 'realisedVolClose30', 'realisedVolClose60', 'realisedVolClose100', 'realisedVolClose100_1d', 'realisedVolClose100_1w', 'minRealisedVolClose100', 'maxRealisedVolClose100', 'meanRealisedVolClose100', 'rvolClose100Percentile', 'rvolClose100ZScorePercentile', 'realisedVolClose180', 'realisedVolClose252', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvolClose100dMinusWeightedIV', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'];
+                    const columns = [
+                        'order', 'ticker', 'latestClose', 'latestHigh', 'latestLow', 'close1d', 'close1w', 'high1d', 'high1w',
+                        'low1d', 'low1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d',
+                        'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100',
+                        'rvol100Percentile', 'rvol100ZScorePercentile', 'realisedVol180', 'realisedVol252',
+                        'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvol100dMinusWeightedIV', 'volume',
+                        'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'
+                    ];
                     columns.forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
@@ -311,7 +308,6 @@
                 console.error('Error updating table:', error);
             }
         }
-
         function setupSortListeners() {
             try {
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
@@ -340,7 +336,6 @@
                 console.error('Error setting up sort listeners:', error);
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
