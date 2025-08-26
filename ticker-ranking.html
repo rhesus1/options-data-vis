@@ -100,7 +100,7 @@
     <script>
         let rawData = [];
         let historicData = [];
-        let currentSort = { column: 'ticker', direction: 'asc' };
+        let currentSort = { column: 'openInterest', direction: 'desc' };
 
         function parseCSV(csvText) {
             try {
@@ -252,8 +252,12 @@
             try {
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
                 headers.forEach(header => {
+                    const column = header.getAttribute('data-sort');
+                    // Apply default sort indicator for openInterest
+                    if (column === currentSort.column) {
+                        header.classList.add(`sort-${currentSort.direction}`);
+                    }
                     header.addEventListener('click', () => {
-                        const column = header.getAttribute('data-sort');
                         if (currentSort.column === column) {
                             currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
                         } else {
