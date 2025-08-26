@@ -72,10 +72,10 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         df_processed = pd.read_csv(processed_file)
         
         processed_prev_day_file = os.path.join(data_dir, f"processed_{prefix}{prev_day_ts}.csv") if prev_day_ts else None
-        df_processed_prev_day = pd.read_csv(processed_prev_day_file) if processed_prev_day_file and os.path.exists(processed_prev_day_file) else pd.DataFrame()
+        df_processed_prev_day = pd.read_csv(processed_prev_day_file) if processed_prev_day_file and os.path.exists(processed_prev_day_file) else pd.DataFrame(columns=['Ticker'])
         
         processed_prev_week_file = os.path.join(data_dir, f"processed_{prefix}{prev_week_ts}.csv") if prev_week_ts else None
-        df_processed_prev_week = pd.read_csv(processed_prev_week_file) if processed_prev_week_file and os.path.exists(processed_prev_week_file) else pd.DataFrame()
+        df_processed_prev_week = pd.read_csv(processed_prev_week_file) if processed_prev_week_file and os.path.exists(processed_prev_week_file) else pd.DataFrame(columns=['Ticker'])
         
         latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()]
         
@@ -137,10 +137,10 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             vol_1w_pct = (vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol != 0 else 'N/A'
             ticker_processed = df_processed[df_processed['Ticker'] == ticker]
             weighted_iv = calculate_weighted_iv(ticker_processed) if not ticker_processed.empty else np.nan
-            ticker_processed_prev_day = df_processed_prev_day[df_processed_prev_day['Ticker'] == ticker]
+            ticker_processed_prev_day = df_processed_prev_day[df_processed_prev_day['Ticker'] == ticker] if 'Ticker' in df_processed_prev_day.columns else pd.DataFrame()
             weighted_iv_prev_day = calculate_weighted_iv(ticker_processed_prev_day) if not ticker_processed_prev_day.empty else np.nan
             weighted_iv_1d_pct = (weighted_iv - weighted_iv_prev_day) / weighted_iv_prev_day * 100 if not np.isnan(weighted_iv_prev_day) and weighted_iv_prev_day != 0 else 'N/A'
-            ticker_processed_prev_week = df_processed_prev_week[df_processed_prev_week['Ticker'] == ticker]
+            ticker_processed_prev_week = df_processed_prev_week[df_processed_prev_week['Ticker'] == ticker] if 'Ticker' in df_processed_prev_week.columns else pd.DataFrame()
             weighted_iv_prev_week = calculate_weighted_iv(ticker_processed_prev_week) if not ticker_processed_prev_week.empty else np.nan
             weighted_iv_1w_pct = (weighted_iv - weighted_iv_prev_week) / weighted_iv_prev_week * 100 if not np.isnan(weighted_iv_prev_week) and weighted_iv_prev_week != 0 else 'N/A'
             latest = latest_historic[latest_historic['Ticker'] == ticker]
