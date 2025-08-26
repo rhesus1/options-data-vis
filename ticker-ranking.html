@@ -87,8 +87,14 @@
                 <th data-sort="order">Order</th>
                 <th data-sort="ticker">Ticker</th>
                 <th data-sort="openInterest">Open Interest</th>
+                <th data-sort="oi1d">OI 1d (%)</th>
+                <th data-sort="oi1w">OI 1w (%)</th>
                 <th data-sort="volume">Volume</th>
+                <th data-sort="vol1d">Vol 1d (%)</th>
+                <th data-sort="vol1w">Vol 1w (%)</th>
                 <th data-sort="latestClose">Latest Close ($)</th>
+                <th data-sort="close1d">Close 1d (%)</th>
+                <th data-sort="close1w">Close 1w (%)</th>
                 <th data-sort="realisedVol30">Rvol 30d (%)</th>
                 <th data-sort="realisedVol60">Rvol 60d (%)</th>
                 <th data-sort="realisedVol100">Rvol 100d (%)</th>
@@ -102,10 +108,9 @@
         <tbody></tbody>
     </table>
     <script>
-        let rawData = [];
+        let rankingData = [];
         let historicData = [];
         let currentSort = { column: 'openInterest', direction: 'desc' };
-
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -119,7 +124,6 @@
                 return [];
             }
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -130,7 +134,6 @@
                 return null;
             }
         }
-
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
@@ -152,20 +155,19 @@
                 console.error('Error updating time options:', error);
             }
         }
-
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
                 const prefix = source === 'yfinance' ? 'yfinance_' : '';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
                 Promise.all([
-                    fetch(`data/raw_${prefix}${timestamp}.csv?v=` + Date.now())
+                    fetch(`data/ranking_${prefix}${timestamp}.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
-                            rawData = parseCSV(csvText);
-                            console.log(`Raw ${source} data loaded:`, rawData);
+                            rankingData = parseCSV(csvText);
+                            console.log(`Ranking ${source} data loaded:`, rankingData);
                         })
-                        .catch(error => console.error(`Error loading raw ${source} data:`, error)),
+                        .catch(error => console.error(`Error loading ranking ${source} data:`, error)),
                     fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
@@ -180,37 +182,28 @@
                 console.error('Error in loadData:', error);
             }
         }
-
         function updateTable() {
             try {
                 const tbody = document.querySelector('#data-table tbody');
                 tbody.innerHTML = '';
-                const uniqueTickers = [...new Set(rawData.map(item => item.Ticker))].filter(val => val).sort();
-                const tableData = uniqueTickers.map((ticker, index) => {
-                    const tickerRawData = rawData.filter(item => item.Ticker === ticker);
-                    const totalOpenInterest = tickerRawData.reduce((sum, item) => sum + (item['Open Interest'] || 0), 0);
-                    const totalVolume = tickerRawData.reduce((sum, item) => sum + (item.Volume || 0), 0);
-                    const tickerHistoricData = historicData.filter(item => item.Ticker === ticker);
-                    let realisedVol30 = 'N/A';
-                    let realisedVol60 = 'N/A';
-                    let realisedVol100 = 'N/A';
+                const tableData = rankingData.map((item, index) => {
+                    const ticker = item.Ticker;
+                    const tickerHistoricData = historicData.filter(h => h.Ticker === ticker);
+                    let realisedVol30 = item['Realised Volatility 30d (%)'] || 'N/A';
+                    let realisedVol60 = item['Realised Volatility 60d (%)'] || 'N/A';
+                    let realisedVol100 = item['Realised Volatility 100d (%)'] || 'N/A';
                     let minRealisedVol100 = 'N/A';
                     let maxRealisedVol100 = 'N/A';
                     let meanRealisedVol100 = 'N/A';
                     let latestClose = 'N/A';
-                    let realisedVol180 = 'N/A';
-                    let realisedVol252 = 'N/A';
+                    let realisedVol180 = item['Realised Volatility 180d (%)'] || 'N/A';
+                    let realisedVol252 = item['Realised Volatility 252d (%)'] || 'N/A';
                     if (tickerHistoricData.length > 0) {
                         tickerHistoricData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
                         const latestHistoric = tickerHistoricData[0];
-                        realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) : 'N/A';
-                        realisedVol60 = Number.isFinite(latestHistoric.Realised_Vol_60) ? latestHistoric.Realised_Vol_60.toFixed(2) : 'N/A';
-                        realisedVol100 = Number.isFinite(latestHistoric.Realised_Vol_100) ? latestHistoric.Realised_Vol_100.toFixed(2) : 'N/A';
-                        realisedVol180 = Number.isFinite(latestHistoric.Realised_Vol_180) ? latestHistoric.Realised_Vol_180.toFixed(2) : 'N/A';
-                        realisedVol252 = Number.isFinite(latestHistoric.Realised_Vol_252) ? latestHistoric.Realised_Vol_252.toFixed(2) : 'N/A';
                         latestClose = Number.isFinite(latestHistoric.Close) ? latestHistoric.Close.toFixed(2) : 'N/A';
                         const rvol100Values = tickerHistoricData
-                            .map(item => Number.isFinite(item.Realised_Vol_100) ? item.Realised_Vol_100 : null)
+                            .map(h => Number.isFinite(h.Realised_Vol_100) ? h.Realised_Vol_100 : null)
                             .filter(val => val !== null);
                         if (rvol100Values.length > 0) {
                             minRealisedVol100 = Math.min(...rvol100Values).toFixed(2);
@@ -222,9 +215,15 @@
                     return {
                         order: index + 1,
                         ticker,
-                        openInterest: totalOpenInterest,
-                        volume: totalVolume,
+                        openInterest: item['Open Interest'] || 0,
+                        oi1d: item['OI 1d (%)'] || 'N/A',
+                        oi1w: item['OI 1w (%)'] || 'N/A',
+                        volume: item['Volume'] || 0,
+                        vol1d: item['Volume 1d (%)'] || 'N/A',
+                        vol1w: item['Volume 1w (%)'] || 'N/A',
                         latestClose,
+                        close1d: item['Close 1d (%)'] || 'N/A',
+                        close1w: item['Close 1w (%)'] || 'N/A',
                         realisedVol30,
                         realisedVol60,
                         realisedVol100,
@@ -239,7 +238,7 @@
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
-                    if (['realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'latestClose'].includes(currentSort.column)) {
+                    if (['realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'latestClose', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'close1d', 'close1w'].includes(currentSort.column)) {
                         valA = valA === 'N/A' ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' ? -Infinity : parseFloat(valB);
                     }
@@ -254,7 +253,7 @@
                 // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'openInterest', 'volume', 'latestClose', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252'].forEach(key => {
+                    ['order', 'ticker', 'openInterest', 'oi1d', 'oi1w', 'volume', 'vol1d', 'vol1w', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252'].forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
                         row.appendChild(cell);
@@ -266,7 +265,6 @@
                 console.error('Error updating table:', error);
             }
         }
-
         function setupSortListeners() {
             try {
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
@@ -296,7 +294,6 @@
                 console.error('Error setting up sort listeners:', error);
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
