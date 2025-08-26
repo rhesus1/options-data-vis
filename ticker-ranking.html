@@ -125,6 +125,7 @@
     <script>
         let rankingData = [];
         let currentSort = { column: 'openInterest', direction: 'desc' };
+
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -146,12 +147,14 @@
                 return [];
             }
         }
+
         function formatNumberWithCommas(number) {
             if (number === 'N/A' || number === null || number === undefined || isNaN(number)) {
                 return 'N/A';
             }
             return Number(number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
+
         function formatValue(value, isNumericColumn) {
             if (value === 'N/A' || value === null || value === undefined) {
                 return 'N/A';
@@ -161,6 +164,7 @@
             }
             return value;
         }
+
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -171,6 +175,7 @@
                 return null;
             }
         }
+
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
@@ -192,6 +197,7 @@
                 console.error('Error updating time options:', error);
             }
         }
+
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
@@ -212,12 +218,13 @@
                 console.error('Error in loadData:', error);
             }
         }
+
         function updateTable() {
             try {
                 const tbody = document.querySelector('#data-table tbody');
                 tbody.innerHTML = '';
                 const numericColumns = [
-                    'openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100',
+                    'openInterestRaw', 'volumeRaw', 'realisedVol30', 'realisedVol60', 'realisedVol100',
                     'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100',
                     'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile',
                     'rvol100ZScorePercentile', 'realisedVol180', 'realisedVol252',
@@ -233,9 +240,11 @@
                     return {
                         order: index + 1,
                         ticker: item.Ticker || 'N/A',
+                        openInterestRaw: Number.isFinite(openInterestRaw) ? Number(openInterestRaw) : -Infinity,
                         openInterest: formatNumberWithCommas(openInterestRaw),
                         oi1d: formatValue(item['OI 1d (%)'], true),
                         oi1w: formatValue(item['OI 1w (%)'], true),
+                        volumeRaw: Number.isFinite(volumeRaw) ? Number(volumeRaw) : -Infinity,
                         volume: formatNumberWithCommas(volumeRaw),
                         vol1d: formatValue(item['Volume 1d (%)'], true),
                         vol1w: formatValue(item['Volume 1w (%)'], true),
@@ -266,6 +275,7 @@
                         rvol100dMinusWeightedIV: formatValue(item['Rvol100d - Weighted IV'], true)
                     };
                 });
+
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
@@ -283,9 +293,11 @@
                     if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
+
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
+
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
                     const columns = [
@@ -308,6 +320,7 @@
                 console.error('Error updating table:', error);
             }
         }
+
         function setupSortListeners() {
             try {
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
@@ -336,6 +349,7 @@
                 console.error('Error setting up sort listeners:', error);
             }
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
