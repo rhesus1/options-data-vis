@@ -87,24 +87,30 @@
                 <th data-sort="order">Rank</th>
                 <th data-sort="ticker">Ticker</th>
                 <th data-sort="latestClose">Latest Close ($)</th>
+                <th data-sort="latestHigh">Latest High ($)</th>
+                <th data-sort="latestLow">Latest Low ($)</th>
                 <th data-sort="close1d">Close 1d (%)</th>
                 <th data-sort="close1w">Close 1w (%)</th>
-                <th data-sort="realisedVol30">Rvol 30d (%)</th>
-                <th data-sort="realisedVol60">Rvol 60d (%)</th>
-                <th data-sort="realisedVol100">Rvol 100d (%)</th>
-                <th data-sort="realisedVol100_1d">Rvol 100d 1d (%)</th>
-                <th data-sort="realisedVol100_1w">Rvol 100d 1w (%)</th>
-                <th data-sort="minRealisedVol100">Min Rvol 100d (1y)</th>
-                <th data-sort="maxRealisedVol100">Max Rvol 100d (1y)</th>
-                <th data-sort="meanRealisedVol100">Mean Rvol 100d (1y)</th>
-                <th data-sort="rvol100Percentile">Rvol 100d Percentile (%)</th>
-                <th data-sort="rvol100ZScorePercentile">Rvol 100d Z-Score Percentile (%)</th>
-                <th data-sort="realisedVol180">Rvol 180d (%)</th>
-                <th data-sort="realisedVol252">Rvol 252d (%)</th>
+                <th data-sort="high1d">High 1d (%)</th>
+                <th data-sort="high1w">High 1w (%)</th>
+                <th data-sort="low1d">Low 1d (%)</th>
+                <th data-sort="low1w">Low 1w (%)</th>
+                <th data-sort="realisedVolClose30">Rvol Close 30d (%)</th>
+                <th data-sort="realisedVolClose60">Rvol Close 60d (%)</th>
+                <th data-sort="realisedVolClose100">Rvol Close 100d (%)</th>
+                <th data-sort="realisedVolClose100_1d">Rvol Close 100d 1d (%)</th>
+                <th data-sort="realisedVolClose100_1w">Rvol Close 100d 1w (%)</th>
+                <th data-sort="minRealisedVolClose100">Min Rvol Close 100d (1y)</th>
+                <th data-sort="maxRealisedVolClose100">Max Rvol Close 100d (1y)</th>
+                <th data-sort="meanRealisedVolClose100">Mean Rvol Close 100d (1y)</th>
+                <th data-sort="rvolClose100Percentile">Rvol Close 100d Percentile (%)</th>
+                <th data-sort="rvolClose100ZScorePercentile">Rvol Close 100d Z-Score Percentile (%)</th>
+                <th data-sort="realisedVolClose180">Rvol Close 180d (%)</th>
+                <th data-sort="realisedVolClose252">Rvol Close 252d (%)</th>
                 <th data-sort="weightedIV">Weighted IV (%)</th>
                 <th data-sort="weightedIV_1d">Weighted IV 1d (%)</th>
                 <th data-sort="weightedIV_1w">Weighted IV 1w (%)</th>
-                <th data-sort="rvol100dMinusWeightedIV">Rvol100d - Weighted IV</th>
+                <th data-sort="rvolClose100dMinusWeightedIV">Rvol Close 100d - Weighted IV</th>
                 <th data-sort="volume">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
@@ -118,7 +124,6 @@
     <script>
         let rankingData = [];
         let currentSort = { column: 'openInterest', direction: 'desc' };
-
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -131,8 +136,8 @@
                     openInterest: { raw: item['Open Interest'], type: typeof item['Open Interest'] },
                     volume: { raw: item['Volume'], type: typeof item['Volume'] },
                     weightedIV: typeof item['Weighted IV (%)'],
-                    rvol100Percentile: typeof item['Rvol 100d Percentile (%)'],
-                    rvol100ZScorePercentile: typeof item['Rvol 100d Z-Score Percentile (%)']
+                    rvolClose100Percentile: typeof item['Rvol Close 100d Percentile (%)'],
+                    rvolClose100ZScorePercentile: typeof item['Rvol Close 100d Z-Score Percentile (%)']
                 })));
                 return result.data;
             } catch (error) {
@@ -140,7 +145,6 @@
                 return [];
             }
         }
-
         function formatNumberWithCommas(number) {
             const num = Number(number);
             if (isNaN(num) || number === null || number === undefined || number === 'N/A') {
@@ -148,7 +152,6 @@
             }
             return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -159,7 +162,6 @@
                 return null;
             }
         }
-
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
@@ -181,7 +183,6 @@
                 console.error('Error updating time options:', error);
             }
         }
-
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
@@ -199,7 +200,6 @@
                 console.error('Error in loadData:', error);
             }
         }
-
         function updateTable() {
             try {
                 const tbody = document.querySelector('#data-table tbody');
@@ -219,31 +219,36 @@
                         vol1d: Number.isFinite(item['Volume 1d (%)']) ? Number(item['Volume 1d (%)']).toFixed(2) : 'N/A',
                         vol1w: Number.isFinite(item['Volume 1w (%)']) ? Number(item['Volume 1w (%)']).toFixed(2) : 'N/A',
                         latestClose: Number.isFinite(item['Latest Close']) ? Number(item['Latest Close']).toFixed(2) : 'N/A',
+                        latestHigh: Number.isFinite(item['Latest High']) ? Number(item['Latest High']).toFixed(2) : 'N/A',
+                        latestLow: Number.isFinite(item['Latest Low']) ? Number(item['Latest Low']).toFixed(2) : 'N/A',
                         close1d: Number.isFinite(item['Close 1d (%)']) ? Number(item['Close 1d (%)']).toFixed(2) : 'N/A',
                         close1w: Number.isFinite(item['Close 1w (%)']) ? Number(item['Close 1w (%)']).toFixed(2) : 'N/A',
-                        realisedVol30: Number.isFinite(item['Realised Volatility 30d (%)']) ? Number(item['Realised Volatility 30d (%)']).toFixed(2) : 'N/A',
-                        realisedVol60: Number.isFinite(item['Realised Volatility 60d (%)']) ? Number(item['Realised Volatility 60d (%)']).toFixed(2) : 'N/A',
-                        realisedVol100: Number.isFinite(item['Realised Volatility 100d (%)']) ? Number(item['Realised Volatility 100d (%)']).toFixed(2) : 'N/A',
-                        realisedVol100_1d: Number.isFinite(item['Realised Volatility 100d 1d (%)']) ? Number(item['Realised Volatility 100d 1d (%)']).toFixed(2) : 'N/A',
-                        realisedVol100_1w: Number.isFinite(item['Realised Volatility 100d 1w (%)']) ? Number(item['Realised Volatility 100d 1w (%)']).toFixed(2) : 'N/A',
-                        minRealisedVol100: Number.isFinite(item['Min Realised Volatility 100d (1y)']) ? Number(item['Min Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
-                        maxRealisedVol100: Number.isFinite(item['Max Realised Volatility 100d (1y)']) ? Number(item['Max Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
-                        meanRealisedVol100: Number.isFinite(item['Mean Realised Volatility 100d (1y)']) ? Number(item['Mean Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
-                        rvol100Percentile: Number.isFinite(item['Rvol 100d Percentile (%)']) ? Number(item['Rvol 100d Percentile (%)']).toFixed(2) : 'N/A',
-                        rvol100ZScorePercentile: Number.isFinite(item['Rvol 100d Z-Score Percentile (%)']) ? Number(item['Rvol 100d Z-Score Percentile (%)']).toFixed(2) : 'N/A',
-                        realisedVol180: Number.isFinite(item['Realised Volatility 180d (%)']) ? Number(item['Realised Volatility 180d (%)']).toFixed(2) : 'N/A',
-                        realisedVol252: Number.isFinite(item['Realised Volatility 252d (%)']) ? Number(item['Realised Volatility 252d (%)']).toFixed(2) : 'N/A',
+                        high1d: Number.isFinite(item['High 1d (%)']) ? Number(item['High 1d (%)']).toFixed(2) : 'N/A',
+                        high1w: Number.isFinite(item['High 1w (%)']) ? Number(item['High 1w (%)']).toFixed(2) : 'N/A',
+                        low1d: Number.isFinite(item['Low 1d (%)']) ? Number(item['Low 1d (%)']).toFixed(2) : 'N/A',
+                        low1w: Number.isFinite(item['Low 1w (%)']) ? Number(item['Low 1w (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose30: Number.isFinite(item['Realised Volatility Close 30d (%)']) ? Number(item['Realised Volatility Close 30d (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose60: Number.isFinite(item['Realised Volatility Close 60d (%)']) ? Number(item['Realised Volatility Close 60d (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose100: Number.isFinite(item['Realised Volatility Close 100d (%)']) ? Number(item['Realised Volatility Close 100d (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose100_1d: Number.isFinite(item['Realised Volatility Close 100d 1d (%)']) ? Number(item['Realised Volatility Close 100d 1d (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose100_1w: Number.isFinite(item['Realised Volatility Close 100d 1w (%)']) ? Number(item['Realised Volatility Close 100d 1w (%)']).toFixed(2) : 'N/A',
+                        minRealisedVolClose100: Number.isFinite(item['Min Realised Volatility Close 100d (1y)']) ? Number(item['Min Realised Volatility Close 100d (1y)']).toFixed(2) : 'N/A',
+                        maxRealisedVolClose100: Number.isFinite(item['Max Realised Volatility Close 100d (1y)']) ? Number(item['Max Realised Volatility Close 100d (1y)']).toFixed(2) : 'N/A',
+                        meanRealisedVolClose100: Number.isFinite(item['Mean Realised Volatility Close 100d (1y)']) ? Number(item['Mean Realised Volatility Close 100d (1y)']).toFixed(2) : 'N/A',
+                        rvolClose100Percentile: Number.isFinite(item['Rvol Close 100d Percentile (%)']) ? Number(item['Rvol Close 100d Percentile (%)']).toFixed(2) : 'N/A',
+                        rvolClose100ZScorePercentile: Number.isFinite(item['Rvol Close 100d Z-Score Percentile (%)']) ? Number(item['Rvol Close 100d Z-Score Percentile (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose180: Number.isFinite(item['Realised Volatility Close 180d (%)']) ? Number(item['Realised Volatility Close 180d (%)']).toFixed(2) : 'N/A',
+                        realisedVolClose252: Number.isFinite(item['Realised Volatility Close 252d (%)']) ? Number(item['Realised Volatility Close 252d (%)']).toFixed(2) : 'N/A',
                         weightedIV: Number.isFinite(item['Weighted IV (%)']) ? Number(item['Weighted IV (%)']).toFixed(2) : 'N/A',
                         weightedIV_1d: Number.isFinite(item['Weighted IV 1d (%)']) ? Number(item['Weighted IV 1d (%)']).toFixed(2) : 'N/A',
                         weightedIV_1w: Number.isFinite(item['Weighted IV 1w (%)']) ? Number(item['Weighted IV 1w (%)']).toFixed(2) : 'N/A',
-                        rvol100dMinusWeightedIV: Number.isFinite(item['Rvol100d - Weighted IV']) ? Number(item['Rvol100d - Weighted IV']).toFixed(2) : 'N/A'
+                        rvolClose100dMinusWeightedIV: Number.isFinite(item['Rvol Close 100d - Weighted IV']) ? Number(item['Rvol Close 100d - Weighted IV']).toFixed(2) : 'N/A'
                     };
                 });
-
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
-                    if (['openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile', 'rvol100ZScorePercentile', 'realisedVol180', 'realisedVol252', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvol100dMinusWeightedIV'].includes(currentSort.column)) {
+                    if (['openInterest', 'volume', 'realisedVolClose30', 'realisedVolClose60', 'realisedVolClose100', 'realisedVolClose100_1d', 'realisedVolClose100_1w', 'minRealisedVolClose100', 'maxRealisedVolClose100', 'meanRealisedVolClose100', 'rvolClose100Percentile', 'rvolClose100ZScorePercentile', 'realisedVolClose180', 'realisedVolClose252', 'latestClose', 'latestHigh', 'latestLow', 'close1d', 'close1w', 'high1d', 'high1w', 'low1d', 'low1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvolClose100dMinusWeightedIV'].includes(currentSort.column)) {
                         valA = valA === 'N/A' || valA === undefined || isNaN(valA) ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' || valB === undefined || isNaN(valB) ? -Infinity : parseFloat(valB);
                     } else if (currentSort.column === 'ticker') {
@@ -257,14 +262,12 @@
                     if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
-
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
-
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile', 'rvol100ZScorePercentile', 'realisedVol180', 'realisedVol252', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvol100dMinusWeightedIV', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
+                    ['order', 'ticker', 'latestClose', 'latestHigh', 'latestLow', 'close1d', 'close1w', 'high1d', 'high1w', 'low1d', 'low1w', 'realisedVolClose30', 'realisedVolClose60', 'realisedVolClose100', 'realisedVolClose100_1d', 'realisedVolClose100_1w', 'minRealisedVolClose100', 'maxRealisedVolClose100', 'meanRealisedVolClose100', 'rvolClose100Percentile', 'rvolClose100ZScorePercentile', 'realisedVolClose180', 'realisedVolClose252', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvolClose100dMinusWeightedIV', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
                         const cell = document.createElement('td');
                         if (key === 'openInterest' || key === 'volume') {
                             cell.textContent = formatNumberWithCommas(item[key]);
@@ -280,7 +283,6 @@
                 console.error('Error updating table:', error);
             }
         }
-
         function setupSortListeners() {
             try {
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
@@ -309,7 +311,6 @@
                 console.error('Error setting up sort listeners:', error);
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
