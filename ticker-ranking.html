@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Options Data Table</title>
+    <title>Ticker Ranking</title>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <style>
         body {
@@ -73,8 +73,8 @@
     <div class="controls-container">
         <label for="source-select">Select Data Source: </label>
         <select id="source-select">
-            <option value="nasdaq" selected>Nasdaq</option>
-            <option value="yfinance">yfinance</option>
+            <option value="nasdaq">Nasdaq</option>
+            <option value="yfinance" selected>yfinance</option>
         </select>
         <label for="date-select">Select Date: </label>
         <select id="date-select"></select>
@@ -88,7 +88,11 @@
                 <th data-sort="ticker">Ticker</th>
                 <th data-sort="openInterest">Open Interest</th>
                 <th data-sort="volume">Volume</th>
-                <th data-sort="realisedVol">Realised Volatility 30d (%)</th>
+                <th data-sort="realisedVol30">Realised Volatility 30d (%)</th>
+                <th data-sort="realisedVol60">Realised Volatility 60d (%)</th>
+                <th data-sort="realisedVol100">Realised Volatility 100d (%)</th>
+                <th data-sort="realisedVol180">Realised Volatility 180d (%)</th>
+                <th data-sort="realisedVol252">Realised Volatility 252d (%)</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -184,17 +188,29 @@
                     const totalVolume = tickerRawData.reduce((sum, item) => sum + (item.Volume || 0), 0);
                     const tickerHistoricData = historicData.filter(item => item.Ticker === ticker);
                     let realisedVol30 = 'N/A';
+                    let realisedVol60 = 'N/A';
+                    let realisedVol100 = 'N/A';
+                    let realisedVol180 = 'N/A';
+                    let realisedVol252 = 'N/A';
                     if (tickerHistoricData.length > 0) {
                         tickerHistoricData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
                         const latestHistoric = tickerHistoricData[0];
                         realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) : 'N/A';
+                        realisedVol60 = Number.isFinite(latestHistoric.Realised_Vol_60) ? latestHistoric.Realised_Vol_60.toFixed(2) : 'N/A';
+                        realisedVol100 = Number.isFinite(latestHistoric.Realised_Vol_100) ? latestHistoric.Realised_Vol_100.toFixed(2) : 'N/A';
+                        realisedVol180 = Number.isFinite(latestHistoric.Realised_Vol_180) ? latestHistoric.Realised_Vol_180.toFixed(2) : 'N/A';
+                        realisedVol252 = Number.isFinite(latestHistoric.Realised_Vol_252) ? latestHistoric.Realised_Vol_252.toFixed(2) : 'N/A';
                     }
                     return {
                         order: index + 1,
                         ticker,
                         openInterest: totalOpenInterest,
                         volume: totalVolume,
-                        realisedVol: realisedVol30
+                        realisedVol30,
+                        realisedVol60,
+                        realisedVol100,
+                        realisedVol180,
+                        realisedVol252
                     };
                 });
 
@@ -202,7 +218,7 @@
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
-                    if (currentSort.column === 'realisedVol') {
+                    if (['realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol180', 'realisedVol252'].includes(currentSort.column)) {
                         valA = valA === 'N/A' ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' ? -Infinity : parseFloat(valB);
                     }
@@ -219,7 +235,7 @@
                 // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'openInterest', 'volume', 'realisedVol'].forEach(key => {
+                    ['order', 'ticker', 'openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol180', 'realisedVol252'].forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
                         row.appendChild(cell);
