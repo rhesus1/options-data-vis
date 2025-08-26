@@ -5,40 +5,41 @@ import json
 from datetime import datetime, timedelta
 import os
 from scipy.stats import norm
+
 def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
     dates_file = os.path.join(data_dir, 'dates.json')
-  
+    
     with open(dates_file, 'r') as f:
         dates = json.load(f)
-  
+    
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
-  
+    
     if timestamp not in timestamps:
         print(f"Timestamp {timestamp} not in dates.json")
         return
-  
+    
     for source in sources:
         prefix = 'yfinance_' if source == 'yfinance' else ''
-      
+        
         current_index = timestamps.index(timestamp)
         current_dt = datetime.strptime(timestamp[:8], "%Y%m%d")
         prev_day_dt = current_dt - timedelta(days=1)
         prev_week_dt = current_dt - timedelta(days=7)
-      
+        
         prev_day_ts = None
         for ts in timestamps[:current_index][::-1]:
             ts_dt = datetime.strptime(ts[:8], "%Y%m%d")
             if ts_dt <= prev_day_dt:
                 prev_day_ts = ts
                 break
-      
+        
         prev_week_ts = None
         for ts in timestamps[:current_index][::-1]:
             ts_dt = datetime.strptime(ts[:8], "%Y%m%d")
             if ts_dt <= prev_week_dt:
                 prev_week_ts = ts
                 break
-      
+        
         def get_option_totals(ts, prefix):
             if ts is None:
                 return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
@@ -52,53 +53,53 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             }).reset_index()
             totals.rename(columns={'Open Interest': 'OI', 'Volume': 'Vol'}, inplace=True)
             return totals
-      
+        
         current_option = get_option_totals(timestamp, prefix)
         prev_day_option = get_option_totals(prev_day_ts, prefix)
         prev_week_option = get_option_totals(prev_week_ts, prefix)
-      
+        
         historic_file = os.path.join(data_dir, f"historic_{timestamp}.csv")
         if not os.path.exists(historic_file):
             print(f"Historic file {historic_file} not found")
             continue
         df_historic = pd.read_csv(historic_file)
         df_historic['Date'] = pd.to_datetime(df_historic['Date'])
-      
+        
         processed_file = os.path.join(data_dir, f"processed_{prefix}{timestamp}.csv")
         if not os.path.exists(processed_file):
             print(f"Processed file {processed_file} not found")
             continue
         df_processed = pd.read_csv(processed_file)
-      
+        
         processed_prev_day_file = os.path.join(data_dir, f"processed_{prefix}{prev_day_ts}.csv") if prev_day_ts else None
         df_processed_prev_day = pd.read_csv(processed_prev_day_file) if processed_prev_day_file and os.path.exists(processed_prev_day_file) else pd.DataFrame(columns=['Ticker'])
-      
+        
         processed_prev_week_file = os.path.join(data_dir, f"processed_{prefix}{prev_week_ts}.csv") if prev_week_ts else None
         df_processed_prev_week = pd.read_csv(processed_prev_week_file) if processed_prev_week_file and os.path.exists(processed_prev_week_file) else pd.DataFrame(columns=['Ticker'])
-      
+        
         latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()]
-      
+        
         def get_prev_value(ticker, target_date, col):
             g = df_historic[df_historic['Ticker'] == ticker]
             prev = g[g['Date'] <= target_date]
             if prev.empty or col not in prev.columns:
                 return None
             return prev.loc[prev['Date'].idxmax(), col]
-      
+        
         def calculate_weighted_iv(ticker_df):
             if ticker_df.empty or 'IV_mid' not in ticker_df.columns or ticker_df['IV_mid'].isna().all():
                 return np.nan
             mid = (ticker_df['Bid'] + ticker_df['Ask']) / 2
             spread = ticker_df['Ask'] - ticker_df['Bid']
             smi = 100 * (spread / mid)
-            smi = smi.replace(0, np.nan) # Avoid division by zero
+            smi = smi.replace(0, np.nan)  # Avoid division by zero
             weights = np.log(1 + ticker_df['Open Interest']) / smi
             valid = (~weights.isna()) & (~ticker_df['IV_mid'].isna())
             if not valid.any():
                 return np.nan
             weighted_iv = np.average(ticker_df.loc[valid, 'IV_mid'], weights=weights[valid])
             return weighted_iv
-      
+        
         def calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
             past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
             cols = ['Realised_Vol_Close_100', 'Realised_Vol_100']
@@ -112,7 +113,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 return 'N/A'
             percentile = (vols < current_vol).sum() / len(vols) * 100
             return percentile
-      
+        
         def calculate_rvol_z_score_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
             past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
             cols = ['Realised_Vol_Close_100', 'Realised_Vol_100']
@@ -127,11 +128,11 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             mean_vol = vols.mean()
             std_vol = vols.std()
             if std_vol == 0:
-                return 'N/A' # Avoid division by zero
+                return 'N/A'  # Avoid division by zero
             z_score = (current_vol - mean_vol) / std_vol
             percentile = norm.cdf(z_score) * 100
             return percentile
-      
+        
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
         past_year_start = current_dt - timedelta(days=365)
@@ -159,8 +160,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             rank_dict = {
                 'Ticker': ticker,
                 'Latest Close': 'N/A',
+                'Latest High': 'N/A',
+                'Latest Low': 'N/A',
                 'Close 1d (%)': 'N/A',
                 'Close 1w (%)': 'N/A',
+                'High 1d (%)': 'N/A',
+                'High 1w (%)': 'N/A',
+                'Low 1d (%)': 'N/A',
+                'Low 1w (%)': 'N/A',
                 'Realised Volatility 30d (%)': 'N/A',
                 'Realised Volatility 60d (%)': 'N/A',
                 'Realised Volatility 100d (%)': 'N/A',
@@ -223,7 +230,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 and current_vol != 'N/A' else 'N/A'
                         rank_dict[f'Realised Volatility {rvol_type.replace("Close_", "")}d 1w (%)'] = vol_1w_pct
                         past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-                        vols = past_year[col].dropna()
+                        vols = past_year[col].dropna() if col in past_year.columns else pd.Series()
                         if not vols.empty:
                             min_vol = vols.min()
                             max_vol = vols.max()
@@ -240,12 +247,18 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         rvol100d_minus_weighted_iv = current_vol - (weighted_iv * 100) if current_vol != 'N/A' and not np.isnan(weighted_iv) else 'N/A'
                         rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv
             ranking.append(rank_dict)
-      
+        
         column_order = [
             'Ticker',
             'Latest Close',
+            'Latest High',
+            'Latest Low',
             'Close 1d (%)',
             'Close 1w (%)',
+            'High 1d (%)',
+            'High 1w (%)',
+            'Low 1d (%)',
+            'Low 1w (%)',
             'Realised Volatility 30d (%)',
             'Realised Volatility 60d (%)',
             'Realised Volatility 100d (%)',
@@ -274,7 +287,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         output_file = os.path.join(data_dir, f"ranking_{prefix}{timestamp}.csv")
         df_ranking.to_csv(output_file, index=False)
         print(f"Ranking metrics saved to {output_file}")
-        
+
 data_dir = 'data'
 dates_file = os.path.join(data_dir, 'dates.json')
 with open(dates_file, 'r') as f:
