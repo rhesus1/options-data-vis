@@ -94,6 +94,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             return weighted_iv
         
         ranking = []
+        rvol_types = ['30', '60', '100', '180', '252']
         past_year_start = current_dt - timedelta(days=365)
         for row in current_option.itertuples():
             ticker = row.Ticker
@@ -124,12 +125,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 rank_dict['Latest Close'] = 'N/A'
                 rank_dict['Close 1d (%)'] = 'N/A'
                 rank_dict['Close 1w (%)'] = 'N/A'
-                rank_dict['Realised Volatility 100d (%)'] = 'N/A'
-                rank_dict['Realised Volatility 100d 1d (%)'] = 'N/A'
-                rank_dict['Realised Volatility 100d 1w (%)'] = 'N/A'
-                rank_dict['Min Realised Volatility 100d (1y)'] = 'N/A'
-                rank_dict['Max Realised Volatility 100d (1y)'] = 'N/A'
-                rank_dict['Mean Realised Volatility 100d (1y)'] = 'N/A'
+                for rvol_type in rvol_types:
+                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = 'N/A'
+                    if rvol_type == '100':
+                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
+                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
             else:
                 latest_close = latest['Close'].values[0]
                 rank_dict['Latest Close'] = latest_close
@@ -139,25 +142,28 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 prev_week_close = get_prev_value(ticker, prev_week_dt, 'Close')
                 close_1w_pct = (latest_close - prev_week_close) / prev_week_close * 100 if prev_week_close is not None and prev_week_close != 0 else 'N/A'
                 rank_dict['Close 1w (%)'] = close_1w_pct
-                current_vol = latest['Realised_Vol_100'].values[0] if 'Realised_Vol_100' in latest.columns else 'N/A'
-                rank_dict['Realised Volatility 100d (%)'] = current_vol
-                prev_day_vol = get_prev_value(ticker, prev_day_dt, 'Realised_Vol_100')
-                vol_1d_pct = (current_vol - prev_day_vol) / prev_day_vol * 100 if prev_day_vol is not None and prev_day_vol != 0 else 'N/A'
-                rank_dict['Realised Volatility 100d 1d (%)'] = vol_1d_pct
-                prev_week_vol = get_prev_value(ticker, prev_week_dt, 'Realised_Vol_100')
-                vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 else 'N/A'
-                rank_dict['Realised Volatility 100d 1w (%)'] = vol_1w_pct
-                past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-                vols = past_year['Realised_Vol_100'].dropna()
-                if not vols.empty:
-                    min_vol = vols.min()
-                    max_vol = vols.max()
-                    mean_vol = vols.mean()
-                else:
-                    min_vol = max_vol = mean_vol = 'N/A'
-                rank_dict['Min Realised Volatility 100d (1y)'] = min_vol
-                rank_dict['Max Realised Volatility 100d (1y)'] = max_vol
-                rank_dict['Mean Realised Volatility 100d (1y)'] = mean_vol
+                for rvol_type in rvol_types:
+                    col = f'Realised_Vol_{rvol_type}'
+                    current_vol = latest[col].values[0] if col in latest.columns else 'N/A'
+                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol
+                    if rvol_type == '100':
+                        prev_day_vol = get_prev_value(ticker, prev_day_dt, col)
+                        vol_1d_pct = (current_vol - prev_day_vol) / prev_day_vol * 100 if prev_day_vol is not None and prev_day_vol != 0 else 'N/A'
+                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = vol_1d_pct
+                        prev_week_vol = get_prev_value(ticker, prev_week_dt, col)
+                        vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 else 'N/A'
+                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = vol_1w_pct
+                        past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
+                        vols = past_year[col].dropna()
+                        if not vols.empty:
+                            min_vol = vols.min()
+                            max_vol = vols.max()
+                            mean_vol = vols.mean()
+                        else:
+                            min_vol = max_vol = mean_vol = 'N/A'
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol
             ranking.append(rank_dict)
         
         df_ranking = pd.DataFrame(ranking)
