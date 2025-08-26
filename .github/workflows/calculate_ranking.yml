@@ -2,7 +2,7 @@ name: Calculate Ranking Metrics
 
 on:
   workflow_run:
-    workflows: ["Clean Options Data"]
+    workflows: ["Calculate Options Data"]
     types:
       - completed
   workflow_dispatch:  # Manual trigger option
