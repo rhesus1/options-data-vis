@@ -142,7 +142,6 @@
         let selectedMinT = 0.2; // Default T
         let selectedMinMoneyness = 0.2; // Default min Moneyness
         let selectedMaxMoneyness = 2; // Default max Moneyness
-
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -156,7 +155,6 @@
                 return [];
             }
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -167,7 +165,6 @@
                 return null;
             }
         }
-
         function calculateTimeToExpiry(expiryDate, referenceDate) {
             try {
                 const expiry = new Date(expiryDate);
@@ -179,7 +176,54 @@
                 return null;
             }
         }
-
+        function interpolateAlongExpiry(zData, expiryTimes) {
+            for (let y = 0; y < zData.length; y++) {
+                const row = zData[y];
+                const known = [];
+                for (let x = 0; x < row.length; x++) {
+                    if (row[x] !== null && Number.isFinite(row[x])) {
+                        known.push({t: expiryTimes[x], val: row[x], idx: x});
+                    }
+                }
+                if (known.length < 2) continue;
+                known.sort((a, b) => a.t - b.t);
+                for (let i = 0; i < known.length - 1; i++) {
+                    const start = known[i];
+                    const end = known[i + 1];
+                    const dt = end.t - start.t;
+                    if (dt <= 0) continue;
+                    for (let idx = start.idx + 1; idx < end.idx; idx++) {
+                        const curr_t = expiryTimes[idx];
+                        const frac = (curr_t - start.t) / dt;
+                        row[idx] = start.val + frac * (end.val - start.val);
+                    }
+                }
+            }
+        }
+        function interpolateAlongMoneyness(zData, moneynessValues) {
+            for (let x = 0; x < zData[0].length; x++) {
+                const col = zData.map(row => row[x]);
+                const known = [];
+                for (let y = 0; y < col.length; y++) {
+                    if (col[y] !== null && Number.isFinite(col[y])) {
+                        known.push({m: moneynessValues[y], val: col[y], idx: y});
+                    }
+                }
+                if (known.length < 2) continue;
+                known.sort((a, b) => a.m - b.m);
+                for (let i = 0; i < known.length - 1; i++) {
+                    const start = known[i];
+                    const end = known[i + 1];
+                    const dm = end.m - start.m;
+                    if (dm <= 0) continue;
+                    for (let idx = start.idx + 1; idx < end.idx; idx++) {
+                        const curr_m = moneynessValues[idx];
+                        const frac = (curr_m - start.m) / dm;
+                        zData[idx][x] = start.val + frac * (end.val - start.val);
+                    }
+                }
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
@@ -190,7 +234,6 @@
                 const minTValue = document.getElementById('min-t-value');
                 const moneynessSlider = document.getElementById('moneyness-range-slider');
                 const moneynessValues = document.getElementById('moneyness-range-values');
-
                 // Initialize noUISlider for Moneyness range
                 noUiSlider.create(moneynessSlider, {
                     start: [20, 200],
@@ -205,20 +248,17 @@
                         from: value => Number(value)
                     }
                 });
-
                 moneynessSlider.noUiSlider.on('update', (values) => {
                     selectedMinMoneyness = values[0] / 100; // Convert to raw Moneyness
                     selectedMaxMoneyness = values[1] / 100;
                     moneynessValues.textContent = `${values[0]} - ${values[1]}`;
                     updatePlots();
                 });
-
                 minTSlider.addEventListener('input', () => {
                     selectedMinT = parseFloat(minTSlider.value);
                     minTValue.textContent = selectedMinT.toFixed(1);
                     updatePlots();
                 });
-
                 fetch('data/dates.json?v=' + Date.now())
                     .then(response => response.json())
                     .then(dates => {
@@ -255,7 +295,6 @@
                 console.error('Error in DOMContentLoaded:', error);
             }
         });
-
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
@@ -277,14 +316,12 @@
                 console.error('Error updating time options:', error);
             }
         }
-
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
                 const prefix = source === 'yfinance' ? 'yfinance_' : '';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
                 datasetDate = new Date(timestamp.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3'));
-
                 fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
                     .then(response => response.text())
                     .then(csvText => {
@@ -336,7 +373,6 @@
                 console.error('Error in loadData:', error);
             }
         }
-
         function populateTickerSearch() {
             try {
                 const tickerSearch = document.getElementById('ticker-search');
@@ -359,7 +395,6 @@
                 console.error('Error populating ticker search:', error);
             }
         }
-
         function prepareSurfaceData(filteredData, zKey) {
             try {
                 const tFilteredData = filteredData.filter(item => {
@@ -367,26 +402,26 @@
                     return t !== null && Number.isFinite(t) && t >= selectedMinT &&
                            item.Moneyness >= selectedMinMoneyness && item.Moneyness <= selectedMaxMoneyness;
                 });
-
-                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
+                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 10) * 0.1))]
                     .filter(val => !isNaN(val)).sort((a, b) => a - b);
                 const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
                     .filter(val => val).sort();
                 const zData = [];
                 moneynessValues.forEach(() => zData.push(new Array(expiryValues.length).fill(null)));
-
                 tFilteredData.forEach(item => {
-                    const moneynessIndex = moneynessValues.indexOf(Math.round(item.Moneyness * 100 / 10) * 0.1);
+                    const moneynessIndex = moneynessValues.indexOf(Math.round(item.Moneyness * 10) * 0.1);
                     const expiryIndex = expiryValues.indexOf(normalizeDate(item.Expiry));
                     if (moneynessIndex >= 0 && expiryIndex >= 0 && Number.isFinite(item[zKey])) {
                         zData[moneynessIndex][expiryIndex] = item[zKey] * 100;
                     }
                 });
-
+                // Perform interpolation to fill gaps
+                const expiryTimes = expiryValues.map(date => calculateTimeToExpiry(date, datasetDate));
+                interpolateAlongExpiry(zData, expiryTimes);
+                interpolateAlongMoneyness(zData, moneynessValues);
                 const zValues = zData.flat().filter(v => Number.isFinite(v));
                 const minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
                 const maxZ = zValues.length > 0 ? Math.max(...zValues) : 0;
-
                 return {
                     x: expiryValues,
                     y: moneynessValues.map(val => val * 100),
@@ -399,15 +434,12 @@
                 return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
             }
         }
-
         function updatePlots() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
                 const filteredData = data.filter(item => item.Ticker === selectedTicker);
                 console.log('Updating plots for ticker:', selectedTicker, 'Data size:', filteredData.length);
-
                 document.getElementById('error-message').style.display = filteredData.length === 0 ? 'block' : 'none';
-
                 const plotConfigs = [
                     {
                         id: 'iv-mid-calls',
@@ -446,19 +478,17 @@
                         zKey: 'Put Local Vol'
                     }
                 ];
-
                 plotConfigs.forEach(config => {
                     const surfaceData = prepareSurfaceData(config.data, config.zKey);
                     const minZ = surfaceData.minZ;
                     const maxZ = surfaceData.maxZ;
                     const colorscale = [
-                        [0, 'rgb(0,0,255)'],       // Blue at minZ
-                        [0.25, 'rgb(0,255,255)'],  // Cyan at 25% of range
-                        [0.5, 'rgb(0,255,0)'],     // Green at 50% of range
-                        [0.75, 'rgb(255,255,0)'],  // Yellow at 75% of range
-                        [1, 'rgb(255,0,0)']        // Red at maxZ
+                        [0, 'rgb(0,0,255)'], // Blue at minZ
+                        [0.25, 'rgb(0,255,255)'], // Cyan at 25% of range
+                        [0.5, 'rgb(0,255,0)'], // Green at 50% of range
+                        [0.75, 'rgb(255,255,0)'], // Yellow at 75% of range
+                        [1, 'rgb(255,0,0)'] // Red at maxZ
                     ];
-
                     // Evenly spaced ticks
                     const numTicks = 6;
                     const tickInterval = (maxZ - minZ) / (numTicks - 1);
@@ -469,7 +499,6 @@
                         tickvals.push(val);
                         ticktext.push(val.toFixed(0));
                     }
-
                     const layout = {
                         title: {
                             text: config.title,
@@ -507,7 +536,6 @@
                         paper_bgcolor: '#1C2526',
                         plot_bgcolor: '#1C2526'
                     };
-
                     Plotly.newPlot(config.id, [{
                         type: 'surface',
                         x: surfaceData.x,
