@@ -4,6 +4,7 @@ import numpy as np
 import json
 from datetime import datetime, timedelta
 import os
+from scipy.stats import norm
 
 def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
     dates_file = os.path.join(data_dir, 'dates.json')
@@ -70,6 +71,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             continue
         df_processed = pd.read_csv(processed_file)
         
+        processed_prev_day_file = os.path.join(data_dir, f"processed_{prefix}{prev_day_ts}.csv") if prev_day_ts else None
+        df_processed_prev_day = pd.read_csv(processed_prev_day_file) if processed_prev_day_file and os.path.exists(processed_prev_day_file) else pd.DataFrame()
+        
+        processed_prev_week_file = os.path.join(data_dir, f"processed_{prefix}{prev_week_ts}.csv") if prev_week_ts else None
+        df_processed_prev_week = pd.read_csv(processed_prev_week_file) if processed_prev_week_file and os.path.exists(processed_prev_week_file) else pd.DataFrame()
+        
         latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()]
         
         def get_prev_value(ticker, target_date, col):
@@ -98,9 +105,20 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             vols = past_year['Realised_Vol_100'].dropna()
             if vols.empty or len(vols) < 2 or current_vol == 'N/A':
                 return 'N/A'
-            # Calculate percentile: (number of values < current_vol) / total number * 100
             percentile = (vols < current_vol).sum() / len(vols) * 100
             return percentile
+        
+        def calculate_rvol_z_score(ticker, current_vol, df_historic, past_year_start, current_dt):
+            past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
+            vols = past_year['Realised_Vol_100'].dropna()
+            if vols.empty or len(vols) < 2 or current_vol == 'N/A':
+                return 'N/A'
+            mean_vol = vols.mean()
+            std_vol = vols.std()
+            if std_vol == 0:
+                return 'N/A'  # Avoid division by zero
+            z_score = (current_vol - mean_vol) / std_vol
+            return z_score
         
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
@@ -119,31 +137,42 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             vol_1w_pct = (vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol != 0 else 'N/A'
             ticker_processed = df_processed[df_processed['Ticker'] == ticker]
             weighted_iv = calculate_weighted_iv(ticker_processed) if not ticker_processed.empty else np.nan
+            ticker_processed_prev_day = df_processed_prev_day[df_processed_prev_day['Ticker'] == ticker]
+            weighted_iv_prev_day = calculate_weighted_iv(ticker_processed_prev_day) if not ticker_processed_prev_day.empty else np.nan
+            weighted_iv_1d_pct = (weighted_iv - weighted_iv_prev_day) / weighted_iv_prev_day * 100 if not np.isnan(weighted_iv_prev_day) and weighted_iv_prev_day != 0 else 'N/A'
+            ticker_processed_prev_week = df_processed_prev_week[df_processed_prev_week['Ticker'] == ticker]
+            weighted_iv_prev_week = calculate_weighted_iv(ticker_processed_prev_week) if not ticker_processed_prev_week.empty else np.nan
+            weighted_iv_1w_pct = (weighted_iv - weighted_iv_prev_week) / weighted_iv_prev_week * 100 if not np.isnan(weighted_iv_prev_week) and weighted_iv_prev_week != 0 else 'N/A'
             latest = latest_historic[latest_historic['Ticker'] == ticker]
             rank_dict = {
                 'Ticker': ticker,
-                'Open Interest': oi,
+                'Latest Close': 'N/A',
+                'Close 1d (%)': 'N/A',
+                'Close 1w (%)': 'N/A',
+                'Realised Volatility 30d (%)': 'N/A',
+                'Realised Volatility 60d (%)': 'N/A',
+                'Realised Volatility 100d (%)': 'N/A',
+                'Realised Volatility 100d 1d (%)': 'N/A',
+                'Realised Volatility 100d 1w (%)': 'N/A',
+                'Min Realised Volatility 100d (1y)': 'N/A',
+                'Max Realised Volatility 100d (1y)': 'N/A',
+                'Mean Realised Volatility 100d (1y)': 'N/A',
+                'Rvol 100d Percentile (%)': 'N/A',
+                'Rvol 100d Z-Score': 'N/A',
+                'Realised Volatility 180d (%)': 'N/A',
+                'Realised Volatility 252d (%)': 'N/A',
+                'Weighted IV (%)': weighted_iv * 100 if not np.isnan(weighted_iv) else 'N/A',
+                'Weighted IV 1d (%)': weighted_iv_1d_pct,
+                'Weighted IV 1w (%)': weighted_iv_1w_pct,
+                'Rvol100d - Weighted IV': 'N/A',
                 'Volume': vol,
-                'OI 1d (%)': oi_1d_pct,
-                'OI 1w (%)': oi_1w_pct,
                 'Volume 1d (%)': vol_1d_pct,
                 'Volume 1w (%)': vol_1w_pct,
-                'Weighted IV (%)': weighted_iv * 100 if not np.isnan(weighted_iv) else 'N/A'
+                'Open Interest': oi,
+                'OI 1d (%)': oi_1d_pct,
+                'OI 1w (%)': oi_1w_pct
             }
-            if latest.empty:
-                rank_dict['Latest Close'] = 'N/A'
-                rank_dict['Close 1d (%)'] = 'N/A'
-                rank_dict['Close 1w (%)'] = 'N/A'
-                for rvol_type in rvol_types:
-                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = 'N/A'
-                    if rvol_type == '100':
-                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = 'N/A'
-            else:
+            if not latest.empty:
                 latest_close = latest['Close'].values[0]
                 rank_dict['Latest Close'] = latest_close
                 prev_close = get_prev_value(ticker, prev_day_dt, 'Close')
@@ -170,15 +199,48 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             max_vol = vols.max()
                             mean_vol = vols.mean()
                             percentile = calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
+                            z_score = calculate_rvol_z_score(ticker, current_vol, df_historic, past_year_start, current_dt)
                         else:
-                            min_vol = max_vol = mean_vol = percentile = 'N/A'
+                            min_vol = max_vol = mean_vol = percentile = z_score = 'N/A'
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol
                         rank_dict['Rvol 100d Percentile (%)'] = percentile
+                        rank_dict['Rvol 100d Z-Score'] = z_score
+                        rvol100d_minus_weighted_iv = current_vol - (weighted_iv * 100) if current_vol != 'N/A' and not np.isnan(weighted_iv) else 'N/A'
+                        rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv
             ranking.append(rank_dict)
         
+        column_order = [
+            'Ticker',
+            'Latest Close',
+            'Close 1d (%)',
+            'Close 1w (%)',
+            'Realised Volatility 30d (%)',
+            'Realised Volatility 60d (%)',
+            'Realised Volatility 100d (%)',
+            'Realised Volatility 100d 1d (%)',
+            'Realised Volatility 100d 1w (%)',
+            'Min Realised Volatility 100d (1y)',
+            'Max Realised Volatility 100d (1y)',
+            'Mean Realised Volatility 100d (1y)',
+            'Rvol 100d Percentile (%)',
+            'Rvol 100d Z-Score',
+            'Realised Volatility 180d (%)',
+            'Realised Volatility 252d (%)',
+            'Weighted IV (%)',
+            'Weighted IV 1d (%)',
+            'Weighted IV 1w (%)',
+            'Rvol100d - Weighted IV',
+            'Volume',
+            'Volume 1d (%)',
+            'Volume 1w (%)',
+            'Open Interest',
+            'OI 1d (%)',
+            'OI 1w (%)'
+        ]
         df_ranking = pd.DataFrame(ranking)
+        df_ranking = df_ranking[column_order]
         output_file = os.path.join(data_dir, f"ranking_{prefix}{timestamp}.csv")
         df_ranking.to_csv(output_file, index=False)
         print(f"Ranking metrics saved to {output_file}")
