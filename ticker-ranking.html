@@ -98,9 +98,13 @@
                 <th data-sort="maxRealisedVol100">Max Rvol 100d (1y)</th>
                 <th data-sort="meanRealisedVol100">Mean Rvol 100d (1y)</th>
                 <th data-sort="rvol100Percentile">Rvol 100d Percentile (%)</th>
+                <th data-sort="rvol100ZScore">Rvol 100d Z-Score</th>
                 <th data-sort="realisedVol180">Rvol 180d (%)</th>
                 <th data-sort="realisedVol252">Rvol 252d (%)</th>
                 <th data-sort="weightedIV">Weighted IV (%)</th>
+                <th data-sort="weightedIV_1d">Weighted IV 1d (%)</th>
+                <th data-sort="weightedIV_1w">Weighted IV 1w (%)</th>
+                <th data-sort="rvol100dMinusWeightedIV">Rvol100d - Weighted IV</th>
                 <th data-sort="volume">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
@@ -124,10 +128,11 @@
                 });
                 console.log('Parsed CSV data types:', result.data.map(item => ({
                     ticker: typeof item.Ticker,
-                    openInterest: typeof item['Open Interest'],
-                    volume: typeof item['Volume'],
+                    openInterest: { raw: item['Open Interest'], type: typeof item['Open Interest'] },
+                    volume: { raw: item['Volume'], type: typeof item['Volume'] },
                     weightedIV: typeof item['Weighted IV (%)'],
-                    rvol100Percentile: typeof item['Rvol 100d Percentile (%)']
+                    rvol100Percentile: typeof item['Rvol 100d Percentile (%)'],
+                    rvol100ZScore: typeof item['Rvol 100d Z-Score']
                 })));
                 return result.data;
             } catch (error) {
@@ -137,7 +142,11 @@
         }
 
         function formatNumberWithCommas(number) {
-            return Number.isFinite(number) ? number.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0';
+            const num = Number(number);
+            if (isNaN(num) || number === null || number === undefined || number === 'N/A') {
+                return '0';
+            }
+            return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
 
         function normalizeDate(dateStr) {
@@ -197,13 +206,16 @@
                 tbody.innerHTML = '';
                 const tableData = rankingData.map((item, index) => {
                     const ticker = item.Ticker;
+                    const openInterestRaw = item['Open Interest'];
+                    const volumeRaw = item['Volume'];
+                    console.log(`Formatting for ${ticker}: Open Interest = ${openInterestRaw} (${typeof openInterestRaw}), Volume = ${volumeRaw} (${typeof volumeRaw})`);
                     return {
                         order: index + 1,
                         ticker,
-                        openInterest: Number.isFinite(item['Open Interest']) ? Number(item['Open Interest']) : 0,
+                        openInterest: Number.isFinite(openInterestRaw) ? Number(openInterestRaw) : 0,
                         oi1d: Number.isFinite(item['OI 1d (%)']) ? Number(item['OI 1d (%)']).toFixed(2) : 'N/A',
                         oi1w: Number.isFinite(item['OI 1w (%)']) ? Number(item['OI 1w (%)']).toFixed(2) : 'N/A',
-                        volume: Number.isFinite(item['Volume']) ? Number(item['Volume']) : 0,
+                        volume: Number.isFinite(volumeRaw) ? Number(volumeRaw) : 0,
                         vol1d: Number.isFinite(item['Volume 1d (%)']) ? Number(item['Volume 1d (%)']).toFixed(2) : 'N/A',
                         vol1w: Number.isFinite(item['Volume 1w (%)']) ? Number(item['Volume 1w (%)']).toFixed(2) : 'N/A',
                         latestClose: Number.isFinite(item['Latest Close']) ? Number(item['Latest Close']).toFixed(2) : 'N/A',
@@ -218,25 +230,26 @@
                         maxRealisedVol100: Number.isFinite(item['Max Realised Volatility 100d (1y)']) ? Number(item['Max Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
                         meanRealisedVol100: Number.isFinite(item['Mean Realised Volatility 100d (1y)']) ? Number(item['Mean Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
                         rvol100Percentile: Number.isFinite(item['Rvol 100d Percentile (%)']) ? Number(item['Rvol 100d Percentile (%)']).toFixed(2) : 'N/A',
+                        rvol100ZScore: Number.isFinite(item['Rvol 100d Z-Score']) ? Number(item['Rvol 100d Z-Score']).toFixed(2) : 'N/A',
                         realisedVol180: Number.isFinite(item['Realised Volatility 180d (%)']) ? Number(item['Realised Volatility 180d (%)']).toFixed(2) : 'N/A',
                         realisedVol252: Number.isFinite(item['Realised Volatility 252d (%)']) ? Number(item['Realised Volatility 252d (%)']).toFixed(2) : 'N/A',
-                        weightedIV: Number.isFinite(item['Weighted IV (%)']) ? Number(item['Weighted IV (%)']).toFixed(2) : 'N/A'
+                        weightedIV: Number.isFinite(item['Weighted IV (%)']) ? Number(item['Weighted IV (%)']).toFixed(2) : 'N/A',
+                        weightedIV_1d: Number.isFinite(item['Weighted IV 1d (%)']) ? Number(item['Weighted IV 1d (%)']).toFixed(2) : 'N/A',
+                        weightedIV_1w: Number.isFinite(item['Weighted IV 1w (%)']) ? Number(item['Weighted IV 1w (%)']).toFixed(2) : 'N/A',
+                        rvol100dMinusWeightedIV: Number.isFinite(item['Rvol100d - Weighted IV']) ? Number(item['Rvol100d - Weighted IV']).toFixed(2) : 'N/A'
                     };
                 });
 
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
-                    // Handle numeric columns
-                    if (['openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile', 'realisedVol180', 'realisedVol252', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'weightedIV'].includes(currentSort.column)) {
+                    if (['openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile', 'rvol100ZScore', 'realisedVol180', 'realisedVol252', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvol100dMinusWeightedIV'].includes(currentSort.column)) {
                         valA = valA === 'N/A' || valA === undefined || isNaN(valA) ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' || valB === undefined || isNaN(valB) ? -Infinity : parseFloat(valB);
                     } else if (currentSort.column === 'ticker') {
-                        // Case-insensitive string comparison for ticker
                         valA = valA ? String(valA).toLowerCase() : '';
                         valB = valB ? String(valB).toLowerCase() : '';
                     } else if (currentSort.column === 'order') {
-                        // Handle order column (numeric)
                         valA = parseInt(valA);
                         valB = parseInt(valB);
                     }
@@ -245,15 +258,13 @@
                     return 0;
                 });
 
-                // Update order based on sort
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
 
-                // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile', 'realisedVol180', 'realisedVol252', 'weightedIV', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
+                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'rvol100Percentile', 'rvol100ZScore', 'realisedVol180', 'realisedVol252', 'weightedIV', 'weightedIV_1d', 'weightedIV_1w', 'rvol100dMinusWeightedIV', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
                         const cell = document.createElement('td');
                         if (key === 'openInterest' || key === 'volume') {
                             cell.textContent = formatNumberWithCommas(item[key]);
@@ -283,7 +294,7 @@
                             currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
                         } else {
                             currentSort.column = column;
-                            currentSort.direction = 'desc'; // Default to descending for new columns
+                            currentSort.direction = 'desc';
                         }
                         headers.forEach(h => {
                             h.classList.remove('sort-asc', 'sort-desc');
@@ -321,7 +332,7 @@
                         }
                         dateSelect.addEventListener('change', (e) => {
                             updateTimeOptions(e.target.value, dates);
-                            loadData(e.target.value + '_' + timeSelect.value);
+                            loadData(e.target.value + '_' + e.target.value);
                         });
                         timeSelect.addEventListener('change', (e) => {
                             loadData(dateSelect.value + '_' + e.target.value);
