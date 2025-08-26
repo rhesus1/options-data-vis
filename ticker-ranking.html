@@ -84,32 +84,29 @@
     <table id="data-table" class="data-table">
         <thead>
             <tr>
-                <th data-sort="order">Order</th>
+                <th data-sort="order">Rank</th>
                 <th data-sort="ticker">Ticker</th>
-                <th data-sort="openInterest">Open Interest</th>
-                <th data-sort="oi1d">OI 1d (%)</th>
-                <th data-sort="oi1w">OI 1w (%)</th>
+                <th data-sort="latestClose">Stock Latest Close ($)</th>
+                <th data-sort="close1d">Close 1d (%)</th>
+                <th data-sort="close1w">Close 1w (%)</th>
+                <th data-sort="realisedVol100">Rvol 100d (%)</th>
+                <th data-sort="realisedVol100_1d">Rvol 100d 1d (%)</th>
+                <th data-sort="realisedVol100_1w">Rvol 100d 1w (%)</th>
+                <th data-sort="minRealisedVol100">Min Rvol 100d (1y)</th>
+                <th data-sort="maxRealisedVol100">Max Rvol 100d (1y)</th>
+                <th data-sort="meanRealisedVol100">Mean Rvol 100d (1y)</th>
                 <th data-sort="volume">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
-                <th data-sort="latestClose">Latest Close ($)</th>
-                <th data-sort="close1d">Close 1d (%)</th>
-                <th data-sort="close1w">Close 1w (%)</th>
-                <th data-sort="realisedVol30">Rvol 30d (%)</th>
-                <th data-sort="realisedVol60">Rvol 60d (%)</th>
-                <th data-sort="realisedVol100">Rvol 100d (%)</th>
-                <th data-sort="minRealisedVol100">Min Rvol 100d (%)</th>
-                <th data-sort="maxRealisedVol100">Max Rvol 100d (%)</th>
-                <th data-sort="meanRealisedVol100">Mean Rvol 100d (%)</th>
-                <th data-sort="realisedVol180">Rvol 180d (%)</th>
-                <th data-sort="realisedVol252">Rvol 252d (%)</th>
+                <th data-sort="openInterest">Open Interest</th>
+                <th data-sort="oi1d">OI 1d (%)</th>
+                <th data-sort="oi1w">OI 1w (%)</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
     <script>
         let rankingData = [];
-        let historicData = [];
         let currentSort = { column: 'openInterest', direction: 'desc' };
         function parseCSV(csvText) {
             try {
@@ -160,24 +157,14 @@
                 const source = document.getElementById('source-select').value;
                 const prefix = source === 'yfinance' ? 'yfinance_' : '';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
-                Promise.all([
-                    fetch(`data/ranking_${prefix}${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            rankingData = parseCSV(csvText);
-                            console.log(`Ranking ${source} data loaded:`, rankingData);
-                        })
-                        .catch(error => console.error(`Error loading ranking ${source} data:`, error)),
-                    fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            historicData = parseCSV(csvText);
-                            console.log('Historic data loaded:', historicData);
-                        })
-                        .catch(error => console.error('Error loading historic data:', error))
-                ]).then(() => {
-                    updateTable();
-                });
+                fetch(`data/ranking_${prefix}${timestamp}.csv?v=` + Date.now())
+                    .then(response => response.text())
+                    .then(csvText => {
+                        rankingData = parseCSV(csvText);
+                        console.log(`Ranking ${source} data loaded:`, rankingData);
+                        updateTable();
+                    })
+                    .catch(error => console.error(`Error loading ranking ${source} data:`, error));
             } catch (error) {
                 console.error('Error in loadData:', error);
             }
@@ -188,57 +175,30 @@
                 tbody.innerHTML = '';
                 const tableData = rankingData.map((item, index) => {
                     const ticker = item.Ticker;
-                    const tickerHistoricData = historicData.filter(h => h.Ticker === ticker);
-                    let realisedVol30 = item['Realised Volatility 30d (%)'] || 'N/A';
-                    let realisedVol60 = item['Realised Volatility 60d (%)'] || 'N/A';
-                    let realisedVol100 = item['Realised Volatility 100d (%)'] || 'N/A';
-                    let minRealisedVol100 = 'N/A';
-                    let maxRealisedVol100 = 'N/A';
-                    let meanRealisedVol100 = 'N/A';
-                    let latestClose = 'N/A';
-                    let realisedVol180 = item['Realised Volatility 180d (%)'] || 'N/A';
-                    let realisedVol252 = item['Realised Volatility 252d (%)'] || 'N/A';
-                    if (tickerHistoricData.length > 0) {
-                        tickerHistoricData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
-                        const latestHistoric = tickerHistoricData[0];
-                        latestClose = Number.isFinite(latestHistoric.Close) ? latestHistoric.Close.toFixed(2) : 'N/A';
-                        const rvol100Values = tickerHistoricData
-                            .map(h => Number.isFinite(h.Realised_Vol_100) ? h.Realised_Vol_100 : null)
-                            .filter(val => val !== null);
-                        if (rvol100Values.length > 0) {
-                            minRealisedVol100 = Math.min(...rvol100Values).toFixed(2);
-                            maxRealisedVol100 = Math.max(...rvol100Values).toFixed(2);
-                            const sum = rvol100Values.reduce((a, b) => a + b, 0);
-                            meanRealisedVol100 = (sum / rvol100Values.length).toFixed(2);
-                        }
-                    }
                     return {
                         order: index + 1,
                         ticker,
-                        openInterest: item['Open Interest'] || 0,
-                        oi1d: item['OI 1d (%)'] || 'N/A',
-                        oi1w: item['OI 1w (%)'] || 'N/A',
-                        volume: item['Volume'] || 0,
-                        vol1d: item['Volume 1d (%)'] || 'N/A',
-                        vol1w: item['Volume 1w (%)'] || 'N/A',
-                        latestClose,
-                        close1d: item['Close 1d (%)'] || 'N/A',
-                        close1w: item['Close 1w (%)'] || 'N/A',
-                        realisedVol30,
-                        realisedVol60,
-                        realisedVol100,
-                        minRealisedVol100,
-                        maxRealisedVol100,
-                        meanRealisedVol100,
-                        realisedVol180,
-                        realisedVol252
+                        openInterest: Number.isFinite(item['Open Interest']) ? item['Open Interest'].toFixed(0) : '0',
+                        oi1d: Number.isFinite(item['OI 1d (%)']) ? item['OI 1d (%)'].toFixed(2) : 'N/A',
+                        oi1w: Number.isFinite(item['OI 1w (%)']) ? item['OI 1w (%)'].toFixed(2) : 'N/A',
+                        volume: Number.isFinite(item['Volume']) ? item['Volume'].toFixed(0) : '0',
+                        vol1d: Number.isFinite(item['Volume 1d (%)']) ? item['Volume 1d (%)'].toFixed(2) : 'N/A',
+                        vol1w: Number.isFinite(item['Volume 1w (%)']) ? item['Volume 1w (%)'].toFixed(2) : 'N/A',
+                        latestClose: Number.isFinite(item['Latest Close']) ? item['Latest Close'].toFixed(2) : 'N/A',
+                        close1d: Number.isFinite(item['Close 1d (%)']) ? item['Close 1d (%)'].toFixed(2) : 'N/A',
+                        close1w: Number.isFinite(item['Close 1w (%)']) ? item['Close 1w (%)'].toFixed(2) : 'N/A',
+                        realisedVol100: Number.isFinite(item['Realised Volatility 100d (%)']) ? item['Realised Volatility 100d (%)'].toFixed(2) : 'N/A',
+                        realisedVol100_1d: Number.isFinite(item['Realised Volatility 100d 1d (%)']) ? item['Realised Volatility 100d 1d (%)'].toFixed(2) : 'N/A',
+                        realisedVol100_1w: Number.isFinite(item['Realised Volatility 100d 1w (%)']) ? item['Realised Volatility 100d 1w (%)'].toFixed(2) : 'N/A',
+                        minRealisedVol100: Number.isFinite(item['Min Realised Volatility 100d (1y)']) ? item['Min Realised Volatility 100d (1y)'].toFixed(2) : 'N/A',
+                        maxRealisedVol100: Number.isFinite(item['Max Realised Volatility 100d (1y)']) ? item['Max Realised Volatility 100d (1y)'].toFixed(2) : 'N/A',
+                        meanRealisedVol100: Number.isFinite(item['Mean Realised Volatility 100d (1y)']) ? item['Mean Realised Volatility 100d (1y)'].toFixed(2) : 'N/A'
                     };
                 });
-                // Sort the data
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
-                    if (['realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'latestClose', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'close1d', 'close1w'].includes(currentSort.column)) {
+                    if (['realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w'].includes(currentSort.column)) {
                         valA = valA === 'N/A' ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' ? -Infinity : parseFloat(valB);
                     }
@@ -246,14 +206,12 @@
                     if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
-                // Update order based on current sort
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
-                // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'openInterest', 'oi1d', 'oi1w', 'volume', 'vol1d', 'vol1w', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252'].forEach(key => {
+                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
                         row.appendChild(cell);
@@ -270,7 +228,6 @@
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
                 headers.forEach(header => {
                     const column = header.getAttribute('data-sort');
-                    // Apply default sort indicator for openInterest
                     if (column === currentSort.column) {
                         header.classList.add(`sort-${currentSort.direction}`);
                     }
@@ -279,7 +236,7 @@
                             currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
                         } else {
                             currentSort.column = column;
-                            currentSort.direction = 'asc';
+                            currentSort.direction = 'desc';
                         }
                         headers.forEach(h => {
                             h.classList.remove('sort-asc', 'sort-desc');
