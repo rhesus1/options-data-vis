@@ -89,12 +89,16 @@
                 <th data-sort="latestClose">Latest Close ($)</th>
                 <th data-sort="close1d">Close 1d (%)</th>
                 <th data-sort="close1w">Close 1w (%)</th>
+                <th data-sort="realisedVol30">Rvol 30d (%)</th>
+                <th data-sort="realisedVol60">Rvol 60d (%)</th>
                 <th data-sort="realisedVol100">Rvol 100d (%)</th>
                 <th data-sort="realisedVol100_1d">Rvol 100d 1d (%)</th>
                 <th data-sort="realisedVol100_1w">Rvol 100d 1w (%)</th>
                 <th data-sort="minRealisedVol100">Min Rvol 100d (1y)</th>
                 <th data-sort="maxRealisedVol100">Max Rvol 100d (1y)</th>
                 <th data-sort="meanRealisedVol100">Mean Rvol 100d (1y)</th>
+                <th data-sort="realisedVol180">Rvol 180d (%)</th>
+                <th data-sort="realisedVol252">Rvol 252d (%)</th>
                 <th data-sort="volume">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
@@ -116,6 +120,11 @@
                     skipEmptyLines: true,
                     dynamicTyping: true
                 });
+                console.log('Parsed CSV data types:', result.data.map(item => ({
+                    ticker: typeof item.Ticker,
+                    openInterest: typeof item['Open Interest'],
+                    volume: typeof item['Volume']
+                })));
                 return result.data;
             } catch (error) {
                 console.error('Error parsing CSV:', error);
@@ -183,21 +192,25 @@
                     return {
                         order: index + 1,
                         ticker,
-                        openInterest: Number.isFinite(item['Open Interest']) ? item['Open Interest'].toFixed(0) : '0',
-                        oi1d: Number.isFinite(item['OI 1d (%)']) ? item['OI 1d (%)'].toFixed(2) : 'N/A',
-                        oi1w: Number.isFinite(item['OI 1w (%)']) ? item['OI 1w (%)'].toFixed(2) : 'N/A',
-                        volume: Number.isFinite(item['Volume']) ? item['Volume'].toFixed(0) : '0',
-                        vol1d: Number.isFinite(item['Volume 1d (%)']) ? item['Volume 1d (%)'].toFixed(2) : 'N/A',
-                        vol1w: Number.isFinite(item['Volume 1w (%)']) ? item['Volume 1w (%)'].toFixed(2) : 'N/A',
-                        latestClose: Number.isFinite(item['Latest Close']) ? item['Latest Close'].toFixed(2) : 'N/A',
-                        close1d: Number.isFinite(item['Close 1d (%)']) ? item['Close 1d (%)'].toFixed(2) : 'N/A',
-                        close1w: Number.isFinite(item['Close 1w (%)']) ? item['Close 1w (%)'].toFixed(2) : 'N/A',
-                        realisedVol100: Number.isFinite(item['Realised Volatility 100d (%)']) ? item['Realised Volatility 100d (%)'].toFixed(2) : 'N/A',
-                        realisedVol100_1d: Number.isFinite(item['Realised Volatility 100d 1d (%)']) ? item['Realised Volatility 100d 1d (%)'].toFixed(2) : 'N/A',
-                        realisedVol100_1w: Number.isFinite(item['Realised Volatility 100d 1w (%)']) ? item['Realised Volatility 100d 1w (%)'].toFixed(2) : 'N/A',
-                        minRealisedVol100: Number.isFinite(item['Min Realised Volatility 100d (1y)']) ? item['Min Realised Volatility 100d (1y)'].toFixed(2) : 'N/A',
-                        maxRealisedVol100: Number.isFinite(item['Max Realised Volatility 100d (1y)']) ? item['Max Realised Volatility 100d (1y)'].toFixed(2) : 'N/A',
-                        meanRealisedVol100: Number.isFinite(item['Mean Realised Volatility 100d (1y)']) ? item['Mean Realised Volatility 100d (1y)'].toFixed(2) : 'N/A'
+                        openInterest: Number.isFinite(item['Open Interest']) ? Number(item['Open Interest']).toFixed(0) : '0',
+                        oi1d: Number.isFinite(item['OI 1d (%)']) ? Number(item['OI 1d (%)']).toFixed(2) : 'N/A',
+                        oi1w: Number.isFinite(item['OI 1w (%)']) ? Number(item['OI 1w (%)']).toFixed(2) : 'N/A',
+                        volume: Number.isFinite(item['Volume']) ? Number(item['Volume']).toFixed(0) : '0',
+                        vol1d: Number.isFinite(item['Volume 1d (%)']) ? Number(item['Volume 1d (%)']).toFixed(2) : 'N/A',
+                        vol1w: Number.isFinite(item['Volume 1w (%)']) ? Number(item['Volume 1w (%)']).toFixed(2) : 'N/A',
+                        latestClose: Number.isFinite(item['Latest Close']) ? Number(item['Latest Close']).toFixed(2) : 'N/A',
+                        close1d: Number.isFinite(item['Close 1d (%)']) ? Number(item['Close 1d (%)']).toFixed(2) : 'N/A',
+                        close1w: Number.isFinite(item['Close 1w (%)']) ? Number(item['Close 1w (%)']).toFixed(2) : 'N/A',
+                        realisedVol30: Number.isFinite(item['Realised Volatility 30d (%)']) ? Number(item['Realised Volatility 30d (%)']).toFixed(2) : 'N/A',
+                        realisedVol60: Number.isFinite(item['Realised Volatility 60d (%)']) ? Number(item['Realised Volatility 60d (%)']).toFixed(2) : 'N/A',
+                        realisedVol100: Number.isFinite(item['Realised Volatility 100d (%)']) ? Number(item['Realised Volatility 100d (%)']).toFixed(2) : 'N/A',
+                        realisedVol100_1d: Number.isFinite(item['Realised Volatility 100d 1d (%)']) ? Number(item['Realised Volatility 100d 1d (%)']).toFixed(2) : 'N/A',
+                        realisedVol100_1w: Number.isFinite(item['Realised Volatility 100d 1w (%)']) ? Number(item['Realised Volatility 100d 1w (%)']).toFixed(2) : 'N/A',
+                        minRealisedVol100: Number.isFinite(item['Min Realised Volatility 100d (1y)']) ? Number(item['Min Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
+                        maxRealisedVol100: Number.isFinite(item['Max Realised Volatility 100d (1y)']) ? Number(item['Max Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
+                        meanRealisedVol100: Number.isFinite(item['Mean Realised Volatility 100d (1y)']) ? Number(item['Mean Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
+                        realisedVol180: Number.isFinite(item['Realised Volatility 180d (%)']) ? Number(item['Realised Volatility 180d (%)']).toFixed(2) : 'N/A',
+                        realisedVol252: Number.isFinite(item['Realised Volatility 252d (%)']) ? Number(item['Realised Volatility 252d (%)']).toFixed(2) : 'N/A'
                     };
                 });
 
@@ -205,16 +218,15 @@
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
                     // Handle numeric columns
-                    if (['openInterest', 'volume', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w'].includes(currentSort.column)) {
-                        valA = valA === 'N/A' || valA === undefined ? -Infinity : parseFloat(valA);
-                        valB = valB === 'N/A' || valB === undefined ? -Infinity : parseFloat(valB);
+                    if (['openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w'].includes(currentSort.column)) {
+                        valA = valA === 'N/A' || valA === undefined || isNaN(valA) ? -Infinity : parseFloat(valA);
+                        valB = valB === 'N/A' || valB === undefined || isNaN(valB) ? -Infinity : parseFloat(valB);
                     } else if (currentSort.column === 'ticker') {
                         // Case-insensitive string comparison for ticker
-                        valA = valA ? valA.toLowerCase() : '';
-                        valB = valB ? valB.toLowerCase() : '';
-                    }
-                    // Handle order column (numeric)
-                    if (currentSort.column === 'order') {
+                        valA = valA ? String(valA).toLowerCase() : '';
+                        valB = valB ? String(valB).toLowerCase() : '';
+                    } else if (currentSort.column === 'order') {
+                        // Handle order column (numeric)
                         valA = parseInt(valA);
                         valB = parseInt(valB);
                     }
@@ -231,7 +243,7 @@
                 // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
+                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
                         row.appendChild(cell);
