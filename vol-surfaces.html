@@ -118,11 +118,11 @@
             <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search ticker...">
             <datalist id="ticker-datalist"></datalist>
             <label for="min-t-slider">Min T (years): </label>
-            <input type="range" id="min-t-slider" min="0" max="5" step="0.1" value="0.2">
-            <span id="min-t-value">0.2</span>
+            <input type="range" id="min-t-slider" min="0" max="5" step="0.1" value="0.5">
+            <span id="min-t-value">0.5</span>
             <label for="moneyness-range-slider">Moneyness Range (%): </label>
             <div id="moneyness-range-slider"></div>
-            <span id="moneyness-range-values">20 - 200</span>
+            <span id="moneyness-range-values">50 - 200</span>
         </div>
         <div id="error-message">No data available for selected ticker</div>
         <div class="plot-grid">
@@ -336,8 +336,8 @@
                         // Update T slider, preserving selected value or default to 0.2
                         const minTSlider = document.getElementById('min-t-slider');
                         minTSlider.max = maxT;
-                        minTSlider.value = Math.min(selectedMinT, maxT, 0.2);
-                        selectedMinT = parseFloat(minTSlider.value) || 0.2;
+                        minTSlider.value = Math.min(selectedMinT, maxT, 0.5);
+                        selectedMinT = parseFloat(minTSlider.value) || 0.5;
                         document.getElementById('min-t-value').textContent = selectedMinT.toFixed(1);
                         console.log('Max T set to:', maxT, 'Selected T:', selectedMinT);
                         // Calculate max Moneyness
