@@ -88,11 +88,15 @@
                 <th data-sort="ticker">Ticker</th>
                 <th data-sort="openInterest">Open Interest</th>
                 <th data-sort="volume">Volume</th>
-                <th data-sort="realisedVol30">Realised Volatility 30d (%)</th>
-                <th data-sort="realisedVol60">Realised Volatility 60d (%)</th>
-                <th data-sort="realisedVol100">Realised Volatility 100d (%)</th>
-                <th data-sort="realisedVol180">Realised Volatility 180d (%)</th>
-                <th data-sort="realisedVol252">Realised Volatility 252d (%)</th>
+                <th data-sort="latestClose">Latest Close ($)</th>
+                <th data-sort="realisedVol30">Rvol 30d (%)</th>
+                <th data-sort="realisedVol60">Rvol 60d (%)</th>
+                <th data-sort="realisedVol100">Rvol 100d (%)</th>
+                <th data-sort="minRealisedVol100">Min Rvol 100d (%)</th>
+                <th data-sort="maxRealisedVol100">Max Rvol 100d (%)</th>
+                <th data-sort="meanRealisedVol100">Mean Rvol 100d (%)</th>
+                <th data-sort="realisedVol180">Rvol 180d (%)</th>
+                <th data-sort="realisedVol252">Rvol 252d (%)</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -190,6 +194,10 @@
                     let realisedVol30 = 'N/A';
                     let realisedVol60 = 'N/A';
                     let realisedVol100 = 'N/A';
+                    let minRealisedVol100 = 'N/A';
+                    let maxRealisedVol100 = 'N/A';
+                    let meanRealisedVol100 = 'N/A';
+                    let latestClose = 'N/A';
                     let realisedVol180 = 'N/A';
                     let realisedVol252 = 'N/A';
                     if (tickerHistoricData.length > 0) {
@@ -200,25 +208,38 @@
                         realisedVol100 = Number.isFinite(latestHistoric.Realised_Vol_100) ? latestHistoric.Realised_Vol_100.toFixed(2) : 'N/A';
                         realisedVol180 = Number.isFinite(latestHistoric.Realised_Vol_180) ? latestHistoric.Realised_Vol_180.toFixed(2) : 'N/A';
                         realisedVol252 = Number.isFinite(latestHistoric.Realised_Vol_252) ? latestHistoric.Realised_Vol_252.toFixed(2) : 'N/A';
+                        latestClose = Number.isFinite(latestHistoric.Close) ? latestHistoric.Close.toFixed(2) : 'N/A';
+                        const rvol100Values = tickerHistoricData
+                            .map(item => Number.isFinite(item.Realised_Vol_100) ? item.Realised_Vol_100 : null)
+                            .filter(val => val !== null);
+                        if (rvol100Values.length > 0) {
+                            minRealisedVol100 = Math.min(...rvol100Values).toFixed(2);
+                            maxRealisedVol100 = Math.max(...rvol100Values).toFixed(2);
+                            const sum = rvol100Values.reduce((a, b) => a + b, 0);
+                            meanRealisedVol100 = (sum / rvol100Values.length).toFixed(2);
+                        }
                     }
                     return {
                         order: index + 1,
                         ticker,
                         openInterest: totalOpenInterest,
                         volume: totalVolume,
+                        latestClose,
                         realisedVol30,
                         realisedVol60,
                         realisedVol100,
+                        minRealisedVol100,
+                        maxRealisedVol100,
+                        meanRealisedVol100,
                         realisedVol180,
                         realisedVol252
                     };
                 });
-
                 // Sort the data
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
-                    if (['realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol180', 'realisedVol252'].includes(currentSort.column)) {
+                    if (['realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'latestClose'].includes(currentSort.column)) {
                         valA = valA === 'N/A' ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' ? -Infinity : parseFloat(valB);
                     }
@@ -226,16 +247,14 @@
                     if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
-
                 // Update order based on current sort
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
-
                 // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol180', 'realisedVol252'].forEach(key => {
+                    ['order', 'ticker', 'openInterest', 'volume', 'latestClose', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252'].forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
                         row.appendChild(cell);
@@ -283,7 +302,6 @@
                 const dateSelect = document.getElementById('date-select');
                 const timeSelect = document.getElementById('time-select');
                 const sourceSelect = document.getElementById('source-select');
-
                 fetch('data/dates.json?v=' + Date.now())
                     .then(response => response.json())
                     .then(dates => {
@@ -312,7 +330,6 @@
                         });
                     })
                     .catch(error => console.error('Error loading dates:', error));
-
                 setupSortListeners();
             } catch (error) {
                 console.error('Error in DOMContentLoaded:', error);
