@@ -86,7 +86,7 @@
             <tr>
                 <th data-sort="order">Rank</th>
                 <th data-sort="ticker">Ticker</th>
-                <th data-sort="latestClose">Stock Last/Close ($)</th>
+                <th data-sort="latestClose">Latest Close ($)</th>
                 <th data-sort="close1d">Close 1d (%)</th>
                 <th data-sort="close1w">Close 1w (%)</th>
                 <th data-sort="realisedVol30">Rvol 30d (%)</th>
@@ -99,6 +99,7 @@
                 <th data-sort="meanRealisedVol100">Mean Rvol 100d (1y)</th>
                 <th data-sort="realisedVol180">Rvol 180d (%)</th>
                 <th data-sort="realisedVol252">Rvol 252d (%)</th>
+                <th data-sort="weightedIV">Weighted IV (%)</th>
                 <th data-sort="volume">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
@@ -123,7 +124,8 @@
                 console.log('Parsed CSV data types:', result.data.map(item => ({
                     ticker: typeof item.Ticker,
                     openInterest: typeof item['Open Interest'],
-                    volume: typeof item['Volume']
+                    volume: typeof item['Volume'],
+                    weightedIV: typeof item['Weighted IV (%)']
                 })));
                 return result.data;
             } catch (error) {
@@ -210,7 +212,8 @@
                         maxRealisedVol100: Number.isFinite(item['Max Realised Volatility 100d (1y)']) ? Number(item['Max Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
                         meanRealisedVol100: Number.isFinite(item['Mean Realised Volatility 100d (1y)']) ? Number(item['Mean Realised Volatility 100d (1y)']).toFixed(2) : 'N/A',
                         realisedVol180: Number.isFinite(item['Realised Volatility 180d (%)']) ? Number(item['Realised Volatility 180d (%)']).toFixed(2) : 'N/A',
-                        realisedVol252: Number.isFinite(item['Realised Volatility 252d (%)']) ? Number(item['Realised Volatility 252d (%)']).toFixed(2) : 'N/A'
+                        realisedVol252: Number.isFinite(item['Realised Volatility 252d (%)']) ? Number(item['Realised Volatility 252d (%)']).toFixed(2) : 'N/A',
+                        weightedIV: Number.isFinite(item['Weighted IV (%)']) ? Number(item['Weighted IV (%)']).toFixed(2) : 'N/A'
                     };
                 });
 
@@ -218,7 +221,7 @@
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
                     // Handle numeric columns
-                    if (['openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w'].includes(currentSort.column)) {
+                    if (['openInterest', 'volume', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'latestClose', 'close1d', 'close1w', 'oi1d', 'oi1w', 'vol1d', 'vol1w', 'weightedIV'].includes(currentSort.column)) {
                         valA = valA === 'N/A' || valA === undefined || isNaN(valA) ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' || valB === undefined || isNaN(valB) ? -Infinity : parseFloat(valB);
                     } else if (currentSort.column === 'ticker') {
@@ -243,7 +246,7 @@
                 // Populate table
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
-                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
+                    ['order', 'ticker', 'latestClose', 'close1d', 'close1w', 'realisedVol30', 'realisedVol60', 'realisedVol100', 'realisedVol100_1d', 'realisedVol100_1w', 'minRealisedVol100', 'maxRealisedVol100', 'meanRealisedVol100', 'realisedVol180', 'realisedVol252', 'weightedIV', 'volume', 'vol1d', 'vol1w', 'openInterest', 'oi1d', 'oi1w'].forEach(key => {
                         const cell = document.createElement('td');
                         cell.textContent = item[key];
                         row.appendChild(cell);
