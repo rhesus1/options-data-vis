@@ -87,7 +87,7 @@
             <tr>
                 <th data-sort="order">Rank</th>
                 <th data-sort="ticker">Ticker</th>
-                <th data-sort="latestClose">Stock Close ($)</th>
+                <th data-sort="latestClose">Latest Close ($)</th>
                 <th data-sort="latestHigh">Latest High ($)</th>
                 <th data-sort="latestLow">Latest Low ($)</th>
                 <th data-sort="close1d">Close 1d (%)</th>
@@ -112,10 +112,10 @@
                 <th data-sort="weightedIV_1d">Weighted IV 1d (%)</th>
                 <th data-sort="weightedIV_1w">Weighted IV 1w (%)</th>
                 <th data-sort="rvol100dMinusWeightedIV">Rvol 100d - Weighted IV</th>
-                <th data-sort="volume">Volume</th>
+                <th data-sort="volumeRaw">Volume</th>
                 <th data-sort="vol1d">Vol 1d (%)</th>
                 <th data-sort="vol1w">Vol 1w (%)</th>
-                <th data-sort="openInterest">Open Interest</th>
+                <th data-sort="openInterestRaw">Open Interest</th>
                 <th data-sort="oi1d">OI 1d (%)</th>
                 <th data-sort="oi1w">OI 1w (%)</th>
             </tr>
@@ -124,7 +124,7 @@
     </table>
     <script>
         let rankingData = [];
-        let currentSort = { column: 'openInterest', direction: 'desc' };
+        let currentSort = { column: 'openInterestRaw', direction: 'desc' };
 
         function parseCSV(csvText) {
             try {
@@ -247,7 +247,7 @@
                         volumeRaw: Number.isFinite(volumeRaw) ? Number(volumeRaw) : -Infinity,
                         volume: formatNumberWithCommas(volumeRaw),
                         vol1d: formatValue(item['Volume 1d (%)'], true),
-                        vol1w: formatValue(item['Volume 1w (%)'], true),
+                        vol1w: formatValue(item['Volume 1d (%)'], true),
                         latestClose: formatValue(item['Latest Close'], true),
                         latestHigh: formatValue(item['Latest High'], true),
                         latestLow: formatValue(item['Latest Low'], true),
@@ -279,6 +279,7 @@
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
+                    console.log(`Sorting on ${currentSort.column}: ${valA} vs ${valB}`);
                     if (numericColumns.includes(currentSort.column)) {
                         valA = valA === 'N/A' || valA === undefined || isNaN(valA) ? -Infinity : parseFloat(valA);
                         valB = valB === 'N/A' || valB === undefined || isNaN(valB) ? -Infinity : parseFloat(valB);
