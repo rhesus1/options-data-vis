@@ -285,37 +285,22 @@ def fetch_historic_data(ticker):
     hist = stock.history(period='max')
     if hist.empty:
         return pd.DataFrame()
-    hist = hist[['Open', 'High', 'Low', 'Close']]
-    # Calculate log returns for Close, High, and Low
+    hist = hist[['High', 'Low', 'Close']]
+    # Calculate log returns for Close
     hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
-    hist['Log_Return_High'] = np.log(hist['High'] / hist['High'].shift(1))
-    hist['Log_Return_Low'] = np.log(hist['Low'] / hist['Low'].shift(1))
     # Calculate realized volatility for Close
     hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
-    # Calculate realized volatility for High
-    hist['Realised_Vol_High_30'] = hist['Log_Return_High'].rolling(window=30).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_High_60'] = hist['Log_Return_High'].rolling(window=60).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_High_100'] = hist['Log_Return_High'].rolling(window=100).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_High_180'] = hist['Log_Return_High'].rolling(window=180).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_High_252'] = hist['Log_Return_High'].rolling(window=252).std() * np.sqrt(252) * 100
-    # Calculate realized volatility for Low
-    hist['Realised_Vol_Low_30'] = hist['Log_Return_Low'].rolling(window=30).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_Low_60'] = hist['Log_Return_Low'].rolling(window=60).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_Low_100'] = hist['Log_Return_Low'].rolling(window=100).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_Low_180'] = hist['Log_Return_Low'].rolling(window=180).std() * np.sqrt(252) * 100
-    hist['Realised_Vol_Low_252'] = hist['Log_Return_Low'].rolling(window=252).std() * np.sqrt(252) * 100
     # Drop rows with NaN values
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
     return hist[['Ticker', 'Date', 'High', 'Low', 'Close',
-                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']]
-                 #'Realised_Vol_High_30', 'Realised_Vol_High_60', 'Realised_Vol_High_100', 'Realised_Vol_High_180', 'Realised_Vol_High_252',
-                 #'Realised_Vol_Low_30', 'Realised_Vol_Low_60', 'Realised_Vol_Low_100', 'Realised_Vol_Low_180', 'Realised_Vol_Low_252']]
+                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 
+                 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']]
 
 def main():
     with open('tickers.txt', 'r') as file:
