@@ -15,10 +15,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pandas
-    - name: Commit existing changes
+    - name: Log initial Git status
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
+        git status > git_status_initial.txt
+    - name: Commit existing changes
+      run: |
         git add .
         git commit -m "Commit existing changes before restructuring yfinance data" || echo "No existing changes to commit"
     - name: Stash any unstaged changes
@@ -32,13 +35,19 @@ jobs:
         git stash pop || echo "No stashed changes to apply"
     - name: Run restructure script
       run: python restructure_data.py
+    - name: Log final Git status
+      run: |
+        git status > git_status_final.txt
     - name: Commit and push restructured data
       run: |
-        git add data restructure_log.txt
+        git add data restructure_log.txt git_status_initial.txt git_status_final.txt
         git commit -m "Restructure yfinance data into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
         git push
-    - name: Archive restructure log
+    - name: Archive logs
       uses: actions/upload-artifact@v4
       with:
-        name: restructure-log
-        path: restructure_log.txt
+        name: restructure-logs
+        path: |
+          restructure_log.txt
+          git_status_initial.txt
+          git_status_final.txt
