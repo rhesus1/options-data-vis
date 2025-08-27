@@ -426,8 +426,6 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'OI 1w (%)'
         ]
         df_ranking = pd.DataFrame(ranking)
-        df_ranking['Rank'] = df_ranking['Realised Volatility 100d (%)'].rank(ascending=False, method='min').astype(int, errors='ignore')
-        df_ranking = df_ranking[column_order]
         ranking_dir = f'data/{timestamp}/ranking'
         os.makedirs(ranking_dir, exist_ok=True)
         output_file = f'{ranking_dir}/ranking{prefix}.csv'
