@@ -6,22 +6,45 @@ from datetime import datetime, timedelta
 import os
 from scipy.stats import norm
 import glob
+import yfinance as yf
+
+def calculate_rvol_days(ticker, days):
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period="1y")
+        if hist.empty or len(hist) < days + 1:
+            print(f"No sufficient historical data for {ticker} for {days} days")
+            return None
+        hist_last = hist.iloc[-(days + 1):]
+        log_returns = np.log(hist_last["Close"] / hist_last["Close"].shift(1)).dropna()
+        if len(log_returns) < 2:
+            print(f"Insufficient returns data for {ticker} for {days} days")
+            return None
+        realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252) * 100  # Convert to percentage
+        return realised_vol
+    except Exception as e:
+        print(f"Error calculating RVOL for {ticker}: {e}")
+        return None
 
 def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
     dates_file = os.path.join(data_dir, 'dates.json')
-   
-    with open(dates_file, 'r') as f:
-        dates = json.load(f)
-   
+    
+    try:
+        with open(dates_file, 'r') as f:
+            dates = json.load(f)
+    except Exception as e:
+        print(f"Error loading dates.json: {e}")
+        return
+    
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
-   
+    
     if timestamp not in timestamps:
         print(f"Timestamp {timestamp} not in dates.json")
         return
-   
+    
     for source in sources:
         prefix = '_yfinance' if source == 'yfinance' else ''
-       
+        
         current_index = timestamps.index(timestamp)
         current_dt = datetime.strptime(timestamp[:8], "%Y%m%d")
         past_year_start = current_dt - timedelta(days=365)
@@ -31,124 +54,136 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             if ts_dt <= current_dt - timedelta(days=1):
                 prev_day_ts = ts
                 break
-       
+        
         prev_week_ts = None
         for ts in timestamps[:current_index][::-1]:
             ts_dt = datetime.strptime(ts[:8], "%Y%m%d")
             if ts_dt <= current_dt - timedelta(days=7):
                 prev_week_ts = ts
                 break
-       
+        
         def get_option_totals(ts, prefix):
             if ts is None:
                 return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
             raw_dir = f'data/{ts}/raw{prefix}'
             if not os.path.exists(raw_dir):
+                print(f"Raw directory {raw_dir} not found")
                 return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
             raw_files = glob.glob(f'{raw_dir}/raw{prefix}_*.csv')
             totals = []
             for file in raw_files:
                 ticker = os.path.basename(file).split(f'raw{prefix}_')[1].split('.csv')[0]
-                df = pd.read_csv(file)
-                oi_sum = df['Open Interest'].sum()
-                vol_sum = df['Volume'].sum()
-                totals.append({'Ticker': ticker, 'OI': oi_sum, 'Vol': vol_sum})
+                try:
+                    df = pd.read_csv(file)
+                    oi_sum = df['Open Interest'].sum() if 'Open Interest' in df.columns else 0
+                    vol_sum = df['Volume'].sum() if 'Volume' in df.columns else 0
+                    totals.append({'Ticker': ticker, 'OI': oi_sum, 'Vol': vol_sum})
+                except Exception as e:
+                    print(f"Error reading {file}: {e}")
             return pd.DataFrame(totals)
-       
+        
         current_option = get_option_totals(timestamp, prefix)
         prev_day_option = get_option_totals(prev_day_ts, prefix)
         prev_week_option = get_option_totals(prev_week_ts, prefix)
-       
+        
         def load_historic_data(ts):
             historic_dir = f'data/{ts}/historic'
             if not os.path.exists(historic_dir):
                 print(f"Historic directory {historic_dir} not found")
                 return pd.DataFrame()
             historic_files = glob.glob(f'{historic_dir}/historic_*.csv')
-            dfs = [pd.read_csv(file, parse_dates=['Date']) for file in historic_files]
+            dfs = []
+            for file in historic_files:
+                try:
+                    df = pd.read_csv(file, parse_dates=['Date'])
+                    dfs.append(df)
+                except Exception as e:
+                    print(f"Error reading {file}: {e}")
             if not dfs:
+                print(f"No historic data files found in {historic_dir}")
                 return pd.DataFrame()
             return pd.concat(dfs, ignore_index=True)
-       
+        
         df_historic = load_historic_data(timestamp)
         if df_historic.empty:
             print(f"No historic data found for {timestamp}")
-            continue
-       
+        
         def load_processed_data(ts, prefix):
             processed_dir = f'data/{ts}/processed{prefix}'
             if not os.path.exists(processed_dir):
+                print(f"Processed directory {processed_dir} not found")
                 return pd.DataFrame()
             processed_files = glob.glob(f'{processed_dir}/processed{prefix}_*.csv')
-            dfs = [pd.read_csv(file) for file in processed_files]
+            dfs = []
+            for file in processed_files:
+                try:
+                    df = pd.read_csv(file)
+                    dfs.append(df)
+                except Exception as e:
+                    print(f"Error reading {file}: {e}")
             if not dfs:
+                print(f"No processed data files found in {processed_dir}")
                 return pd.DataFrame()
             return pd.concat(dfs, ignore_index=True)
-       
+        
         df_processed = load_processed_data(timestamp, prefix)
         if df_processed.empty:
             print(f"No processed data found for {timestamp}")
             continue
-       
+        
         processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
         processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
-       
-        latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()]
-       
+        
+        latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty else pd.DataFrame()
+        
         def get_prev_value(ticker, target_date, col):
             g = df_historic[df_historic['Ticker'] == ticker]
             prev = g[g['Date'] <= target_date]
             if prev.empty or col not in prev.columns:
                 return None
             return prev.loc[prev['Date'].idxmax(), col]
-       
+        
         def calculate_weighted_iv(ticker_df):
             if ticker_df.empty or 'IV_mid' not in ticker_df.columns or ticker_df['IV_mid'].isna().all():
                 return np.nan
             mid = (ticker_df['Bid'] + ticker_df['Ask']) / 2
             spread = ticker_df['Ask'] - ticker_df['Bid']
             smi = 100 * (spread / mid)
-            smi = smi.replace(0, np.nan) # Avoid division by zero
+            smi = smi.replace(0, np.nan)  # Avoid division by zero
             weights = np.log(1 + ticker_df['Open Interest']) / smi
             valid = (~weights.isna()) & (~ticker_df['IV_mid'].isna())
             if not valid.any():
                 return np.nan
             weighted_iv = np.average(ticker_df.loc[valid, 'IV_mid'], weights=weights[valid])
             return weighted_iv
-       
+        
         def calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
             past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-            cols = ['Realised_Vol_Close_100', 'Realised_Vol_100']
+            cols = ['Realised_Vol_Close_100', 'Realised_Vol_100', 'Realised_Vol_30', 'Realised_Vol_60', 'Realised_Vol_180', 'Realised_Vol_252']
             for c in cols:
                 if c in past_year.columns:
                     vols = past_year[c].dropna()
-                    break
-            else:
-                vols = pd.Series()
-            if vols.empty or len(vols) < 2 or current_vol == 'N/A':
-                return 'N/A'
-            percentile = (vols < current_vol).sum() / len(vols) * 100
-            return percentile
-       
+                    if not vols.empty and len(vols) >= 2 and current_vol != 'N/A':
+                        percentile = (vols < current_vol).sum() / len(vols) * 100
+                        return percentile
+            return 'N/A'
+        
         def calculate_rvol_z_score_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
             past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-            cols = ['Realised_Vol_Close_100', 'Realised_Vol_100']
+            cols = ['Realised_Vol_Close_100', 'Realised_Vol_100', 'Realised_Vol_30', 'Realised_Vol_60', 'Realised_Vol_180', 'Realised_Vol_252']
             for c in cols:
                 if c in past_year.columns:
                     vols = past_year[c].dropna()
-                    break
-            else:
-                vols = pd.Series()
-            if vols.empty or len(vols) < 2 or current_vol == 'N/A':
-                return 'N/A'
-            mean_vol = vols.mean()
-            std_vol = vols.std()
-            if std_vol == 0:
-                return 'N/A' # Avoid division by zero
-            z_score = (current_vol - mean_vol) / std_vol
-            percentile = norm.cdf(z_score) * 100
-            return percentile
-       
+                    if not vols.empty and len(vols) >= 2 and current_vol != 'N/A':
+                        mean_vol = vols.mean()
+                        std_vol = vols.std()
+                        if std_vol == 0:
+                            return 'N/A'
+                        z_score = (current_vol - mean_vol) / std_vol
+                        percentile = norm.cdf(z_score) * 100
+                        return percentile
+            return 'N/A'
+        
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
         past_year_start = current_dt - timedelta(days=365)
@@ -172,7 +207,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             ticker_processed_prev_week = processed_prev_week[processed_prev_week['Ticker'] == ticker] if 'Ticker' in processed_prev_week.columns else pd.DataFrame()
             weighted_iv_prev_week = calculate_weighted_iv(ticker_processed_prev_week) if not ticker_processed_prev_week.empty else np.nan
             weighted_iv_1w_pct = (weighted_iv - weighted_iv_prev_week) / weighted_iv_prev_week * 100 if not np.isnan(weighted_iv_prev_week) and weighted_iv_prev_week != 0 else 'N/A'
-            latest = latest_historic[latest_historic['Ticker'] == ticker]
+            latest = latest_historic[latest_historic['Ticker'] == ticker] if not latest_historic.empty else pd.DataFrame()
             rank_dict = {
                 'Ticker': ticker,
                 'Latest Close': 'N/A',
@@ -233,20 +268,37 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 low_1w_pct = (latest_low - prev_week_low) / prev_week_low * 100 if prev_week_low is not None and prev_week_low != 0 and latest_low != 'N/A' else 'N/A'
                 rank_dict['Low 1w (%)'] = low_1w_pct
                 for rvol_type in rvol_types:
+                    # Try fetching from historic data
                     col = f'Realised_Vol_{rvol_type}'
                     if col not in latest.columns:
                         col = f'Realised_Vol_{rvol_type.replace("Close_", "")}'
-                    current_vol = latest[col].values[0] if col in latest.columns else 'N/A'
-                    rank_dict[f'Realised Volatility {rvol_type.replace("Close_", "")}d (%)'] = current_vol
+                    current_vol = latest[col].values[0] if col in latest.columns and not latest.empty else 'N/A'
+                    # Fallback to yfinance calculation if historic data is missing
+                    if current_vol == 'N/A':
+                        current_vol = calculate_rvol_days(ticker, int(rvol_type))
+                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol
                     if rvol_type == '100':
-                        prev_day_vol = get_prev_value(ticker, current_dt - timedelta(days=1), col)
+                        prev_day_vol = get_prev_value(ticker, current_dt - timedelta(days=1), col) if col in df_historic.columns else None
+                        if prev_day_vol is None and current_vol != 'N/A':
+                            prev_day_vol = calculate_rvol_days(ticker, 100)
                         vol_1d_pct = (current_vol - prev_day_vol) / prev_day_vol * 100 if prev_day_vol is not None and prev_day_vol != 0 and current_vol != 'N/A' else 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type.replace("Close_", "")}d 1d (%)'] = vol_1d_pct
-                        prev_week_vol = get_prev_value(ticker, current_dt - timedelta(days=7), col)
+                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = vol_1d_pct
+                        prev_week_vol = get_prev_value(ticker, current_dt - timedelta(days=7), col) if col in df_historic.columns else None
+                        if prev_week_vol is None and current_vol != 'N/A':
+                            prev_week_vol = calculate_rvol_days(ticker, 100)
                         vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 and current_vol != 'N/A' else 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type.replace("Close_", "")}d 1w (%)'] = vol_1w_pct
+                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = vol_1w_pct
                         past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-                        vols = past_year[col].dropna() if col in past_year.columns else pd.Series()
+                        vols = past_year[col].dropna() if col in past_year.columns and not past_year.empty else pd.Series()
+                        if vols.empty and current_vol != 'N/A':
+                            # Fallback to yfinance for past year data
+                            stock = yf.Ticker(ticker)
+                            hist = stock.history(period="1y")
+                            if not hist.empty:
+                                log_returns = np.log(hist["Close"] / hist["Close"].shift(1)).dropna()
+                                if len(log_returns) >= 2:
+                                    vols = log_returns.rolling(window=100).std() * np.sqrt(252) * 100
+                                    vols = vols.dropna()
                         if not vols.empty:
                             min_vol = vols.min()
                             max_vol = vols.max()
@@ -255,16 +307,55 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             z_score_percentile = calculate_rvol_z_score_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
                         else:
                             min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type.replace("Close_", "")}d (1y)'] = min_vol
-                        rank_dict[f'Max Realised Volatility {rvol_type.replace("Close_", "")}d (1y)'] = max_vol
-                        rank_dict[f'Mean Realised Volatility {rvol_type.replace("Close_", "")}d (1y)'] = mean_vol
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol
+                        rank_dict['Rvol 100d Percentile (%)'] = percentile
+                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile
+                        rvol100d_minus_weighted_iv = current_vol - (weighted_iv * 100) if current_vol != 'N/A' and not np.isnan(weighted_iv) else 'N/A'
+                        rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv
+            else:
+                # Fallback for all tickers if historic data is missing
+                for rvol_type in rvol_types:
+                    current_vol = calculate_rvol_days(ticker, int(rvol_type))
+                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol
+                    if rvol_type == '100':
+                        prev_day_vol = calculate_rvol_days(ticker, 100)
+                        vol_1d_pct = (current_vol - prev_day_vol) / prev_day_vol * 100 if prev_day_vol is not None and prev_day_vol != 0 and current_vol != 'N/A' else 'N/A'
+                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = vol_1d_pct
+                        prev_week_vol = calculate_rvol_days(ticker, 100)
+                        vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 and current_vol != 'N/A' else 'N/A'
+                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = vol_1w_pct
+                        stock = yf.Ticker(ticker)
+                        hist = stock.history(period="1y")
+                        if not hist.empty:
+                            log_returns = np.log(hist["Close"] / hist["Close"].shift(1)).dropna()
+                            if len(log_returns) >= 2:
+                                vols = log_returns.rolling(window=100).std() * np.sqrt(252) * 100
+                                vols = vols.dropna()
+                                if not vols.empty:
+                                    min_vol = vols.min()
+                                    max_vol = vols.max()
+                                    mean_vol = vols.mean()
+                                    percentile = (vols < current_vol).sum() / len(vols) * 100 if current_vol != 'N/A' else 'N/A'
+                                    z_score_percentile = norm.cdf((current_vol - vols.mean()) / vols.std()) * 100 if vols.std() != 0 and current_vol != 'N/A' else 'N/A'
+                                else:
+                                    min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
+                            else:
+                                min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
+                        else:
+                            min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol
                         rank_dict['Rvol 100d Percentile (%)'] = percentile
                         rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile
                         rvol100d_minus_weighted_iv = current_vol - (weighted_iv * 100) if current_vol != 'N/A' and not np.isnan(weighted_iv) else 'N/A'
                         rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv
             ranking.append(rank_dict)
-       
+        
         column_order = [
+            'Rank',
             'Ticker',
             'Latest Close',
             'Latest High',
@@ -300,18 +391,22 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         ]
         df_ranking = pd.DataFrame(ranking)
         df_ranking['Rank'] = df_ranking['Realised Volatility 100d (%)'].rank(ascending=False, method='min').astype(int)
-        column_order.insert(0, 'Rank')
         df_ranking = df_ranking[column_order]
         ranking_dir = f'data/{timestamp}/ranking'
         os.makedirs(ranking_dir, exist_ok=True)
         output_file = f'{ranking_dir}/ranking{prefix}.csv'
         df_ranking.to_csv(output_file, index=False)
         print(f"Ranking metrics saved to {output_file}")
+
 def main():
     data_dir = 'data'
     dates_file = os.path.join(data_dir, 'dates.json')
-    with open(dates_file, 'r') as f:
-        dates = json.load(f)
+    try:
+        with open(dates_file, 'r') as f:
+            dates = json.load(f)
+    except Exception as e:
+        print(f"Error loading dates.json: {e}")
+        return
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
@@ -321,4 +416,5 @@ def main():
         sources = ['yfinance', 'nasdaq']
         for timestamp in timestamps:
             calculate_ranking_metrics(timestamp, sources)
+
 main()
