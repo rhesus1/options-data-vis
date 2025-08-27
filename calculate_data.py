@@ -150,44 +150,90 @@ def smooth_iv_per_expiry(options_df, iv_col, S, r, q, exp):
     subset = subset.sort_values('Moneyness')
     x = subset['Moneyness'].values
     y = subset[iv_col].values
-    f = interp1d(x, y, kind='cubic', fill_value="extrapolate")
-    new_x = np.linspace(min(x), max(x), num=100)
-    new_y = f(new_x)
-    smoothed_df = pd.DataFrame({'Moneyness': new_x, iv_col: new_y})
-    smoothed_df['Expiry'] = exp
-    return smoothed_df
+    valid = ~np.isnan(y)
+    if sum(valid) < 5:
+        return subset
+    x = x[valid]
+    y = y[valid]
+    try:
+        f = interp1d(x, y, kind='cubic', fill_value="extrapolate")
+        new_x = np.linspace(min(x), max(x), num=100)
+        new_y = f(new_x)
+        smoothed_df = pd.DataFrame({'Moneyness': new_x, iv_col: new_y, 'Expiry': exp})
+        smoothed_df['Years_to_Expiry'] = (pd.to_datetime(exp) - datetime.now()).days / 365.25
+        smoothed_df['Strike'] = smoothed_df['Moneyness'] * S * np.exp(r * smoothed_df['Years_to_Expiry'])
+        return smoothed_df
+    except Exception as e:
+        print(f"Failed to interpolate for expiry {exp}: {e}")
+        return subset
 
 def calculate_local_vol_from_iv(options_df, S, r, q):
+    if options_df.empty:
+        return pd.DataFrame(), pd.DataFrame(), None, None, options_df
     options_df['Expiry'] = pd.to_datetime(options_df['Expiry'])
     expiries = options_df['Expiry'].unique()
     calls = options_df[options_df['Type'] == 'Call']
     puts = options_df[options_df['Type'] == 'Put']
+    
     call_iv_smoothed = Parallel(n_jobs=-1)(delayed(smooth_iv_per_expiry)(calls, 'IV_mid', S, r, q, exp) for exp in expiries)
     put_iv_smoothed = Parallel(n_jobs=-1)(delayed(smooth_iv_per_expiry)(puts, 'IV_mid', S, r, q, exp) for exp in expiries)
-    call_iv_smoothed_df = pd.concat(call_iv_smoothed)
-    put_iv_smoothed_df = pd.concat(put_iv_smoothed)
-    call_iv_smoothed_df['Years_to_Expiry'] = (call_iv_smoothed_df['Expiry'] - datetime.now()).dt.days / 365.25
-    put_iv_smoothed_df['Years_to_Expiry'] = (put_iv_smoothed_df['Expiry'] - datetime.now()).dt.days / 365.25
-    call_iv_smoothed_df['Strike'] = call_iv_smoothed_df['Moneyness'] * S * np.exp(r * call_iv_smoothed_df['Years_to_Expiry'])
-    put_iv_smoothed_df['Strike'] = put_iv_smoothed_df['Moneyness'] * S * np.exp(r * put_iv_smoothed_df['Years_to_Expiry'])
-    call_iv_smoothed_df['Local Vol'] = call_iv_smoothed_df['IV_mid']  # Placeholder for actual local vol calculation
-    put_iv_smoothed_df['Local Vol'] = put_iv_smoothed_df['IV_mid']  # Placeholder for actual local vol calculation
-    return call_iv_smoothed_df, put_iv_smoothed_df
+    
+    call_iv_smoothed_df = pd.concat([df for df in call_iv_smoothed if not df.empty], ignore_index=True) if call_iv_smoothed else pd.DataFrame()
+    put_iv_smoothed_df = pd.concat([df for df in put_iv_smoothed if not df.empty], ignore_index=True) if put_iv_smoothed else pd.DataFrame()
+    
+    if call_iv_smoothed_df.empty or put_iv_smoothed_df.empty:
+        return pd.DataFrame(), pd.DataFrame(), None, None, options_df
+    
+    call_points = call_iv_smoothed_df[['Moneyness', 'Years_to_Expiry']].values
+    call_values = call_iv_smoothed_df['IV_mid'].values
+    put_points = put_iv_smoothed_df[['Moneyness', 'Years_to_Expiry']].values
+    put_values = put_iv_smoothed_df['IV_mid'].values
+    
+    try:
+        call_interp = CloughTocher2DInterpolator(call_points, call_values, fill_value=np.nan)
+        put_interp = CloughTocher2DInterpolator(put_points, put_values, fill_value=np.nan)
+    except Exception as e:
+        print(f"Failed to create interpolators: {e}")
+        return pd.DataFrame(), pd.DataFrame(), None, None, options_df
+    
+    call_iv_smoothed_df['Local Vol'] = call_iv_smoothed_df['IV_mid']  # Simplified; replace with actual local vol calculation if needed
+    put_iv_smoothed_df['Local Vol'] = put_iv_smoothed_df['IV_mid']  # Simplified; replace with actual local vol calculation if needed
+    
+    return call_iv_smoothed_df, put_iv_smoothed_df, call_interp, put_interp, options_df
 
 def calculate_skew_metrics(options_df, call_interp, put_interp, S, r, q):
+    if options_df.empty or call_interp is None or put_interp is None:
+        return pd.DataFrame(), pd.DataFrame()
+    options_df['Expiry'] = pd.to_datetime(options_df['Expiry'])
+    expiries = options_df['Expiry'].unique()
     skew_metrics = []
     slope_metrics = []
-    expiries = options_df['Expiry'].unique()
+    
     for exp in expiries:
         T = (exp - datetime.now()).days / 365.25
         if T <= 0:
             continue
-        # Example skew calculation
-        skew = 0.0  # Replace with actual calculation
-        skew_metrics.append({'Expiry': exp, 'Skew': skew})
-        # Example slope calculation
-        slope = 0.0  # Replace with actual calculation
-        slope_metrics.append({'Expiry': exp, 'Slope': slope})
+        subset = options_df[options_df['Expiry'] == exp]
+        if subset.empty:
+            continue
+        moneyness_vals = subset['Moneyness'].values
+        if len(moneyness_vals) < 2:
+            continue
+        try:
+            call_ivs = call_interp((moneyness_vals, np.full_like(moneyness_vals, T)))
+            put_ivs = put_interp((moneyness_vals, np.full_like(moneyness_vals, T)))
+            skew = np.mean(put_ivs / call_ivs) if np.all(call_ivs > 0) else np.nan
+            if not np.isnan(skew):
+                skew_metrics.append({'Expiry': exp, 'Skew': skew})
+            
+            iv_diff = np.diff(call_ivs) / np.diff(moneyness_vals)
+            if len(iv_diff) > 0:
+                slope = np.mean(iv_diff)
+                slope_metrics.append({'Expiry': exp, 'Slope': slope})
+        except Exception as e:
+            print(f"Failed to calculate skew/slope for expiry {exp}: {e}")
+            continue
+    
     skew_df = pd.DataFrame(skew_metrics)
     slope_df = pd.DataFrame(slope_metrics)
     return skew_df, slope_df
@@ -195,11 +241,14 @@ def calculate_skew_metrics(options_df, call_interp, put_interp, S, r, q):
 def process_ticker(ticker, df, full_df, r):
     ticker_df = df[df['Ticker'] == ticker].copy()
     ticker_full = full_df[full_df['Ticker'] == ticker].copy()
+    if ticker_df.empty:
+        return None, None, None
     rvol100d = calculate_rvol_days(ticker, 100)
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
-    call_local_df, put_local_df = calculate_local_vol_from_iv(ticker_df, S, r, q)
+    call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q)
+    ticker_df = smoothed_df
     skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q)
     skew_metrics_df['Ticker'] = ticker
     slope_metrics_df['Ticker'] = ticker
@@ -228,7 +277,7 @@ def process_data(timestamp, prefix=""):
     if not os.path.exists(cleaned_dir):
         print(f"Cleaned directory {cleaned_dir} not found")
         return None, None, None
-    cleaned_files = glob.glob(f'{cleaned_dir}/cleaned_{prefix}*.csv')
+    cleaned_files = glob.glob(f'{cleaned_dir}/cleaned{prefix}_*.csv')
     if not cleaned_files:
         print(f"No cleaned files found in {cleaned_dir}")
         return None, None, None
@@ -244,8 +293,8 @@ def process_data(timestamp, prefix=""):
     skew_metrics_dfs = []
     slope_metrics_dfs = []
     for clean_file in cleaned_files:
-        ticker = os.path.basename(clean_file).split('cleaned_{prefix}')[1].split('.csv')[0]
-        raw_file = f'{raw_dir}/raw_{prefix}{ticker}.csv'
+        ticker = os.path.basename(clean_file).split(f'cleaned{prefix}_')[1].split('.csv')[0]
+        raw_file = f'{raw_dir}/raw{prefix}_{ticker}.csv'
         if not os.path.exists(raw_file):
             print(f"Corresponding raw file {raw_file} not found")
             continue
@@ -256,20 +305,20 @@ def process_data(timestamp, prefix=""):
             continue
         ticker_df, skew_df, slope_df = process_ticker(ticker, df, full_df, r)
         if not ticker_df.empty:
-            processed_filename = f'{processed_dir}/processed_{prefix}{ticker}.csv'
+            processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
             ticker_df.to_csv(processed_filename, index=False)
             print(f"Processed {prefix}data for {ticker} saved to {processed_filename}")
-            processed_json_filename = f'{processed_dir}/processed_{prefix}{ticker}.json'
+            processed_json_filename = f'{processed_dir}/processed{prefix}_{ticker}.json'
             ticker_df.to_json(processed_json_filename, orient='records', date_format='iso')
             print(f"Processed {prefix}data for {ticker} saved to {processed_json_filename}")
             processed_dfs.append(ticker_df)
         if not skew_df.empty:
-            skew_filename = f'{skew_dir}/skew_metrics_{prefix}{ticker}.csv'
+            skew_filename = f'{skew_dir}/skew_metrics{prefix}_{ticker}.csv'
             skew_df.to_csv(skew_filename, index=False)
             print(f"Skew metrics {prefix}for {ticker} saved to {skew_filename}")
             skew_metrics_dfs.append(skew_df)
         if not slope_df.empty:
-            slope_filename = f'{slope_dir}/slope_metrics_{prefix}{ticker}.csv'
+            slope_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
             slope_df.to_csv(slope_filename, index=False)
             print(f"Slope metrics {prefix}for {ticker} saved to {slope_filename}")
             slope_metrics_dfs.append(slope_df)
