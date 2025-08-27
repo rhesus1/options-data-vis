@@ -1438,7 +1438,7 @@
                     {
                         label: '100-day Realised Vol (%)',
                         data: vol90.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#F87171', /* Red for contrast */
+                        borderColor: '#F87171', /* Red */
                         backgroundColor: '#F87171',
                         pointRadius: 5,
                         pointStyle: 'crossRot',
@@ -1450,7 +1450,7 @@
                     {
                         label: '180-day Realised Vol (%)',
                         data: vol180.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FBBF24', /* Amber for contrast */
+                        borderColor: '#FBBF24', /* Amber */
                         backgroundColor: '#FBBF24',
                         pointRadius: 1,
                         fill: false,
@@ -1461,7 +1461,7 @@
                     {
                         label: '252-day Realised Vol (%)',
                         data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#10B981', /* Green for contrast */
+                        borderColor: '#10B981', /* Green */
                         backgroundColor: '#10B981',
                         pointRadius: 1,
                         fill: false,
@@ -1515,7 +1515,7 @@
                                 type: 'time',
                                 time: { unit: 'month' },
                                 title: { display: true, text: 'Date', color: '#FFFFFF' },
-                                grid: { color: '#A855F7' }, /* Purple */
+                                grid: { color: '#A855F7' },
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
@@ -1533,7 +1533,7 @@
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
-                        backgroundColor: '#1A1A2E' /* Off-black with purple tint */
+                        backgroundColor: '#1A1A2E'
                     }
                 });
                 document.getElementById('historic-error').style.display = 'none';
@@ -1544,7 +1544,7 @@
                 document.getElementById('historic-error').textContent = 'Error loading historic chart';
             }
         }
-
+        
         function updateVolumeChart() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
@@ -1801,9 +1801,10 @@
                 const dateSelect = document.getElementById('date-select');
                 const timeSelect = document.getElementById('time-select');
                 const tickerSearch = document.getElementById('ticker-search');
+                const sourceSelect = document.getElementById('source-select');
 
                 const validateTimestamp = async (timestamp) => {
-                    const source = document.getElementById('source-select').value;
+                    const source = sourceSelect.value;
                     const prefix = source === 'yfinance' ? '_yfinance' : '';
                     try {
                         const response = await fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
@@ -1910,6 +1911,24 @@
                                 document.getElementById('historic-error').textContent = 'Invalid data timestamp';
                             }
                         });
+
+                        sourceSelect.addEventListener('change', async () => {
+                            console.log('Source changed to:', sourceSelect.value);
+                            const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                            if (await validateTimestamp(timestamp)) {
+                                await loadData(timestamp);
+                                updateCharts();
+                                updateRawDataTable();
+                                updateRankingTable();
+                                updateSummaryTable();
+                                updateSkewTable();
+                                console.log('Tables updated after source change');
+                            } else {
+                                console.warn('Invalid timestamp:', timestamp);
+                                document.getElementById('historic-error').style.display = 'block';
+                                document.getElementById('historic-error').textContent = 'Invalid data timestamp';
+                            }
+                        });
                     })
                     .catch(error => {
                         console.error('Error loading dates:', error);
@@ -1925,12 +1944,10 @@
                         const target = document.getElementById(targetId);
                         console.log(`Navigating to section: ${targetId}`);
 
-                        // Hide all containers
                         document.querySelectorAll('.overview-container, .volatility-grid, .chart-container').forEach(container => {
                             container.style.display = 'none';
                         });
 
-                        // Show the target container
                         const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                         if (await validateTimestamp(timestamp)) {
                             await loadData(timestamp);
@@ -1967,7 +1984,6 @@
                     });
                 });
 
-                // Ensure Overview is shown on initial load
                 const overviewContainer = document.getElementById('overview');
                 overviewContainer.style.display = 'flex';
                 console.log('Initial load: Showing Overview');
