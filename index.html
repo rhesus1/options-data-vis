@@ -377,7 +377,7 @@
                         return response.text();
                     })
                     .then(csvText => {
-                        const rankingData = parseCSV(csvText);
+                        rankingData = parseCSV(csvText); // Assign to global rankingData
                         console.log(`Ranking ${source} data loaded:`, rankingData);
                         // Populate ticker-search dropdown
                         const tickerSearch = document.getElementById('ticker-search');
@@ -431,14 +431,12 @@
                                     .then(csvText => {
                                         rawData = parseCSV(csvText);
                                         console.log(`Raw ${source} data loaded for ${selectedTicker}:`, rawData);
-                                        updateSummaryTable();
                                         updateVolumeChart();
                                         updateOpenInterestChart();
                                     })
                                     .catch(error => {
                                         console.error(`Error loading raw ${source} data for ${selectedTicker}:`, error);
                                         rawData = [];
-                                        updateSummaryTable();
                                         updateVolumeChart();
                                         updateOpenInterestChart();
                                     });
@@ -503,6 +501,7 @@
                             slopeData = [];
                             historicData = [];
                             eventsData = [];
+                            rankingData = [];
                             updateDropdowns();
                             updateCharts();
                         }
@@ -517,6 +516,7 @@
                         slopeData = [];
                         historicData = [];
                         eventsData = [];
+                        rankingData = [];
                         updateDropdowns();
                         updateCharts();
                     });
@@ -529,7 +529,7 @@
                 const tickerSearch = document.getElementById('ticker-search');
                 const tickerDatalist = document.getElementById('ticker-datalist');
                 tickerDatalist.innerHTML = '';
-                const uniqueTickers = [...new Set(data.map(item => item.Ticker))]
+                const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))]
                     .filter(val => val).sort();
                 uniqueTickers.forEach(val => {
                     const option = document.createElement('option');
