@@ -1,36 +1,36 @@
 name: Clean Options Data
-
 on:
   workflow_run:
     workflows: ["Fetch Options Data"]
     types:
       - completed
-  workflow_dispatch:  # Manual trigger option
-
+  workflow_dispatch: # Manual trigger option
 jobs:
   clean:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yfinance pandas numpy scipy  # Your script's requirements
-
+        pip install pandas numpy
     - name: Create data directory
       run: mkdir -p data
-
     - name: Run clean script
-      run: python clean_data.py
-
+      run: |
+        python -c "
+        import json
+        import os
+        with open('data/dates.json', 'r') as f:
+            dates = json.load(f)
+        latest_date = max(dates, key=lambda x: x)
+        os.system(f'python clean_data.py {latest_date}')
+        "
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
