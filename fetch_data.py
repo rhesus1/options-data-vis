@@ -29,7 +29,7 @@ def setup_driver(headless=True):
     driver = webdriver.Chrome(options=chrome_options)
     driver.set_page_load_timeout(40)
     return driver
-    
+
 def fetch_option_data_nasdaq(ticker, driver, max_retries=3):
     option_data = []
     url = f"https://www.nasdaq.com/market-activity/stocks/{ticker.lower()}/option-chain"
@@ -153,7 +153,7 @@ def fetch_option_data_nasdaq(ticker, driver, max_retries=3):
                             "Change": float(put_change) if put_change.replace('.', '', 1).isdigit() else np.nan,
                             "% Change": np.nan,
                             "Volume": int(put_volume) if put_volume.isdigit() else 0,
-                            "Open Interest": int(put_open_int) if put_open_int.isdigit() else 0,
+                            "Open Interest": int(put_open_int) if call_open_int.isdigit() else 0,
                             "Implied Volatility": np.nan,
                             "Contract Name": f"{ticker}_PUT_{expiry_date_str}_{strike}",
                             "Ticker": ticker,
@@ -286,12 +286,15 @@ def fetch_historic_data(ticker):
     if hist.empty:
         return pd.DataFrame()
     hist = hist[['High', 'Low', 'Close']]
+    # Calculate log returns for Close
     hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
+    # Calculate realized volatility for Close
     hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
+    # Drop rows with NaN values
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
