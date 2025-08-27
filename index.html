@@ -674,7 +674,7 @@
                 const table = document.getElementById('summary-table');
                 table.innerHTML = '';
                 console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Source:', source);
-        
+            
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
                 ['Metric', 'Value', 'Metric', 'Value'].forEach(text => {
@@ -684,14 +684,14 @@
                 });
                 thead.appendChild(headerRow);
                 table.appendChild(thead);
-        
+            
                 const tbody = document.createElement('tbody');
                 const changeMetrics = [
                     'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
                     'Rvol 100d 1d (%)', 'Rvol 100d 1w (%)', 'Vol 1d (%)', 'Vol 1w (%)', 'OI 1d (%)', 'OI 1w (%)',
                     'Weighted IV 1d (%)', 'Weighted IV 1w (%)'
                 ];
-        
+            
                 // Collect metrics from rankingData
                 const metrics = [];
                 const filteredRankingData = rankingData.find(item => item.Ticker === selectedTicker);
@@ -732,7 +732,7 @@
                         { name: 'OI 1w (%)', value: Number.isFinite(filteredRankingData['OI 1w (%)']) ? filteredRankingData['OI 1w (%)'].toFixed(2) : 'N/A', key: 'OI 1w (%)' }
                     );
                 }
-        
+            
                 // ATM 12m/3m Ratio from skew data
                 let atmRatio = 'N/A';
                 const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
@@ -744,7 +744,7 @@
                     console.warn('No skew data for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
                 }
                 metrics.push({ name: 'ATM 12m/3m Ratio', value: atmRatio, key: 'ATM_12m_3m_Ratio' });
-        
+            
                 // Slope data from slope_metrics
                 const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
                 console.log('Slope data filtered size:', filteredSlopeData.length);
@@ -759,7 +759,7 @@
                 } else {
                     metrics.push({ name: 'IV Slope 3m/12m', value: 'No slope metrics available', key: 'IV_Slope_3m_12m' });
                 }
-        
+            
                 // Create rows for 4-column layout
                 for (let i = 0; i < metrics.length; i += 2) {
                     const row = document.createElement('tr');
@@ -801,9 +801,10 @@
         function updateVolumeChart() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const uniqueTickers = [...new Set(data.map(item => item.Ticker))].filter(val => val).sort();
+                const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
                 const volumes = uniqueTickers.map(ticker => {
-                    return rawData.filter(item => item.Ticker === ticker).reduce((sum, item) => sum + (item.Volume || 0), 0);
+                    const tickerData = rankingData.find(item => item.Ticker === ticker);
+                    return tickerData && Number.isFinite(tickerData['Volume']) ? tickerData['Volume'] : 0;
                 });
                 const backgroundColors = uniqueTickers.map(ticker => ticker === selectedTicker ? '#FFFF00' : '#00BFFF');
                 if (volumeChart) volumeChart.destroy();
@@ -865,12 +866,14 @@
                 console.error('Error updating volume chart:', error);
             }
         }
+        
         function updateOpenInterestChart() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const uniqueTickers = [...new Set(data.map(item => item.Ticker))].filter(val => val).sort();
+                const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
                 const openInterests = uniqueTickers.map(ticker => {
-                    return rawData.filter(item => item.Ticker === ticker).reduce((sum, item) => sum + (item['Open Interest'] || 0), 0);
+                    const tickerData = rankingData.find(item => item.Ticker === ticker);
+                    return tickerData && Number.isFinite(tickerData['Open Interest']) ? tickerData['Open Interest'] : 0;
                 });
                 const backgroundColors = uniqueTickers.map(ticker => ticker === selectedTicker ? '#FFFF00' : '#00BFFF');
                 if (openInterestChart) openInterestChart.destroy();
