@@ -46,8 +46,8 @@ jobs:
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "Options Ranking Metrics Data"
-        to: Morgan.Rees@fourieram.onmicrosoft.com
-        from: Morgan Rees <Morgan.Rees@Fairwater-capital.com>
+        to: reesjmorgan@gmail.com
+        from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
           Attached is the latest Options ranking metrics CSV file for yfinance data.
           Timestamp: ${latest_date}
