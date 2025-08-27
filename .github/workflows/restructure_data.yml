@@ -40,8 +40,8 @@ jobs:
         git status > git_status_final.txt
     - name: Commit and push restructured data
       run: |
-        git add data restructure_log.txt git_status_initial.txt git_status_final.txt
-        git commit -m "Restructure yfinance data into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
+        git add .
+        git commit -m "Restructure yfinance data into SNIP into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
         git push
     - name: Archive logs
       uses: actions/upload-artifact@v4
