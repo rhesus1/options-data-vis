@@ -136,7 +136,6 @@
     </table>
     <script>
         let data = [];
-
         function parseCSV(csvText) {
             const result = Papa.parse(csvText, {
                 header: true,
@@ -145,7 +144,6 @@
             });
             return result.data;
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -156,108 +154,173 @@
                 return null;
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const dateSelect = document.getElementById('date-select');
-            const timeSelect = document.getElementById('time-select');
-            const sourceSelect = document.getElementById('source-select');
-
-            fetch('data/dates.json?v=' + Date.now())
-                .then(response => response.json())
-                .then(dates => {
-                    const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
-                    uniqueDates.forEach(datePart => {
-                        const option = document.createElement('option');
-                        option.value = datePart.replace(/-/g, '');
-                        option.textContent = datePart;
-                        dateSelect.appendChild(option);
-                    });
-                    if (dateSelect.options.length > 0) {
-                        dateSelect.value = dateSelect.options[0].value;
-                        updateTimeOptions(dateSelect.value, dates);
-                        loadData(dateSelect.value + '_' + timeSelect.value);
-                    }
-                    dateSelect.addEventListener('change', (e) => {
-                        updateTimeOptions(e.target.value, dates);
-                        loadData(e.target.value + '_' + timeSelect.value);
-                    });
-                    timeSelect.addEventListener('change', (e) => {
-                        loadData(dateSelect.value + '_' + e.target.value);
-                    });
-                    sourceSelect.addEventListener('change', () => {
-                        console.log('Data source changed to:', sourceSelect.value);
-                        loadData(dateSelect.value + '_' + timeSelect.value);
-                    });
-                })
-                .catch(error => console.error('Error loading dates:', error));
-        });
-
-        function updateTimeOptions(selectedDate, dates) {
-            const timeSelect = document.getElementById('time-select');
-            timeSelect.innerHTML = '';
-            const formattedSelectedDate = selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-            const availableTimes = dates
-                .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === formattedSelectedDate)
-                .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
-            const uniqueTimes = [...new Set(availableTimes)];
-            uniqueTimes.forEach(timePart => {
-                const option = document.createElement('option');
-                option.value = timePart.replace(':', '');
-                option.textContent = timePart;
-                timeSelect.appendChild(option);
-            });
-            if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
-        }
-
-        function loadData(timestamp) {
-            const source = document.getElementById('source-select').value;
-            const prefix = source === 'yfinance' ? 'yfinance_' : '';
-            console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
-            fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
-                .then(response => response.text())
-                .then(csvText => {
-                    data = parseCSV(csvText);
-                    console.log(`Processed ${source} data loaded:`, data);
-                    // Destroy existing DataTable if it exists
-                    if ($.fn.DataTable.isDataTable('#data-table')) {
-                        $('#data-table').DataTable().destroy();
-                        $('#data-table tbody').empty();
-                    }
-                    initializeTable();
-                    populateFilters();
-                })
-                .catch(error => console.error(`Error loading processed ${source} data:`, error));
-        }
-
-        function populateFilters() {
-            const tickerFilter = document.getElementById('ticker-filter');
-            const expiryFilter = document.getElementById('expiry-filter');
-            tickerFilter.innerHTML = '<option value="">All</option>';
-            const uniqueTickers = [...new Set(data.map(item => item.Ticker))].filter(val => val).sort();
-            uniqueTickers.forEach(val => {
-                const option = document.createElement('option');
-                option.value = val;
-                option.textContent = val;
-                tickerFilter.appendChild(option);
-            });
-            if (uniqueTickers.includes('COIN')) {
-                tickerFilter.value = 'COIN';
+            try {
+                const dateSelect = document.getElementById('date-select');
+                const timeSelect = document.getElementById('time-select');
+                const sourceSelect = document.getElementById('source-select');
+                fetch('data/dates.json?v=' + Date.now())
+                    .then(response => response.json())
+                    .then(dates => {
+                        const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
+                        uniqueDates.forEach(datePart => {
+                            const option = document.createElement('option');
+                            option.value = datePart.replace(/-/g, '');
+                            option.textContent = datePart;
+                            dateSelect.appendChild(option);
+                        });
+                        if (dateSelect.options.length > 0) {
+                            dateSelect.value = dateSelect.options[0].value;
+                            updateTimeOptions(dateSelect.value, dates);
+                            loadData(dateSelect.value + '_' + timeSelect.value);
+                        }
+                        dateSelect.addEventListener('change', (e) => {
+                            updateTimeOptions(e.target.value, dates);
+                            loadData(e.target.value + '_' + timeSelect.value);
+                        });
+                        timeSelect.addEventListener('change', (e) => {
+                            loadData(dateSelect.value + '_' + e.target.value);
+                        });
+                        sourceSelect.addEventListener('change', () => {
+                            console.log('Data source changed to:', sourceSelect.value);
+                            loadData(dateSelect.value + '_' + timeSelect.value);
+                        });
+                    })
+                    .catch(error => console.error('Error loading dates:', error));
+            } catch (error) {
+                console.error('Error in DOMContentLoaded:', error);
             }
-            expiryFilter.innerHTML = '<option value="">All</option>';
-            const uniqueExpiries = [...new Set(data.map(item => item.Expiry))].filter(val => val).sort((a, b) => new Date(a) - new Date(b));
-            uniqueExpiries.forEach(val => {
-                const option = document.createElement('option');
-                option.value = val;
-                option.textContent = new Date(val).toLocaleDateString('en-GB');
-                expiryFilter.appendChild(option);
-            });
-            tickerFilter.addEventListener('change', () => $('#data-table').DataTable().draw());
-            document.getElementById('type-filter').addEventListener('change', () => $('#data-table').DataTable().draw());
-            expiryFilter.addEventListener('change', () => $('#data-table').DataTable().draw());
-            document.getElementById('strike-filter').addEventListener('input', () => $('#data-table').DataTable().draw());
-            document.getElementById('delta-filter').addEventListener('input', () => $('#data-table').DataTable().draw());
+        });
+        function updateTimeOptions(selectedDate, dates) {
+            try {
+                const timeSelect = document.getElementById('time-select');
+                timeSelect.innerHTML = '';
+                const formattedSelectedDate = selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+                const availableTimes = dates
+                    .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === formattedSelectedDate)
+                    .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
+                const uniqueTimes = [...new Set(availableTimes)];
+                uniqueTimes.forEach(timePart => {
+                    const option = document.createElement('option');
+                    option.value = timePart.replace(':', '');
+                    option.textContent = timePart;
+                    timeSelect.appendChild(option);
+                });
+                if (timeSelect.options.length > 0) timeSelect.value = timeSelect.options[0].value;
+                console.log('Time options updated:', uniqueTimes);
+            } catch (error) {
+                console.error('Error updating time options:', error);
+            }
         }
-
+        function loadData(timestamp) {
+            try {
+                const source = document.getElementById('source-select').value;
+                const prefix = source === 'yfinance' ? '_yfinance' : '';
+                console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
+                // Step 1: Load ranking data to get tickers
+                fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=` + Date.now())
+                    .then(response => {
+                        if (!response.ok) throw new Error(`Ranking file not found: data/${timestamp}/ranking/ranking${prefix}.csv`);
+                        return response.text();
+                    })
+                    .then(csvText => {
+                        const rankingData = parseCSV(csvText);
+                        console.log(`Ranking ${source} data loaded:`, rankingData);
+                        const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))]
+                            .filter(val => val).sort();
+                        // Step 2: Load processed data for each ticker
+                        const fetchPromises = uniqueTickers.map(ticker =>
+                            fetch(`data/${timestamp}/processed${prefix}/processed${prefix}_${ticker}.csv?v=` + Date.now())
+                                .then(response => {
+                                    if (!response.ok) throw new Error(`Processed file not found: data/${timestamp}/processed${prefix}/processed${prefix}_${ticker}.csv`);
+                                    return response.text();
+                                })
+                                .then(csvText => {
+                                    const tickerData = parseCSV(csvText);
+                                    console.log(`Processed ${source} data loaded for ${ticker}:`, tickerData);
+                                    return tickerData;
+                                })
+                                .catch(error => {
+                                    console.error(`Error loading processed ${source} data for ${ticker}:`, error);
+                                    return [];
+                                })
+                        );
+                        Promise.all(fetchPromises)
+                            .then(results => {
+                                data = results.flat();
+                                console.log(`Aggregated ${source} data loaded:`, data);
+                                // Destroy existing DataTable if it exists
+                                if ($.fn.DataTable.isDataTable('#data-table')) {
+                                    $('#data-table').DataTable().destroy();
+                                    $('#data-table tbody').empty();
+                                }
+                                initializeTable();
+                                populateFilters();
+                            })
+                            .catch(error => {
+                                console.error('Error aggregating processed data:', error);
+                                data = [];
+                                if ($.fn.DataTable.isDataTable('#data-table')) {
+                                    $('#data-table').DataTable().destroy();
+                                    $('#data-table tbody').empty();
+                                }
+                                initializeTable();
+                                populateFilters();
+                            });
+                    })
+                    .catch(error => {
+                        console.error(`Error loading ranking ${source} data:`, error);
+                        data = [];
+                        if ($.fn.DataTable.isDataTable('#data-table')) {
+                            $('#data-table').DataTable().destroy();
+                            $('#data-table tbody').empty();
+                        }
+                        initializeTable();
+                        populateFilters();
+                    });
+            } catch (error) {
+                console.error('Error in loadData:', error);
+                data = [];
+                if ($.fn.DataTable.isDataTable('#data-table')) {
+                    $('#data-table').DataTable().destroy();
+                    $('#data-table tbody').empty();
+                }
+                initializeTable();
+                populateFilters();
+            }
+        }
+        function populateFilters() {
+            try {
+                const tickerFilter = document.getElementById('ticker-filter');
+                const expiryFilter = document.getElementById('expiry-filter');
+                tickerFilter.innerHTML = '<option value="">All</option>';
+                const uniqueTickers = [...new Set(data.map(item => item.Ticker))].filter(val => val).sort();
+                uniqueTickers.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.textContent = val;
+                    tickerFilter.appendChild(option);
+                });
+                if (uniqueTickers.includes('COIN')) {
+                    tickerFilter.value = 'COIN';
+                }
+                expiryFilter.innerHTML = '<option value="">All</option>';
+                const uniqueExpiries = [...new Set(data.map(item => item.Expiry))].filter(val => val).sort((a, b) => new Date(a) - new Date(b));
+                uniqueExpiries.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.textContent = new Date(val).toLocaleDateString('en-GB');
+                    expiryFilter.appendChild(option);
+                });
+                tickerFilter.addEventListener('change', () => $('#data-table').DataTable().draw());
+                document.getElementById('type-filter').addEventListener('change', () => $('#data-table').DataTable().draw());
+                expiryFilter.addEventListener('change', () => $('#data-table').DataTable().draw());
+                document.getElementById('strike-filter').addEventListener('input', () => $('#data-table').DataTable().draw());
+                document.getElementById('delta-filter').addEventListener('input', () => $('#data-table').DataTable().draw());
+            } catch (error) {
+                console.error('Error populating filters:', error);
+            }
+        }
         function initializeTable() {
             $('#data-table').DataTable({
                 data: data,
