@@ -1,4 +1,4 @@
-name: Restructure Data Directory
+name: Restructure Yfinance Data Directory
 on:
   workflow_dispatch: # Manual trigger
 jobs:
@@ -15,13 +15,24 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pandas
+    - name: Commit any existing changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add .
+        git commit -m "Commit existing changes before restructuring yfinance data" || echo "No existing changes to commit"
+    - name: Pull and rebase
+      run: |
+        git pull --rebase origin main || echo "Pull rebase failed, continuing with local changes"
     - name: Run restructure script
       run: python restructure_data.py
     - name: Commit and push restructured data
       run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git pull --rebase origin main
-        git add data
-        git commit -m "Restructure data directory into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
+        git add data restructure_log.txt
+        git commit -m "Restructure yfinance data into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
         git push
+    - name: Archive restructure log
+      uses: actions/upload-artifact@v4
+      with:
+        name: restructure-log
+        path: restructure_log.txt
