@@ -307,8 +307,7 @@
                         });
                         tickerSearch.addEventListener('change', () => {
                             console.log('Ticker changed to:', tickerSearch.value);
-                            updateDropdowns();
-                            updateCharts();
+                            loadData(dateSelect.value + '_' + timeSelect.value);
                         });
                         sourceSelect.addEventListener('change', () => {
                             console.log('Data source changed to:', sourceSelect.value);
@@ -349,76 +348,89 @@
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
-                const prefix = source === 'yfinance' ? 'yfinance_' : '';
-                console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
+                const prefix = source === 'yfinance' ? '_yfinance' : '';
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
+                console.log(`Loading data for timestamp: ${timestamp}, source: ${source}, ticker: ${selectedTicker}`);
                 const checkFileExists = (url) => {
                     return fetch(url, { method: 'HEAD' })
                         .then(response => response.ok)
                         .catch(() => false);
                 };
                 Promise.all([
-                    checkFileExists(`data/processed_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/raw_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/skew_metrics_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/slope_metrics_${prefix}${timestamp}.csv`),
-                    checkFileExists(`data/historic_${timestamp}.csv`)
-                ]).then(([processedExists, rawExists, skewExists, slopeExists, historicExists]) => {
-                    if (!processedExists) console.error(`Processed file data/processed_${prefix}${timestamp}.csv not found`);
-                    if (!rawExists) console.error(`Raw file data/raw_${prefix}${timestamp}.csv not found`);
-                    if (!skewExists) console.error(`Skew metrics file data/skew_metrics_${prefix}${timestamp}.csv not found`);
-                    if (!slopeExists) console.error(`Slope metrics file data/slope_metrics_${prefix}${timestamp}.csv not found`);
-                    if (!historicExists) console.error(`Historic file data/historic_${timestamp}.csv not found`);
-                    fetch(`data/processed_${prefix}${timestamp}.csv?v=` + Date.now())
+                    checkFileExists(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/historic/historic_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/ranking/ranking${prefix}.csv`),
+                    checkFileExists(`data/Events.csv`)
+                ]).then(([processedExists, rawExists, skewExists, slopeExists, historicExists, rankingExists, eventsExists]) => {
+                    if (!processedExists) console.error(`Processed file data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv not found`);
+                    if (!rawExists) console.error(`Raw file data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv not found`);
+                    if (!skewExists) console.error(`Skew metrics file data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv not found`);
+                    if (!slopeExists) console.error(`Slope metrics file data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv not found`);
+                    if (!historicExists) console.error(`Historic file data/${timestamp}/historic/historic_${selectedTicker}.csv not found`);
+                    if (!rankingExists) console.error(`Ranking file data/${timestamp}/ranking/ranking${prefix}.csv not found`);
+                    if (!eventsExists) console.error(`Events file data/Events.csv not found`);
+                    fetch(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
                             data = parseCSV(csvText);
-                            console.log(`Processed ${source} data loaded:`, data);
+                            console.log(`Processed ${source} data loaded for ${selectedTicker}:`, data);
                             populateTickerSearch();
                             updateDropdowns();
                             updateCharts();
                         })
-                        .catch(error => console.error(`Error loading processed ${source} data:`, error));
-                    fetch(`data/raw_${prefix}${timestamp}.csv?v=` + Date.now())
+                        .catch(error => console.error(`Error loading processed ${source} data for ${selectedTicker}:`, error));
+                    fetch(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
                             rawData = parseCSV(csvText);
-                            console.log(`Raw ${source} data loaded:`, rawData);
+                            console.log(`Raw ${source} data loaded for ${selectedTicker}:`, rawData);
                             updateSummaryTable();
                             updateVolumeChart();
                             updateOpenInterestChart();
                         })
-                        .catch(error => console.error(`Error loading raw ${source} data:`, error));
-                    fetch(`data/historic_${timestamp}.csv?v=` + Date.now())
+                        .catch(error => console.error(`Error loading raw ${source} data for ${selectedTicker}:`, error));
+                    fetch(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv?v=` + Date.now())
+                        .then(response => response.text())
+                        .then(csvText => {
+                            skewData = parseCSV(csvText);
+                            console.log(`Skew ${source} data loaded for ${selectedTicker}:`, skewData);
+                            updateSkewTable();
+                            updateSummaryTable();
+                        })
+                        .catch(error => console.error(`Error loading skew ${source} metrics for ${selectedTicker}:`, error));
+                    fetch(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv?v=` + Date.now())
+                        .then(response => response.text())
+                        .then(csvText => {
+                            slopeData = parseCSV(csvText);
+                            console.log(`Slope ${source} data loaded for ${selectedTicker}:`, slopeData);
+                            updateSummaryTable();
+                        })
+                        .catch(error => console.error(`Error loading slope ${source} metrics for ${selectedTicker}:`, error));
+                    fetch(`data/${timestamp}/historic/historic_${selectedTicker}.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
                             historicData = parseCSV(csvText);
-                            console.log('Historic data loaded:', historicData);
+                            console.log(`Historic data loaded for ${selectedTicker}:`, historicData);
                             document.getElementById('historic-error').style.display = 'none';
                             updateHistoricChart();
                         })
                         .catch(error => {
-                            console.error('Error loading historic data:', error);
+                            console.error(`Error loading historic data for ${selectedTicker}:`, error);
                             historicData = [];
                             document.getElementById('historic-error').style.display = 'block';
                             updateHistoricChart();
                         });
-                    fetch(`data/skew_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
+                    fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
-                            skewData = parseCSV(csvText);
-                            console.log(`Skew ${source} data loaded:`, skewData);
-                            updateSkewTable();
+                            const rankingData = parseCSV(csvText);
+                            console.log(`Ranking ${source} data loaded:`, rankingData);
                             updateSummaryTable();
                         })
-                        .catch(error => console.error(`Error loading skew ${source} metrics:`, error));
-                    fetch(`data/slope_metrics_${prefix}${timestamp}.csv?v=` + Date.now())
-                        .then(response => response.text())
-                        .then(csvText => {
-                            slopeData = parseCSV(csvText);
-                            console.log(`Slope ${source} data loaded:`, slopeData);
-                            updateSummaryTable();
-                        })
-                        .catch(error => console.error(`Error loading slope ${source} metrics:`, error));
+                        .catch(error => console.error(`Error loading ranking ${source} data:`, error));
                     fetch(`data/Events.csv?v=` + Date.now())
                         .then(response => response.text())
                         .then(csvText => {
@@ -426,7 +438,11 @@
                             console.log('Events data loaded:', eventsData);
                             updateHistoricChart();
                         })
-                        .catch(error => console.error('Error loading events data:', error));
+                        .catch(error => {
+                            console.error('Error loading events data:', error);
+                            eventsData = [];
+                            updateHistoricChart();
+                        });
                 });
             } catch (error) {
                 console.error('Error in loadData:', error);
@@ -1448,7 +1464,7 @@
                     }
                 });
                 createStatsTable(deltaChart, 'delta-vs-iv-chart');
-            } catch (error) {
+            } participate {
                 console.error('Error updating Delta vs. IV chart:', error);
             }
         }
