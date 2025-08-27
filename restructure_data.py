@@ -14,12 +14,14 @@ def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
         prefix (str): Prefix for file naming ('_yfinance' or '').
         file_type (str): Type of file ('raw', 'raw_yfinance', 'cleaned', etc.).
     """
+    print(f"Processing file: {input_file}")
     if not os.path.exists(input_file):
-        print(f"Input file {input_file} not found")
+        print(f"Input file {input_file} does not exist, skipping")
         return
     
     try:
         df = pd.read_csv(input_file)
+        print(f"Successfully read {input_file}, rows: {len(df)}")
     except Exception as e:
         print(f"Error reading {input_file}: {e}")
         return
@@ -31,11 +33,14 @@ def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
     os.makedirs(output_dir, exist_ok=True)
     
     for ticker in df['Ticker'].unique():
+        if pd.isna(ticker):
+            print(f"Skipping invalid ticker (NaN) in {input_file}")
+            continue
         ticker_df = df[df['Ticker'] == ticker]
         output_file = f"{output_dir}/{file_type}{prefix}_{ticker}.csv"
         try:
             ticker_df.to_csv(output_file, index=False)
-            print(f"Saved {file_type}{prefix}_{ticker}.csv to {output_dir}")
+            print(f"Saved {file_type}{prefix}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}")
         except Exception as e:
             print(f"Error saving {output_file}: {e}")
 
@@ -43,9 +48,15 @@ def main():
     # Initialize dates.json if it doesn't exist
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
-        with open(dates_file, 'r') as f:
-            dates = json.load(f)
+        try:
+            with open(dates_file, 'r') as f:
+                dates = json.load(f)
+            print(f"Loaded existing dates.json: {dates}")
+        except Exception as e:
+            print(f"Error reading dates.json: {e}, initializing empty list")
+            dates = []
     else:
+        print("dates.json not found, initializing empty list")
         dates = []
     
     # Define all file patterns, including yfinance
@@ -66,14 +77,19 @@ def main():
     # Extract timestamps from files
     timestamps = set()
     for pattern, file_type, prefix in file_patterns:
-        for file in glob.glob(pattern):
+        files = glob.glob(pattern)
+        print(f"Found {len(files)} files for pattern {pattern}: {files}")
+        for file in files:
             filename = os.path.basename(file)
-            # Extract timestamp (e.g., '20250827_0929' from 'raw_yfinance_20250827_0929.csv')
-            if prefix:
-                timestamp = filename.split(f'{file_type}{prefix}_')[1].split('.csv')[0]
-            else:
-                timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
-            timestamps.add(timestamp)
+            try:
+                # Extract timestamp (e.g., '20250827_0929' from 'raw_yfinance_20250827_0929.csv')
+                if prefix:
+                    timestamp = filename.split(f'{file_type}{prefix}_')[1].split('.csv')[0]
+                else:
+                    timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
+                timestamps.add(timestamp)
+            except IndexError:
+                print(f"Could not extract timestamp from {filename}, skipping")
     
     # Update dates.json
     for timestamp in timestamps:
@@ -81,12 +97,16 @@ def main():
             dates.append(timestamp)
     if timestamps:
         dates.sort(reverse=True)
-        with open(dates_file, 'w') as f:
-            json.dump(dates, f)
-        print(f"Updated dates.json with timestamps: {timestamps}")
+        try:
+            with open(dates_file, 'w') as f:
+                json.dump(dates, f)
+            print(f"Updated dates.json with timestamps: {timestamps}")
+        except Exception as e:
+            print(f"Error writing to dates.json: {e}")
     
     # Process each timestamp
     for timestamp in timestamps:
+        print(f"Processing timestamp: {timestamp}")
         base_dir = f'data/{timestamp}'
         
         # Define output directories
