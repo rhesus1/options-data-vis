@@ -137,7 +137,7 @@ def main():
             f.write(log_message)
         dates = []
     
-    # Define file patterns for yfinance, Nasdaq, and ranking
+    # Define file patterns for yfinance, Nasdaq, and ranking (excluding historic)
     file_patterns = [
         ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', ''),
         ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', ''),
@@ -150,7 +150,6 @@ def main():
         ('data/processed_[0-9]*.csv', 'processed', ''),
         ('data/skew_metrics_[0-9]*.csv', 'skew_metrics', ''),
         ('data/slope_metrics_[0-9]*.csv', 'slope_metrics', ''),
-        ('data/historic_[0-9]*.csv', 'historic', ''),
         ('data/ranking_[0-9]*.csv', 'ranking', '')
     ]
     
@@ -166,8 +165,11 @@ def main():
         for file in files:
             filename = os.path.basename(file)
             try:
-                # Extract timestamp (e.g., '20250825_2124' from 'raw_yfinance_20250825_2124.csv')
-                timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
+                # Extract timestamp (e.g., '20250825_2124' from 'ranking_yfinance_20250825_2124.csv')
+                if file_type == 'ranking' and 'yfinance' in filename:
+                    timestamp = filename.split('ranking_yfinance_')[1].split('.csv')[0]
+                else:
+                    timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
                 if not is_valid_timestamp(timestamp):
                     log_message = f"Invalid timestamp format in {filename}: {timestamp}, skipping\n"
                     print(log_message)
@@ -227,7 +229,6 @@ def main():
             'processed': f'{base_dir}/processed',
             'skew_metrics': f'{base_dir}/skew_metrics',
             'slope_metrics': f'{base_dir}/slope_metrics',
-            'historic': f'{base_dir}/historic',
             'ranking': f'{base_dir}/ranking'
         }
         if file_type == 'ranking':
