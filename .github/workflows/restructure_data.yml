@@ -15,15 +15,21 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pandas
-    - name: Commit any existing changes
+    - name: Commit existing changes
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add .
         git commit -m "Commit existing changes before restructuring yfinance data" || echo "No existing changes to commit"
+    - name: Stash any unstaged changes
+      run: |
+        git stash || echo "No changes to stash"
     - name: Pull and rebase
       run: |
         git pull --rebase origin main || echo "Pull rebase failed, continuing with local changes"
+    - name: Reapply stashed changes
+      run: |
+        git stash pop || echo "No stashed changes to apply"
     - name: Run restructure script
       run: python restructure_data.py
     - name: Commit and push restructured data
