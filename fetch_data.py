@@ -29,7 +29,7 @@ def setup_driver(headless=True):
     driver = webdriver.Chrome(options=chrome_options)
     driver.set_page_load_timeout(40)
     return driver
-
+    
 def fetch_option_data_nasdaq(ticker, driver, max_retries=3):
     option_data = []
     url = f"https://www.nasdaq.com/market-activity/stocks/{ticker.lower()}/option-chain"
