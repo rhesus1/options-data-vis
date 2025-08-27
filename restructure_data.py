@@ -2,7 +2,12 @@ import pandas as pd
 import os
 import glob
 import json
+import re
 from datetime import datetime
+
+def is_valid_timestamp(timestamp):
+    """Validate timestamp format (YYYYMMDD_HHMM)."""
+    return bool(re.match(r'^\d{8}_\d{4}$', timestamp))
 
 def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
     """
@@ -83,7 +88,9 @@ def main():
         try:
             with open(dates_file, 'r') as f:
                 dates = json.load(f)
-            log_message = f"Loaded existing dates.json: {dates}\n"
+            # Clean invalid entries
+            dates = [d for d in dates if is_valid_timestamp(d)]
+            log_message = f"Loaded and cleaned dates.json: {dates}\n"
             print(log_message)
             with open(log_file, 'a') as f:
                 f.write(log_message)
@@ -100,7 +107,7 @@ def main():
             f.write(log_message)
         dates = []
     
-    # Define yfinance file patterns only
+    # Define yfinance file patterns
     file_patterns = [
         ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', '_yfinance'),
         ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', '_yfinance'),
@@ -123,6 +130,12 @@ def main():
             try:
                 # Extract timestamp (e.g., '20250825_2124' from 'raw_yfinance_20250825_2124.csv')
                 timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
+                if not is_valid_timestamp(timestamp):
+                    log_message = f"Invalid timestamp format in {filename}: {timestamp}, skipping\n"
+                    print(log_message)
+                    with open(log_file, 'a') as f:
+                        f.write(log_message)
+                    continue
                 timestamps.add(timestamp)
                 log_message = f"Extracted timestamp {timestamp} from {filename}\n"
                 print(log_message)
@@ -135,15 +148,15 @@ def main():
                     f.write(log_message)
     
     # Update dates.json
-    for timestamp in timestamps:
-        if timestamp not in dates:
-            dates.append(timestamp)
     if timestamps:
+        # Merge and clean timestamps
+        dates = list(set(dates + list(timestamps)))
+        dates = [d for d in dates if is_valid_timestamp(d)]
         dates.sort(reverse=True)
         try:
             with open(dates_file, 'w') as f:
                 json.dump(dates, f)
-            log_message = f"Updated dates.json with timestamps: {timestamps}\n"
+            log_message = f"Updated dates.json with timestamps: {dates}\n"
             print(log_message)
             with open(log_file, 'a') as f:
                 f.write(log_message)
@@ -174,6 +187,10 @@ def main():
         # Process each yfinance file type
         for pattern, file_type, prefix in file_patterns:
             files = glob.glob(f'data/{file_type}_{prefix}{timestamp}.csv')
+            log_message = f"Checking files for {file_type} with timestamp {timestamp}: {files}\n"
+            print(log_message)
+            with open(log_file, 'a') as f:
+                f.write(log_message)
             for file in files:
                 if file_type == 'ranking':
                     # Move ranking file without splitting
