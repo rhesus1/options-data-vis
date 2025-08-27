@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy scipy
+        pip install pandas numpy scipy yfinance
     - name: Create data directory
       run: mkdir -p data
     - name: Run ranking metrics calculation
@@ -47,7 +47,7 @@ jobs:
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "Options Ranking Metrics Data"
         to: Morgan.Rees@fourieram.onmicrosoft.com
-        from: Morgan Rees <reesjmorgan@gmail.com>
+        from: Morgan Rees <Morgan.Rees@Fairwater-capital.com>
         body: |
           Attached is the latest Options ranking metrics CSV file for yfinance data.
           Timestamp: ${latest_date}
