@@ -116,7 +116,7 @@ def main():
             f.write(log_message)
         dates = []
     
-    # Define yfinance file patterns only
+    # Define yfinance file patterns
     file_patterns = [
         ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', '_yfinance'),
         ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', '_yfinance'),
@@ -126,7 +126,8 @@ def main():
         ('data/ranking_yfinance_[0-9]*.csv', 'ranking', '_yfinance')
     ]
     
-    # Extract timestamps from yfinance files
+    # Collect all yfinance files and their timestamps
+    file_timestamp_map = {}
     timestamps = set()
     for pattern, file_type, prefix in file_patterns:
         files = glob.glob(pattern)
@@ -138,7 +139,7 @@ def main():
             filename = os.path.basename(file)
             try:
                 # Extract timestamp (e.g., '20250825_2124' from 'raw_yfinance_20250825_2124.csv')
-                timestamp = filename.split('_')[2].split('.csv')[0] if 'yfinance' in filename else filename.split('_')[1].split('.csv')[0]
+                timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
                 if not is_valid_timestamp(timestamp):
                     log_message = f"Invalid timestamp format in {filename}: {timestamp}, skipping\n"
                     print(log_message)
@@ -146,6 +147,7 @@ def main():
                         f.write(log_message)
                     continue
                 timestamps.add(timestamp)
+                file_timestamp_map[file] = (timestamp, file_type, prefix)
                 log_message = f"Extracted timestamp {timestamp} from {filename}\n"
                 print(log_message)
                 with open(log_file, 'a') as f:
@@ -158,7 +160,6 @@ def main():
     
     # Update dates.json
     if timestamps:
-        # Merge and clean timestamps
         dates = list(set(dates + list(timestamps)))
         dates = [d for d in dates if is_valid_timestamp(d)]
         dates.sort(reverse=True)
@@ -175,15 +176,13 @@ def main():
             with open(log_file, 'a') as f:
                 f.write(log_message)
     
-    # Process each timestamp for yfinance files
-    for timestamp in timestamps:
-        log_message = f"Processing yfinance timestamp: {timestamp}\n"
+    # Process each yfinance file
+    for file, (timestamp, file_type, prefix) in file_timestamp_map.items():
+        log_message = f"Processing yfinance file: {file} for timestamp: {timestamp}\n"
         print(log_message)
         with open(log_file, 'a') as f:
             f.write(log_message)
         base_dir = f'data/{timestamp}'
-        
-        # Define output directories
         dir_map = {
             'raw_yfinance': f'{base_dir}/raw_yfinance',
             'cleaned_yfinance': f'{base_dir}/cleaned_yfinance',
@@ -192,32 +191,23 @@ def main():
             'slope_metrics_yfinance': f'{base_dir}/slope_metrics_yfinance',
             'ranking': f'{base_dir}/ranking'
         }
-        
-        # Process each yfinance file type
-        for pattern, file_type, prefix in file_patterns:
-            files = glob.glob(f'data/{file_type}_{prefix}{timestamp}.csv' if file_type != 'ranking' else f'data/{file_type}_yfinance_{timestamp}.csv')
-            log_message = f"Checking files for {file_type} with timestamp {timestamp}: {files}\n"
-            print(log_message)
-            with open(log_file, 'a') as f:
-                f.write(log_message)
-            for file in files:
-                if file_type == 'ranking':
-                    # Move ranking file without splitting
-                    os.makedirs(dir_map[file_type], exist_ok=True)
-                    new_ranking_file = f'{dir_map[file_type]}/ranking{prefix.replace("_", "")}.csv'
-                    try:
-                        os.rename(file, new_ranking_file)
-                        log_message = f"Moved {file} to {new_ranking_file}\n"
-                        print(log_message)
-                        with open(log_file, 'a') as f:
-                            f.write(log_message)
-                    except Exception as e:
-                        log_message = f"Error moving {file}: {e}\n"
-                        print(log_message)
-                        with open(log_file, 'a') as f:
-                            f.write(log_message)
-                else:
-                    # Split other yfinance files by ticker
-                    split_csv_by_ticker(file, dir_map[file_type], prefix, file_type)
+        if file_type == 'ranking':
+            # Move ranking file without splitting
+            os.makedirs(dir_map[file_type], exist_ok=True)
+            new_ranking_file = f'{dir_map[file_type]}/ranking{prefix.replace("_", "")}.csv'
+            try:
+                os.rename(file, new_ranking_file)
+                log_message = f"Moved {file} to {new_ranking_file}\n"
+                print(log_message)
+                with open(log_file, 'a') as f:
+                    f.write(log_message)
+            except Exception as e:
+                log_message = f"Error moving {file}: {e}\n"
+                print(log_message)
+                with open(log_file, 'a') as f:
+                    f.write(log_message)
+        else:
+            # Split other yfinance files by ticker
+            split_csv_by_ticker(file, dir_map[file_type], prefix, file_type)
 
 main()
