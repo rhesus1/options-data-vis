@@ -1,8 +1,7 @@
 name: Fetch Options Data
 on:
   schedule:
-   # - cron: '30 19 * * *' # Daily at 8:30 PM BST (7:30 PM UTC)
-    - cron: '0 21 * * *'  # Daily at 10:00 PM BST (9:00 PM UTC)  
+    - cron: '0 21 * * *'  # Daily at 10:00 PM BST (9:00 PM UTC)
   workflow_dispatch: # Manual trigger option
 jobs:
   fetch:
