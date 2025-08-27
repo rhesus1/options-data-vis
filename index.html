@@ -36,6 +36,7 @@
             border: 1px solid #FFFFFF;
             padding: 12px;
             text-align: left;
+            color: #FFFFFF;
         }
         .stats-table th, .skew-table th, .summary-table th {
             background-color: #2E3537;
@@ -193,7 +194,6 @@
         let slopeData = [];
         let eventsData = [];
         let rawData = [];
-        let rankingData = [];
         let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart;
         let statsTablesVisible = false;
         function parseCSV(csvText) {
@@ -363,7 +363,7 @@
                         return response.text();
                     })
                     .then(csvText => {
-                        rankingData = parseCSV(csvText);
+                        const rankingData = parseCSV(csvText);
                         console.log(`Ranking ${source} data loaded:`, rankingData);
                         // Populate ticker-search dropdown
                         const tickerSearch = document.getElementById('ticker-search');
@@ -417,12 +417,14 @@
                                     .then(csvText => {
                                         rawData = parseCSV(csvText);
                                         console.log(`Raw ${source} data loaded for ${selectedTicker}:`, rawData);
+                                        updateSummaryTable();
                                         updateVolumeChart();
                                         updateOpenInterestChart();
                                     })
                                     .catch(error => {
                                         console.error(`Error loading raw ${source} data for ${selectedTicker}:`, error);
                                         rawData = [];
+                                        updateSummaryTable();
                                         updateVolumeChart();
                                         updateOpenInterestChart();
                                     });
@@ -501,7 +503,6 @@
                         slopeData = [];
                         historicData = [];
                         eventsData = [];
-                        rankingData = [];
                         updateDropdowns();
                         updateCharts();
                     });
@@ -529,6 +530,62 @@
                 console.log('Ticker search populated, default:', tickerSearch.value);
             } catch (error) {
                 console.error('Error populating ticker search:', error);
+            }
+        }
+        function updateDropdowns() {
+            try {
+                const tickerSearch = document.getElementById('ticker-search');
+                const selectedTicker = tickerSearch.value.toUpperCase();
+                const tickerData = data.filter(item => item.Ticker === selectedTicker);
+                console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
+                const moneynessSelect = document.getElementById('moneyness-select');
+                const expirySelect = document.getElementById('expiry-select');
+                const deltaExpirySelect = document.getElementById('delta-expiry-select');
+                const prevMoneyness = moneynessSelect.value;
+                const prevExpiry = expirySelect.value;
+                const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
+                    .filter(val => !isNaN(val)).sort((a, b) => a - b);
+                moneynessSelect.innerHTML = '';
+                uniqueRoundedMoneyness.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.text = `${(val * 100).toFixed(0)}%`;
+                    moneynessSelect.add(option);
+                });
+                const targetMoneyness = 1.0;
+                let closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
+                    Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev,
+                    uniqueRoundedMoneyness[0]
+                );
+                if (prevMoneyness && uniqueRoundedMoneyness.map(v => v.toString()).includes(prevMoneyness)) {
+                    moneynessSelect.value = prevMoneyness;
+                } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
+                    moneynessSelect.value = targetMoneyness.toString();
+                } else if (uniqueRoundedMoneyness.length > 0) {
+                    moneynessSelect.value = closestMoneyness.toString();
+                }
+                console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
+                const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
+                    .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
+                expirySelect.innerHTML = '';
+                deltaExpirySelect.innerHTML = '';
+                uniqueExpiries.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.text = new Date(val).toLocaleDateString('en-GB');
+                    expirySelect.add(option);
+                    deltaExpirySelect.add(option.cloneNode(true));
+                });
+                if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
+                    expirySelect.value = prevExpiry;
+                    deltaExpirySelect.value = prevExpiry;
+                } else if (expirySelect.options.length > 0) {
+                    expirySelect.value = expirySelect.options[0].value;
+                    deltaExpirySelect.value = expirySelect.options[0].value;
+                }
+                console.log('Expiry dropdowns updated, selected:', expirySelect.value);
+            } catch (error) {
+                console.error('Error updating dropdowns:', error);
             }
         }
         function updateSkewTable() {
@@ -603,64 +660,92 @@
                 const table = document.getElementById('summary-table');
                 table.innerHTML = '';
                 console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Source:', source);
-
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
-                ['Metric', 'Value', 'Metric', 'Value'].forEach(text => {
+                ['Metric', 'Value'].forEach(text => {
                     const th = document.createElement('th');
                     th.textContent = text;
                     headerRow.appendChild(th);
                 });
                 thead.appendChild(headerRow);
                 table.appendChild(thead);
-
                 const tbody = document.createElement('tbody');
-                const changeMetrics = [
-                    'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
-                    'Rvol 100d 1d (%)', 'Rvol 100d 1w (%)', 'Vol 1d (%)', 'Vol 1w (%)', 'OI 1d (%)', 'OI 1w (%)',
-                    'Weighted IV 1d (%)', 'Weighted IV 1w (%)'
-                ];
-
-                // Collect metrics
-                const metrics = [];
-                const filteredRankingData = rankingData.find(item => item.Ticker === selectedTicker);
-                if (filteredRankingData) {
-                    metrics.push(
-                        { name: 'Rank', value: filteredRankingData['Rank'] || 'N/A', key: 'Rank' },
-                        { name: 'Ticker', value: filteredRankingData['Ticker'] || 'N/A', key: 'Ticker' },
-                        { name: 'Latest Close ($)', value: Number.isFinite(filteredRankingData['Latest Close']) ? filteredRankingData['Latest Close'].toFixed(2) : 'N/A', key: 'Latest Close' },
-                        { name: 'Latest High ($)', value: Number.isFinite(filteredRankingData['Latest High']) ? filteredRankingData['Latest High'].toFixed(2) : 'N/A', key: 'Latest High' },
-                        { name: 'Latest Low ($)', value: Number.isFinite(filteredRankingData['Latest Low']) ? filteredRankingData['Latest Low'].toFixed(2) : 'N/A', key: 'Latest Low' },
-                        { name: 'Close 1d (%)', value: Number.isFinite(filteredRankingData['Close 1d (%)']) ? filteredRankingData['Close 1d (%)'].toFixed(2) : 'N/A', key: 'Close 1d (%)' },
-                        { name: 'Close 1w (%)', value: Number.isFinite(filteredRankingData['Close 1w (%)']) ? filteredRankingData['Close 1w (%)'].toFixed(2) : 'N/A', key: 'Close 1w (%)' },
-                        { name: 'High 1d (%)', value: Number.isFinite(filteredRankingData['High 1d (%)']) ? filteredRankingData['High 1d (%)'].toFixed(2) : 'N/A', key: 'High 1d (%)' },
-                        { name: 'High 1w (%)', value: Number.isFinite(filteredRankingData['High 1w (%)']) ? filteredRankingData['High 1w (%)'].toFixed(2) : 'N/A', key: 'High 1w (%)' },
-                        { name: 'Low 1d (%)', value: Number.isFinite(filteredRankingData['Low 1d (%)']) ? filteredRankingData['Low 1d (%)'].toFixed(2) : 'N/A', key: 'Low 1d (%)' },
-                        { name: 'Low 1w (%)', value: Number.isFinite(filteredRankingData['Low 1w (%)']) ? filteredRankingData['Low 1w (%)'].toFixed(2) : 'N/A', key: 'Low 1w (%)' },
-                        { name: 'Rvol 30d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 30d (%)']) ? filteredRankingData['Realised Volatility 30d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 30d (%)' },
-                        { name: 'Rvol 60d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 60d (%)']) ? filteredRankingData['Realised Volatility 60d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 60d (%)' },
-                        { name: 'Rvol 100d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d (%)']) ? filteredRankingData['Realised Volatility 100d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 100d (%)' },
-                        { name: 'Rvol 100d 1d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d 1d (%)']) ? filteredRankingData['Realised Volatility 100d 1d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 100d 1d (%)' },
-                        { name: 'Rvol 100d 1w (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d 1w (%)']) ? filteredRankingData['Realised Volatility 100d 1w (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 100d 1w (%)' },
-                        { name: 'Min Rvol 100d (1y)', value: Number.isFinite(filteredRankingData['Min Realised Volatility 100d (1y)']) ? filteredRankingData['Min Realised Volatility 100d (1y)'].toFixed(2) : 'N/A', key: 'Min Realised Volatility 100d (1y)' },
-                        { name: 'Max Rvol 100d (1y)', value: Number.isFinite(filteredRankingData['Max Realised Volatility 100d (1y)']) ? filteredRankingData['Max Realised Volatility 100d (1y)'].toFixed(2) : 'N/A', key: 'Max Realised Volatility 100d (1y)' },
-                        { name: 'Mean Rvol 100d (1y)', value: Number.isFinite(filteredRankingData['Mean Realised Volatility 100d (1y)']) ? filteredRankingData['Mean Realised Volatility 100d (1y)'].toFixed(2) : 'N/A', key: 'Mean Realised Volatility 100d (1y)' },
-                        { name: 'Rvol 100d Percentile (%)', value: Number.isFinite(filteredRankingData['Rvol 100d Percentile (%)']) ? filteredRankingData['Rvol 100d Percentile (%)'].toFixed(2) : 'N/A', key: 'Rvol 100d Percentile (%)' },
-                        { name: 'Rvol 100d Z-Score Percentile (%)', value: Number.isFinite(filteredRankingData['Rvol 100d Z-Score Percentile (%)']) ? filteredRankingData['Rvol 100d Z-Score Percentile (%)'].toFixed(2) : 'N/A', key: 'Rvol 100d Z-Score Percentile (%)' },
-                        { name: 'Rvol 180d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 180d (%)']) ? filteredRankingData['Realised Volatility 180d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 180d (%)' },
-                        { name: 'Rvol 252d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 252d (%)']) ? filteredRankingData['Realised Volatility 252d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 252d (%)' },
-                        { name: 'Weighted IV (%)', value: Number.isFinite(filteredRankingData['Weighted IV (%)']) ? filteredRankingData['Weighted IV (%)'].toFixed(2) : 'N/A', key: 'Weighted IV (%)' },
-                        { name: 'Weighted IV 1d (%)', value: Number.isFinite(filteredRankingData['Weighted IV 1d (%)']) ? filteredRankingData['Weighted IV 1d (%)'].toFixed(2) : 'N/A', key: 'Weighted IV 1d (%)' },
-                        { name: 'Weighted IV 1w (%)', value: Number.isFinite(filteredRankingData['Weighted IV 1w (%)']) ? filteredRankingData['Weighted IV 1w (%)'].toFixed(2) : 'N/A', key: 'Weighted IV 1w (%)' },
-                        { name: 'Rvol 100d - Weighted IV', value: Number.isFinite(filteredRankingData['Rvol100d - Weighted IV']) ? filteredRankingData['Rvol100d - Weighted IV'].toFixed(2) : 'N/A', key: 'Rvol100d - Weighted IV' },
-                        { name: 'Volume', value: Number.isFinite(filteredRankingData['Volume']) ? Number(filteredRankingData['Volume']).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A', key: 'Volume' },
-                        { name: 'Vol 1d (%)', value: Number.isFinite(filteredRankingData['Volume 1d (%)']) ? filteredRankingData['Volume 1d (%)'].toFixed(2) : 'N/A', key: 'Volume 1d (%)' },
-                        { name: 'Vol 1w (%)', value: Number.isFinite(filteredRankingData['Volume 1w (%)']) ? filteredRankingData['Volume 1w (%)'].toFixed(2) : 'N/A', key: 'Volume 1w (%)' },
-                        { name: 'Open Interest', value: Number.isFinite(filteredRankingData['Open Interest']) ? Number(filteredRankingData['Open Interest']).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A', key: 'Open Interest' },
-                        { name: 'OI 1d (%)', value: Number.isFinite(filteredRankingData['OI 1d (%)']) ? filteredRankingData['OI 1d (%)'].toFixed(2) : 'N/A', key: 'OI 1d (%)' },
-                        { name: 'OI 1w (%)', value: Number.isFinite(filteredRankingData['OI 1w (%)']) ? filteredRankingData['OI 1w (%)'].toFixed(2) : 'N/A', key: 'OI 1w (%)' }
-                    );
+                // Realised Volatility 30d from historic data (latest)
+                let realisedVol30 = 'N/A';
+                const historicFiltered = historicData.filter(item => item.Ticker === selectedTicker);
+                console.log('Historic data filtered size:', historicFiltered.length);
+                if (historicFiltered.length > 0) {
+                    historicFiltered.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                    const latestHistoric = historicFiltered[0];
+                    realisedVol30 = Number.isFinite(latestHistoric.Realised_Vol_30) ? latestHistoric.Realised_Vol_30.toFixed(2) + '%' : 'N/A';
+                } else {
+                    console.warn('No historic data for ticker:', selectedTicker);
                 }
+                const volRow = document.createElement('tr');
+                const volMetric = document.createElement('td');
+                volMetric.textContent = 'Realised Volatility 30d';
+                volRow.appendChild(volMetric);
+                const volValue = document.createElement('td');
+                volValue.textContent = realisedVol30;
+                volRow.appendChild(volValue);
+                tbody.appendChild(volRow);
+                // Stock Bid and Ask from processed data (first row for the ticker)
+                let underlyingBid = 'N/A';
+                let underlyingAsk = 'N/A';
+                const tickerData = data.filter(item => item.Ticker === selectedTicker);
+                console.log('Processed data filtered size:', tickerData.length);
+                if (tickerData.length > 0) {
+                    underlyingBid = Number.isFinite(tickerData[0]["Bid Stock"]) ? tickerData[0]["Bid Stock"].toFixed(2) : 'N/A';
+                    underlyingAsk = Number.isFinite(tickerData[0]["Ask Stock"]) ? tickerData[0]["Ask Stock"].toFixed(2) : 'N/A';
+                } else {
+                    console.warn('No processed data for ticker:', selectedTicker);
+                }
+                const bidRow = document.createElement('tr');
+                const bidMetric = document.createElement('td');
+                bidMetric.textContent = 'Stock Bid';
+                bidRow.appendChild(bidMetric);
+                const bidValue = document.createElement('td');
+                bidValue.textContent = underlyingBid;
+                bidRow.appendChild(bidValue);
+                tbody.appendChild(bidRow);
+                const askRow = document.createElement('tr');
+                const askMetric = document.createElement('td');
+                askMetric.textContent = 'Stock Ask';
+                askRow.appendChild(askMetric);
+                const askValue = document.createElement('td');
+                askValue.textContent = underlyingAsk;
+                askRow.appendChild(askValue);
+                tbody.appendChild(askRow);
+                // Total Volume from raw data
+                let totalVolume = 0;
+                if (rawData.length > 0) {
+                    totalVolume = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item.Volume || 0), 0);
+                } else {
+                    console.warn('No raw data available for ticker:', selectedTicker);
+                }
+                const volumeRow = document.createElement('tr');
+                const volumeMetric = document.createElement('td');
+                volumeMetric.textContent = `Total Volume (${source})`;
+                volumeRow.appendChild(volumeMetric);
+                const volumeValue = document.createElement('td');
+                volumeValue.textContent = totalVolume;
+                volumeRow.appendChild(volumeValue);
+                tbody.appendChild(volumeRow);
+                // Total Open Interest from raw data
+                let totalOpenInterest = 0;
+                if (rawData.length > 0) {
+                    totalOpenInterest = rawData.filter(item => item.Ticker === selectedTicker).reduce((sum, item) => sum + (item['Open Interest'] || 0), 0);
+                } else {
+                    console.warn('No raw data available for ticker:', selectedTicker);
+                }
+                const openInterestRow = document.createElement('tr');
+                const openInterestMetric = document.createElement('td');
+                openInterestMetric.textContent = `Total Open Interest (${source})`;
+                openInterestRow.appendChild(openInterestMetric);
+                const openInterestValue = document.createElement('td');
+                openInterestValue.textContent = totalOpenInterest;
+                openInterestRow.appendChild(openInterestValue);
+                tbody.appendChild(openInterestRow);
                 // ATM 12m/3m Ratio from skew data
                 let atmRatio = 'N/A';
                 const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
@@ -671,59 +756,39 @@
                 } else {
                     console.warn('No skew data for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
                 }
-                metrics.push({ name: 'ATM 12m/3m Ratio', value: atmRatio, key: 'ATM_12m_3m_Ratio' });
-
+                const atmRow = document.createElement('tr');
+                const atmMetric = document.createElement('td');
+                atmMetric.textContent = 'ATM 12m/3m Ratio';
+                atmRow.appendChild(atmMetric);
+                const atmValue = document.createElement('td');
+                atmValue.textContent = atmRatio;
+                atmRow.appendChild(atmValue);
+                tbody.appendChild(atmRow);
                 // Slope data from slope_metrics
                 const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
                 console.log('Slope data filtered size:', filteredSlopeData.length);
                 if (filteredSlopeData.length > 0) {
                     filteredSlopeData.forEach(item => {
-                        metrics.push({
-                            name: `IV Slope 3m/12m (${item.Type} Delta ${Number.isFinite(item.Delta) ? item.Delta.toFixed(2) : 'N/A'})`,
-                            value: Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A',
-                            key: `IV_Slope_3m_12m_${item.Type}_${item.Delta}`
-                        });
+                        const row = document.createElement('tr');
+                        const metricCell = document.createElement('td');
+                        metricCell.textContent = `IV Slope 3m/12m (${item.Type} Delta ${Number.isFinite(item.Delta) ? item.Delta.toFixed(2) : 'N/A'})`;
+                        row.appendChild(metricCell);
+                        const valueCell = document.createElement('td');
+                        valueCell.textContent = Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A';
+                        row.appendChild(valueCell);
+                        tbody.appendChild(row);
                     });
                 } else {
-                    metrics.push({ name: 'IV Slope 3m/12m', value: 'No slope metrics available', key: 'IV_Slope_3m_12m' });
-                }
-
-                // Create rows for 4-column layout
-                for (let i = 0; i < metrics.length; i += 2) {
                     const row = document.createElement('tr');
-                    const metric1Cell = document.createElement('td');
-                    metric1Cell.textContent = metrics[i].name;
-                    row.appendChild(metric1Cell);
-                    const value1Cell = document.createElement('td');
-                    value1Cell.textContent = metrics[i].value;
-                    if (changeMetrics.includes(metrics[i].name) && Number.isFinite(parseFloat(metrics[i].value))) {
-                        const val = parseFloat(metrics[i].value);
-                        value1Cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
-                    }
-                    row.appendChild(value1Cell);
-                    const metric2Cell = document.createElement('td');
-                    metric2Cell.textContent = i + 1 < metrics.length ? metrics[i + 1].name : '';
-                    row.appendChild(metric2Cell);
-                    const value2Cell = document.createElement('td');
-                    value2Cell.textContent = i + 1 < metrics.length ? metrics[i + 1].value : '';
-                    if (i + 1 < metrics.length && changeMetrics.includes(metrics[i + 1].name) && Number.isFinite(parseFloat(metrics[i + 1].value))) {
-                        const val = parseFloat(metrics[i + 1].value);
-                        value2Cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
-                    }
-                    row.appendChild(value2Cell);
+                    const cell = document.createElement('td');
+                    cell.textContent = 'No slope metrics available';
+                    cell.colSpan = 2;
+                    row.appendChild(cell);
                     tbody.appendChild(row);
                 }
                 table.appendChild(tbody);
             } catch (error) {
                 console.error('Error updating summary table:', error);
-                const tbody = document.createElement('tbody');
-                const row = document.createElement('tr');
-                const cell = document.createElement('td');
-                cell.textContent = 'No data available';
-                cell.colSpan = 4;
-                row.appendChild(cell);
-                tbody.appendChild(row);
-                table.appendChild(tbody);
             }
         }
         function updateVolumeChart() {
