@@ -125,7 +125,6 @@
     <script>
         let rankingData = [];
         let currentSort = { column: 'openInterestRaw', direction: 'desc' };
-
         function parseCSV(csvText) {
             try {
                 const result = Papa.parse(csvText, {
@@ -147,14 +146,12 @@
                 return [];
             }
         }
-
         function formatNumberWithCommas(number) {
             if (number === 'N/A' || number === null || number === undefined || isNaN(number)) {
                 return 'N/A';
             }
             return Number(number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
-
         function formatValue(value, isNumericColumn) {
             if (value === 'N/A' || value === null || value === undefined) {
                 return 'N/A';
@@ -164,7 +161,6 @@
             }
             return value;
         }
-
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -175,7 +171,6 @@
                 return null;
             }
         }
-
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
@@ -197,13 +192,12 @@
                 console.error('Error updating time options:', error);
             }
         }
-
         function loadData(timestamp) {
             try {
                 const source = document.getElementById('source-select').value;
-                const prefix = source === 'yfinance' ? 'yfinance_' : '';
+                const prefix = source === 'yfinance' ? '_yfinance' : '';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}`);
-                fetch(`data/ranking_${prefix}${timestamp}.csv?v=` + Date.now())
+                fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=` + Date.now())
                     .then(response => {
                         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                         return response.text();
@@ -213,12 +207,15 @@
                         console.log(`Ranking ${source} data loaded:`, rankingData);
                         updateTable();
                     })
-                    .catch(error => console.error(`Error loading ranking ${source} data:`, error));
+                    .catch(error => {
+                        console.error(`Error loading ranking ${source} data:`, error);
+                        rankingData = [];
+                        updateTable();
+                    });
             } catch (error) {
                 console.error('Error in loadData:', error);
             }
         }
-
         function updateTable() {
             try {
                 const tbody = document.querySelector('#data-table tbody');
@@ -275,7 +272,6 @@
                         rvol100dMinusWeightedIV: formatValue(item['Rvol100d - Weighted IV'], true)
                     };
                 });
-
                 tableData.sort((a, b) => {
                     let valA = a[currentSort.column];
                     let valB = b[currentSort.column];
@@ -294,11 +290,9 @@
                     if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
-
                 tableData.forEach((item, index) => {
                     item.order = index + 1;
                 });
-
                 tableData.forEach(item => {
                     const row = document.createElement('tr');
                     const columns = [
@@ -321,7 +315,6 @@
                 console.error('Error updating table:', error);
             }
         }
-
         function setupSortListeners() {
             try {
                 const headers = document.querySelectorAll('#data-table th[data-sort]');
@@ -350,7 +343,6 @@
                 console.error('Error setting up sort listeners:', error);
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const dateSelect = document.getElementById('date-select');
@@ -377,7 +369,7 @@
                         }
                         dateSelect.addEventListener('change', (e) => {
                             updateTimeOptions(e.target.value, dates);
-                            loadData(e.target.value + '_' + timeSelect.value);
+                            loadData(e.target.value + '_' + e.target.value);
                         });
                         timeSelect.addEventListener('change', (e) => {
                             loadData(dateSelect.value + '_' + e.target.value);
