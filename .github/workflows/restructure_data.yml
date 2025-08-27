@@ -1,4 +1,4 @@
-name: Restructure Yfinance Data Directory
+name: Restructure Data Directory
 on:
   workflow_dispatch: # Manual trigger
 jobs:
@@ -23,7 +23,7 @@ jobs:
     - name: Commit existing changes
       run: |
         git add .
-        git commit -m "Commit existing changes before restructuring yfinance data" || echo "No existing changes to commit"
+        git commit -m "Commit existing changes before restructuring data" || echo "No existing changes to commit"
     - name: Stash any unstaged changes
       run: |
         git stash || echo "No changes to stash"
@@ -41,7 +41,7 @@ jobs:
     - name: Commit and push restructured data
       run: |
         git add .
-        git commit -m "Restructure yfinance data into SNIP into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
+        git commit -m "Restructure yfinance, Nasdaq, and ranking data into per-ticker format on $(date -u +%Y%m%d_%H%M)" || echo "No changes to commit"
         git push
     - name: Archive logs
       uses: actions/upload-artifact@v4
