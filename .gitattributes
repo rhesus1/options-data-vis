@@ -1,0 +1,4 @@
+data/*.csv filter=lfs diff=lfs merge=lfs -text
+data/historic_*.csv filter=lfs diff=lfs merge=lfs -text
+data/raw_*.csv filter=lfs diff=lfs merge=lfs -text
+data/raw_yfinance_*.csv filter=lfs diff=lfs merge=lfs -text
