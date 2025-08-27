@@ -18,15 +18,15 @@ def is_valid_timestamp(timestamp):
     except ValueError:
         return False
 
-def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
+def split_csv_by_ticker(input_file, output_dir, file_type, ticker_suffix=''):
     """
-    Split a yfinance CSV file by ticker and save to the new folder structure.
+    Split a CSV file by ticker and save to the new folder structure.
     
     Args:
         input_file (str): Path to the input CSV file (e.g., 'data/raw_yfinance_20250825_2124.csv').
         output_dir (str): Base directory for output (e.g., 'data/20250825_2124/raw_yfinance/').
-        prefix (str): Prefix for file naming ('_yfinance').
-        file_type (str): Type of file ('raw_yfinance', 'cleaned_yfinance', etc.).
+        file_type (str): Type of file ('raw_yfinance', 'cleaned', etc.).
+        ticker_suffix (str): Suffix for ticker files ('_yfinance' or empty).
     """
     log_message = f"Attempting to process file: {input_file}\n"
     print(log_message)
@@ -70,10 +70,10 @@ def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
                 f.write(log_message)
             continue
         ticker_df = df[df['Ticker'] == ticker]
-        output_file = f"{output_dir}/{file_type}{prefix}_{ticker}.csv"
+        output_file = f"{output_dir}/{file_type}{ticker_suffix}_{ticker}.csv"
         try:
             ticker_df.to_csv(output_file, index=False)
-            log_message = f"Saved {file_type}{prefix}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}\n"
+            log_message = f"Saved {file_type}{ticker_suffix}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}\n"
             print(log_message)
             with open('restructure_log.txt', 'a') as f:
                 f.write(log_message)
@@ -89,7 +89,7 @@ def main():
     # Create a log file for debugging
     log_file = 'restructure_log.txt'
     with open(log_file, 'w') as f:
-        f.write(f"Starting yfinance restructure at {datetime.now()}\n")
+        f.write(f"Starting restructure at {datetime.now()}\n")
     
     # Initialize dates.json
     dates_file = 'data/dates.json'
@@ -116,20 +116,27 @@ def main():
             f.write(log_message)
         dates = []
     
-    # Define yfinance file patterns
+    # Define file patterns for yfinance, Nasdaq, and ranking
     file_patterns = [
         ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', '_yfinance'),
         ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', '_yfinance'),
         ('data/processed_yfinance_[0-9]*.csv', 'processed_yfinance', '_yfinance'),
         ('data/skew_metrics_yfinance_[0-9]*.csv', 'skew_metrics_yfinance', '_yfinance'),
         ('data/slope_metrics_yfinance_[0-9]*.csv', 'slope_metrics_yfinance', '_yfinance'),
-        ('data/ranking_yfinance_[0-9]*.csv', 'ranking', '_yfinance')
+        ('data/ranking_yfinance_[0-9]*.csv', 'ranking', '_yfinance'),
+        ('data/raw_[0-9]*.csv', 'raw', ''),
+        ('data/cleaned_[0-9]*.csv', 'cleaned', ''),
+        ('data/processed_[0-9]*.csv', 'processed', ''),
+        ('data/skew_metrics_[0-9]*.csv', 'skew_metrics', ''),
+        ('data/slope_metrics_[0-9]*.csv', 'slope_metrics', ''),
+        ('data/historic_[0-9]*.csv', 'historic', ''),
+        ('data/ranking_[0-9]*.csv', 'ranking', '')
     ]
     
-    # Collect all yfinance files and their timestamps
+    # Collect all files and their timestamps
     file_timestamp_map = {}
     timestamps = set()
-    for pattern, file_type, prefix in file_patterns:
+    for pattern, file_type, ticker_suffix in file_patterns:
         files = glob.glob(pattern)
         log_message = f"Found {len(files)} files for pattern {pattern}: {files}\n"
         print(log_message)
@@ -147,7 +154,7 @@ def main():
                         f.write(log_message)
                     continue
                 timestamps.add(timestamp)
-                file_timestamp_map[file] = (timestamp, file_type, prefix)
+                file_timestamp_map[file] = (timestamp, file_type, ticker_suffix)
                 log_message = f"Extracted timestamp {timestamp} from {filename}\n"
                 print(log_message)
                 with open(log_file, 'a') as f:
@@ -176,9 +183,9 @@ def main():
             with open(log_file, 'a') as f:
                 f.write(log_message)
     
-    # Process each yfinance file
-    for file, (timestamp, file_type, prefix) in file_timestamp_map.items():
-        log_message = f"Processing yfinance file: {file} for timestamp: {timestamp}\n"
+    # Process each file
+    for file, (timestamp, file_type, ticker_suffix) in file_timestamp_map.items():
+        log_message = f"Processing file: {file} for timestamp: {timestamp}\n"
         print(log_message)
         with open(log_file, 'a') as f:
             f.write(log_message)
@@ -189,12 +196,18 @@ def main():
             'processed_yfinance': f'{base_dir}/processed_yfinance',
             'skew_metrics_yfinance': f'{base_dir}/skew_metrics_yfinance',
             'slope_metrics_yfinance': f'{base_dir}/slope_metrics_yfinance',
+            'raw': f'{base_dir}/raw',
+            'cleaned': f'{base_dir}/cleaned',
+            'processed': f'{base_dir}/processed',
+            'skew_metrics': f'{base_dir}/skew_metrics',
+            'slope_metrics': f'{base_dir}/slope_metrics',
+            'historic': f'{base_dir}/historic',
             'ranking': f'{base_dir}/ranking'
         }
         if file_type == 'ranking':
             # Move ranking file without splitting
             os.makedirs(dir_map[file_type], exist_ok=True)
-            new_ranking_file = f'{dir_map[file_type]}/ranking{prefix.replace("_", "")}.csv'
+            new_ranking_file = f'{dir_map[file_type]}/ranking{ticker_suffix}.csv'
             try:
                 os.rename(file, new_ranking_file)
                 log_message = f"Moved {file} to {new_ranking_file}\n"
@@ -207,7 +220,7 @@ def main():
                 with open(log_file, 'a') as f:
                     f.write(log_message)
         else:
-            # Split other yfinance files by ticker
-            split_csv_by_ticker(file, dir_map[file_type], prefix, file_type)
+            # Split other files by ticker
+            split_csv_by_ticker(file, dir_map[file_type], file_type, ticker_suffix)
 
 main()
