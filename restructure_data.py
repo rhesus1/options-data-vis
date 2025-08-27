@@ -6,90 +6,133 @@ from datetime import datetime
 
 def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
     """
-    Split a CSV file by ticker and save to the new folder structure.
+    Split a yfinance CSV file by ticker and save to the new folder structure.
     
     Args:
-        input_file (str): Path to the input CSV file (e.g., 'data/raw_yfinance_20250827_0929.csv').
-        output_dir (str): Base directory for output (e.g., 'data/20250827_0929/raw_yfinance/').
-        prefix (str): Prefix for file naming ('_yfinance' or '').
-        file_type (str): Type of file ('raw', 'raw_yfinance', 'cleaned', etc.).
+        input_file (str): Path to the input CSV file (e.g., 'data/raw_yfinance_20250825_2124.csv').
+        output_dir (str): Base directory for output (e.g., 'data/20250825_2124/raw_yfinance/').
+        prefix (str): Prefix for file naming ('_yfinance').
+        file_type (str): Type of file ('raw_yfinance', 'cleaned_yfinance', etc.).
     """
-    print(f"Processing file: {input_file}")
+    log_message = f"Attempting to process file: {input_file}\n"
+    print(log_message)
+    with open('restructure_log.txt', 'a') as f:
+        f.write(log_message)
+    
     if not os.path.exists(input_file):
-        print(f"Input file {input_file} does not exist, skipping")
-        return
+        log_message = f"Input file {input_file} does not exist, skipping\n"
+        print(log_message)
+        with open('restructure_log.txt', 'a') as f:
+            f.write(log_message)
+        return False
     
     try:
         df = pd.read_csv(input_file)
-        print(f"Successfully read {input_file}, rows: {len(df)}")
+        log_message = f"Successfully read {input_file}, rows: {len(df)}\n"
+        print(log_message)
+        with open('restructure_log.txt', 'a') as f:
+            f.write(log_message)
     except Exception as e:
-        print(f"Error reading {input_file}: {e}")
-        return
+        log_message = f"Error reading {input_file}: {e}\n"
+        print(log_message)
+        with open('restructure_log.txt', 'a') as f:
+            f.write(log_message)
+        return False
     
     if 'Ticker' not in df.columns:
-        print(f"No 'Ticker' column in {input_file}, skipping")
-        return
+        log_message = f"No 'Ticker' column in {input_file}, skipping\n"
+        print(log_message)
+        with open('restructure_log.txt', 'a') as f:
+            f.write(log_message)
+        return False
     
     os.makedirs(output_dir, exist_ok=True)
     
     for ticker in df['Ticker'].unique():
-        if pd.isna(ticker):
-            print(f"Skipping invalid ticker (NaN) in {input_file}")
+        if pd.isna(ticker) or not ticker:
+            log_message = f"Skipping invalid ticker (NaN or empty) in {input_file}\n"
+            print(log_message)
+            with open('restructure_log.txt', 'a') as f:
+                f.write(log_message)
             continue
         ticker_df = df[df['Ticker'] == ticker]
         output_file = f"{output_dir}/{file_type}{prefix}_{ticker}.csv"
         try:
             ticker_df.to_csv(output_file, index=False)
-            print(f"Saved {file_type}{prefix}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}")
+            log_message = f"Saved {file_type}{prefix}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}\n"
+            print(log_message)
+            with open('restructure_log.txt', 'a') as f:
+                f.write(log_message)
         except Exception as e:
-            print(f"Error saving {output_file}: {e}")
+            log_message = f"Error saving {output_file}: {e}\n"
+            print(log_message)
+            with open('restructure_log.txt', 'a') as f:
+                f.write(log_message)
+            return False
+    return True
 
 def main():
-    # Initialize dates.json if it doesn't exist
+    # Create a log file for debugging
+    log_file = 'restructure_log.txt'
+    with open(log_file, 'w') as f:
+        f.write(f"Starting yfinance restructure at {datetime.now()}\n")
+    
+    # Initialize dates.json
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         try:
             with open(dates_file, 'r') as f:
                 dates = json.load(f)
-            print(f"Loaded existing dates.json: {dates}")
+            log_message = f"Loaded existing dates.json: {dates}\n"
+            print(log_message)
+            with open(log_file, 'a') as f:
+                f.write(log_message)
         except Exception as e:
-            print(f"Error reading dates.json: {e}, initializing empty list")
+            log_message = f"Error reading dates.json: {e}, initializing empty list\n"
+            print(log_message)
+            with open(log_file, 'a') as f:
+                f.write(log_message)
             dates = []
     else:
-        print("dates.json not found, initializing empty list")
+        log_message = "dates.json not found, initializing empty list\n"
+        print(log_message)
+        with open(log_file, 'a') as f:
+            f.write(log_message)
         dates = []
     
-    # Define all file patterns, including yfinance
+    # Define yfinance file patterns only
     file_patterns = [
-        ('data/raw_[0-9]*.csv', 'raw', ''),
         ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', '_yfinance'),
-        ('data/cleaned_[0-9]*.csv', 'cleaned', ''),
         ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', '_yfinance'),
-        ('data/processed_[0-9]*.csv', 'processed', ''),
         ('data/processed_yfinance_[0-9]*.csv', 'processed_yfinance', '_yfinance'),
-        ('data/skew_metrics_[0-9]*.csv', 'skew_metrics', ''),
         ('data/skew_metrics_yfinance_[0-9]*.csv', 'skew_metrics_yfinance', '_yfinance'),
-        ('data/slope_metrics_[0-9]*.csv', 'slope_metrics', ''),
         ('data/slope_metrics_yfinance_[0-9]*.csv', 'slope_metrics_yfinance', '_yfinance'),
-        ('data/historic_[0-9]*.csv', 'historic', '')
+        ('data/ranking_yfinance_[0-9]*.csv', 'ranking', '_yfinance')
     ]
     
-    # Extract timestamps from files
+    # Extract timestamps from yfinance files
     timestamps = set()
     for pattern, file_type, prefix in file_patterns:
         files = glob.glob(pattern)
-        print(f"Found {len(files)} files for pattern {pattern}: {files}")
+        log_message = f"Found {len(files)} files for pattern {pattern}: {files}\n"
+        print(log_message)
+        with open(log_file, 'a') as f:
+            f.write(log_message)
         for file in files:
             filename = os.path.basename(file)
             try:
-                # Extract timestamp (e.g., '20250827_0929' from 'raw_yfinance_20250827_0929.csv')
-                if prefix:
-                    timestamp = filename.split(f'{file_type}{prefix}_')[1].split('.csv')[0]
-                else:
-                    timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
+                # Extract timestamp (e.g., '20250825_2124' from 'raw_yfinance_20250825_2124.csv')
+                timestamp = filename.split(f'{file_type}{prefix}_')[1].split('.csv')[0]
                 timestamps.add(timestamp)
+                log_message = f"Extracted timestamp {timestamp} from {filename}\n"
+                print(log_message)
+                with open(log_file, 'a') as f:
+                    f.write(log_message)
             except IndexError:
-                print(f"Could not extract timestamp from {filename}, skipping")
+                log_message = f"Could not extract timestamp from {filename}, skipping\n"
+                print(log_message)
+                with open(log_file, 'a') as f:
+                    f.write(log_message)
     
     # Update dates.json
     for timestamp in timestamps:
@@ -100,45 +143,55 @@ def main():
         try:
             with open(dates_file, 'w') as f:
                 json.dump(dates, f)
-            print(f"Updated dates.json with timestamps: {timestamps}")
+            log_message = f"Updated dates.json with timestamps: {timestamps}\n"
+            print(log_message)
+            with open(log_file, 'a') as f:
+                f.write(log_message)
         except Exception as e:
-            print(f"Error writing to dates.json: {e}")
+            log_message = f"Error writing to dates.json: {e}\n"
+            print(log_message)
+            with open(log_file, 'a') as f:
+                f.write(log_message)
     
-    # Process each timestamp
+    # Process each timestamp for yfinance files
     for timestamp in timestamps:
-        print(f"Processing timestamp: {timestamp}")
+        log_message = f"Processing yfinance timestamp: {timestamp}\n"
+        print(log_message)
+        with open(log_file, 'a') as f:
+            f.write(log_message)
         base_dir = f'data/{timestamp}'
         
         # Define output directories
         dir_map = {
-            'raw': f'{base_dir}/raw',
             'raw_yfinance': f'{base_dir}/raw_yfinance',
-            'historic': f'{base_dir}/historic',
-            'cleaned': f'{base_dir}/cleaned',
             'cleaned_yfinance': f'{base_dir}/cleaned_yfinance',
-            'processed': f'{base_dir}/processed',
             'processed_yfinance': f'{base_dir}/processed_yfinance',
-            'skew_metrics': f'{base_dir}/skew_metrics',
             'skew_metrics_yfinance': f'{base_dir}/skew_metrics_yfinance',
-            'slope_metrics': f'{base_dir}/slope_metrics',
-            'slope_metrics_yfinance': f'{base_dir}/slope_metrics_yfinance'
+            'slope_metrics_yfinance': f'{base_dir}/slope_metrics_yfinance',
+            'ranking': f'{base_dir}/ranking'
         }
         
-        # Process each file type
+        # Process each yfinance file type
         for pattern, file_type, prefix in file_patterns:
             files = glob.glob(f'data/{file_type}_{prefix}{timestamp}.csv')
             for file in files:
-                split_csv_by_ticker(file, dir_map[file_type], prefix, file_type)
-        
-        # Handle ranking data (move without splitting)
-        ranking_dir = f'{base_dir}/ranking'
-        os.makedirs(ranking_dir, exist_ok=True)
-        for ranking_file in glob.glob(f'data/ranking_{prefix}{timestamp}.csv'):
-            new_ranking_file = f'{ranking_dir}/ranking{prefix.replace("_", "")}.csv'
-            try:
-                os.rename(ranking_file, new_ranking_file)
-                print(f"Moved {ranking_file} to {new_ranking_file}")
-            except Exception as e:
-                print(f"Error moving {ranking_file}: {e}")
+                if file_type == 'ranking':
+                    # Move ranking file without splitting
+                    os.makedirs(dir_map[file_type], exist_ok=True)
+                    new_ranking_file = f'{dir_map[file_type]}/ranking{prefix.replace("_", "")}.csv'
+                    try:
+                        os.rename(file, new_ranking_file)
+                        log_message = f"Moved {file} to {new_ranking_file}\n"
+                        print(log_message)
+                        with open(log_file, 'a') as f:
+                            f.write(log_message)
+                    except Exception as e:
+                        log_message = f"Error moving {file}: {e}\n"
+                        print(log_message)
+                        with open(log_file, 'a') as f:
+                            f.write(log_message)
+                else:
+                    # Split other yfinance files by ticker
+                    split_csv_by_ticker(file, dir_map[file_type], prefix, file_type)
 
 main()
