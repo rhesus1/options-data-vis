@@ -312,10 +312,10 @@ def fetch_historic_data(ticker):
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
-    return hist[['Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
-                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
-                 'Realised_Vol_High_30', 'Realised_Vol_High_60', 'Realised_Vol_High_100', 'Realised_Vol_High_180', 'Realised_Vol_High_252',
-                 'Realised_Vol_Low_30', 'Realised_Vol_Low_60', 'Realised_Vol_Low_100', 'Realised_Vol_Low_180', 'Realised_Vol_Low_252']]
+    return hist[['Ticker', 'Date', 'High', 'Low', 'Close',
+                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']]
+                 #'Realised_Vol_High_30', 'Realised_Vol_High_60', 'Realised_Vol_High_100', 'Realised_Vol_High_180', 'Realised_Vol_High_252',
+                 #'Realised_Vol_Low_30', 'Realised_Vol_Low_60', 'Realised_Vol_Low_100', 'Realised_Vol_Low_180', 'Realised_Vol_Low_252']]
 
 def main():
     with open('tickers.txt', 'r') as file:
