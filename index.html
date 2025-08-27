@@ -69,21 +69,25 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
-        .stats-table, .skew-table, .summary-table, .ranking-table {
+        .stats-table, .skew-table, .summary-table, .ranking-table, .raw-data-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
             background-color: #2E4057;
         }
-        .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td {
+        .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td {
             border: 1px solid #4682B4;
             padding: 10px;
             text-align: left;
             color: #E0FFFF;
         }
-        .stats-table th, .skew-table th, .summary-table th, .ranking-table th {
+        .stats-table th, .skew-table th, .summary-table th, .ranking-table th, .raw-data-table th {
             background-color: #1E2A44;
             font-weight: bold;
+            cursor: pointer;
+        }
+        .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
+            background-color: #3E4A67;
         }
         canvas {
             max-width: 100%;
@@ -254,7 +258,7 @@
         </div>
         <div id="data-table" class="chart-container" style="display: none;">
             <h2>Data Table</h2>
-            <table id="raw-data-table" class="summary-table"></table>
+            <table id="raw-data-table" class="raw-data-table"></table>
         </div>
     </div>
     <script>
@@ -265,7 +269,7 @@
         let eventsData = [];
         let rawData = [];
         let rankingData = [];
-        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, callVolSurfaceChart;
+        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
 
@@ -333,7 +337,7 @@
                 document.querySelectorAll('.stats-table:not(#historic-price-chart + .stats-table)').forEach(table => {
                     table.style.display = statsTablesVisible ? 'table' : 'none';
                 });
-                document.querySelector('.toggle-button').textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
+                document.querySelector('.toggle-button:not(#ranking .toggle-button)').textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
                 console.log(`Stats tables visibility set to: ${statsTablesVisible}`);
             } catch (error) {
                 console.error('Error in toggleStatsTables:', error);
@@ -356,8 +360,12 @@
         async function loadData(timestamp) {
             try {
                 const tickerSearch = document.getElementById('ticker-search');
-                let selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
-                document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker}`;
+                let selectedTicker = tickerSearch.value.toUpperCase() || '';
+                if (!selectedTicker && rankingData.length > 0) {
+                    const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
+                    selectedTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
+                }
+                document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker || 'N/A'}`;
                 console.log(`Loading data for timestamp: ${timestamp}, ticker: ${selectedTicker}`);
 
                 const checkFileExists = async (url) => {
@@ -376,6 +384,10 @@
                 rankingData = parseCSV(await rankingResponse.text());
                 console.log('Ranking data loaded:', rankingData);
                 populateTickerSearch();
+                if (selectedTicker && !tickerSearch.value) {
+                    tickerSearch.value = selectedTicker;
+                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker}`;
+                }
 
                 if (!selectedTicker) {
                     console.warn('No ticker selected, skipping data load');
@@ -462,13 +474,11 @@
                     option.value = val;
                     tickerDatalist.appendChild(option);
                 });
-                if (uniqueTickers.length > 0) {
+                if (uniqueTickers.length > 0 && !tickerSearch.value) {
                     tickerSearch.value = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0];
-                } else {
-                    tickerSearch.value = '';
+                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase()}`;
                 }
-                document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
-                console.log('Ticker search populated, default:', tickerSearch.value);
+                console.log('Ticker search populated, selected:', tickerSearch.value);
             } catch (error) {
                 console.error('Error populating ticker search:', error);
             }
@@ -617,7 +627,6 @@
                 const filteredRankingData = rankingData.find(item => item.Ticker === selectedTicker);
                 if (filteredRankingData) {
                     metrics.push(
-                        { name: 'Rank', value: filteredRankingData['Rank'] || 'N/A', key: 'Rank' },
                         { name: 'Ticker', value: filteredRankingData['Ticker'] || 'N/A', key: 'Ticker' },
                         { name: 'Latest Close ($)', value: Number.isFinite(filteredRankingData['Latest Close']) ? filteredRankingData['Latest Close'].toFixed(2) : 'N/A', key: 'Latest Close' },
                         { name: 'Latest High ($)', value: Number.isFinite(filteredRankingData['Latest High']) ? filteredRankingData['Latest High'].toFixed(2) : 'N/A', key: 'Latest High' },
@@ -711,6 +720,11 @@
                 table.innerHTML = '';
                 console.log('Updating ranking table');
 
+                const sortedData = [...rankingData].sort((a, b) => (b['Open Interest'] || 0) - (a['Open Interest'] || 0));
+                sortedData.forEach((item, index) => {
+                    item.CalculatedRank = index + 1;
+                });
+
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
                 const columns = [
@@ -722,26 +736,29 @@
                     'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Rvol 100d - Weighted IV', 'Volume', 'Vol 1d (%)',
                     'Vol 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
                 ];
-                columns.forEach(text => {
+                columns.forEach((text, index) => {
                     const th = document.createElement('th');
                     th.textContent = text;
+                    th.dataset.column = text;
+                    th.dataset.order = 'desc';
+                    th.addEventListener('click', () => sortTable('ranking-table', index));
                     headerRow.appendChild(th);
                 });
                 table.appendChild(thead);
 
                 const tbody = document.createElement('tbody');
-                rankingData.forEach(item => {
+                sortedData.forEach(item => {
                     const row = tbody.insertRow();
                     columns.forEach(col => {
                         const cell = row.insertCell();
-                        let value = item[col];
+                        let value = col === 'Rank' ? item.CalculatedRank : item[col];
                         if (Number.isFinite(value)) {
-                            if (col.includes('(%)')) {
+                            if (col.includes('(%)') && col !== 'Open Interest') {
                                 value = value.toFixed(2);
                                 cell.style.color = value < 0 ? '#FF0000' : value > 0 ? '#00FF00' : '#FFFFFF';
                             } else if (col === 'Volume' || col === 'Open Interest') {
                                 value = Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                            } else {
+                            } else if (col !== 'Rank') {
                                 value = value.toFixed(2);
                             }
                         } else {
@@ -779,9 +796,12 @@
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
                 const columns = Object.keys(rawData[0]);
-                columns.forEach(text => {
+                columns.forEach((text, index) => {
                     const th = document.createElement('th');
                     th.textContent = text;
+                    th.dataset.column = text;
+                    th.dataset.order = 'desc';
+                    th.addEventListener('click', () => sortTable('raw-data-table', index));
                     headerRow.appendChild(th);
                 });
                 table.appendChild(thead);
@@ -793,7 +813,7 @@
                         const cell = row.insertCell();
                         let value = item[col];
                         if (Number.isFinite(value)) {
-                            value = value.toFixed(4);
+                            value = value.toFixed(2);
                         } else {
                             value = value || 'N/A';
                         }
@@ -809,6 +829,36 @@
                 cell.textContent = 'No raw data available';
                 cell.colSpan = 10;
                 table.appendChild(tbody);
+            }
+        }
+
+        function sortTable(tableId, columnIndex) {
+            try {
+                const table = document.getElementById(tableId);
+                const header = table.querySelector('thead tr').children[columnIndex];
+                const column = header.dataset.column;
+                const order = header.dataset.order === 'desc' ? 'asc' : 'desc';
+                header.dataset.order = order;
+
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort((a, b) => {
+                    const aValue = a.children[columnIndex].textContent;
+                    const bValue = b.children[columnIndex].textContent;
+                    if (aValue === 'N/A') return 1;
+                    if (bValue === 'N/A') return -1;
+                    const aNum = parseFloat(aValue);
+                    const bNum = parseFloat(bValue);
+                    if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
+                        return order === 'desc' ? bNum - aNum : aNum - bNum;
+                    }
+                    return order === 'desc' ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
+                });
+
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+            } catch (error) {
+                console.error('Error sorting table:', error);
             }
         }
 
@@ -1155,7 +1205,7 @@
                     });
                 });
 
-                const data = [{
+                const plotData = [{
                     x, y, z,
                     type: 'surface',
                     colorscale: 'Viridis',
@@ -1175,7 +1225,7 @@
                     plot_bgcolor: 'rgba(34, 43, 53, 0.9)'
                 };
 
-                Plotly.newPlot('call-vol-surface', data, layout);
+                Plotly.newPlot('call-vol-surface', plotData, layout);
 
                 const rotateXSlider = document.getElementById('rotate-x-slider');
                 const rotateZSlider = document.getElementById('rotate-z-slider');
@@ -1201,13 +1251,21 @@
                 const historyLength = document.getElementById('history-select').value;
                 console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength);
 
-                if (historicData.length === 0) {
+                if (!historicData || historicData.length === 0) {
                     if (historicChart) historicChart.destroy();
                     document.getElementById('historic-error').style.display = 'block';
+                    document.getElementById('historic-error').textContent = 'No historic data available';
                     return;
                 }
 
-                let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker);
+                let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item.Date && Number.isFinite(item.Close));
+                if (filteredHistoric.length === 0) {
+                    if (historicChart) historicChart.destroy();
+                    document.getElementById('historic-error').style.display = 'block';
+                    document.getElementById('historic-error').textContent = 'No valid historic data for selected ticker';
+                    return;
+                }
+
                 filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
                 const fromDate = calculateDateRange(historyLength);
                 const minHistoricDate = new Date(Math.min(...filteredHistoric.map(item => new Date(item.Date))));
@@ -1219,11 +1277,11 @@
 
                 const dates = filteredHistoric.map(item => new Date(item.Date));
                 const prices = filteredHistoric.map(item => parseFloat(item.Close));
-                const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30));
-                const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60));
-                const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100));
-                const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180));
-                const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252));
+                const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30) || 0);
+                const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60) || 0);
+                const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100) || 0);
+                const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180) || 0);
+                const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252) || 0);
 
                 const datasets = [
                     {
@@ -1296,8 +1354,10 @@
 
                 const annotations = eventsData
                     .filter(event => {
+                        if (!event.Start_Date || !event.End_Date) return false;
                         const startDate = new Date(event.Start_Date);
                         const endDate = new Date(event.End_Date);
+                        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
                         if (!(event.Ticker === 'ALL' || event.Ticker === selectedTicker)) return false;
                         if (startDate > maxHistoricDate || endDate < minHistoricDate) return false;
                         if (fromDate && endDate < fromDate) return false;
@@ -1313,7 +1373,7 @@
                         borderColor: event.Impact === 'dip' ? 'rgba(255, 99, 132, 0.5)' : 'rgba(75, 192, 192, 0.5)',
                         borderWidth: 1,
                         label: {
-                            content: event.Event,
+                            content: event.Event || 'Unknown Event',
                             display: true,
                             position: 'center',
                             color: '#FFFFFF',
@@ -1362,6 +1422,81 @@
             } catch (error) {
                 console.error('Error updating Historic chart:', error);
                 document.getElementById('historic-error').style.display = 'block';
+                document.getElementById('historic-error').textContent = 'Error loading historic chart';
+            }
+        }
+
+        function updateVolumeChart() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+                const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
+                const volumes = uniqueTickers.map(ticker => {
+                    const tickerData = rankingData.find(item => item.Ticker === ticker);
+                    return tickerData && Number.isFinite(tickerData['Volume']) ? tickerData['Volume'] : 0;
+                });
+                const backgroundColors = uniqueTickers.map(ticker => ticker === selectedTicker ? '#FFFF00' : '#00BFFF');
+                if (volumeChart) volumeChart.destroy();
+                volumeChart = new Chart(document.getElementById('volume-chart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: uniqueTickers,
+                        datasets: [{
+                            label: 'Total Volume',
+                            data: volumes,
+                            backgroundColor: backgroundColors,
+                            borderColor: backgroundColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        scales: {
+                            x: { title: { display: true, text: 'Ticker', color: '#E0FFFF' }, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } },
+                            y: { title: { display: true, text: 'Volume', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                        },
+                        backgroundColor: '#222B35'
+                    }
+                });
+                console.log('Volume chart updated for tickers:', uniqueTickers);
+            } catch (error) {
+                console.error('Error updating volume chart:', error);
+            }
+        }
+
+        function updateOpenInterestChart() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+                const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
+                const openInterests = uniqueTickers.map(ticker => {
+                    const tickerData = rankingData.find(item => item.Ticker === ticker);
+                    return tickerData && Number.isFinite(tickerData['Open Interest']) ? tickerData['Open Interest'] : 0;
+                });
+                const backgroundColors = uniqueTickers.map(ticker => ticker === selectedTicker ? '#FFFF00' : '#00BFFF');
+                if (openInterestChart) openInterestChart.destroy();
+                openInterestChart = new Chart(document.getElementById('open-interest-chart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: uniqueTickers,
+                        datasets: [{
+                            label: 'Total Open Interest',
+                            data: openInterests,
+                            backgroundColor: backgroundColors,
+                            borderColor: backgroundColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        scales: {
+                            x: { title: { display: true, text: 'Ticker', color: '#E0FFFF' }, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } },
+                            y: { title: { display: true, text: 'Open Interest', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                        },
+                        backgroundColor: '#222B35'
+                    }
+                });
+                console.log('Open Interest chart updated for tickers:', uniqueTickers);
+            } catch (error) {
+                console.error('Error updating open interest chart:', error);
             }
         }
 
@@ -1532,7 +1667,7 @@
                         return response.json();
                     })
                     .then(dates => {
-                        const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))];
+                        const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))].sort((a, b) => b.localeCompare(a));
                         dateSelect.innerHTML = '';
                         uniqueDates.forEach(datePart => {
                             const option = document.createElement('option');
@@ -1551,13 +1686,15 @@
                         }
 
                         dateSelect.addEventListener('change', (e) => {
+                            console.log('Date select changed to:', e.target.value);
                             updateTimeOptions(e.target.value, dates);
                             loadData(e.target.value + '_' + timeSelect.value);
                         });
                         timeSelect.addEventListener('change', (e) => {
+                            console.log('Time select changed to:', e.target.value);
                             loadData(dateSelect.value + '_' + e.target.value);
                         });
-                        tickerSearch.addEventListener('change', () => {
+                        tickerSearch.addEventListener('input', () => {
                             console.log('Ticker changed to:', tickerSearch.value);
                             document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
                             loadData(dateSelect.value + '_' + timeSelect.value);
@@ -1574,7 +1711,9 @@
                     link.addEventListener('click', (e) => {
                         e.preventDefault();
                         const target = document.querySelector(link.getAttribute('href'));
-                        document.querySelectorAll('.chart-container, .overview-container, .volatility-grid').forEach(container => container.style.display = 'none');
+                        document.querySelectorAll('.chart-container, .overview-container, .volatility-grid').forEach(container => {
+                            container.style.display = 'none';
+                        });
                         target.style.display = target.classList.contains('overview-container') ? 'flex' : target.classList.contains('volatility-grid') ? 'grid' : 'block';
                     });
                 });
@@ -1592,7 +1731,8 @@
                 const formattedSelectedDate = selectedDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
                 const availableTimes = dates
                     .filter(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3') === formattedSelectedDate)
-                    .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'));
+                    .map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$4:$5'))
+                    .sort();
                 const uniqueTimes = [...new Set(availableTimes)];
                 uniqueTimes.forEach(timePart => {
                     const option = document.createElement('option');
@@ -1603,6 +1743,8 @@
                 if (timeSelect.options.length > 0) {
                     timeSelect.value = timeSelect.options[0].value;
                     timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    console.warn('No times available for selected date:', formattedSelectedDate);
                 }
                 console.log('Time options updated:', uniqueTimes);
             } catch (error) {
@@ -1612,5 +1754,3 @@
     </script>
 </body>
 </html>
-
-        
