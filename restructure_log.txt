@@ -1,97 +1,112 @@
-Starting yfinance restructure at 2025-08-27 08:52:40.377744
+Starting yfinance restructure at 2025-08-27 08:57:52.003357
 Loaded existing dates.json: ['metrics', '20250825_2124', '20250824_2122', '20250823_2121', '20250822_2122', '20250821_2123', '20250820_2126', '20250820_1715', '20250820_1632', '20250819_2144', '20250819_2027', '20250819_1951', '20250819_1940', '20250819_1928', '20250819_1914', '20250819_1835', '20250819', '20250818_2239', '20250818_2138', '20250818_2040', '20250818_1442', '20250818_1358', '20250818', '20250817_2239', '20250817_2138', '20250817_2040', '20250817_1438', '20250817_1349', '20250817', '20250816_2238', '20250816_2138', '20250816_2039', '20250816_1439', '20250816_1350', '20250816', '20250815_2240', '20250815_2138', '20250815_2042', '20250815_1357', '20250815', '20250814_2243', '20250814_2046', '20250814_1414', '20250814_1205', '20250814_0853', '20250814', '20250813_2213', '20250813_2111', '20250813_2013', '20250813_1915', '20250813']
 Found 15 files for pattern data/raw_yfinance_[0-9]*.csv: ['data/raw_yfinance_20250819_1835.csv', 'data/raw_yfinance_20250819_2027.csv', 'data/raw_yfinance_20250819_1951.csv', 'data/raw_yfinance_20250821_2123.csv', 'data/raw_yfinance_20250819_1928.csv', 'data/raw_yfinance_20250820_1632.csv', 'data/raw_yfinance_20250819_1914.csv', 'data/raw_yfinance_20250823_2121.csv', 'data/raw_yfinance_20250820_2126.csv', 'data/raw_yfinance_20250819_2144.csv', 'data/raw_yfinance_20250824_2122.csv', 'data/raw_yfinance_20250822_2122.csv', 'data/raw_yfinance_20250819_1940.csv', 'data/raw_yfinance_20250820_1715.csv', 'data/raw_yfinance_20250825_2124.csv']
-Could not extract timestamp from raw_yfinance_20250819_1835.csv, skipping
-Could not extract timestamp from raw_yfinance_20250819_2027.csv, skipping
-Could not extract timestamp from raw_yfinance_20250819_1951.csv, skipping
-Could not extract timestamp from raw_yfinance_20250821_2123.csv, skipping
-Could not extract timestamp from raw_yfinance_20250819_1928.csv, skipping
-Could not extract timestamp from raw_yfinance_20250820_1632.csv, skipping
-Could not extract timestamp from raw_yfinance_20250819_1914.csv, skipping
-Could not extract timestamp from raw_yfinance_20250823_2121.csv, skipping
-Could not extract timestamp from raw_yfinance_20250820_2126.csv, skipping
-Could not extract timestamp from raw_yfinance_20250819_2144.csv, skipping
-Could not extract timestamp from raw_yfinance_20250824_2122.csv, skipping
-Could not extract timestamp from raw_yfinance_20250822_2122.csv, skipping
-Could not extract timestamp from raw_yfinance_20250819_1940.csv, skipping
-Could not extract timestamp from raw_yfinance_20250820_1715.csv, skipping
-Could not extract timestamp from raw_yfinance_20250825_2124.csv, skipping
+Extracted timestamp 20250819_1835 from raw_yfinance_20250819_1835.csv
+Extracted timestamp 20250819_2027 from raw_yfinance_20250819_2027.csv
+Extracted timestamp 20250819_1951 from raw_yfinance_20250819_1951.csv
+Extracted timestamp 20250821_2123 from raw_yfinance_20250821_2123.csv
+Extracted timestamp 20250819_1928 from raw_yfinance_20250819_1928.csv
+Extracted timestamp 20250820_1632 from raw_yfinance_20250820_1632.csv
+Extracted timestamp 20250819_1914 from raw_yfinance_20250819_1914.csv
+Extracted timestamp 20250823_2121 from raw_yfinance_20250823_2121.csv
+Extracted timestamp 20250820_2126 from raw_yfinance_20250820_2126.csv
+Extracted timestamp 20250819_2144 from raw_yfinance_20250819_2144.csv
+Extracted timestamp 20250824_2122 from raw_yfinance_20250824_2122.csv
+Extracted timestamp 20250822_2122 from raw_yfinance_20250822_2122.csv
+Extracted timestamp 20250819_1940 from raw_yfinance_20250819_1940.csv
+Extracted timestamp 20250820_1715 from raw_yfinance_20250820_1715.csv
+Extracted timestamp 20250825_2124 from raw_yfinance_20250825_2124.csv
 Found 15 files for pattern data/cleaned_yfinance_[0-9]*.csv: ['data/cleaned_yfinance_20250823_2121.csv', 'data/cleaned_yfinance_20250820_1715.csv', 'data/cleaned_yfinance_20250819_1928.csv', 'data/cleaned_yfinance_20250819_2027.csv', 'data/cleaned_yfinance_20250819_1951.csv', 'data/cleaned_yfinance_20250819_1914.csv', 'data/cleaned_yfinance_20250820_1632.csv', 'data/cleaned_yfinance_20250820_2126.csv', 'data/cleaned_yfinance_20250821_2123.csv', 'data/cleaned_yfinance_20250822_2122.csv', 'data/cleaned_yfinance_20250819_1835.csv', 'data/cleaned_yfinance_20250824_2122.csv', 'data/cleaned_yfinance_20250819_1940.csv', 'data/cleaned_yfinance_20250819_2144.csv', 'data/cleaned_yfinance_20250825_2124.csv']
-Could not extract timestamp from cleaned_yfinance_20250823_2121.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250820_1715.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_1928.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_2027.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_1951.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_1914.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250820_1632.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250820_2126.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250821_2123.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250822_2122.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_1835.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250824_2122.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_1940.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250819_2144.csv, skipping
-Could not extract timestamp from cleaned_yfinance_20250825_2124.csv, skipping
+Extracted timestamp 20250823_2121 from cleaned_yfinance_20250823_2121.csv
+Extracted timestamp 20250820_1715 from cleaned_yfinance_20250820_1715.csv
+Extracted timestamp 20250819_1928 from cleaned_yfinance_20250819_1928.csv
+Extracted timestamp 20250819_2027 from cleaned_yfinance_20250819_2027.csv
+Extracted timestamp 20250819_1951 from cleaned_yfinance_20250819_1951.csv
+Extracted timestamp 20250819_1914 from cleaned_yfinance_20250819_1914.csv
+Extracted timestamp 20250820_1632 from cleaned_yfinance_20250820_1632.csv
+Extracted timestamp 20250820_2126 from cleaned_yfinance_20250820_2126.csv
+Extracted timestamp 20250821_2123 from cleaned_yfinance_20250821_2123.csv
+Extracted timestamp 20250822_2122 from cleaned_yfinance_20250822_2122.csv
+Extracted timestamp 20250819_1835 from cleaned_yfinance_20250819_1835.csv
+Extracted timestamp 20250824_2122 from cleaned_yfinance_20250824_2122.csv
+Extracted timestamp 20250819_1940 from cleaned_yfinance_20250819_1940.csv
+Extracted timestamp 20250819_2144 from cleaned_yfinance_20250819_2144.csv
+Extracted timestamp 20250825_2124 from cleaned_yfinance_20250825_2124.csv
 Found 12 files for pattern data/processed_yfinance_[0-9]*.csv: ['data/processed_yfinance_20250819_1940.csv', 'data/processed_yfinance_20250820_2126.csv', 'data/processed_yfinance_20250821_2123.csv', 'data/processed_yfinance_20250822_2122.csv', 'data/processed_yfinance_20250820_1632.csv', 'data/processed_yfinance_20250825_2124.csv', 'data/processed_yfinance_20250820_1715.csv', 'data/processed_yfinance_20250819_2027.csv', 'data/processed_yfinance_20250819_1914.csv', 'data/processed_yfinance_20250819_2144.csv', 'data/processed_yfinance_20250819_1951.csv', 'data/processed_yfinance_20250823_2121.csv']
-Could not extract timestamp from processed_yfinance_20250819_1940.csv, skipping
-Could not extract timestamp from processed_yfinance_20250820_2126.csv, skipping
-Could not extract timestamp from processed_yfinance_20250821_2123.csv, skipping
-Could not extract timestamp from processed_yfinance_20250822_2122.csv, skipping
-Could not extract timestamp from processed_yfinance_20250820_1632.csv, skipping
-Could not extract timestamp from processed_yfinance_20250825_2124.csv, skipping
-Could not extract timestamp from processed_yfinance_20250820_1715.csv, skipping
-Could not extract timestamp from processed_yfinance_20250819_2027.csv, skipping
-Could not extract timestamp from processed_yfinance_20250819_1914.csv, skipping
-Could not extract timestamp from processed_yfinance_20250819_2144.csv, skipping
-Could not extract timestamp from processed_yfinance_20250819_1951.csv, skipping
-Could not extract timestamp from processed_yfinance_20250823_2121.csv, skipping
+Extracted timestamp 20250819_1940 from processed_yfinance_20250819_1940.csv
+Extracted timestamp 20250820_2126 from processed_yfinance_20250820_2126.csv
+Extracted timestamp 20250821_2123 from processed_yfinance_20250821_2123.csv
+Extracted timestamp 20250822_2122 from processed_yfinance_20250822_2122.csv
+Extracted timestamp 20250820_1632 from processed_yfinance_20250820_1632.csv
+Extracted timestamp 20250825_2124 from processed_yfinance_20250825_2124.csv
+Extracted timestamp 20250820_1715 from processed_yfinance_20250820_1715.csv
+Extracted timestamp 20250819_2027 from processed_yfinance_20250819_2027.csv
+Extracted timestamp 20250819_1914 from processed_yfinance_20250819_1914.csv
+Extracted timestamp 20250819_2144 from processed_yfinance_20250819_2144.csv
+Extracted timestamp 20250819_1951 from processed_yfinance_20250819_1951.csv
+Extracted timestamp 20250823_2121 from processed_yfinance_20250823_2121.csv
 Found 12 files for pattern data/skew_metrics_yfinance_[0-9]*.csv: ['data/skew_metrics_yfinance_20250820_1715.csv', 'data/skew_metrics_yfinance_20250819_1951.csv', 'data/skew_metrics_yfinance_20250822_2122.csv', 'data/skew_metrics_yfinance_20250821_2123.csv', 'data/skew_metrics_yfinance_20250820_2126.csv', 'data/skew_metrics_yfinance_20250819_1940.csv', 'data/skew_metrics_yfinance_20250820_1632.csv', 'data/skew_metrics_yfinance_20250823_2121.csv', 'data/skew_metrics_yfinance_20250819_1914.csv', 'data/skew_metrics_yfinance_20250825_2124.csv', 'data/skew_metrics_yfinance_20250819_2144.csv', 'data/skew_metrics_yfinance_20250819_2027.csv']
-Could not extract timestamp from skew_metrics_yfinance_20250820_1715.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250819_1951.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250822_2122.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250821_2123.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250820_2126.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250819_1940.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250820_1632.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250823_2121.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250819_1914.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250825_2124.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250819_2144.csv, skipping
-Could not extract timestamp from skew_metrics_yfinance_20250819_2027.csv, skipping
+Extracted timestamp 20250820_1715 from skew_metrics_yfinance_20250820_1715.csv
+Extracted timestamp 20250819_1951 from skew_metrics_yfinance_20250819_1951.csv
+Extracted timestamp 20250822_2122 from skew_metrics_yfinance_20250822_2122.csv
+Extracted timestamp 20250821_2123 from skew_metrics_yfinance_20250821_2123.csv
+Extracted timestamp 20250820_2126 from skew_metrics_yfinance_20250820_2126.csv
+Extracted timestamp 20250819_1940 from skew_metrics_yfinance_20250819_1940.csv
+Extracted timestamp 20250820_1632 from skew_metrics_yfinance_20250820_1632.csv
+Extracted timestamp 20250823_2121 from skew_metrics_yfinance_20250823_2121.csv
+Extracted timestamp 20250819_1914 from skew_metrics_yfinance_20250819_1914.csv
+Extracted timestamp 20250825_2124 from skew_metrics_yfinance_20250825_2124.csv
+Extracted timestamp 20250819_2144 from skew_metrics_yfinance_20250819_2144.csv
+Extracted timestamp 20250819_2027 from skew_metrics_yfinance_20250819_2027.csv
 Found 12 files for pattern data/slope_metrics_yfinance_[0-9]*.csv: ['data/slope_metrics_yfinance_20250819_2027.csv', 'data/slope_metrics_yfinance_20250819_1951.csv', 'data/slope_metrics_yfinance_20250825_2124.csv', 'data/slope_metrics_yfinance_20250821_2123.csv', 'data/slope_metrics_yfinance_20250819_1914.csv', 'data/slope_metrics_yfinance_20250822_2122.csv', 'data/slope_metrics_yfinance_20250823_2121.csv', 'data/slope_metrics_yfinance_20250820_1715.csv', 'data/slope_metrics_yfinance_20250820_2126.csv', 'data/slope_metrics_yfinance_20250820_1632.csv', 'data/slope_metrics_yfinance_20250819_2144.csv', 'data/slope_metrics_yfinance_20250819_1940.csv']
-Could not extract timestamp from slope_metrics_yfinance_20250819_2027.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250819_1951.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250825_2124.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250821_2123.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250819_1914.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250822_2122.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250823_2121.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250820_1715.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250820_2126.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250820_1632.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250819_2144.csv, skipping
-Could not extract timestamp from slope_metrics_yfinance_20250819_1940.csv, skipping
+Extracted timestamp 20250819_2027 from slope_metrics_yfinance_20250819_2027.csv
+Extracted timestamp 20250819_1951 from slope_metrics_yfinance_20250819_1951.csv
+Extracted timestamp 20250825_2124 from slope_metrics_yfinance_20250825_2124.csv
+Extracted timestamp 20250821_2123 from slope_metrics_yfinance_20250821_2123.csv
+Extracted timestamp 20250819_1914 from slope_metrics_yfinance_20250819_1914.csv
+Extracted timestamp 20250822_2122 from slope_metrics_yfinance_20250822_2122.csv
+Extracted timestamp 20250823_2121 from slope_metrics_yfinance_20250823_2121.csv
+Extracted timestamp 20250820_1715 from slope_metrics_yfinance_20250820_1715.csv
+Extracted timestamp 20250820_2126 from slope_metrics_yfinance_20250820_2126.csv
+Extracted timestamp 20250820_1632 from slope_metrics_yfinance_20250820_1632.csv
+Extracted timestamp 20250819_2144 from slope_metrics_yfinance_20250819_2144.csv
+Extracted timestamp 20250819_1940 from slope_metrics_yfinance_20250819_1940.csv
 Found 11 files for pattern data/ranking_yfinance_[0-9]*.csv: ['data/ranking_yfinance_20250819_2144.csv', 'data/ranking_yfinance_20250820_1715.csv', 'data/ranking_yfinance_20250821_2123.csv', 'data/ranking_yfinance_20250819_1940.csv', 'data/ranking_yfinance_20250819_2027.csv', 'data/ranking_yfinance_20250825_2124.csv', 'data/ranking_yfinance_20250822_2122.csv', 'data/ranking_yfinance_20250823_2121.csv', 'data/ranking_yfinance_20250819_1951.csv', 'data/ranking_yfinance_20250820_2126.csv', 'data/ranking_yfinance_20250820_1632.csv']
-Extracted timestamp 20250819_2144 from ranking_yfinance_20250819_2144.csv
-Extracted timestamp 20250820_1715 from ranking_yfinance_20250820_1715.csv
-Extracted timestamp 20250821_2123 from ranking_yfinance_20250821_2123.csv
-Extracted timestamp 20250819_1940 from ranking_yfinance_20250819_1940.csv
-Extracted timestamp 20250819_2027 from ranking_yfinance_20250819_2027.csv
-Extracted timestamp 20250825_2124 from ranking_yfinance_20250825_2124.csv
-Extracted timestamp 20250822_2122 from ranking_yfinance_20250822_2122.csv
-Extracted timestamp 20250823_2121 from ranking_yfinance_20250823_2121.csv
-Extracted timestamp 20250819_1951 from ranking_yfinance_20250819_1951.csv
-Extracted timestamp 20250820_2126 from ranking_yfinance_20250820_2126.csv
-Extracted timestamp 20250820_1632 from ranking_yfinance_20250820_1632.csv
-Updated dates.json with timestamps: {'20250820_1715', '20250819_2144', '20250819_1940', '20250821_2123', '20250820_1632', '20250819_2027', '20250825_2124', '20250822_2122', '20250823_2121', '20250819_1951', '20250820_2126'}
+Extracted timestamp yfinance_20250819_2144 from ranking_yfinance_20250819_2144.csv
+Extracted timestamp yfinance_20250820_1715 from ranking_yfinance_20250820_1715.csv
+Extracted timestamp yfinance_20250821_2123 from ranking_yfinance_20250821_2123.csv
+Extracted timestamp yfinance_20250819_1940 from ranking_yfinance_20250819_1940.csv
+Extracted timestamp yfinance_20250819_2027 from ranking_yfinance_20250819_2027.csv
+Extracted timestamp yfinance_20250825_2124 from ranking_yfinance_20250825_2124.csv
+Extracted timestamp yfinance_20250822_2122 from ranking_yfinance_20250822_2122.csv
+Extracted timestamp yfinance_20250823_2121 from ranking_yfinance_20250823_2121.csv
+Extracted timestamp yfinance_20250819_1951 from ranking_yfinance_20250819_1951.csv
+Extracted timestamp yfinance_20250820_2126 from ranking_yfinance_20250820_2126.csv
+Extracted timestamp yfinance_20250820_1632 from ranking_yfinance_20250820_1632.csv
+Updated dates.json with timestamps: {'20250819_1951', 'yfinance_20250819_2144', 'yfinance_20250823_2121', '20250819_1835', '20250822_2122', 'yfinance_20250819_2027', '20250820_1715', '20250825_2124', '20250819_1928', 'yfinance_20250820_2126', 'yfinance_20250821_2123', 'yfinance_20250819_1951', 'yfinance_20250820_1632', '20250819_2144', '20250819_2027', 'yfinance_20250820_1715', 'yfinance_20250819_1940', '20250820_2126', '20250823_2121', '20250819_1940', '20250824_2122', '20250821_2123', '20250820_1632', 'yfinance_20250825_2124', '20250819_1914', 'yfinance_20250822_2122'}
+Processing yfinance timestamp: 20250819_1951
+Processing yfinance timestamp: yfinance_20250819_2144
+Processing yfinance timestamp: yfinance_20250823_2121
+Processing yfinance timestamp: 20250819_1835
+Processing yfinance timestamp: 20250822_2122
+Processing yfinance timestamp: yfinance_20250819_2027
 Processing yfinance timestamp: 20250820_1715
+Processing yfinance timestamp: 20250825_2124
+Processing yfinance timestamp: 20250819_1928
+Processing yfinance timestamp: yfinance_20250820_2126
+Processing yfinance timestamp: yfinance_20250821_2123
+Processing yfinance timestamp: yfinance_20250819_1951
+Processing yfinance timestamp: yfinance_20250820_1632
 Processing yfinance timestamp: 20250819_2144
+Processing yfinance timestamp: 20250819_2027
+Processing yfinance timestamp: yfinance_20250820_1715
+Processing yfinance timestamp: yfinance_20250819_1940
+Processing yfinance timestamp: 20250820_2126
+Processing yfinance timestamp: 20250823_2121
 Processing yfinance timestamp: 20250819_1940
+Processing yfinance timestamp: 20250824_2122
 Processing yfinance timestamp: 20250821_2123
 Processing yfinance timestamp: 20250820_1632
-Processing yfinance timestamp: 20250819_2027
-Processing yfinance timestamp: 20250825_2124
-Processing yfinance timestamp: 20250822_2122
-Processing yfinance timestamp: 20250823_2121
-Processing yfinance timestamp: 20250819_1951
-Processing yfinance timestamp: 20250820_2126
+Processing yfinance timestamp: yfinance_20250825_2124
+Processing yfinance timestamp: 20250819_1914
+Processing yfinance timestamp: yfinance_20250822_2122
