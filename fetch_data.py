@@ -286,15 +286,12 @@ def fetch_historic_data(ticker):
     if hist.empty:
         return pd.DataFrame()
     hist = hist[['High', 'Low', 'Close']]
-    # Calculate log returns for Close
     hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
-    # Calculate realized volatility for Close
     hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
-    # Drop rows with NaN values
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
@@ -308,43 +305,31 @@ def main():
     use_nasdaq = len(tickers) <= 10
     print(f"Number of tickers: {len(tickers)}. Using Nasdaq scraping: {use_nasdaq}")
     driver = setup_driver(headless=True) if use_nasdaq else None
-    all_nasdaq_data = []
-    all_yfinance_data = []
-    all_hist = []
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    base_dir = f'data/{timestamp}'
+    raw_dir = f'{base_dir}/raw'
+    raw_yfinance_dir = f'{base_dir}/raw_yfinance'
+    historic_dir = f'{base_dir}/historic'
+    os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(raw_yfinance_dir, exist_ok=True)
+    os.makedirs(historic_dir, exist_ok=True)
     try:
         for ticker in tickers:
             nasdaq_df, yfinance_df = process_ticker_fetch(ticker, driver, use_nasdaq)
             if not nasdaq_df.empty:
-                all_nasdaq_data.append(nasdaq_df)
+                nasdaq_filename = f'{raw_dir}/raw_{ticker}.csv'
+                nasdaq_df.to_csv(nasdaq_filename, index=False)
+                print(f"Nasdaq raw data for {ticker} saved to {nasdaq_filename}")
             if not yfinance_df.empty:
-                all_yfinance_data.append(yfinance_df)
+                yfinance_filename = f'{raw_yfinance_dir}/raw_yfinance_{ticker}.csv'
+                yfinance_df.to_csv(yfinance_filename, index=False)
+                print(f"yfinance raw data for {ticker} saved to {yfinance_filename}")
             df_hist = fetch_historic_data(ticker)
             if not df_hist.empty:
-                all_hist.append(df_hist)
+                hist_filename = f'{historic_dir}/historic_{ticker}.csv'
+                df_hist.to_csv(hist_filename, index=False)
+                print(f"Historic data for {ticker} saved to {hist_filename}")
             time.sleep(1)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-        os.makedirs('data', exist_ok=True)
-        if all_nasdaq_data and use_nasdaq:
-            combined_nasdaq_df = pd.concat(all_nasdaq_data, ignore_index=True)
-            nasdaq_filename = f'data/raw_{timestamp}.csv'
-            combined_nasdaq_df.to_csv(nasdaq_filename, index=False)
-            print(f"Nasdaq raw data saved to {nasdaq_filename}")
-        else:
-            print("No Nasdaq data to save")
-        if all_yfinance_data:
-            combined_yfinance_df = pd.concat(all_yfinance_data, ignore_index=True)
-            yfinance_filename = f'data/raw_yfinance_{timestamp}.csv'
-            combined_yfinance_df.to_csv(yfinance_filename, index=False)
-            print(f"yfinance raw data saved to {yfinance_filename}")
-        else:
-            print("No yfinance data to save")
-        if all_hist:
-            combined_hist_df = pd.concat(all_hist, ignore_index=True)
-            hist_filename = f'data/historic_{timestamp}.csv'
-            combined_hist_df.to_csv(hist_filename, index=False)
-            print(f"Historic data saved to {hist_filename}")
-        else:
-            print("No historic data to save")
     finally:
         if driver:
             driver.quit()
