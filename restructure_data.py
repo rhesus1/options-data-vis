@@ -2,12 +2,21 @@ import pandas as pd
 import os
 import glob
 import json
-import re
 from datetime import datetime
 
 def is_valid_timestamp(timestamp):
     """Validate timestamp format (YYYYMMDD_HHMM)."""
-    return bool(re.match(r'^\d{8}_\d{4}$', timestamp))
+    if len(timestamp) != 13 or '_' not in timestamp:
+        return False
+    date_part, time_part = timestamp.split('_')
+    if len(date_part) != 8 or len(time_part) != 4:
+        return False
+    try:
+        datetime.strptime(date_part, '%Y%m%d')
+        datetime.strptime(time_part, '%H%M')
+        return True
+    except ValueError:
+        return False
 
 def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
     """
@@ -107,7 +116,7 @@ def main():
             f.write(log_message)
         dates = []
     
-    # Define yfinance file patterns
+    # Define yfinance file patterns only
     file_patterns = [
         ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', '_yfinance'),
         ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', '_yfinance'),
@@ -129,7 +138,7 @@ def main():
             filename = os.path.basename(file)
             try:
                 # Extract timestamp (e.g., '20250825_2124' from 'raw_yfinance_20250825_2124.csv')
-                timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
+                timestamp = filename.split('_')[2].split('.csv')[0] if 'yfinance' in filename else filename.split('_')[1].split('.csv')[0]
                 if not is_valid_timestamp(timestamp):
                     log_message = f"Invalid timestamp format in {filename}: {timestamp}, skipping\n"
                     print(log_message)
@@ -186,7 +195,7 @@ def main():
         
         # Process each yfinance file type
         for pattern, file_type, prefix in file_patterns:
-            files = glob.glob(f'data/{file_type}_{prefix}{timestamp}.csv')
+            files = glob.glob(f'data/{file_type}_{prefix}{timestamp}.csv' if file_type != 'ranking' else f'data/{file_type}_yfinance_{timestamp}.csv')
             log_message = f"Checking files for {file_type} with timestamp {timestamp}: {files}\n"
             print(log_message)
             with open(log_file, 'a') as f:
