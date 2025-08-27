@@ -2,78 +2,49 @@ On branch main
 Your branch is up to date with 'origin/main'.
 
 Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
+  (use "git add/rm <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
+	deleted:    data/ranking_20250818_2239.csv
+	deleted:    data/ranking_20250819_1951.csv
+	deleted:    data/ranking_20250819_2027.csv
+	deleted:    data/ranking_20250819_2144.csv
+	deleted:    data/ranking_20250825_2124.csv
 	modified:   git_status_final.txt
 	modified:   restructure_log.txt
 
 Untracked files:
   (use "git add <file>..." to include in what will be committed)
-	data/20250819_1835/cleaned_yfinance/
-	data/20250819_1835/raw_yfinance/
-	data/20250819_1914/cleaned_yfinance/
-	data/20250819_1914/processed_yfinance/
-	data/20250819_1914/raw_yfinance/
-	data/20250819_1914/skew_metrics_yfinance/
-	data/20250819_1914/slope_metrics_yfinance/
-	data/20250819_1928/cleaned_yfinance/
-	data/20250819_1928/raw_yfinance/
-	data/20250819_1940/cleaned_yfinance/
-	data/20250819_1940/processed_yfinance/
-	data/20250819_1940/raw_yfinance/
-	data/20250819_1940/skew_metrics_yfinance/
-	data/20250819_1940/slope_metrics_yfinance/
-	data/20250819_1951/cleaned_yfinance/
-	data/20250819_1951/processed_yfinance/
-	data/20250819_1951/raw_yfinance/
-	data/20250819_1951/skew_metrics_yfinance/
-	data/20250819_1951/slope_metrics_yfinance/
-	data/20250819_2027/cleaned_yfinance/
-	data/20250819_2027/processed_yfinance/
-	data/20250819_2027/raw_yfinance/
-	data/20250819_2027/skew_metrics_yfinance/
-	data/20250819_2027/slope_metrics_yfinance/
-	data/20250819_2144/cleaned_yfinance/
-	data/20250819_2144/processed_yfinance/
-	data/20250819_2144/raw_yfinance/
-	data/20250819_2144/skew_metrics_yfinance/
-	data/20250819_2144/slope_metrics_yfinance/
-	data/20250820_1632/cleaned_yfinance/
-	data/20250820_1632/processed_yfinance/
-	data/20250820_1632/raw_yfinance/
-	data/20250820_1632/skew_metrics_yfinance/
-	data/20250820_1632/slope_metrics_yfinance/
-	data/20250820_1715/cleaned_yfinance/
-	data/20250820_1715/processed_yfinance/
-	data/20250820_1715/raw_yfinance/
-	data/20250820_1715/skew_metrics_yfinance/
-	data/20250820_1715/slope_metrics_yfinance/
-	data/20250820_2126/cleaned_yfinance/
-	data/20250820_2126/processed_yfinance/
-	data/20250820_2126/raw_yfinance/
-	data/20250820_2126/skew_metrics_yfinance/
-	data/20250820_2126/slope_metrics_yfinance/
-	data/20250821_2123/cleaned_yfinance/
-	data/20250821_2123/processed_yfinance/
-	data/20250821_2123/raw_yfinance/
-	data/20250821_2123/skew_metrics_yfinance/
-	data/20250821_2123/slope_metrics_yfinance/
-	data/20250822_2122/cleaned_yfinance/
-	data/20250822_2122/processed_yfinance/
-	data/20250822_2122/raw_yfinance/
-	data/20250822_2122/skew_metrics_yfinance/
-	data/20250822_2122/slope_metrics_yfinance/
-	data/20250823_2121/cleaned_yfinance/
-	data/20250823_2121/processed_yfinance/
-	data/20250823_2121/raw_yfinance/
-	data/20250823_2121/skew_metrics_yfinance/
-	data/20250823_2121/slope_metrics_yfinance/
-	data/20250824_2122/cleaned_yfinance/
-	data/20250824_2122/raw_yfinance/
-	data/20250825_2124/cleaned_yfinance/
-	data/20250825_2124/processed_yfinance/
-	data/20250825_2124/raw_yfinance/
-	data/20250825_2124/skew_metrics_yfinance/
-	data/20250825_2124/slope_metrics_yfinance/
+	data/20250813_1915/
+	data/20250813_2013/
+	data/20250813_2111/
+	data/20250813_2213/
+	data/20250814_0853/
+	data/20250814_1205/
+	data/20250814_1414/
+	data/20250814_2046/
+	data/20250814_2243/
+	data/20250815_1357/
+	data/20250815_2042/
+	data/20250815_2138/
+	data/20250815_2240/
+	data/20250816_1350/
+	data/20250816_1439/
+	data/20250816_2039/
+	data/20250816_2138/
+	data/20250816_2238/
+	data/20250817_1349/
+	data/20250817_1438/
+	data/20250817_2040/
+	data/20250817_2138/
+	data/20250817_2239/
+	data/20250818_1358/
+	data/20250818_1442/
+	data/20250818_2040/
+	data/20250818_2138/
+	data/20250818_2239/
+	data/20250819_1951/ranking/
+	data/20250819_2027/ranking/
+	data/20250819_2144/ranking/
+	data/20250825_2124/ranking/
 
 no changes added to commit (use "git add" and/or "git commit -a")
