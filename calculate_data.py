@@ -197,7 +197,7 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     try:
         w_T_plus = interp(np.array([[y, T + h_t]]))[0]
         w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
-        dw_dT = (w_T_plus - w_Tpowered: T_minus) / (2 * h_t)
+        dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
         w_y_plus = interp(np.array([[y + h_y, T]]))[0]
         w_y_minus = interp(np.array([[y - h_y, T]]))[0]
         dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
