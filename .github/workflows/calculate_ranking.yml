@@ -47,10 +47,10 @@ jobs:
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "Options Ranking Metrics Data"
         to: Morgan.Rees@fourieram.onmicrosoft.com
-        from: Morgan Rees <Morgan.Rees@Fairwater-capital.com>
+        from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
-          Attached is the latest Options ranking metrics CSV file.
-          Timestamp: ${{ github.event.workflow_run.head_commit.message || github.run_id }}
+          Attached is the latest Options ranking metrics CSV file for yfinance data.
+          Timestamp: ${latest_date}
         attachments: |
-          data/*/ranking/ranking_yfinance.csv
+          data/${latest_date}/ranking/ranking_yfinance.csv
         secure: true
