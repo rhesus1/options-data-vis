@@ -10,8 +10,8 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #1A1F24;
+            font-family: Arial, sans-serif;
+            background-color: #1C2526;
             color: #FFFFFF;
             margin: 0;
             padding: 0;
@@ -21,13 +21,13 @@
         }
         .sidebar {
             width: 250px;
-            background: linear-gradient(135deg, #1E2A44, #2E4057);
+            background: #2E3537;
             padding: 20px;
-            border-right: 1px solid #4682B4;
+            border-right: 1px solid #FFFFFF;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
         }
         .sidebar a {
-            color: #FFFFFF;
+            color: #00BFFF;
             text-decoration: none;
             display: block;
             padding: 12px 15px;
@@ -36,35 +36,35 @@
             border-radius: 4px;
         }
         .sidebar a:hover {
-            color: #ADD8E6;
-            background-color: rgba(255, 255, 255, 0.1);
+            color: #FFFFFF;
+            background-color: #3E4547;
             text-decoration: none;
         }
         .sidebar select, .sidebar input {
             width: 100%;
             padding: 8px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: #2E3537;
             color: #FFFFFF;
-            border: 1px solid #4682B4;
+            border: 1px solid #FFFFFF;
             border-radius: 4px;
             margin-bottom: 15px;
             font-size: 14px;
             transition: border-color 0.3s ease;
         }
         .sidebar select:focus, .sidebar input:focus {
-            border-color: #87CEEB;
+            border-color: #00BFFF;
             outline: none;
         }
         .main-content {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background: linear-gradient(135deg, #222B35, #1A1F24);
+            background: #1C2526;
         }
         .chart-container {
-            background-color: rgba(34, 43, 53, 0.9);
+            background-color: #1C2526;
             padding: 20px;
-            border: 1px solid #4682B4;
+            border: 1px solid #FFFFFF;
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -73,21 +73,21 @@
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
-            background-color: #2E4057;
+            background-color: #2E3537;
         }
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td {
-            border: 1px solid #4682B4;
+            border: 1px solid #FFFFFF;
             padding: 10px;
             text-align: left;
-            color: #E0FFFF;
+            color: #FFFFFF;
         }
         .stats-table th, .skew-table th, .summary-table th, .ranking-table th, .raw-data-table th {
-            background-color: #1E2A44;
+            background-color: #3E4547;
             font-weight: bold;
             cursor: pointer;
         }
         .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
-            background-color: #3E4A67;
+            background-color: #4E5557;
         }
         canvas {
             max-width: 100%;
@@ -96,8 +96,8 @@
         .header {
             text-align: center;
             padding: 15px;
-            background-color: #1E2A44;
-            border-bottom: 1px solid #4682B4;
+            background-color: #2E3537;
+            border-bottom: 1px solid #FFFFFF;
             font-size: 22px;
             font-weight: bold;
             color: #FFFFFF;
@@ -106,9 +106,9 @@
         .ticker-display {
             font-size: 24px;
             margin-bottom: 15px;
-            color: #E0FFFF;
+            color: #FFFFFF;
             text-align: center;
-            background-color: rgba(30, 42, 68, 0.3);
+            background-color: #2E3537;
             padding: 10px;
             border-radius: 4px;
         }
@@ -119,16 +119,16 @@
             margin-bottom: 10px;
         }
         .arrow-button, .toggle-button {
-            background-color: #2E4057;
+            background-color: #2E3537;
             color: #FFFFFF;
-            border: 1px solid #4682B4;
+            border: 1px solid #FFFFFF;
             border-radius: 4px;
             padding: 8px 12px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
         .arrow-button:hover, .toggle-button:hover {
-            background-color: #3E4A67;
+            background-color: #3E4547;
         }
         #historic-error {
             color: #FF6666;
@@ -172,6 +172,13 @@
 <body>
     <div class="sidebar">
         <div class="header">Stock Overview</div>
+        <div class="select-container">
+            <label for="source-select">Source: </label>
+            <select id="source-select">
+                <option value="nasdaq">Nasdaq</option>
+                <option value="yfinance" selected>yfinance</option>
+            </select>
+        </div>
         <select id="date-select"></select>
         <select id="time-select"></select>
         <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
@@ -359,14 +366,15 @@
 
         async function loadData(timestamp) {
             try {
-                const tickerSearch = document.getElementById('ticker-search');
-                let selectedTicker = tickerSearch.value.toUpperCase() || '';
+                const source = document.getElementById('source-select').value;
+                const prefix = source === 'yfinance' ? '_yfinance' : '';
+                let selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || '';
                 if (!selectedTicker && rankingData.length > 0) {
                     const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
                     selectedTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
                 }
                 document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker || 'N/A'}`;
-                console.log(`Loading data for timestamp: ${timestamp}, ticker: ${selectedTicker}`);
+                console.log(`Loading data for timestamp: ${timestamp}, source: ${source}, ticker: ${selectedTicker}`);
 
                 const checkFileExists = async (url) => {
                     try {
@@ -377,15 +385,15 @@
                     }
                 };
 
-                const rankingResponse = await fetch(`data/${timestamp}/ranking/ranking_yfinance.csv?v=${Date.now()}`);
+                const rankingResponse = await fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=${Date.now()}`);
                 if (!rankingResponse.ok) {
-                    throw new Error(`Ranking file not found: data/${timestamp}/ranking/ranking_yfinance.csv`);
+                    throw new Error(`Ranking file not found: data/${timestamp}/ranking/ranking${prefix}.csv`);
                 }
                 rankingData = parseCSV(await rankingResponse.text());
                 console.log('Ranking data loaded:', rankingData);
                 populateTickerSearch();
-                if (selectedTicker && !tickerSearch.value) {
-                    tickerSearch.value = selectedTicker;
+                if (selectedTicker && !document.getElementById('ticker-search').value) {
+                    document.getElementById('ticker-search').value = selectedTicker;
                     document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker}`;
                 }
 
@@ -404,10 +412,10 @@
                 }
 
                 const [processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists] = await Promise.all([
-                    checkFileExists(`data/${timestamp}/processed_yfinance/processed_yfinance_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/raw_yfinance/raw_yfinance_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/skew_metrics_yfinance/skew_metrics_yfinance_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/slope_metrics_yfinance/slope_metrics_yfinance_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`),
                     checkFileExists(`data/${timestamp}/historic/historic_${selectedTicker}.csv`),
                     checkFileExists(`data/Events.csv`)
                 ]);
@@ -432,10 +440,10 @@
                 };
 
                 await Promise.all([
-                    fetchWithErrorHandling(`data/${timestamp}/processed_yfinance/processed_yfinance_${selectedTicker}.csv`, data),
-                    fetchWithErrorHandling(`data/${timestamp}/raw_yfinance/raw_yfinance_${selectedTicker}.csv`, rawData),
-                    fetchWithErrorHandling(`data/${timestamp}/skew_metrics_yfinance/skew_metrics_yfinance_${selectedTicker}.csv`, skewData),
-                    fetchWithErrorHandling(`data/${timestamp}/slope_metrics_yfinance/slope_metrics_yfinance_${selectedTicker}.csv`, slopeData),
+                    fetchWithErrorHandling(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, data),
+                    fetchWithErrorHandling(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, rawData),
+                    fetchWithErrorHandling(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, skewData),
+                    fetchWithErrorHandling(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, slopeData),
                     fetchWithErrorHandling(`data/${timestamp}/historic/historic_${selectedTicker}.csv`, historicData).then(() => {
                         document.getElementById('historic-error').style.display = historicData.length ? 'none' : 'block';
                     }),
@@ -720,7 +728,11 @@
                 table.innerHTML = '';
                 console.log('Updating ranking table');
 
-                const sortedData = [...rankingData].sort((a, b) => (b['Open Interest'] || 0) - (a['Open Interest'] || 0));
+                const sortedData = [...rankingData].sort((a, b) => {
+                    const aValue = Number.isFinite(a['Open Interest']) ? parseInt(a['Open Interest']) : -Infinity;
+                    const bValue = Number.isFinite(b['Open Interest']) ? parseInt(b['Open Interest']) : -Infinity;
+                    return bValue - aValue;
+                });
                 sortedData.forEach((item, index) => {
                     item.CalculatedRank = index + 1;
                 });
@@ -753,11 +765,8 @@
                         const cell = row.insertCell();
                         let value = col === 'Rank' ? item.CalculatedRank : item[col];
                         if (Number.isFinite(value)) {
-                            if (col.includes('(%)') && col !== 'Open Interest') {
-                                value = value.toFixed(2);
-                                cell.style.color = value < 0 ? '#FF0000' : value > 0 ? '#00FF00' : '#FFFFFF';
-                            } else if (col === 'Volume' || col === 'Open Interest') {
-                                value = Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                            if (col === 'Volume' || col === 'Open Interest') {
+                                value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                             } else if (col !== 'Rank') {
                                 value = value.toFixed(2);
                             }
@@ -765,6 +774,10 @@
                             value = value || 'N/A';
                         }
                         cell.textContent = value;
+                        if ((col.includes('(%)') || col.includes('Rvol') || col.includes('Weighted IV') || col === 'Rvol 100d - Weighted IV') && Number.isFinite(parseFloat(item[col]))) {
+                            const val = parseFloat(item[col]);
+                            cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
+                        }
                     });
                 });
                 table.appendChild(tbody);
@@ -813,7 +826,11 @@
                         const cell = row.insertCell();
                         let value = item[col];
                         if (Number.isFinite(value)) {
-                            value = value.toFixed(2);
+                            if (col === 'Volume' || col === 'Open Interest') {
+                                value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                            } else {
+                                value = value.toFixed(2);
+                            }
                         } else {
                             value = value || 'N/A';
                         }
@@ -843,14 +860,22 @@
                 const tbody = table.querySelector('tbody');
                 const rows = Array.from(tbody.querySelectorAll('tr'));
                 rows.sort((a, b) => {
-                    const aValue = a.children[columnIndex].textContent;
-                    const bValue = b.children[columnIndex].textContent;
+                    let aValue = a.children[columnIndex].textContent;
+                    let bValue = b.children[columnIndex].textContent;
                     if (aValue === 'N/A') return 1;
                     if (bValue === 'N/A') return -1;
-                    const aNum = parseFloat(aValue);
-                    const bNum = parseFloat(bValue);
-                    if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
-                        return order === 'desc' ? bNum - aNum : aNum - bNum;
+                    if (column === 'Volume' || column === 'Open Interest') {
+                        aValue = parseInt(aValue.replace(/,/g, '')) || -Infinity;
+                        bValue = parseInt(bValue.replace(/,/g, '')) || -Infinity;
+                    } else if (column === 'Rank') {
+                        aValue = parseInt(aValue);
+                        bValue = parseInt(bValue);
+                    } else {
+                        aValue = parseFloat(aValue) || aValue;
+                        bValue = parseFloat(bValue) || bValue;
+                    }
+                    if (typeof aValue === 'number' && typeof bValue === 'number') {
+                        return order === 'desc' ? bValue - aValue : aValue - bValue;
                     }
                     return order === 'desc' ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
                 });
@@ -954,12 +979,12 @@
                     type: 'line',
                     data: { datasets },
                     options: {
-                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
-                            x: { type: 'linear', title: { display: true, text: 'Moneyness (%)', color: '#E0FFFF' }, min: 0, max: 200, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } },
-                            y: { title: { display: true, text: 'Volatility (%)', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                            x: { type: 'linear', title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' }, min: 0, max: 200, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } },
+                            y: { title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' }, beginAtZero: true, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } }
                         },
-                        backgroundColor: '#222B35'
+                        backgroundColor: '#1C2526'
                     }
                 });
                 createStatsTable(moneynessChart, 'moneyness-vs-iv-chart');
@@ -1060,12 +1085,12 @@
                     type: 'line',
                     data: { datasets },
                     options: {
-                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
-                            x: { type: 'time', time: { unit: 'day' }, title: { display: true, text: 'Expiry Date', color: '#E0FFFF' }, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } },
-                            y: { title: { display: true, text: 'Volatility (%)', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                            x: { type: 'time', time: { unit: 'day' }, title: { display: true, text: 'Expiry Date', color: '#FFFFFF' }, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } },
+                            y: { title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' }, beginAtZero: true, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } }
                         },
-                        backgroundColor: '#222B35'
+                        backgroundColor: '#1C2526'
                     }
                 });
                 createStatsTable(expiryChart, 'expiry-vs-iv-chart');
@@ -1166,19 +1191,19 @@
                     type: 'line',
                     data: { datasets },
                     options: {
-                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
                             x: {
                                 type: 'linear',
-                                title: { display: true, text: 'Delta (%)', color: '#E0FFFF' },
+                                title: { display: true, text: 'Delta (%)', color: '#FFFFFF' },
                                 min: -100,
                                 max: 100,
-                                grid: { color: '#4682B433' },
-                                ticks: { color: '#E0FFFF', callback: value => Math.abs(value).toFixed(0) }
+                                grid: { color: '#FFFFFF33' },
+                                ticks: { color: '#FFFFFF', callback: value => Math.abs(value).toFixed(0) }
                             },
-                            y: { title: { display: true, text: 'Volatility (%)', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                            y: { title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' }, beginAtZero: true, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } }
                         },
-                        backgroundColor: '#222B35'
+                        backgroundColor: '#1C2526'
                     }
                 });
                 createStatsTable(deltaChart, 'delta-vs-iv-chart');
@@ -1194,35 +1219,55 @@
                 console.log('Updating Call Volatility Surface for ticker:', selectedTicker);
 
                 const moneynessValues = [...new Set(filteredData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))].sort((a, b) => a - b);
-                const expiryValues = [...new Set(filteredData.map(item => item.Expiry))].sort((a, b) => new Date(a) - new Date(b));
+                const expiryValues = [...new Set(filteredData.map(item => normalizeDate(item.Expiry)))].sort();
 
                 const x = expiryValues.map(date => new Date(date));
                 const y = moneynessValues.map(m => m * 100);
                 const z = moneynessValues.map(m => {
                     return expiryValues.map(e => {
-                        const point = filteredData.find(item => Math.round(item.Moneyness * 100 / 10) * 0.1 === m && item.Expiry === e);
+                        const point = filteredData.find(item => Math.round(item.Moneyness * 100 / 10) * 0.1 === m && normalizeDate(item.Expiry) === e);
                         return point && Number.isFinite(point.IV_mid) ? point.IV_mid * 100 : null;
                     });
                 });
 
+                const zValues = z.flat().filter(v => Number.isFinite(v));
+                const minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
+                const maxZ = zValues.length > 0 ? Math.max(...zValues) : 100;
+
                 const plotData = [{
                     x, y, z,
                     type: 'surface',
-                    colorscale: 'Viridis',
-                    showscale: true
+                    colorscale: [
+                        [0, 'rgb(0,0,255)'],
+                        [0.25, 'rgb(0,255,255)'],
+                        [0.5, 'rgb(0,255,0)'],
+                        [0.75, 'rgb(255,255,0)'],
+                        [1, 'rgb(255,0,0)']
+                    ],
+                    cmin: minZ,
+                    cmax: maxZ,
+                    showscale: true,
+                    colorbar: {
+                        title: 'Volatility (%)',
+                        titleside: 'right',
+                        titlefont: { color: '#FFFFFF' },
+                        tickfont: { color: '#FFFFFF' }
+                    }
                 }];
 
                 const layout = {
-                    title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#E0FFFF' } },
+                    title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 } },
                     scene: {
-                        xaxis: { title: 'Expiry Date', type: 'date', tickformat: '%Y-%m-%d', color: '#E0FFFF' },
-                        yaxis: { title: 'Moneyness (%)', color: '#E0FFFF' },
-                        zaxis: { title: 'IV (%)', color: '#E0FFFF' },
-                        camera: { eye: { x: 1.5, y: 1.5, z: 0.5 } }
+                        xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF' },
+                        yaxis: { title: 'Moneyness (%)', color: '#FFFFFF' },
+                        zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ] },
+                        aspectmode: 'manual',
+                        aspectratio: { x: 1, y: 1, z: 0.5 },
+                        bgcolor: '#1C2526'
                     },
-                    margin: { l: 20, r: 20, b: 20, t: 40 },
-                    paper_bgcolor: 'rgba(34, 43, 53, 0.9)',
-                    plot_bgcolor: 'rgba(34, 43, 53, 0.9)'
+                    margin: { l: 30, r: 30, b: 30, t: 50 },
+                    paper_bgcolor: '#1C2526',
+                    plot_bgcolor: '#1C2526'
                 };
 
                 Plotly.newPlot('call-vol-surface', plotData, layout);
@@ -1242,6 +1287,7 @@
                 }
             } catch (error) {
                 console.error('Error updating Call Volatility Surface:', error);
+                Plotly.purge('call-vol-surface');
             }
         }
 
@@ -1388,33 +1434,33 @@
                     data: { datasets },
                     options: {
                         plugins: {
-                            legend: { labels: { color: '#E0FFFF' } },
+                            legend: { labels: { color: '#FFFFFF' } },
                             annotation: { annotations }
                         },
                         scales: {
                             x: {
                                 type: 'time',
                                 time: { unit: 'month' },
-                                title: { display: true, text: 'Date', color: '#E0FFFF' },
-                                grid: { color: '#4682B433' },
-                                ticks: { color: '#E0FFFF' }
+                                title: { display: true, text: 'Date', color: '#FFFFFF' },
+                                grid: { color: '#FFFFFF33' },
+                                ticks: { color: '#FFFFFF' }
                             },
                             y: {
-                                title: { display: true, text: 'Stock Price ($)', color: '#E0FFFF' },
+                                title: { display: true, text: 'Stock Price ($)', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#4682B433' },
-                                ticks: { color: '#E0FFFF' }
+                                grid: { color: '#FFFFFF33' },
+                                ticks: { color: '#FFFFFF' }
                             },
                             y1: {
                                 type: 'linear',
                                 position: 'right',
-                                title: { display: true, text: 'Realised Volatility (%)', color: '#E0FFFF' },
+                                title: { display: true, text: 'Realised Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#4682B433' },
-                                ticks: { color: '#E0FFFF' }
+                                grid: { color: '#FFFFFF33' },
+                                ticks: { color: '#FFFFFF' }
                             }
                         },
-                        backgroundColor: '#222B35'
+                        backgroundColor: '#1C2526'
                     }
                 });
                 document.getElementById('historic-error').style.display = 'none';
@@ -1432,7 +1478,7 @@
                 const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
                 const volumes = uniqueTickers.map(ticker => {
                     const tickerData = rankingData.find(item => item.Ticker === ticker);
-                    return tickerData && Number.isFinite(tickerData['Volume']) ? tickerData['Volume'] : 0;
+                    return tickerData && Number.isFinite(tickerData['Volume']) ? parseInt(tickerData['Volume']) : 0;
                 });
                 const backgroundColors = uniqueTickers.map(ticker => ticker === selectedTicker ? '#FFFF00' : '#00BFFF');
                 if (volumeChart) volumeChart.destroy();
@@ -1449,12 +1495,20 @@
                         }]
                     },
                     options: {
-                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
-                            x: { title: { display: true, text: 'Ticker', color: '#E0FFFF' }, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } },
-                            y: { title: { display: true, text: 'Volume', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                            x: { title: { display: true, text: 'Ticker', color: '#FFFFFF' }, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } },
+                            y: {
+                                title: { display: true, text: 'Volume', color: '#FFFFFF' },
+                                beginAtZero: true,
+                                grid: { color: '#FFFFFF33' },
+                                ticks: {
+                                    color: '#FFFFFF',
+                                    callback: value => Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                                }
+                            }
                         },
-                        backgroundColor: '#222B35'
+                        backgroundColor: '#1C2526'
                     }
                 });
                 console.log('Volume chart updated for tickers:', uniqueTickers);
@@ -1469,7 +1523,7 @@
                 const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
                 const openInterests = uniqueTickers.map(ticker => {
                     const tickerData = rankingData.find(item => item.Ticker === ticker);
-                    return tickerData && Number.isFinite(tickerData['Open Interest']) ? tickerData['Open Interest'] : 0;
+                    return tickerData && Number.isFinite(tickerData['Open Interest']) ? parseInt(tickerData['Open Interest']) : 0;
                 });
                 const backgroundColors = uniqueTickers.map(ticker => ticker === selectedTicker ? '#FFFF00' : '#00BFFF');
                 if (openInterestChart) openInterestChart.destroy();
@@ -1486,12 +1540,20 @@
                         }]
                     },
                     options: {
-                        plugins: { legend: { labels: { color: '#E0FFFF' } } },
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
-                            x: { title: { display: true, text: 'Ticker', color: '#E0FFFF' }, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } },
-                            y: { title: { display: true, text: 'Open Interest', color: '#E0FFFF' }, beginAtZero: true, grid: { color: '#4682B433' }, ticks: { color: '#E0FFFF' } }
+                            x: { title: { display: true, text: 'Ticker', color: '#FFFFFF' }, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } },
+                            y: {
+                                title: { display: true, text: 'Open Interest', color: '#FFFFFF' },
+                                beginAtZero: true,
+                                grid: { color: '#FFFFFF33' },
+                                ticks: {
+                                    color: '#FFFFFF',
+                                    callback: value => Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                                }
+                            }
                         },
-                        backgroundColor: '#222B35'
+                        backgroundColor: '#1C2526'
                     }
                 });
                 console.log('Open Interest chart updated for tickers:', uniqueTickers);
@@ -1650,6 +1712,12 @@
                     console.log('History length changed to:', document.getElementById('history-select').value);
                     updateHistoricChart();
                 });
+                document.getElementById('source-select').addEventListener('change', () => {
+                    console.log('Data source changed to:', document.getElementById('source-select').value);
+                    const dateSelect = document.getElementById('date-select');
+                    const timeSelect = document.getElementById('time-select');
+                    loadData(dateSelect.value + '_' + timeSelect.value);
+                });
             } catch (error) {
                 console.error('Error adding keyboard navigation:', error);
             }
@@ -1715,6 +1783,7 @@
                             container.style.display = 'none';
                         });
                         target.style.display = target.classList.contains('overview-container') ? 'flex' : target.classList.contains('volatility-grid') ? 'grid' : 'block';
+                        console.log(`Navigated to section: ${link.getAttribute('href')}`);
                     });
                 });
                 document.querySelector('#overview').style.display = 'flex';
@@ -1753,4 +1822,4 @@
         }
     </script>
 </body>
-</html>
+</html>  
