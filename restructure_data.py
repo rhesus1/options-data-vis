@@ -28,7 +28,7 @@ def split_csv_by_ticker(input_file, output_dir, prefix, file_type):
     
     try:
         df = pd.read_csv(input_file)
-        log_message = f"Successfully read {input_file}, rows: {len(df)}\n"
+        log_message = f"Successfully read {input_file}, rows: {len(df)}, columns: {list(df.columns)}\n"
         print(log_message)
         with open('restructure_log.txt', 'a') as f:
             f.write(log_message)
@@ -122,7 +122,7 @@ def main():
             filename = os.path.basename(file)
             try:
                 # Extract timestamp (e.g., '20250825_2124' from 'raw_yfinance_20250825_2124.csv')
-                timestamp = filename.split(f'{file_type}{prefix}_')[1].split('.csv')[0]
+                timestamp = filename.split(f'{file_type}_')[1].split('.csv')[0]
                 timestamps.add(timestamp)
                 log_message = f"Extracted timestamp {timestamp} from {filename}\n"
                 print(log_message)
