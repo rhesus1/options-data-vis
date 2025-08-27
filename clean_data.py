@@ -61,45 +61,50 @@ def clean_data(file_path):
     return df
 
 def main():
-    # Find the latest raw files
-    raw_files = glob.glob('data/raw_[0-9]*.csv')
-    raw_yfinance_files = glob.glob('data/raw_yfinance_*.csv')
-    if not raw_files and not raw_yfinance_files:
-        print("No raw data files found")
+    # Find the latest timestamp folder
+    timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
+    if not timestamp_dirs:
+        print("No timestamp folders found")
         return
+    latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
+    timestamp = os.path.basename(latest_timestamp_dir)
     
     # Process Nasdaq raw data
-    if raw_files:
-        latest_raw = max(raw_files, key=os.path.getctime)
-        timestamp = os.path.basename(latest_raw).split('raw_')[1].split('.csv')[0]
-        
-        print(f"Processing Nasdaq raw data: {latest_raw}")
-        cleaned_nasdaq_df = clean_data(latest_raw)
-        
-        if not cleaned_nasdaq_df.empty:
-            clean_filename = f'data/cleaned_{timestamp}.csv'
-            cleaned_nasdaq_df.to_csv(clean_filename, index=False)
-            print(f"Cleaned Nasdaq data saved to {clean_filename}")
-        else:
-            print(f"No valid Nasdaq data after cleaning for {latest_raw}")
+    raw_dir = f'data/{timestamp}/raw'
+    if os.path.exists(raw_dir):
+        raw_files = glob.glob(f'{raw_dir}/raw_*.csv')
+        cleaned_dir = f'data/{timestamp}/cleaned'
+        os.makedirs(cleaned_dir, exist_ok=True)
+        for raw_file in raw_files:
+            ticker = os.path.basename(raw_file).split('raw_')[1].split('.csv')[0]
+            print(f"Processing Nasdaq raw data: {raw_file}")
+            cleaned_df = clean_data(raw_file)
+            if not cleaned_df.empty:
+                clean_filename = f'{cleaned_dir}/cleaned_{ticker}.csv'
+                cleaned_df.to_csv(clean_filename, index=False)
+                print(f"Cleaned Nasdaq data for {ticker} saved to {clean_filename}")
+            else:
+                print(f"No valid Nasdaq data after cleaning for {raw_file}")
     else:
-        print("No Nasdaq raw data files found")
+        print("No Nasdaq raw directory found")
     
     # Process yfinance raw data
-    if raw_yfinance_files:
-        latest_yfinance_raw = max(raw_yfinance_files, key=os.path.getctime)
-        timestamp = os.path.basename(latest_yfinance_raw).split('raw_yfinance_')[1].split('.csv')[0]
-        
-        print(f"Processing yfinance raw data: {latest_yfinance_raw}")
-        cleaned_yfinance_df = clean_data(latest_yfinance_raw)
-        
-        if not cleaned_yfinance_df.empty:
-            clean_yfinance_filename = f'data/cleaned_yfinance_{timestamp}.csv'
-            cleaned_yfinance_df.to_csv(clean_yfinance_filename, index=False)
-            print(f"Cleaned yfinance data saved to {clean_yfinance_filename}")
-        else:
-            print(f"No valid yfinance data after cleaning for {latest_yfinance_raw}")
+    raw_yfinance_dir = f'data/{timestamp}/raw_yfinance'
+    if os.path.exists(raw_yfinance_dir):
+        raw_yfinance_files = glob.glob(f'{raw_yfinance_dir}/raw_yfinance_*.csv')
+        cleaned_yfinance_dir = f'data/{timestamp}/cleaned_yfinance'
+        os.makedirs(cleaned_yfinance_dir, exist_ok=True)
+        for raw_file in raw_yfinance_files:
+            ticker = os.path.basename(raw_file).split('raw_yfinance_')[1].split('.csv')[0]
+            print(f"Processing yfinance raw data: {raw_file}")
+            cleaned_df = clean_data(raw_file)
+            if not cleaned_df.empty:
+                clean_filename = f'{cleaned_yfinance_dir}/cleaned_yfinance_{ticker}.csv'
+                cleaned_df.to_csv(clean_filename, index=False)
+                print(f"Cleaned yfinance data for {ticker} saved to {clean_filename}")
+            else:
+                print(f"No valid yfinance data after cleaning for {raw_file}")
     else:
-        print("No yfinance raw data files found")
+        print("No yfinance raw directory found")
 
 main()
