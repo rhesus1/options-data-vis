@@ -11,7 +11,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #1C2526;
+            background-color: #1E3A8A; /* Blue */
             color: #FFFFFF;
             margin: 0;
             padding: 0;
@@ -21,50 +21,50 @@
         }
         .sidebar {
             width: 250px;
-            background: #2E3537;
+            background: #2B2D42; /* Darker blue/purple */
             padding: 20px;
-            border-right: 1px solid #FFFFFF;
+            border-right: 1px solid #A1A1AA; /* Zinc-500 */
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
         }
         .sidebar a {
-            color: #00BFFF;
+            color: #A78BFA; /* Light purple */
             text-decoration: none;
             display: block;
             padding: 12px 15px;
             font-size: 16px;
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease;
             border-radius: 4px;
         }
         .sidebar a:hover {
             color: #FFFFFF;
-            background-color: #3E4547;
+            background-color: #4B5563; /* Zinc-600 */
             text-decoration: none;
         }
         .sidebar select, .sidebar input {
             width: 100%;
             padding: 8px;
-            background-color: #2E3537;
+            background-color: #2B2D42; /* Darker blue/purple */
             color: #FFFFFF;
-            border: 1px solid #FFFFFF;
+            border: 1px solid #A1A1AA; /* Zinc-500 */
             border-radius: 4px;
             margin-bottom: 15px;
             font-size: 14px;
             transition: border-color 0.3s ease;
         }
         .sidebar select:focus, .sidebar input:focus {
-            border-color: #00BFFF;
+            border-color: #A78BFA; /* Light purple */
             outline: none;
         }
         .main-content {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background: #1C2526;
+            background: #1E3A8A; /* Blue */
         }
         .chart-container {
-            background-color: #1C2526;
+            background-color: #2B2D42; /* Darker blue/purple */
             padding: 20px;
-            border: 1px solid #FFFFFF;
+            border: 1px solid #A1A1AA; /* Zinc-500 */
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -73,31 +73,32 @@
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
-            background-color: #2E3537;
+            background-color: #2B2D42; /* Darker blue/purple */
         }
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td {
-            border: 1px solid #FFFFFF;
+            border: 1px solid #A1A1AA; /* Zinc-500 */
             padding: 10px;
             text-align: left;
             color: #FFFFFF;
         }
         .stats-table th, .skew-table th, .summary-table th, .ranking-table th, .raw-data-table th {
-            background-color: #3E4547;
+            background-color: #4B5563; /* Zinc-600 */
             font-weight: bold;
             cursor: pointer;
         }
         .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
-            background-color: #4E5557;
+            background-color: #6B7280; /* Zinc-500 */
         }
         canvas {
             max-width: 100%;
             border-radius: 4px;
+            background-color: #2B2D42; /* Darker blue/purple */
         }
         .header {
             text-align: center;
             padding: 15px;
-            background-color: #2E3537;
-            border-bottom: 1px solid #FFFFFF;
+            background-color: #2B2D42; /* Darker blue/purple */
+            border-bottom: 1px solid #A1A1AA; /* Zinc-500 */
             font-size: 22px;
             font-weight: bold;
             color: #FFFFFF;
@@ -108,7 +109,7 @@
             margin-bottom: 15px;
             color: #FFFFFF;
             text-align: center;
-            background-color: #2E3537;
+            background-color: #2B2D42; /* Darker blue/purple */
             padding: 10px;
             border-radius: 4px;
         }
@@ -119,19 +120,19 @@
             margin-bottom: 10px;
         }
         .arrow-button, .toggle-button {
-            background-color: #2E3537;
+            background-color: #2B2D42; /* Darker blue/purple */
             color: #FFFFFF;
-            border: 1px solid #FFFFFF;
+            border: 1px solid #A1A1AA; /* Zinc-500 */
             border-radius: 4px;
             padding: 8px 12px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
         .arrow-button:hover, .toggle-button:hover {
-            background-color: #3E4547;
+            background-color: #4B5563; /* Zinc-600 */
         }
         #historic-error {
-            color: #FF6666;
+            color: #EF4444; /* Red for visibility */
             padding: 10px;
             text-align: center;
         }
@@ -157,6 +158,7 @@
         }
         #call-vol-surface {
             height: 400px;
+            background-color: #2B2D42; /* Darker blue/purple */
         }
         .slider-container {
             margin-top: 10px;
@@ -618,7 +620,7 @@
                 }
                 const table = document.getElementById('summary-table');
                 table.innerHTML = '';
-                console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry);
+                console.log('Updating summary table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'rankingData:', rankingData);
 
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
@@ -675,6 +677,7 @@
                     );
                 } else {
                     metrics.push({ name: 'Ticker', value: selectedTicker || 'N/A', key: 'Ticker' });
+                    console.warn('No ranking data for ticker:', selectedTicker);
                 }
 
                 let atmRatio = 'N/A';
@@ -706,7 +709,7 @@
                     value1Cell.textContent = metrics[i].value;
                     if (changeMetrics.includes(metrics[i].name) && Number.isFinite(parseFloat(metrics[i].value))) {
                         const val = parseFloat(metrics[i].value);
-                        value1Cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
+                        value1Cell.style.color = val < 0 ? '#EF4444' : val > 0 ? '#10B981' : '#FFFFFF'; // Red/green for blue/purple theme
                     }
                     const metric2Cell = row.insertCell();
                     metric2Cell.textContent = i + 1 < metrics.length ? metrics[i + 1].name : '';
@@ -714,7 +717,7 @@
                     value2Cell.textContent = i + 1 < metrics.length ? metrics[i + 1].value : '';
                     if (i + 1 < metrics.length && changeMetrics.includes(metrics[i + 1].name) && Number.isFinite(parseFloat(metrics[i + 1].value))) {
                         const val = parseFloat(metrics[i + 1].value);
-                        value2Cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
+                        value2Cell.style.color = val < 0 ? '#EF4444' : val > 0 ? '#10B981' : '#FFFFFF';
                     }
                 }
                 table.appendChild(tbody);
@@ -736,7 +739,6 @@
                 table.innerHTML = '';
                 console.log('Updating ranking table with data:', rankingData);
 
-                // Use exact column headers from ranking_yfinance.csv
                 const columns = [
                     'Rank',
                     'Ticker',
@@ -773,7 +775,6 @@
                     'OI 1w (%)'
                 ];
 
-                // Sort by Open Interest (descending) and assign ranks
                 const sortedData = [...rankingData].sort((a, b) => {
                     const aValue = Number.isFinite(a['Open Interest']) ? parseInt(a['Open Interest']) : -Infinity;
                     const bValue = Number.isFinite(b['Open Interest']) ? parseInt(b['Open Interest']) : -Infinity;
@@ -783,7 +784,8 @@
                     item.CalculatedRank = index + 1;
                 });
 
-                // Create table header
+                console.log('Sample ranks:', sortedData.slice(0, 5).map(item => ({ Ticker: item.Ticker, Rank: item.CalculatedRank })));
+
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
                 columns.forEach((text, index) => {
@@ -796,7 +798,6 @@
                 });
                 table.appendChild(thead);
 
-                // Create table body
                 const tbody = document.createElement('tbody');
                 sortedData.forEach(item => {
                     const row = tbody.insertRow();
@@ -813,7 +814,7 @@
                         cell.textContent = value;
                         if ((col.includes('(%)') || col.includes('Rvol') || col.includes('Weighted IV') || col === 'Rvol100d - Weighted IV') && Number.isFinite(parseFloat(item[col]))) {
                             const val = parseFloat(item[col]);
-                            cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
+                            cell.style.color = val < 0 ? '#EF4444' : val > 0 ? '#10B981' : '#FFFFFF'; // Red/green for blue/purple theme
                         }
                     });
                 });
@@ -1333,7 +1334,7 @@
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
                 const historyLength = document.getElementById('history-select').value;
-                console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength);
+                console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength, 'historicData:', historicData);
 
                 if (!historicData || historicData.length === 0) {
                     if (historicChart) historicChart.destroy();
@@ -1361,18 +1362,20 @@
 
                 const dates = filteredHistoric.map(item => new Date(item.Date));
                 const prices = filteredHistoric.map(item => parseFloat(item.Close));
-                const vol30 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_30) || 0);
-                const vol60 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_60) || 0);
-                const vol90 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_100) || 0);
-                const vol180 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_180) || 0);
-                const vol360 = filteredHistoric.map(item => parseFloat(item.Realised_Vol_252) || 0);
+                const vol30 = filteredHistoric.map(item => Number.isFinite(item['Realised_Vol_30']) ? parseFloat(item['Realised_Vol_30']) : 0);
+                const vol60 = filteredHistoric.map(item => Number.isFinite(item['Realised_Vol_60']) ? parseFloat(item['Realised_Vol_60']) : 0);
+                const vol90 = filteredHistoric.map(item => Number.isFinite(item['Realised_Vol_100']) ? parseFloat(item['Realised_Vol_100']) : 0);
+                const vol180 = filteredHistoric.map(item => Number.isFinite(item['Realised_Vol_180']) ? parseFloat(item['Realised_Vol_180']) : 0);
+                const vol360 = filteredHistoric.map(item => Number.isFinite(item['Realised_Vol_252']) ? parseFloat(item['Realised_Vol_252']) : 0);
+
+                console.log('Historic chart data sample:', { dates: dates.slice(0, 5), prices: prices.slice(0, 5), vol30: vol30.slice(0, 5), vol60: vol60.slice(0, 5) });
 
                 const datasets = [
                     {
                         label: 'Stock Price',
                         data: prices.map((p, i) => ({ x: dates[i], y: p })),
-                        borderColor: '#FFFF00',
-                        backgroundColor: '#FFFF00',
+                        borderColor: '#A78BFA', // Blue/purple hue
+                        backgroundColor: '#A78BFA',
                         pointRadius: 1,
                         fill: false,
                         showLine: true,
@@ -1381,8 +1384,8 @@
                     {
                         label: '30-day Realised Vol (%)',
                         data: vol30.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#00BFFF',
-                        backgroundColor: '#00BFFF',
+                        borderColor: '#60A5FA',
+                        backgroundColor: '#60A5FA',
                         pointRadius: 1,
                         fill: false,
                         showLine: true,
@@ -1392,8 +1395,8 @@
                     {
                         label: '60-day Realised Vol (%)',
                         data: vol60.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#8A2BE2',
-                        backgroundColor: '#8A2BE2',
+                        borderColor: '#7E22CE',
+                        backgroundColor: '#7E22CE',
                         pointRadius: 1,
                         fill: false,
                         showLine: true,
@@ -1480,13 +1483,13 @@
                                 type: 'time',
                                 time: { unit: 'month' },
                                 title: { display: true, text: 'Date', color: '#FFFFFF' },
-                                grid: { color: '#FFFFFF33' },
+                                grid: { color: '#A1A1AA' }, // Zinc-500 for blue/purple theme
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Stock Price ($)', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#FFFFFF33' },
+                                grid: { color: '#A1A1AA' },
                                 ticks: { color: '#FFFFFF' }
                             },
                             y1: {
@@ -1494,11 +1497,11 @@
                                 position: 'right',
                                 title: { display: true, text: 'Realised Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#FFFFFF33' },
+                                grid: { color: '#A1A1AA' },
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
-                        backgroundColor: '#1C2526'
+                        backgroundColor: '#1E3A8A' // Blue/purple hue
                     }
                 });
                 document.getElementById('historic-error').style.display = 'none';
@@ -1783,22 +1786,19 @@
                         });
 
                         const loadInitialData = async () => {
+                            let timestamp = '20250827_2136'; // Fallback to known valid timestamp
                             if (dateSelect.options.length > 0) {
                                 dateSelect.value = dateSelect.options[0].value;
                                 await updateTimeOptions(dateSelect.value, dates);
-                                const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '');
-                                await loadData(timestamp);
-                                updateCharts();
-                                updateRawDataTable();
-                                updateRankingTable();
-                                updateSummaryTable();
-                                updateSkewTable();
-                                console.log('Initial data and tables loaded for timestamp:', timestamp);
-                            } else {
-                                console.warn('No dates available in dates.json');
-                                document.getElementById('historic-error').style.display = 'block';
-                                document.getElementById('historic-error').textContent = 'No date options available';
+                                timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                             }
+                            await loadData(timestamp);
+                            updateCharts();
+                            updateRawDataTable();
+                            updateRankingTable();
+                            updateSummaryTable();
+                            updateSkewTable();
+                            console.log('Initial data and tables loaded for timestamp:', timestamp);
                         };
 
                         loadInitialData();
@@ -1806,7 +1806,7 @@
                         dateSelect.addEventListener('change', async (e) => {
                             console.log('Date select changed to:', e.target.value);
                             await updateTimeOptions(e.target.value, dates);
-                            const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '');
+                            const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                             await loadData(timestamp);
                             updateCharts();
                             updateRawDataTable();
@@ -1831,7 +1831,7 @@
                         tickerSearch.addEventListener('input', async () => {
                             console.log('Ticker changed to:', tickerSearch.value);
                             document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
-                            const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '');
+                            const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                             await loadData(timestamp);
                             updateCharts();
                             updateRawDataTable();
@@ -1861,10 +1861,11 @@
                         });
 
                         // Show the target container
+                        const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                         if (target.classList.contains('overview-container')) {
                             target.style.display = 'flex';
                             console.log('Showing Overview with flex layout');
-                            await loadData(dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : ''));
+                            await loadData(timestamp);
                             updateCharts();
                             updateSummaryTable();
                             updateSkewTable();
@@ -1872,20 +1873,20 @@
                         } else if (target.classList.contains('volatility-grid')) {
                             target.style.display = 'grid';
                             console.log('Showing Volatility with grid layout');
-                            await loadData(dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : ''));
+                            await loadData(timestamp);
                             updateCharts();
                             console.log('Updated Volatility charts');
                         } else if (targetId === 'ranking') {
                             target.style.display = 'block';
                             console.log('Showing Ranking with block layout');
-                            await loadData(dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : ''));
+                            await loadData(timestamp);
                             updateCharts();
                             updateRankingTable();
                             console.log('Updated Ranking table');
                         } else if (targetId === 'data-table') {
                             target.style.display = 'block';
                             console.log('Showing Data Table with block layout');
-                            await loadData(dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : ''));
+                            await loadData(timestamp);
                             updateCharts();
                             updateRawDataTable();
                             console.log('Updated Data Table');
