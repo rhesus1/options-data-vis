@@ -18,7 +18,7 @@ def is_valid_timestamp(timestamp):
     except ValueError:
         return False
 
-def split_csv_by_ticker(input_file, output_dir, file_type, ticker_suffix=''):
+def split_csv_by_ticker(input_file, output_dir, file_type):
     """
     Split a CSV file by ticker and save to the new folder structure.
     
@@ -26,7 +26,6 @@ def split_csv_by_ticker(input_file, output_dir, file_type, ticker_suffix=''):
         input_file (str): Path to the input CSV file (e.g., 'data/raw_yfinance_20250825_2124.csv').
         output_dir (str): Base directory for output (e.g., 'data/20250825_2124/raw_yfinance/').
         file_type (str): Type of file ('raw_yfinance', 'cleaned', etc.).
-        ticker_suffix (str): Suffix for ticker files ('_yfinance' or empty).
     """
     log_message = f"Attempting to process file: {input_file}\n"
     print(log_message)
@@ -70,10 +69,10 @@ def split_csv_by_ticker(input_file, output_dir, file_type, ticker_suffix=''):
                 f.write(log_message)
             continue
         ticker_df = df[df['Ticker'] == ticker]
-        output_file = f"{output_dir}/{file_type}{ticker_suffix}_{ticker}.csv"
+        output_file = f"{output_dir}/{file_type}_{ticker}.csv"
         try:
             ticker_df.to_csv(output_file, index=False)
-            log_message = f"Saved {file_type}{ticker_suffix}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}\n"
+            log_message = f"Saved {file_type}_{ticker}.csv to {output_dir}, rows: {len(ticker_df)}\n"
             print(log_message)
             with open('restructure_log.txt', 'a') as f:
                 f.write(log_message)
@@ -84,6 +83,28 @@ def split_csv_by_ticker(input_file, output_dir, file_type, ticker_suffix=''):
                 f.write(log_message)
             return False
     return True
+
+def clean_incorrect_files(base_dir):
+    """Remove files with incorrect '_yfinance_yfinance' naming."""
+    log_message = f"Cleaning incorrect files in {base_dir}\n"
+    print(log_message)
+    with open('restructure_log.txt', 'a') as f:
+        f.write(log_message)
+    
+    incorrect_pattern = f"{base_dir}/*/*_yfinance_yfinance_*.csv"
+    incorrect_files = glob.glob(incorrect_pattern, recursive=True)
+    for file in incorrect_files:
+        try:
+            os.remove(file)
+            log_message = f"Deleted incorrect file: {file}\n"
+            print(log_message)
+            with open('restructure_log.txt', 'a') as f:
+                f.write(log_message)
+        except Exception as e:
+            log_message = f"Error deleting {file}: {e}\n"
+            print(log_message)
+            with open('restructure_log.txt', 'a') as f:
+                f.write(log_message)
 
 def main():
     # Create a log file for debugging
@@ -118,11 +139,11 @@ def main():
     
     # Define file patterns for yfinance, Nasdaq, and ranking
     file_patterns = [
-        ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', '_yfinance'),
-        ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', '_yfinance'),
-        ('data/processed_yfinance_[0-9]*.csv', 'processed_yfinance', '_yfinance'),
-        ('data/skew_metrics_yfinance_[0-9]*.csv', 'skew_metrics_yfinance', '_yfinance'),
-        ('data/slope_metrics_yfinance_[0-9]*.csv', 'slope_metrics_yfinance', '_yfinance'),
+        ('data/raw_yfinance_[0-9]*.csv', 'raw_yfinance', ''),
+        ('data/cleaned_yfinance_[0-9]*.csv', 'cleaned_yfinance', ''),
+        ('data/processed_yfinance_[0-9]*.csv', 'processed_yfinance', ''),
+        ('data/skew_metrics_yfinance_[0-9]*.csv', 'skew_metrics_yfinance', ''),
+        ('data/slope_metrics_yfinance_[0-9]*.csv', 'slope_metrics_yfinance', ''),
         ('data/ranking_yfinance_[0-9]*.csv', 'ranking', '_yfinance'),
         ('data/raw_[0-9]*.csv', 'raw', ''),
         ('data/cleaned_[0-9]*.csv', 'cleaned', ''),
@@ -183,6 +204,11 @@ def main():
             with open(log_file, 'a') as f:
                 f.write(log_message)
     
+    # Clean incorrect files before processing
+    for timestamp in timestamps:
+        base_dir = f'data/{timestamp}'
+        clean_incorrect_files(base_dir)
+    
     # Process each file
     for file, (timestamp, file_type, ticker_suffix) in file_timestamp_map.items():
         log_message = f"Processing file: {file} for timestamp: {timestamp}\n"
@@ -221,6 +247,6 @@ def main():
                     f.write(log_message)
         else:
             # Split other files by ticker
-            split_csv_by_ticker(file, dir_map[file_type], file_type, ticker_suffix)
+            split_csv_by_ticker(file, dir_map[file_type], file_type)
 
 main()
