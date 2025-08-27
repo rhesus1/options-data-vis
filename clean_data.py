@@ -36,7 +36,7 @@ def clean_data(file_path):
         mid = (group['Bid'] + group['Ask']) / 2
         spread = group['Ask'] - group['Bid']
         sm_percent = 100 * (spread / mid)
-        # Avoid division by zero in sm_percent, though already filtered mid > 0; if sm_percent == 0, weight would be inf, but handle if needed
+        # Avoid division by zero in sm_percent
         group['weight'] = np.log(1 + group['Open Interest']) / sm_percent
         
         # Remove rows where sm_percent == 0 to avoid inf
