@@ -407,8 +407,7 @@
                     eventsData = [];
                     updateDropdowns();
                     updateCharts();
-                    updateRawDataTable();
-                    return;
+                    return Promise.resolve();
                 }
 
                 const [processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists] = await Promise.all([
@@ -452,7 +451,7 @@
 
                 updateDropdowns();
                 updateCharts();
-                updateRawDataTable();
+                return Promise.resolve();
             } catch (error) {
                 console.error('Error in loadData:', error);
                 document.getElementById('ticker-search').value = '';
@@ -466,8 +465,7 @@
                 rankingData = [];
                 updateDropdowns();
                 updateCharts();
-                updateRawDataTable();
-                document.getElementById('historic-error').style.display = 'block';
+                return Promise.resolve();
             }
         }
 
@@ -726,8 +724,46 @@
             try {
                 const table = document.getElementById('ranking-table');
                 table.innerHTML = '';
-                console.log('Updating ranking table');
+                console.log('Updating ranking table with data:', rankingData);
 
+                // Use exact column headers from ranking_yfinance.csv
+                const columns = [
+                    'Rank',
+                    'Ticker',
+                    'Latest Close',
+                    'Latest High',
+                    'Latest Low',
+                    'Close 1d (%)',
+                    'Close 1w (%)',
+                    'High 1d (%)',
+                    'High 1w (%)',
+                    'Low 1d (%)',
+                    'Low 1w (%)',
+                    'Realised Volatility 30d (%)',
+                    'Realised Volatility 60d (%)',
+                    'Realised Volatility 100d (%)',
+                    'Realised Volatility 100d 1d (%)',
+                    'Realised Volatility 100d 1w (%)',
+                    'Min Realised Volatility 100d (1y)',
+                    'Max Realised Volatility 100d (1y)',
+                    'Mean Realised Volatility 100d (1y)',
+                    'Rvol 100d Percentile (%)',
+                    'Rvol 100d Z-Score Percentile (%)',
+                    'Realised Volatility 180d (%)',
+                    'Realised Volatility 252d (%)',
+                    'Weighted IV (%)',
+                    'Weighted IV 1d (%)',
+                    'Weighted IV 1w (%)',
+                    'Rvol100d - Weighted IV',
+                    'Volume',
+                    'Volume 1d (%)',
+                    'Volume 1w (%)',
+                    'Open Interest',
+                    'OI 1d (%)',
+                    'OI 1w (%)'
+                ];
+
+                // Sort by Open Interest (descending) and assign ranks
                 const sortedData = [...rankingData].sort((a, b) => {
                     const aValue = Number.isFinite(a['Open Interest']) ? parseInt(a['Open Interest']) : -Infinity;
                     const bValue = Number.isFinite(b['Open Interest']) ? parseInt(b['Open Interest']) : -Infinity;
@@ -737,17 +773,9 @@
                     item.CalculatedRank = index + 1;
                 });
 
+                // Create table header
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
-                const columns = [
-                    'Rank', 'Ticker', 'Latest Close ($)', 'Latest High ($)', 'Latest Low ($)',
-                    'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
-                    'Rvol 30d (%)', 'Rvol 60d (%)', 'Rvol 100d (%)', 'Rvol 100d 1d (%)', 'Rvol 100d 1w (%)',
-                    'Min Rvol 100d (1y)', 'Max Rvol 100d (1y)', 'Mean Rvol 100d (1y)', 'Rvol 100d Percentile (%)',
-                    'Rvol 100d Z-Score Percentile (%)', 'Rvol 180d (%)', 'Rvol 252d (%)', 'Weighted IV (%)',
-                    'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Rvol 100d - Weighted IV', 'Volume', 'Vol 1d (%)',
-                    'Vol 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
-                ];
                 columns.forEach((text, index) => {
                     const th = document.createElement('th');
                     th.textContent = text;
@@ -758,29 +786,29 @@
                 });
                 table.appendChild(thead);
 
+                // Create table body
                 const tbody = document.createElement('tbody');
                 sortedData.forEach(item => {
                     const row = tbody.insertRow();
                     columns.forEach(col => {
                         const cell = row.insertCell();
                         let value = col === 'Rank' ? item.CalculatedRank : item[col];
-                        if (Number.isFinite(value)) {
-                            if (col === 'Volume' || col === 'Open Interest') {
-                                value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                            } else if (col !== 'Rank') {
-                                value = value.toFixed(2);
-                            }
+                        if (col === 'Volume' || col === 'Open Interest') {
+                            value = Number.isFinite(value) ? parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A';
+                        } else if (Number.isFinite(value)) {
+                            value = value.toFixed(2);
                         } else {
-                            value = value || 'N/A';
+                            value = value === 'N/A' || value == null ? 'N/A' : value;
                         }
                         cell.textContent = value;
-                        if ((col.includes('(%)') || col.includes('Rvol') || col.includes('Weighted IV') || col === 'Rvol 100d - Weighted IV') && Number.isFinite(parseFloat(item[col]))) {
+                        if ((col.includes('(%)') || col.includes('Rvol') || col.includes('Weighted IV') || col === 'Rvol100d - Weighted IV') && Number.isFinite(parseFloat(item[col]))) {
                             const val = parseFloat(item[col]);
                             cell.style.color = val < 0 ? '#FF0000' : val > 0 ? '#00FF00' : '#FFFFFF';
                         }
                     });
                 });
                 table.appendChild(tbody);
+                console.log('Ranking table updated successfully');
             } catch (error) {
                 console.error('Error updating ranking table:', error);
                 const tbody = document.createElement('tbody');
@@ -1746,7 +1774,13 @@
                         if (dateSelect.options.length > 0) {
                             dateSelect.value = dateSelect.options[0].value;
                             updateTimeOptions(dateSelect.value, dates);
-                            loadData(dateSelect.value + '_' + timeSelect.value);
+                            loadData(dateSelect.value + '_' + timeSelect.value).then(() => {
+                                // Ensure initial table updates after data load
+                                updateCharts();
+                                updateRawDataTable();
+                                updateRankingTable();
+                                console.log('Initial data and tables loaded');
+                            });
                         } else {
                             console.warn('No dates available in dates.json');
                             document.getElementById('historic-error').style.display = 'block';
@@ -1756,16 +1790,31 @@
                         dateSelect.addEventListener('change', (e) => {
                             console.log('Date select changed to:', e.target.value);
                             updateTimeOptions(e.target.value, dates);
-                            loadData(e.target.value + '_' + timeSelect.value);
+                            loadData(e.target.value + '_' + timeSelect.value).then(() => {
+                                updateCharts();
+                                updateRawDataTable();
+                                updateRankingTable();
+                                console.log('Tables updated after date change');
+                            });
                         });
                         timeSelect.addEventListener('change', (e) => {
                             console.log('Time select changed to:', e.target.value);
-                            loadData(dateSelect.value + '_' + e.target.value);
+                            loadData(dateSelect.value + '_' + e.target.value).then(() => {
+                                updateCharts();
+                                updateRawDataTable();
+                                updateRankingTable();
+                                console.log('Tables updated after time change');
+                            });
                         });
                         tickerSearch.addEventListener('input', () => {
                             console.log('Ticker changed to:', tickerSearch.value);
                             document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
-                            loadData(dateSelect.value + '_' + timeSelect.value);
+                            loadData(dateSelect.value + '_' + timeSelect.value).then(() => {
+                                updateCharts();
+                                updateRawDataTable();
+                                updateRankingTable();
+                                console.log('Tables updated after ticker change');
+                            });
                         });
                     })
                     .catch(error => {
@@ -1778,21 +1827,54 @@
                 links.forEach(link => {
                     link.addEventListener('click', (e) => {
                         e.preventDefault();
-                        const target = document.querySelector(link.getAttribute('href'));
-                        document.querySelectorAll('.chart-container, .overview-container, .volatility-grid').forEach(container => {
+                        const targetId = link.getAttribute('href').substring(1); // Remove '#'
+                        const target = document.getElementById(targetId);
+                        console.log(`Navigating to section: ${targetId}`);
+
+                        // Hide all containers
+                        document.querySelectorAll('.overview-container, .volatility-grid, .chart-container').forEach(container => {
                             container.style.display = 'none';
                         });
-                        target.style.display = target.classList.contains('overview-container') ? 'flex' : target.classList.contains('volatility-grid') ? 'grid' : 'block';
-                        console.log(`Navigated to section: ${link.getAttribute('href')}`);
+
+                        // Show the target container with appropriate display style
+                        if (target.classList.contains('overview-container')) {
+                            target.style.display = 'flex';
+                            console.log('Showing Overview with flex layout');
+                        } else if (target.classList.contains('volatility-grid')) {
+                            target.style.display = 'grid';
+                            console.log('Showing Volatility with grid layout');
+                        } else {
+                            target.style.display = 'block';
+                            console.log(`Showing ${targetId} with block layout`);
+                        }
+
+                        // Update all charts and tables
+                        updateCharts();
+                        // Explicitly update tables for specific sections
+                        if (targetId === 'data-table') {
+                            updateRawDataTable();
+                            console.log('Explicitly updated Data Table');
+                        } else if (targetId === 'ranking') {
+                            updateRankingTable();
+                            console.log('Explicitly updated Ranking Table');
+                        } else if (targetId === 'overview') {
+                            updateSummaryTable();
+                            updateSkewTable();
+                            console.log('Explicitly updated Summary and Skew Tables');
+                        }
                     });
                 });
-                document.querySelector('#overview').style.display = 'flex';
+
+                // Ensure Overview is shown on initial load
+                const overviewContainer = document.getElementById('overview');
+                overviewContainer.style.display = 'flex';
+                console.log('Initial load: Showing Overview');
                 addKeyboardNavigation();
             } catch (error) {
                 console.error('Error in DOMContentLoaded:', error);
             }
         });
-
+        
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
