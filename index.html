@@ -26,6 +26,7 @@
             padding: 20px;
             border-right: 1px solid #A855F7;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
         }
     
         .sidebar a {
@@ -77,7 +78,23 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
-            height: 600px; /* Increased height for a larger plot */
+            height: auto; /* Allow dynamic height based on content */
+            min-height: 400px; /* Minimum height to ensure visibility */
+        }
+    
+        .overview-container .chart-container,
+        .volatility-grid .chart-container,
+        .ranking-grid .chart-container {
+            height: 100%; /* Ensure full height within grid or flex container */
+            overflow: hidden; /* Prevent overflow */
+        }
+    
+        canvas {
+            max-width: 100%;
+            max-height: 100%; /* Ensure canvas fits within container */
+            border-radius: 4px;
+            background-color: #25253D;
+            flex-grow: 1; /* Allow canvas to grow within container */
         }
     
         .stats-table, .skew-table, .summary-table, .ranking-table, .raw-data-table {
@@ -102,12 +119,6 @@
     
         .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
             background-color: #4B4B6F;
-        }
-    
-        canvas {
-            max-width: 100%;
-            border-radius: 4px;
-            background-color: #25253D;
         }
     
         .header {
@@ -167,28 +178,24 @@
         .overview-container {
             display: flex;
             gap: 20px;
-        }
-    
-        .overview-container .chart-container {
-            flex: 1;
+            height: 100%; /* Ensure full height of parent */
         }
     
         .volatility-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-        }
-    
-        .volatility-grid .chart-container {
-            margin-bottom: 0;
+            height: 100%; /* Ensure full height of parent */
         }
     
         .ranking-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
+            height: 100%; /* Ensure full height of parent */
         }
     
+        .volatility-grid .chart-container,
         .ranking-grid .chart-container {
             margin-bottom: 0;
         }
@@ -207,6 +214,7 @@
             gap: 15px;
             justify-content: center;
             flex-shrink: 0; /* Prevent sliders from shrinking */
+            padding: 10px 0; /* Add padding for tidiness */
         }
     
         .slider-group {
@@ -216,7 +224,7 @@
         }
     
         .pretty-slider {
-            width: 200px;
+            width: 250px; /* Wider sliders for better interaction */
             padding: 5px 0;
             background: linear-gradient(to right, #A855F7, #D8B4FE);
             -webkit-appearance: none;
@@ -290,6 +298,7 @@
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">Selected Ticker: N/A</div>
         <div id="overview" class="overview-container">
+           <div id="overview" class="overview-container" style="display: flex;">
             <div class="chart-container">
                 <h2>Historic Stock Price with Realised Volatility</h2>
                 <div class="select-container">
@@ -307,6 +316,12 @@
                 </div>
                 <canvas id="historic-price-chart"></canvas>
                 <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
+            </div>
+            <div class="chart-container">
+                <h2>Summary</h2>
+                <table id="summary-table" class="summary-table"></table>
+                <table id="skew-table" class="skew-table"></table>
+            </div>
             </div>
             <div class="chart-container">
                 <h2>Summary</h2>
@@ -1595,13 +1610,6 @@
                 errorDiv.style.display = 'none';
                 console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length);
                 const surfaceData = prepareSurfaceData(filteredData, 'IV_mid');
-                console.log('Surface data:', {
-                    x: surfaceData.x.slice(0, 5),
-                    y: surfaceData.y.slice(0, 5),
-                    z: surfaceData.z.map(row => row.slice(0, 5)),
-                    minZ: surfaceData.minZ,
-                    maxZ: surfaceData.maxZ
-                });
                 if (!surfaceData.x.length || !surfaceData.y.length || !surfaceData.z.length) {
                     Plotly.purge('call-vol-surface');
                     errorDiv.textContent = 'No data for volatility surface';
@@ -1610,7 +1618,7 @@
                 }
                 const minZ = surfaceData.minZ;
                 const maxZ = surfaceData.maxZ;
-                const colorscale = 'Viridis'; // Using named 'Viridis' colorscale
+                const colorscale = 'Viridis';
                 const numTicks = 6;
                 const tickInterval = (maxZ - minZ) / (numTicks - 1);
                 const tickvals = [];
@@ -1639,22 +1647,21 @@
                     }
                 }];
                 const layout = {
-                    title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
+                    title: { text: 'Call Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
                     scene: {
                         xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF', autorange: true },
                         yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', autorange: true },
                         zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
-                        aspectmode: 'auto', // Allow surface to fill space automatically
+                        aspectmode: 'auto',
                         bgcolor: '#1A1A2E'
                     },
-                    margin: { l: 0, r: 0, b: 0, t: 50 }, // Minimize margins
-                    width: '100%', // Ensure full width
-                    height: '100%', // Ensure full height within container
+                    margin: { l: 0, r: 0, b: 0, t: 50 },
+                    width: '100%',
+                    height: '100%',
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
                 };
-                Plotly.react('call-vol-surface', plotData, layout); // Use react for dynamic updates
-                // Update numeric value displays
+                Plotly.react('call-vol-surface', plotData, layout);
                 document.getElementById('moneyness-min-value').textContent = document.getElementById('moneyness-min-slider').value;
                 document.getElementById('moneyness-max-value').textContent = document.getElementById('moneyness-max-slider').value;
                 document.getElementById('expiry-t-min-value').textContent = document.getElementById('expiry-t-min-slider').value;
@@ -1665,7 +1672,7 @@
                 const expiryTMaxSlider = document.getElementById('expiry-t-max-slider');
                 [moneynessMinSlider, moneynessMaxSlider, expiryTMinSlider, expiryTMaxSlider].forEach(slider => {
                     slider.addEventListener('input', () => {
-                        updateCallVolSurface(); // Update plot and values on slider change
+                        updateCallVolSurface();
                         document.getElementById(slider.id.replace('-slider', '-value')).textContent = slider.value;
                     });
                 });
