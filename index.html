@@ -382,6 +382,14 @@
                 let selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}, ticker: ${selectedTicker}`);
 
+                // Reset data arrays to prevent stale data
+                data = [];
+                rawData = [];
+                skewData = [];
+                slopeData = [];
+                historicData = [];
+                eventsData = [];
+
                 const checkFileExists = async (url) => {
                     try {
                         const response = await fetch(url, { method: 'HEAD' });
@@ -418,12 +426,6 @@
 
                 if (!selectedTicker) {
                     console.warn('No ticker selected, clearing data');
-                    data = [];
-                    rawData = [];
-                    skewData = [];
-                    slopeData = [];
-                    historicData = [];
-                    eventsData = [];
                     return Promise.resolve();
                 }
 
@@ -513,8 +515,8 @@
         function updateDropdowns() {
             try {
                 const tickerSearch = document.getElementById('ticker-search');
-                const selectedTicker = tickerSearch.value.toUpperCase();
-                const tickerData = data.filter(item => item.Ticker === selectedTicker);
+                const selectedTicker = tickerSearch.value.toUpperCase() || 'MSTR';
+                const tickerData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
 
                 const moneynessSelect = document.getElementById('moneyness-select');
@@ -541,18 +543,19 @@
                         Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev
                     );
                 }
-
                 if (prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness)) {
                     moneynessSelect.value = prevMoneyness;
                 } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
                     moneynessSelect.value = targetMoneyness.toString();
                 } else if (uniqueRoundedMoneyness.length > 0) {
                     moneynessSelect.value = closestMoneyness.toString();
+                } else {
+                    moneynessSelect.value = '';
                 }
                 console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
 
                 const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
-                    .filter(val => val).sort((a, b) => new Date(a) - new Date(b));
+                    .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
                 expirySelect.innerHTML = '';
                 deltaExpirySelect.innerHTML = '';
                 uniqueExpiries.forEach(val => {
@@ -566,25 +569,28 @@
                 if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
                     expirySelect.value = prevExpiry;
                     deltaExpirySelect.value = prevExpiry;
-                } else if (expirySelect.options.length > 0) {
-                    expirySelect.value = expirySelect.options[0].value;
-                    deltaExpirySelect.value = expirySelect.options[0].value;
+                } else if (uniqueExpiries.length > 0) {
+                    expirySelect.value = uniqueExpiries[0];
+                    deltaExpirySelect.value = uniqueExpiries[0];
+                } else {
+                    expirySelect.value = '';
+                    deltaExpirySelect.value = '';
                 }
                 console.log('Expiry dropdowns updated, selected:', expirySelect.value);
             } catch (error) {
                 console.error('Error updating dropdowns:', error);
             }
         }
-
+        
         function updateSkewTable() {
             try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedExpiry = document.getElementById('expiry-select').value;
-                const normalizedSelectedExpiry = normalizeDate(selectedExpiry);
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
+                let selectedExpiry = document.getElementById('expiry-select').value;
+                const filteredSkewData = skewData.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
+                console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', selectedExpiry, 'Skew data size:', filteredSkewData.length);
+
                 const table = document.getElementById('skew-table');
                 table.innerHTML = '';
-                const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
-                console.log('Updating skew table for ticker:', selectedTicker, 'Expiry:', normalizedSelectedExpiry, 'Skew data size:', filteredSkewData.length);
 
                 if (filteredSkewData.length === 0) {
                     const row = table.insertRow();
@@ -592,6 +598,28 @@
                     cell.textContent = 'No skew metrics available';
                     cell.colSpan = 6;
                     return;
+                }
+
+                // Validate and set default expiry
+                const uniqueExpiries = [...new Set(filteredSkewData.map(item => item.Expiry))]
+                    .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
+                if (!selectedExpiry || isNaN(new Date(selectedExpiry).getTime())) {
+                    selectedExpiry = uniqueExpiries[0] || null;
+                    if (selectedExpiry) {
+                        document.getElementById('expiry-select').value = selectedExpiry;
+                        document.getElementById('delta-expiry-select').value = selectedExpiry;
+                        console.log('Set default expiry:', selectedExpiry);
+                    }
+                }
+
+                let normalizedSelectedExpiry = null;
+                if (selectedExpiry) {
+                    try {
+                        normalizedSelectedExpiry = normalizeDate(selectedExpiry);
+                    } catch (e) {
+                        console.warn('Invalid expiry date, using default:', e);
+                        normalizedSelectedExpiry = uniqueExpiries.length > 0 ? normalizeDate(uniqueExpiries[0]) : null;
+                    }
                 }
 
                 const thead = document.createElement('thead');
@@ -604,9 +632,15 @@
                 table.appendChild(thead);
 
                 const tbody = document.createElement('tbody');
-                const selectedRow = filteredSkewData.find(item => normalizeDate(item.Expiry) === normalizedSelectedExpiry);
+                const selectedRow = normalizedSelectedExpiry ? filteredSkewData.find(item => {
+                    try {
+                        return normalizeDate(item.Expiry) === normalizedSelectedExpiry;
+                    } catch {
+                        return false;
+                    }
+                }) : filteredSkewData[0];
                 const row = tbody.insertRow();
-                if (selectedRow) {
+                if (selectedRow && selectedRow.Expiry) {
                     row.insertCell().textContent = new Date(selectedRow.Expiry).toLocaleDateString('en-GB');
                     row.insertCell().textContent = Number.isFinite(selectedRow.Skew_25_delta) ? selectedRow.Skew_25_delta.toFixed(4) : 'N/A';
                     row.insertCell().textContent = Number.isFinite(selectedRow.Skew_75_delta) ? selectedRow.Skew_75_delta.toFixed(4) : 'N/A';
@@ -619,14 +653,21 @@
                     cell.colSpan = 6;
                 }
                 table.appendChild(tbody);
+                console.log('Skew table updated for expiry:', normalizedSelectedExpiry);
             } catch (error) {
                 console.error('Error updating skew table:', error);
+                const table = document.getElementById('skew-table');
+                table.innerHTML = '';
+                const row = table.insertRow();
+                const cell = row.insertCell();
+                cell.textContent = 'Error loading skew table';
+                cell.colSpan = 6;
             }
         }
 
         function updateSummaryTable() {
             try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
                 const selectedExpiry = document.getElementById('expiry-select').value || '';
                 let normalizedSelectedExpiry = null;
                 if (selectedExpiry) {
@@ -657,7 +698,7 @@
                 ];
 
                 const metrics = [];
-                const filteredRankingData = rankingData.find(item => item.Ticker === selectedTicker);
+                const filteredRankingData = rankingData.find(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
                 if (filteredRankingData) {
                     metrics.push(
                         { name: 'Ticker', value: filteredRankingData['Ticker'] || 'N/A', key: 'Ticker' },
@@ -699,7 +740,7 @@
                 }
 
                 let atmRatio = 'N/A';
-                const filteredSkewData = skewData.filter(item => item.Ticker === selectedTicker);
+                const filteredSkewData = skewData.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
                 const selectedSkewRow = normalizedSelectedExpiry ? filteredSkewData.find(item => {
                     try {
                         return normalizeDate(item.Expiry) === normalizedSelectedExpiry;
@@ -712,7 +753,7 @@
                 }
                 metrics.push({ name: 'ATM 12m/3m Ratio', value: atmRatio, key: 'ATM_12m_3m_Ratio' });
 
-                const filteredSlopeData = slopeData.filter(item => item.Ticker === selectedTicker);
+                const filteredSlopeData = slopeData.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
                 if (filteredSlopeData.length > 0) {
                     filteredSlopeData.forEach(item => {
                         metrics.push({
@@ -1977,24 +2018,58 @@
                     document.querySelectorAll('.overview-container, .volatility-grid, .chart-container').forEach(container => {
                         container.style.display = 'none';
                     });
+                    target.style.display = target.classList.contains('overview-container') ? 'flex' :
+                                          target.classList.contains('volatility-grid') ? 'grid' : 'block';
                     console.log(`Updating section: ${targetId}, data sizes:`, {
                         data: data.length,
                         historicData: historicData.length,
                         skewData: skewData.length,
                         rankingData: rankingData.length
                     });
-                    target.style.display = target.classList.contains('overview-container') ? 'flex' :
-                                          target.classList.contains('volatility-grid') ? 'grid' : 'block';
-                    setTimeout(() => {
+
+                    requestAnimationFrame(() => {
+                        // Clear existing content to prevent overlap
                         if (targetId === 'overview') {
+                            const summaryTable = document.getElementById('summary-table');
+                            const skewTable = document.getElementById('skew-table');
+                            summaryTable.innerHTML = '';
+                            skewTable.innerHTML = '';
                             console.log('Rendering Overview with flex layout');
-                            if (historicData.length) updateHistoricChart();
+                            if (historicData.length) {
+                                // Force canvas redraw
+                                const canvas = document.getElementById('historic-price-chart');
+                                const parent = canvas.parentNode;
+                                const newCanvas = document.createElement('canvas');
+                                newCanvas.id = 'historic-price-chart';
+                                newCanvas.width = canvas.width;
+                                newCanvas.height = canvas.height;
+                                parent.replaceChild(newCanvas, canvas);
+                                updateHistoricChart();
+                            } else {
+                                console.warn('No historic data for Overview');
+                                document.getElementById('historic-error').style.display = 'block';
+                                document.getElementById('historic-error').textContent = 'No historic data available';
+                            }
                             if (rankingData.length) updateSummaryTable();
                             if (skewData.length) updateSkewTable();
                             console.log('Updated Overview charts and tables');
                         } else if (targetId === 'volatility') {
                             console.log('Rendering Volatility with grid layout');
                             if (data.length) {
+                                // Force canvas redraw for Chart.js charts
+                                ['moneyness-vs-iv-chart', 'expiry-vs-iv-chart', 'delta-vs-iv-chart'].forEach(chartId => {
+                                    const canvas = document.getElementById(chartId);
+                                    const parent = canvas.parentNode;
+                                    const newCanvas = document.createElement('canvas');
+                                    newCanvas.id = chartId;
+                                    newCanvas.width = canvas.width;
+                                    newCanvas.height = canvas.height;
+                                    parent.replaceChild(newCanvas, canvas);
+                                });
+                                // Ensure Plotly div is visible and cleared
+                                const plotlyDiv = document.getElementById('call-vol-surface');
+                                plotlyDiv.style.display = 'block';
+                                Plotly.purge('call-vol-surface');
                                 updateMoneynessVsIV();
                                 updateExpiryVsIV();
                                 updateDeltaVsIV();
@@ -2008,6 +2083,16 @@
                         } else if (targetId === 'ranking') {
                             console.log('Rendering Ranking with block layout');
                             if (rankingData.length) {
+                                // Force canvas redraw
+                                ['volume-chart', 'open-interest-chart'].forEach(chartId => {
+                                    const canvas = document.getElementById(chartId);
+                                    const parent = canvas.parentNode;
+                                    const newCanvas = document.createElement('canvas');
+                                    newCanvas.id = chartId;
+                                    newCanvas.width = canvas.width;
+                                    newCanvas.height = canvas.height;
+                                    parent.replaceChild(newCanvas, canvas);
+                                });
                                 updateVolumeChart();
                                 updateOpenInterestChart();
                                 updateRankingTable();
@@ -2018,7 +2103,7 @@
                             if (rawData.length) updateRawDataTable();
                             console.log('Updated Data Table');
                         }
-                    }, 100); // Delay to ensure DOM readiness
+                    });
                 };
 
                 fetch('data/dates.json?v=' + Date.now())
@@ -2100,7 +2185,7 @@
                                     const sectionId = currentSection ? currentSection.id : 'overview';
                                     updateSection(sectionId);
                                     console.log('Updated section after ticker change:', sectionId);
-                                }, 100); // Debounce to prevent rapid fetches
+                                }, 100);
                             } else {
                                 console.warn('Invalid timestamp:', timestamp);
                                 document.getElementById('historic-error').style.display = 'block';
