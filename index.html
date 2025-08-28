@@ -2080,7 +2080,7 @@
                             }
                         });
 
-                        tickerSearch.addEventListener('change', async () => {  // Changed from 'input' to 'change'
+                        tickerSearch.addEventListener('change', async () => {
                             console.log('Ticker changed to:', tickerSearch.value);
                             document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
                             const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
@@ -2148,7 +2148,7 @@
                 console.error('Error in DOMContentLoaded:', error);
             }
         });
-
+        
         function updateTimeOptions(selectedDate, dates) {
             try {
                 const timeSelect = document.getElementById('time-select');
