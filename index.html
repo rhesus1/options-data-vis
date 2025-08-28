@@ -389,7 +389,7 @@
 
                 const rankingResponse = await fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=${Date.now()}`);
                 rankingData = parseCSV(await rankingResponse.text());
-                console.log('Ranking data loaded, size:', rankingData.length, 'sample:', rankingData.slice(0, 5));
+                console.log('Ranking data loaded, size:', rankingData.length, 'sample:', rankingData.slice(0, 5).map(item => ({ Ticker: item.Ticker, 'Realised Volatility 30d (%)': item['Realised Volatility 30d (%)'] })));
 
                 const tickerDatalist = document.getElementById('ticker-datalist');
                 tickerDatalist.innerHTML = '';
@@ -434,7 +434,7 @@
                         const response = await fetch(`${url}?v=${Date.now()}`);
                         if (!response.ok) throw new Error(`Failed to fetch ${url}`);
                         array.splice(0, array.length, ...parseCSV(await response.text()));
-                        console.log(`Data loaded from ${url}, size:`, array.length);
+                        console.log(`Data loaded from ${url}, size:`, array.length, 'sample:', array.slice(0, 5));
                     } catch (error) {
                         console.warn(`Error loading ${url}:`, error);
                         array.splice(0, array.length);
@@ -452,6 +452,16 @@
                     fetchWithErrorHandling(`data/Events.csv`, eventsData)
                 ]);
 
+                console.log('Data load complete:', {
+                    dataSize: data.length,
+                    historicDataSize: historicData.length,
+                    skewDataSize: skewData.length,
+                    slopeDataSize: slopeData.length,
+                    rawDataSize: rawData.length,
+                    eventsDataSize: eventsData.length
+                });
+
+                updateDropdowns();
                 return Promise.resolve();
             } catch (error) {
                 console.error('Error in loadData:', error);
@@ -465,6 +475,7 @@
                 historicData = [];
                 eventsData = [];
                 rankingData = [];
+                updateDropdowns();
                 return Promise.resolve();
             }
         }
@@ -1285,38 +1296,138 @@
             }
         }
 
+        function prepareSurfaceData(filteredData, zKey) {
+            try {
+                const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+                const tFilteredData = filteredData.filter(item => {
+                    const t = calculateTimeToExpiry(item.Expiry, datasetDate);
+                    return t !== null && Number.isFinite(t);
+                });
+                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 10) * 0.1))]
+                    .filter(val => !isNaN(val)).sort((a, b) => a - b);
+                const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
+                    .filter(val => val).sort();
+                const zData = [];
+                moneynessValues.forEach(() => zData.push(new Array(expiryValues.length).fill(null)));
+                tFilteredData.forEach(item => {
+                    const moneynessIndex = moneynessValues.indexOf(Math.round(item.Moneyness * 10) * 0.1);
+                    const expiryIndex = expiryValues.indexOf(normalizeDate(item.Expiry));
+                    if (moneynessIndex >= 0 && expiryIndex >= 0 && Number.isFinite(item[zKey])) {
+                        zData[moneynessIndex][expiryIndex] = item[zKey] * 100;
+                    }
+                });
+                const expiryTimes = expiryValues.map(date => calculateTimeToExpiry(date, datasetDate));
+                interpolateAlongExpiry(zData, expiryTimes);
+                interpolateAlongMoneyness(zData, moneynessValues);
+                const zValues = zData.flat().filter(v => Number.isFinite(v));
+                const minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
+                const maxZ = zValues.length > 0 ? Math.max(...zValues) : 0;
+                return {
+                    x: expiryValues,
+                    y: moneynessValues.map(val => val * 100),
+                    z: zData,
+                    minZ: minZ,
+                    maxZ: maxZ
+                };
+            } catch (error) {
+                console.error('Error preparing surface data:', error);
+                return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
+            }
+        }
+
+        function calculateTimeToExpiry(expiryDate, referenceDate) {
+            try {
+                const expiry = new Date(expiryDate);
+                const ref = new Date(referenceDate);
+                const diffMs = expiry - ref;
+                return diffMs / (365 * 24 * 60 * 60 * 1000); // Convert to years
+            } catch (error) {
+                console.error('Error calculating time to expiry:', error);
+                return null;
+            }
+        }
+
+        function interpolateAlongExpiry(zData, expiryTimes) {
+            for (let y = 0; y < zData.length; y++) {
+                const row = zData[y];
+                const known = [];
+                for (let x = 0; x < row.length; x++) {
+                    if (row[x] !== null && Number.isFinite(row[x])) {
+                        known.push({t: expiryTimes[x], val: row[x], idx: x});
+                    }
+                }
+                if (known.length < 2) continue;
+                known.sort((a, b) => a.t - b.t);
+                for (let i = 0; i < known.length - 1; i++) {
+                    const start = known[i];
+                    const end = known[i + 1];
+                    const dt = end.t - start.t;
+                    if (dt <= 0) continue;
+                    for (let idx = start.idx + 1; idx < end.idx; idx++) {
+                        const curr_t = expiryTimes[idx];
+                        const frac = (curr_t - start.t) / dt;
+                        row[idx] = start.val + frac * (end.val - start.val);
+                    }
+                }
+            }
+        }
+
+        function interpolateAlongMoneyness(zData, moneynessValues) {
+            for (let x = 0; x < zData[0].length; x++) {
+                const col = zData.map(row => row[x]);
+                const known = [];
+                for (let y = 0; y < col.length; y++) {
+                    if (col[y] !== null && Number.isFinite(col[y])) {
+                        known.push({m: moneynessValues[y], val: col[y], idx: y});
+                    }
+                }
+                if (known.length < 2) continue;
+                known.sort((a, b) => a.m - b.m);
+                for (let i = 0; i < known.length - 1; i++) {
+                    const start = known[i];
+                    const end = known[i + 1];
+                    const dm = end.m - start.m;
+                    if (dm <= 0) continue;
+                    for (let idx = start.idx + 1; idx < end.idx; idx++) {
+                        const curr_m = moneynessValues[idx];
+                        const frac = (curr_m - start.m) / dm;
+                        zData[idx][x] = start.val + frac * (end.val - start.val);
+                    }
+                }
+            }
+        }
+
         function updateCallVolSurface() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
                 const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Type === 'Call');
-                console.log('Updating Call Volatility Surface for ticker:', selectedTicker);
+                console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length);
 
-                const moneynessValues = [...new Set(filteredData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))].sort((a, b) => a - b);
-                const expiryValues = [...new Set(filteredData.map(item => normalizeDate(item.Expiry)))].sort();
-
-                const x = expiryValues.map(date => new Date(date));
-                const y = moneynessValues.map(m => m * 100);
-                const z = moneynessValues.map(m => {
-                    return expiryValues.map(e => {
-                        const point = filteredData.find(item => Math.round(item.Moneyness * 100 / 10) * 0.1 === m && normalizeDate(item.Expiry) === e);
-                        return point && Number.isFinite(point.IV_mid) ? point.IV_mid * 100 : null;
-                    });
-                });
-
-                const zValues = z.flat().filter(v => Number.isFinite(v));
-                const minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
-                const maxZ = zValues.length > 0 ? Math.max(...zValues) : 100;
-
+                const surfaceData = prepareSurfaceData(filteredData, 'IV_mid');
+                const minZ = surfaceData.minZ;
+                const maxZ = surfaceData.maxZ;
+                const colorscale = [
+                    [0, 'rgb(0,0,255)'],
+                    [0.25, 'rgb(0,255,255)'],
+                    [0.5, 'rgb(0,255,0)'],
+                    [0.75, 'rgb(255,255,0)'],
+                    [1, 'rgb(255,0,0)']
+                ];
+                const numTicks = 6;
+                const tickInterval = (maxZ - minZ) / (numTicks - 1);
+                const tickvals = [];
+                const ticktext = [];
+                for (let i = 0; i < numTicks; i++) {
+                    const val = minZ + i * tickInterval;
+                    tickvals.push(val);
+                    ticktext.push(val.toFixed(0));
+                }
                 const plotData = [{
-                    x, y, z,
+                    x: surfaceData.x,
+                    y: surfaceData.y,
+                    z: surfaceData.z,
                     type: 'surface',
-                    colorscale: [
-                        [0, 'rgb(0,0,255)'],
-                        [0.25, 'rgb(0,255,255)'],
-                        [0.5, 'rgb(0,255,0)'],
-                        [0.75, 'rgb(255,255,0)'],
-                        [1, 'rgb(255,0,0)']
-                    ],
+                    colorscale: colorscale,
                     cmin: minZ,
                     cmax: maxZ,
                     showscale: true,
@@ -1324,32 +1435,30 @@
                         title: 'Volatility (%)',
                         titleside: 'right',
                         titlefont: { color: '#FFFFFF' },
-                        tickfont: { color: '#FFFFFF' }
+                        tickfont: { color: '#FFFFFF' },
+                        tickvals: tickvals,
+                        ticktext: ticktext
                     }
                 }];
-
                 const layout = {
-                    title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 } },
+                    title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
                     scene: {
                         xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF' },
                         yaxis: { title: 'Moneyness (%)', color: '#FFFFFF' },
-                        zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ] },
+                        zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
                         aspectmode: 'manual',
                         aspectratio: { x: 1, y: 1, z: 0.5 },
-                        bgcolor: '#1C2526'
+                        bgcolor: '#1A1A2E'
                     },
                     margin: { l: 30, r: 30, b: 30, t: 50 },
-                    paper_bgcolor: '#1C2526',
-                    plot_bgcolor: '#1C2526'
+                    paper_bgcolor: '#1A1A2E',
+                    plot_bgcolor: '#1A1A2E'
                 };
-
                 Plotly.newPlot('call-vol-surface', plotData, layout);
-
                 const rotateXSlider = document.getElementById('rotate-x-slider');
                 const rotateZSlider = document.getElementById('rotate-z-slider');
                 rotateXSlider.addEventListener('input', () => updateCamera());
                 rotateZSlider.addEventListener('input', () => updateCamera());
-
                 function updateCamera() {
                     const xAngle = parseInt(rotateXSlider.value);
                     const zAngle = parseInt(rotateZSlider.value);
@@ -1879,12 +1988,10 @@
                             console.log('Loading initial data with timestamp:', timestamp);
                             await loadData(timestamp);
                             updateDropdowns();
-                            updateCharts();
-                            updateRawDataTable();
-                            updateRankingTable();
+                            updateHistoricChart();
                             updateSummaryTable();
                             updateSkewTable();
-                            console.log('Initial data and tables loaded for timestamp:', timestamp);
+                            console.log('Initial data and Overview loaded for timestamp:', timestamp);
                         };
 
                         await loadInitialData();
@@ -1896,12 +2003,10 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                updateCharts();
-                                updateRawDataTable();
-                                updateRankingTable();
-                                updateSummaryTable();
-                                updateSkewTable();
-                                console.log('Tables updated after date change');
+                                const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const sectionId = currentSection ? currentSection.id : 'overview';
+                                updateSection(sectionId);
+                                console.log('Updated section after date change:', sectionId);
                             } else {
                                 console.warn('Invalid timestamp:', timestamp);
                                 document.getElementById('historic-error').style.display = 'block';
@@ -1915,12 +2020,10 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                updateCharts();
-                                updateRawDataTable();
-                                updateRankingTable();
-                                updateSummaryTable();
-                                updateSkewTable();
-                                console.log('Tables updated after time change');
+                                const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const sectionId = currentSection ? currentSection.id : 'overview';
+                                updateSection(sectionId);
+                                console.log('Updated section after time change:', sectionId);
                             } else {
                                 console.warn('Invalid timestamp:', timestamp);
                                 document.getElementById('historic-error').style.display = 'block';
@@ -1935,12 +2038,10 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                updateCharts();
-                                updateRawDataTable();
-                                updateRankingTable();
-                                updateSummaryTable();
-                                updateSkewTable();
-                                console.log('Tables updated after ticker change');
+                                const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const sectionId = currentSection ? currentSection.id : 'overview';
+                                updateSection(sectionId);
+                                console.log('Updated section after ticker change:', sectionId);
                             } else {
                                 console.warn('Invalid timestamp:', timestamp);
                                 document.getElementById('historic-error').style.display = 'block';
@@ -1954,12 +2055,10 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                updateCharts();
-                                updateRawDataTable();
-                                updateRankingTable();
-                                updateSummaryTable();
-                                updateSkewTable();
-                                console.log('Tables updated after source change');
+                                const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const sectionId = currentSection ? currentSection.id : 'overview';
+                                updateSection(sectionId);
+                                console.log('Updated section after source change:', sectionId);
                             } else {
                                 console.warn('Invalid timestamp:', timestamp);
                                 document.getElementById('historic-error').style.display = 'block';
@@ -1967,50 +2066,66 @@
                             }
                         });
 
+                        const updateSection = (targetId) => {
+                            const target = document.getElementById(targetId);
+                            document.querySelectorAll('.overview-container, .volatility-grid, .chart-container').forEach(container => {
+                                container.style.display = 'none';
+                            });
+                            console.log(`Updating section: ${targetId}, data sizes:`, {
+                                data: data.length,
+                                historicData: historicData.length,
+                                skewData: skewData.length,
+                                rankingData: rankingData.length
+                            });
+                            if (targetId === 'overview') {
+                                target.style.display = 'flex';
+                                console.log('Showing Overview with flex layout');
+                                if (historicData.length) updateHistoricChart();
+                                if (rankingData.length) updateSummaryTable();
+                                if (skewData.length) updateSkewTable();
+                                console.log('Updated Overview charts and tables');
+                            } else if (targetId === 'volatility') {
+                                target.style.display = 'grid';
+                                console.log('Showing Volatility with grid layout');
+                                if (data.length) {
+                                    updateMoneynessVsIV();
+                                    updateExpiryVsIV();
+                                    updateDeltaVsIV();
+                                    updateCallVolSurface();
+                                } else {
+                                    console.warn('No data available for Volatility charts');
+                                    document.getElementById('historic-error').style.display = 'block';
+                                    document.getElementById('historic-error').textContent = 'No data available for volatility charts';
+                                }
+                                console.log('Updated Volatility charts');
+                            } else if (targetId === 'ranking') {
+                                target.style.display = 'block';
+                                console.log('Showing Ranking with block layout');
+                                if (rankingData.length) {
+                                    updateVolumeChart();
+                                    updateOpenInterestChart();
+                                    updateRankingTable();
+                                }
+                                console.log('Updated Ranking table');
+                            } else if (targetId === 'data-table') {
+                                target.style.display = 'block';
+                                console.log('Showing Data Table with block layout');
+                                if (rawData.length) updateRawDataTable();
+                                console.log('Updated Data Table');
+                            }
+                        };
+
                         const links = document.querySelectorAll('.sidebar a');
                         links.forEach(link => {
                             link.addEventListener('click', async (e) => {
                                 e.preventDefault();
                                 const targetId = link.getAttribute('href').substring(1);
-                                const target = document.getElementById(targetId);
                                 console.log(`Navigating to section: ${targetId}`);
-
-                                document.querySelectorAll('.overview-container, .volatility-grid, .chart-container').forEach(container => {
-                                    container.style.display = 'none';
-                                });
-
                                 const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                                 if (await validateTimestamp(timestamp)) {
                                     await loadData(timestamp);
                                     updateDropdowns();
-                                    if (target.classList.contains('overview-container')) {
-                                        target.style.display = 'flex';
-                                        console.log('Showing Overview with flex layout');
-                                        updateHistoricChart();
-                                        updateSummaryTable();
-                                        updateSkewTable();
-                                        console.log('Updated Overview charts and tables');
-                                    } else if (target.classList.contains('volatility-grid')) {
-                                        target.style.display = 'grid';
-                                        console.log('Showing Volatility with grid layout');
-                                        updateMoneynessVsIV();
-                                        updateExpiryVsIV();
-                                        updateDeltaVsIV();
-                                        updateCallVolSurface();
-                                        console.log('Updated Volatility charts');
-                                    } else if (targetId === 'ranking') {
-                                        target.style.display = 'block';
-                                        console.log('Showing Ranking with block layout');
-                                        updateVolumeChart();
-                                        updateOpenInterestChart();
-                                        updateRankingTable();
-                                        console.log('Updated Ranking table');
-                                    } else if (targetId === 'data-table') {
-                                        target.style.display = 'block';
-                                        console.log('Showing Data Table with block layout');
-                                        updateRawDataTable();
-                                        console.log('Updated Data Table');
-                                    }
+                                    updateSection(targetId);
                                 } else {
                                     console.warn('Invalid timestamp on navigation:', timestamp);
                                     document.getElementById('historic-error').style.display = 'block';
