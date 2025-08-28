@@ -182,6 +182,63 @@
         .ranking-grid .chart-container {
             margin-bottom: 0;
         }
+        #call-vol-surface {
+            height: 100% !important;
+            width: 100% !important;
+            min-height: 400px; /* Minimum height to ensure visibility */
+        }
+        
+        .slider-container {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .pretty-slider {
+            width: 200px;
+            padding: 5px 0;
+            background: linear-gradient(to right, #A855F7, #D8B4FE);
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .pretty-slider:hover {
+            opacity: 1;
+        }
+        
+        .pretty-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #FFFFFF;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #A855F7;
+            box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
+        }
+        
+        .pretty-slider::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: #FFFFFF;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #A855F7;
+            box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -267,11 +324,17 @@
             </div>
             <div class="chart-container">
                 <h3>Call Volatility Surface</h3>
-                <div id="call-vol-surface"></div>
+                <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
                 <div class="slider-container">
-                    <label>Moneyness Range: <input type="range" id="moneyness-slider" min="0.1" max="3" step="0.1" value="0.6"></label>
-                    <label>Expiry (T) Min: <input type="range" id="expiry-t-slider" min="0" max="5" step="0.1" value="0.2"></label>
+                    <div class="slider-group">
+                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider"></label>
+                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider"></label>
+                    </div>
+                    <div class="slider-group">
+                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider"></label>
+                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider"></label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1386,13 +1449,14 @@
         function prepareSurfaceData(filteredData, zKey) {
             try {
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-                const moneynessMin = parseFloat(document.getElementById('moneyness-slider').value);
-                const expiryTMin = parseFloat(document.getElementById('expiry-t-slider').value);
-                const moneynessMax = 2.5; // Fixed as per requirement
+                const moneynessMin = parseFloat(document.getElementById('moneyness-min-slider').value);
+                const moneynessMax = parseFloat(document.getElementById('moneyness-max-slider').value);
+                const expiryTMin = parseFloat(document.getElementById('expiry-t-min-slider').value);
+                const expiryTMax = parseFloat(document.getElementById('expiry-t-max-slider').value);
                 const tFilteredData = filteredData.filter(item => {
                     const t = calculateTimeToExpiry(item.Expiry, datasetDate);
                     const moneyness = item.Moneyness;
-                    return t !== null && Number.isFinite(t) && t >= expiryTMin && moneyness >= moneynessMin && moneyness <= moneynessMax;
+                    return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && moneyness >= moneynessMin && moneyness <= moneynessMax;
                 });
                 const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 10) * 0.1))]
                     .filter(val => !isNaN(val) && val >= moneynessMin && val <= moneynessMax)
@@ -1400,7 +1464,7 @@
                 const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
                     .filter(val => {
                         const t = calculateTimeToExpiry(val, datasetDate);
-                        return t !== null && t >= expiryTMin;
+                        return t !== null && t >= expiryTMin && t <= expiryTMax;
                     })
                     .sort((a, b) => new Date(a) - new Date(b));
                 const zData = [];
@@ -1517,12 +1581,17 @@
                 const minZ = surfaceData.minZ;
                 const maxZ = surfaceData.maxZ;
                 const colorscale = [
-                    [0, 'rgb(0,0,255)'],
-                    [0.25, 'rgb(0,255,255)'],
-                    [0.5, 'rgb(0,255,0)'],
-                    [0.75, 'rgb(255,255,0)'],
-                    [1, 'rgb(255,0,0)']
-                ];
+                    [0, '#440154'],
+                    [0.1, '#482878'],
+                    [0.2, '#3e4989'],
+                    [0.3, '#31688e'],
+                    [0.4, '#26828e'],
+                    [0.5, '#1f9e89'],
+                    [0.6, '#35b779'],
+                    [0.7, '#6ece58'],
+                    [0.8, '#b5de2b'],
+                    [0.9, '#fde725']
+                ]; // Viridis colorscale
                 const numTicks = 6;
                 const tickInterval = (maxZ - minZ) / (numTicks - 1);
                 const tickvals = [];
@@ -1537,7 +1606,7 @@
                     y: surfaceData.y,
                     z: surfaceData.z,
                     type: 'surface',
-                    colorscale: colorscale,
+                    colorscale: 'Viridis', // Use named 'Viridis' colorscale
                     cmin: minZ,
                     cmax: maxZ,
                     showscale: true,
@@ -1553,22 +1622,26 @@
                 const layout = {
                     title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
                     scene: {
-                        xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF' },
-                        yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', range: [60, 250] }, // Default range based on Moneyness_min and Moneyness_max
+                        xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF', autorange: true },
+                        yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', autorange: true },
                         zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
-                        aspectmode: 'manual',
-                        aspectratio: { x: 1, y: 1, z: 0.5 },
+                        aspectmode: 'auto', // Allow surface to fill space automatically
                         bgcolor: '#1A1A2E'
                     },
-                    margin: { l: 30, r: 30, b: 30, t: 50 },
+                    margin: { l: 0, r: 0, b: 0, t: 50 }, // Reduce margins to maximize space
+                    width: '100%',
+                    height: '100%',
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
                 };
                 Plotly.newPlot('call-vol-surface', plotData, layout);
-                const moneynessSlider = document.getElementById('moneyness-slider');
-                const expiryTSlider = document.getElementById('expiry-t-slider');
-                moneynessSlider.addEventListener('input', () => updateCharts());
-                expiryTSlider.addEventListener('input', () => updateCharts());
+                const moneynessMinSlider = document.getElementById('moneyness-min-slider');
+                const moneynessMaxSlider = document.getElementById('moneyness-max-slider');
+                const expiryTMinSlider = document.getElementById('expiry-t-min-slider');
+                const expiryTMaxSlider = document.getElementById('expiry-t-max-slider');
+                [moneynessMinSlider, moneynessMaxSlider, expiryTMinSlider, expiryTMaxSlider].forEach(slider => {
+                    slider.addEventListener('input', () => updateCharts());
+                });
             } catch (error) {
                 console.error('Error updating Call Volatility Surface:', error);
                 Plotly.purge('call-vol-surface');
