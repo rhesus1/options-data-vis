@@ -789,12 +789,13 @@
                 console.log('Summary table updated with metrics:', metrics.map(m => ({ name: m.name, value: m.value })));
             } catch (error) {
                 console.error('Error updating summary table:', error);
-                const tbody = document.createElement('tbody');
-                const row = tbody.insertRow();
+                const table = document.getElementById('summary-table');
+                table.innerHTML = '';
+                const row = table.insertRow();
                 const cell = row.insertCell();
                 cell.textContent = 'No data available';
                 cell.colSpan = 4;
-                table.appendChild(tbody);
+                table.appendChild(row);
             }
         }
         
