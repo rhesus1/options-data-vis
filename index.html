@@ -270,8 +270,8 @@
                 <div id="call-vol-surface"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
                 <div class="slider-container">
-                    <label>Rotate X: <input type="range" id="rotate-x-slider" min="0" max="360" value="30"></label>
-                    <label>Rotate Z: <input type="range" id="rotate-z-slider" min="0" max="360" value="30"></label>
+                    <label>Moneyness Range: <input type="range" id="moneyness-slider" min="0.1" max="3" step="0.1" value="0.6"></label>
+                    <label>Expiry (T) Min: <input type="range" id="expiry-t-slider" min="0" max="5" step="0.1" value="0.2"></label>
                 </div>
             </div>
         </div>
@@ -1386,14 +1386,23 @@
         function prepareSurfaceData(filteredData, zKey) {
             try {
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+                const moneynessMin = parseFloat(document.getElementById('moneyness-slider').value);
+                const expiryTMin = parseFloat(document.getElementById('expiry-t-slider').value);
+                const moneynessMax = 2.5; // Fixed as per requirement
                 const tFilteredData = filteredData.filter(item => {
                     const t = calculateTimeToExpiry(item.Expiry, datasetDate);
-                    return t !== null && Number.isFinite(t);
+                    const moneyness = item.Moneyness;
+                    return t !== null && Number.isFinite(t) && t >= expiryTMin && moneyness >= moneynessMin && moneyness <= moneynessMax;
                 });
                 const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 10) * 0.1))]
-                    .filter(val => !isNaN(val)).sort((a, b) => a - b);
+                    .filter(val => !isNaN(val) && val >= moneynessMin && val <= moneynessMax)
+                    .sort((a, b) => a - b);
                 const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
-                    .filter(val => val).sort();
+                    .filter(val => {
+                        const t = calculateTimeToExpiry(val, datasetDate);
+                        return t !== null && t >= expiryTMin;
+                    })
+                    .sort((a, b) => new Date(a) - new Date(b));
                 const zData = [];
                 moneynessValues.forEach(() => zData.push(new Array(expiryValues.length).fill(null)));
                 tFilteredData.forEach(item => {
@@ -1545,7 +1554,7 @@
                     title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
                     scene: {
                         xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF' },
-                        yaxis: { title: 'Moneyness (%)', color: '#FFFFFF' },
+                        yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', range: [60, 250] }, // Default range based on Moneyness_min and Moneyness_max
                         zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
                         aspectmode: 'manual',
                         aspectratio: { x: 1, y: 1, z: 0.5 },
@@ -1556,18 +1565,10 @@
                     plot_bgcolor: '#1A1A2E'
                 };
                 Plotly.newPlot('call-vol-surface', plotData, layout);
-                const rotateXSlider = document.getElementById('rotate-x-slider');
-                const rotateZSlider = document.getElementById('rotate-z-slider');
-                rotateXSlider.addEventListener('input', () => updateCamera());
-                rotateZSlider.addEventListener('input', () => updateCamera());
-                function updateCamera() {
-                    const xAngle = parseInt(rotateXSlider.value);
-                    const zAngle = parseInt(rotateZSlider.value);
-                    const x = 2 * Math.sin(xAngle * Math.PI / 180);
-                    const y = 2 * Math.cos(xAngle * Math.PI / 180);
-                    const z = 2 * Math.sin(zAngle * Math.PI / 180);
-                    Plotly.update('call-vol-surface', {}, { scene: { camera: { eye: { x, y, z } } } });
-                }
+                const moneynessSlider = document.getElementById('moneyness-slider');
+                const expiryTSlider = document.getElementById('expiry-t-slider');
+                moneynessSlider.addEventListener('input', () => updateCharts());
+                expiryTSlider.addEventListener('input', () => updateCharts());
             } catch (error) {
                 console.error('Error updating Call Volatility Surface:', error);
                 Plotly.purge('call-vol-surface');
