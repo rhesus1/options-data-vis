@@ -19,16 +19,13 @@
             height: 100vh;
             font-size: 14px;
         }
-    
         .sidebar {
             width: 250px;
             background: #25253D;
             padding: 20px;
             border-right: 1px solid #A855F7;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-            overflow-y: auto;
         }
-    
         .sidebar a {
             color: #A855F7;
             text-decoration: none;
@@ -38,13 +35,11 @@
             transition: color 0.3s ease, background-color 0.3s ease;
             border-radius: 4px;
         }
-    
         .sidebar a:hover {
             color: #FFFFFF;
             background-color: #D8B4FE;
             text-decoration: none;
         }
-    
         .sidebar select, .sidebar input {
             width: 100%;
             padding: 8px;
@@ -56,19 +51,16 @@
             font-size: 14px;
             transition: border-color 0.3s ease;
         }
-    
         .sidebar select:focus, .sidebar input:focus {
             border-color: #D8B4FE;
             outline: none;
         }
-    
         .main-content {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             background: #1A1A2E;
         }
-    
         .chart-container {
             background-color: #25253D;
             padding: 20px;
@@ -76,45 +68,32 @@
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-            height: auto; /* Dynamic height based on content */
-            min-height: 400px; /* Minimum height to ensure visibility */
         }
-    
-        canvas {
-            max-width: 100%;
-            max-height: 100%; /* Prevent stretching */
-            border-radius: 4px;
-            background-color: #25253D;
-            flex-grow: 1; /* Grow to fill container */
-            object-fit: contain; /* Ensure content fits without distortion */
-        }
-    
         .stats-table, .skew-table, .summary-table, .ranking-table, .raw-data-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
             background-color: #25253D;
         }
-    
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td {
             border: 1px solid #A855F7;
             padding: 10px;
             text-align: left;
             color: #FFFFFF;
         }
-    
         .stats-table th, .skew-table th, .summary-table th, .ranking-table th, .raw-data-table th {
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
         }
-    
         .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
             background-color: #4B4B6F;
         }
-    
+        canvas {
+            max-width: 100%;
+            border-radius: 4px;
+            background-color: #25253D;
+        }
         .header {
             text-align: center;
             padding: 15px;
@@ -125,7 +104,6 @@
             color: #FFFFFF;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
-    
         .ticker-display {
             font-size: 24px;
             margin-bottom: 15px;
@@ -135,14 +113,12 @@
             padding: 10px;
             border-radius: 4px;
         }
-    
         .select-container {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 10px;
         }
-    
         .arrow-button, .toggle-button {
             background-color: #25253D;
             color: #FFFFFF;
@@ -152,81 +128,82 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-    
         .arrow-button:hover, .toggle-button:hover {
             background-color: #D8B4FE;
         }
-    
         #historic-error {
             color: #F87171;
             padding: 10px;
             text-align: center;
         }
-    
         .line-swatch {
             display: inline-block;
             vertical-align: middle;
             margin-right: 5px;
         }
-    
         .overview-container {
             display: flex;
             gap: 20px;
-            height: 100%; /* Ensure full height of parent */
         }
-    
         .overview-container .chart-container {
-            flex: 1; /* Equal distribution of space */
-            min-height: 400px; /* Consistent minimum height */
+            flex: 1;
         }
-    
         .volatility-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            height: 100%; /* Ensure full height of parent */
         }
-    
         .volatility-grid .chart-container {
-            min-height: 400px; /* Consistent minimum height */
+            margin-bottom: 0;
         }
-    
+        #call-vol-surface {
+            height: 400px;
+            background-color: #25253D;
+        }
+        .slider-container {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .slider-container input {
+            width: 150px;
+        }
+        .error-message {
+            color: #F87171;
+            text-align: center;
+            padding: 10px;
+        }
         .ranking-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            height: 100%; /* Ensure full height of parent */
         }
-    
         .ranking-grid .chart-container {
-            min-height: 400px; /* Consistent minimum height */
+            margin-bottom: 0;
         }
-    
         #call-vol-surface {
-            height: 85% !important; /* 85% of container to leave space for sliders */
+            height: 100% !important;
             width: 100% !important;
-            min-height: 350px; /* Adjusted minimum height */
-            flex-grow: 1; /* Allow the plot to grow and fill available space */
+            min-height: 400px; /* Minimum height to ensure visibility */
         }
-    
+        
         .slider-container {
             margin-top: 10px;
             display: flex;
             flex-direction: column;
             gap: 15px;
             justify-content: center;
-            flex-shrink: 0; /* Prevent sliders from shrinking */
-            padding: 10px 0; /* Add padding for tidiness */
         }
-    
+        
         .slider-group {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-    
+        
         .pretty-slider {
-            width: 250px; /* Wider sliders for better interaction */
+            width: 200px;
             padding: 5px 0;
             background: linear-gradient(to right, #A855F7, #D8B4FE);
             -webkit-appearance: none;
@@ -236,11 +213,11 @@
             opacity: 0.7;
             transition: opacity 0.2s;
         }
-    
+        
         .pretty-slider:hover {
             opacity: 1;
         }
-    
+        
         .pretty-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -252,7 +229,7 @@
             border: 2px solid #A855F7;
             box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
         }
-    
+        
         .pretty-slider::-moz-range-thumb {
             width: 15px;
             height: 15px;
@@ -261,19 +238,6 @@
             border-radius: 50%;
             border: 2px solid #A855F7;
             box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
-        }
-    
-        .slider-value {
-            margin-left: 10px;
-            color: #D8B4FE;
-            font-weight: bold;
-            font-size: 14px;
-        }
-    
-        .error-message {
-            color: #F87171;
-            text-align: center;
-            padding: 10px;
         }
     </style>
 </head>
@@ -300,31 +264,28 @@
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">Selected Ticker: N/A</div>
         <div id="overview" class="overview-container">
-           <div id="overview" class="overview-container" style="display: flex;">
-            <div id="overview" class="overview-container" style="display: flex;">
-                <div class="chart-container">
-                    <h2>Historic Stock Price with Realised Volatility</h2>
-                    <div class="select-container">
-                        <label for="history-select">Select History Length: </label>
-                        <button class="arrow-button" onclick="changeSelect('history-select', -1)">&#9664;</button>
-                        <select id="history-select">
-                            <option value="1m">1-month</option>
-                            <option value="3m">3-month</option>
-                            <option value="6m">6-month</option>
-                            <option value="1y">1-year</option>
-                            <option value="5y">5-year</option>
-                            <option value="all" selected>All</option>
-                        </select>
-                        <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
-                    </div>
-                    <canvas id="historic-price-chart"></canvas>
-                    <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
+            <div class="chart-container">
+                <h2>Historic Stock Price with Realised Volatility</h2>
+                <div class="select-container">
+                    <label for="history-select">Select History Length: </label>
+                    <button class="arrow-button" onclick="changeSelect('history-select', -1)">&#9664;</button>
+                    <select id="history-select">
+                        <option value="1m">1-month</option>
+                        <option value="3m">3-month</option>
+                        <option value="6m">6-month</option>
+                        <option value="1y">1-year</option>
+                        <option value="5y">5-year</option>
+                        <option value="all" selected>All</option>
+                    </select>
+                    <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
                 </div>
-                <div class="chart-container">
-                    <h2>Summary</h2>
-                    <table id="summary-table" class="summary-table"></table>
-                    <!-- Removed extra skew-table to avoid duplicate summary box -->
-                </div>
+                <canvas id="historic-price-chart"></canvas>
+                <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
+            </div>
+            <div class="chart-container">
+                <h2>Summary</h2>
+                <table id="summary-table" class="summary-table"></table>
+                <table id="skew-table" class="skew-table"></table>
             </div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
@@ -363,20 +324,16 @@
             </div>
             <div class="chart-container">
                 <h3>Call Volatility Surface</h3>
-                <div id="call-vol-surface" style="height: 85%; width: 100%;"></div>
+                <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
                 <div class="slider-container">
                     <div class="slider-group">
-                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider">
-                            <span id="moneyness-min-value" class="slider-value">0.6</span></label>
-                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider">
-                            <span id="moneyness-max-value" class="slider-value">2.5</span></label>
+                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider"></label>
+                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider"></label>
                     </div>
                     <div class="slider-group">
-                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider">
-                            <span id="expiry-t-min-value" class="slider-value">0.2</span></label>
-                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider">
-                            <span id="expiry-t-max-value" class="slider-value">5.0</span></label>
+                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider"></label>
+                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider"></label>
                     </div>
                 </div>
             </div>
@@ -1608,6 +1565,13 @@
                 errorDiv.style.display = 'none';
                 console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length);
                 const surfaceData = prepareSurfaceData(filteredData, 'IV_mid');
+                console.log('Surface data:', {
+                    x: surfaceData.x.slice(0, 5),
+                    y: surfaceData.y.slice(0, 5),
+                    z: surfaceData.z.map(row => row.slice(0, 5)),
+                    minZ: surfaceData.minZ,
+                    maxZ: surfaceData.maxZ
+                });
                 if (!surfaceData.x.length || !surfaceData.y.length || !surfaceData.z.length) {
                     Plotly.purge('call-vol-surface');
                     errorDiv.textContent = 'No data for volatility surface';
@@ -1616,7 +1580,18 @@
                 }
                 const minZ = surfaceData.minZ;
                 const maxZ = surfaceData.maxZ;
-                const colorscale = 'Viridis';
+                const colorscale = [
+                    [0, '#440154'],
+                    [0.1, '#482878'],
+                    [0.2, '#3e4989'],
+                    [0.3, '#31688e'],
+                    [0.4, '#26828e'],
+                    [0.5, '#1f9e89'],
+                    [0.6, '#35b779'],
+                    [0.7, '#6ece58'],
+                    [0.8, '#b5de2b'],
+                    [0.9, '#fde725']
+                ]; // Viridis colorscale
                 const numTicks = 6;
                 const tickInterval = (maxZ - minZ) / (numTicks - 1);
                 const tickvals = [];
@@ -1631,7 +1606,7 @@
                     y: surfaceData.y,
                     z: surfaceData.z,
                     type: 'surface',
-                    colorscale: colorscale,
+                    colorscale: 'Viridis', // Use named 'Viridis' colorscale
                     cmin: minZ,
                     cmax: maxZ,
                     showscale: true,
@@ -1645,34 +1620,27 @@
                     }
                 }];
                 const layout = {
-                    title: { text: 'Call Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
+                    title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
                     scene: {
                         xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF', autorange: true },
                         yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', autorange: true },
                         zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
-                        aspectmode: 'auto',
+                        aspectmode: 'auto', // Allow surface to fill space automatically
                         bgcolor: '#1A1A2E'
                     },
-                    margin: { l: 0, r: 0, b: 0, t: 50 },
+                    margin: { l: 0, r: 0, b: 0, t: 50 }, // Reduce margins to maximize space
                     width: '100%',
                     height: '100%',
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
                 };
-                Plotly.react('call-vol-surface', plotData, layout);
-                document.getElementById('moneyness-min-value').textContent = document.getElementById('moneyness-min-slider').value;
-                document.getElementById('moneyness-max-value').textContent = document.getElementById('moneyness-max-slider').value;
-                document.getElementById('expiry-t-min-value').textContent = document.getElementById('expiry-t-min-slider').value;
-                document.getElementById('expiry-t-max-value').textContent = document.getElementById('expiry-t-max-slider').value;
+                Plotly.newPlot('call-vol-surface', plotData, layout);
                 const moneynessMinSlider = document.getElementById('moneyness-min-slider');
                 const moneynessMaxSlider = document.getElementById('moneyness-max-slider');
                 const expiryTMinSlider = document.getElementById('expiry-t-min-slider');
                 const expiryTMaxSlider = document.getElementById('expiry-t-max-slider');
                 [moneynessMinSlider, moneynessMaxSlider, expiryTMinSlider, expiryTMaxSlider].forEach(slider => {
-                    slider.addEventListener('input', () => {
-                        updateCallVolSurface();
-                        document.getElementById(slider.id.replace('-slider', '-value')).textContent = slider.value;
-                    });
+                    slider.addEventListener('input', () => updateCharts());
                 });
             } catch (error) {
                 console.error('Error updating Call Volatility Surface:', error);
@@ -1688,6 +1656,7 @@
                 const historyLength = document.getElementById('history-select').value;
                 const errorDiv = document.getElementById('historic-error');
                 errorDiv.style.display = 'none';
+                console.log('Updating Historic chart for ticker:', selectedTicker, 'History length:', historyLength, 'historicData columns:', historicData.length > 0 ? Object.keys(historicData[0]) : []);
                 if (!historicData || historicData.length === 0) {
                     if (historicChart) historicChart.destroy();
                     errorDiv.textContent = 'No historic data available';
@@ -1703,6 +1672,8 @@
                 }
                 filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
                 const fromDate = calculateDateRange(historyLength);
+                const minHistoricDate = new Date(Math.min(...filteredHistoric.map(item => new Date(item.Date))));
+                const maxHistoricDate = new Date(Math.max(...filteredHistoric.map(item => new Date(item.Date))));
                 if (fromDate) {
                     filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
                 }
@@ -1715,11 +1686,34 @@
                     'Realised_Vol_Close_252', 'Realized_Vol_Close_252'
                 ];
                 const availableVolColumns = volColumns.filter(col => filteredHistoric[0].hasOwnProperty(col));
-                const vol30 = filteredHistoric.map(item => Number.isFinite(item[availableVolColumns.find(c => c.includes('30')) || 'Realised_Vol_Close_30']) ? parseFloat(item[availableVolColumns.find(c => c.includes('30')) || 'Realised_Vol_Close_30']) : null).filter(v => v !== null);
-                const vol60 = filteredHistoric.map(item => Number.isFinite(item[availableVolColumns.find(c => c.includes('60')) || 'Realised_Vol_Close_60']) ? parseFloat(item[availableVolColumns.find(c => c.includes('60')) || 'Realised_Vol_Close_60']) : null).filter(v => v !== null);
-                const vol90 = filteredHistoric.map(item => Number.isFinite(item[availableVolColumns.find(c => c.includes('100')) || 'Realised_Vol_Close_100']) ? parseFloat(item[availableVolColumns.find(c => c.includes('100')) || 'Realised_Vol_Close_100']) : null).filter(v => v !== null);
-                const vol180 = filteredHistoric.map(item => Number.isFinite(item[availableVolColumns.find(c => c.includes('180')) || 'Realised_Vol_Close_180']) ? parseFloat(item[availableVolColumns.find(c => c.includes('180')) || 'Realised_Vol_Close_180']) : null).filter(v => v !== null);
-                const vol360 = filteredHistoric.map(item => Number.isFinite(item[availableVolColumns.find(c => c.includes('252')) || 'Realised_Vol_Close_252']) ? parseFloat(item[availableVolColumns.find(c => c.includes('252')) || 'Realised_Vol_Close_252']) : null).filter(v => v !== null);
+                console.log('Available volatility columns:', availableVolColumns);
+                const vol30 = filteredHistoric.map(item => {
+                    const col = availableVolColumns.find(c => c.includes('30')) || 'Realised_Vol_Close_30';
+                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
+                }).filter(v => v !== null);
+                const vol60 = filteredHistoric.map(item => {
+                    const col = availableVolColumns.find(c => c.includes('60')) || 'Realised_Vol_Close_60';
+                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
+                }).filter(v => v !== null);
+                const vol90 = filteredHistoric.map(item => {
+                    const col = availableVolColumns.find(c => c.includes('100')) || 'Realised_Vol_Close_100';
+                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
+                }).filter(v => v !== null);
+                const vol180 = filteredHistoric.map(item => {
+                    const col = availableVolColumns.find(c => c.includes('180')) || 'Realised_Vol_Close_180';
+                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
+                }).filter(v => v !== null);
+                const vol360 = filteredHistoric.map(item => {
+                    const col = availableVolColumns.find(c => c.includes('252')) || 'Realised_Vol_Close_252';
+                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
+                }).filter(v => v !== null);
+                console.log('Historic chart data sample:', {
+                    dates: dates.slice(0, 5),
+                    prices: filteredHistoric.slice(0, 5).map(item => item.Close),
+                    vol30: vol30.slice(0, 5),
+                    vol60: vol60.slice(0, 5),
+                    vol90: vol90.slice(0, 5)
+                });
                 const datasets = [
                     {
                         label: 'Stock Price',
@@ -1795,14 +1789,16 @@
                         const endDate = new Date(event.End_Date);
                         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
                         if (!(event.Ticker === 'ALL' || event.Ticker === selectedTicker)) return false;
+                        if (startDate > maxHistoricDate || endDate < minHistoricDate) return false;
+                        if (fromDate && endDate < fromDate) return false;
                         return true;
                     })
                     .map((event, index) => ({
                         type: 'box',
-                        xMin: new Date(event.Start_Date),
-                        xMax: new Date(event.End_Date),
-                        yMin: 0,
-                        yMax: 'max',
+                        xMin: new Date(Math.max(new Date(event.Start_Date), fromDate || minHistoricDate)),
+                        xMax: new Date(Math.min(new Date(event.End_Date), maxHistoricDate)),
+                        yMin: 'y',
+                        yMax: 'y',
                         backgroundColor: event.Impact === 'dip' ? 'rgba(248, 113, 113, 0.2)' : 'rgba(74, 222, 128, 0.2)',
                         borderColor: event.Impact === 'dip' ? 'rgba(248, 113, 113, 0.5)' : 'rgba(74, 222, 128, 0.5)',
                         borderWidth: 1,
@@ -1817,12 +1813,13 @@
                     }));
                 if (historicChart) historicChart.destroy();
                 const canvas = document.getElementById('historic-price-chart');
+                if (!canvas.getContext('2d')) {
+                    throw new Error('Canvas context not available for historic-price-chart');
+                }
                 historicChart = new Chart(canvas.getContext('2d'), {
                     type: 'line',
                     data: { datasets },
                     options: {
-                        maintainAspectRatio: false, // Allow custom sizing
-                        responsive: true,
                         plugins: {
                             legend: { labels: { color: '#FFFFFF' } },
                             annotation: { annotations }
