@@ -1,0 +1,2 @@
+Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,IV_put_25_delta,IV_put_75_delta,IV_call_25_delta,IV_call_75_delta,Strike_call_25_delta,Strike_call_75_delta,Strike_put_25_delta,Strike_put_75_delta,ATM_12m_3m_Ratio,ATM_IV_3m,ATM_IV_12m,Ticker
+2026-03-20,,,0.5219861495800621,,,,0.32801447899754305,0.6283969014530956,7.227975050312033,4.5056912949033725,4.5056912949033725,7.227975050312033,,,1.0041146478531924,INN
