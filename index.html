@@ -318,6 +318,17 @@
                 <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
             </div>
             <div class="chart-container">
+                <h3>Yahoo Finance Implied Volatility Smile</h3>
+                <div class="select-container">
+                    <label for="yf-expiry-select">Select Expiry: </label>
+                    <button class="arrow-button" onclick="changeSelect('yf-expiry-select', -1)">&#9664;</button>
+                    <select id="yf-expiry-select"></select>
+                    <button class="arrow-button" onclick="changeSelect('yf-expiry-select', 1)">&#9654;</button>
+                </div>
+                <canvas id="yf-iv-chart"></canvas>
+                <div id="yf-iv-error" class="error-message" style="display: none;">No data available</div>
+            </div>
+            <div class="chart-container">
                 <h3>Volatility Skewness</h3>
                 <canvas id="skew-vs-expiry-chart"></canvas>
                 <div id="skew-error" class="error-message" style="display: none;">No data available</div>
@@ -331,10 +342,16 @@
                 <h3>Call Volatility Surface</h3>
                 <div class="slider-container">
                     <div class="slider-group">
-                        <label>Moneyness Range: <input type="range" id="moneyness-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider" multiple data-min="0.6" data-max="2.5">
-                            <span id="moneyness-value" class="slider-value">0.6 - 2.5</span></label>
-                        <label>Expiry (T) Range: <input type="range" id="expiry-t-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider" multiple data-min="0.2" data-max="5">
-                            <span id="expiry-t-value" class="slider-value">0.2 - 5.0</span></label>
+                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider">
+                            <span id="moneyness-min-value" class="slider-value">0.6</span></label>
+                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider">
+                            <span id="moneyness-max-value" class="slider-value">2.5</span></label>
+                    </div>
+                    <div class="slider-group">
+                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider">
+                            <span id="expiry-t-min-value" class="slider-value">0.2</span></label>
+                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider">
+                            <span id="expiry-t-max-value" class="slider-value">5.0</span></label>
                     </div>
                 </div>
                 <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
@@ -369,7 +386,7 @@
         let eventsData = [];
         let rawData = [];
         let rankingData = [];
-        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart;
+        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
         let lastLoadDataTimestamp = null;
@@ -610,16 +627,17 @@
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
                 const moneynessSelect = document.getElementById('moneyness-select');
                 const expirySelect = document.getElementById('expiry-select');
-                const deltaExpirySelect = document.getElementById('delta-expiry-select');
+                const yfExpirySelect = document.getElementById('yf-expiry-select');
                 if (!tickerData.length) {
                     console.warn('No data for dropdowns, ticker:', selectedTicker);
                     expirySelect.innerHTML = '<option value="">No expiries available</option>';
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
-                    deltaExpirySelect.innerHTML = '<option value="">No expiries available</option>';
+                    yfExpirySelect.innerHTML = '<option value="">No expiries available</option>';
                     return;
                 }
                 const prevMoneyness = moneynessSelect.value;
                 const prevExpiry = expirySelect.value;
+                const prevYFExpiry = yfExpirySelect.value;
                 const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                     .filter(val => !isNaN(val)).sort((a, b) => a - b);
                 moneynessSelect.innerHTML = '';
@@ -649,32 +667,32 @@
                 const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                     .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
                 expirySelect.innerHTML = '';
-                deltaExpirySelect.innerHTML = '';
+                yfExpirySelect.innerHTML = '';
                 uniqueExpiries.forEach(val => {
                     const option = document.createElement('option');
                     option.value = val;
                     option.text = new Date(val).toLocaleDateString('en-GB');
                     expirySelect.appendChild(option);
-                    deltaExpirySelect.appendChild(option.cloneNode(true));
+                    yfExpirySelect.appendChild(option.cloneNode(true));
                 });
                 if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
                     expirySelect.value = prevExpiry;
-                    deltaExpirySelect.value = prevExpiry;
+                    yfExpirySelect.value = prevExpiry;
                 } else if (uniqueExpiries.length > 0) {
                     expirySelect.value = uniqueExpiries[0];
-                    deltaExpirySelect.value = uniqueExpiries[0];
+                    yfExpirySelect.value = uniqueExpiries[0];
                 } else {
                     expirySelect.value = '';
-                    deltaExpirySelect.value = '';
+                    yfExpirySelect.value = '';
                 }
-                console.log('Expiry dropdowns updated, selected:', expirySelect.value);
+                console.log('Expiry dropdowns updated, selected:', expirySelect.value, 'YF Expiry:', yfExpirySelect.value);
             } catch (error) {
                 console.error('Error updating dropdowns:', error);
                 document.getElementById('historic-error').textContent = `Error updating dropdowns: ${error.message}`;
                 document.getElementById('historic-error').style.display = 'block';
             }
         }
-
+        
         function updateSkewTable() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
@@ -1512,6 +1530,81 @@
                 }
             }
         }
+
+        function updateYFIVChart() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+                const selectedExpiry = document.getElementById('yf-expiry-select').value;
+                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
+                const errorDiv = document.getElementById('yf-iv-error');
+                errorDiv.style.display = 'none';
+                if (!filteredData.length) {
+                    console.warn('No data for Yahoo Finance IV chart:', { ticker: selectedTicker, expiry: selectedExpiry });
+                    if (yfIVChart) yfIVChart.destroy();
+                    errorDiv.textContent = 'No data for selected ticker and expiry';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                const datasets = [
+                    {
+                        label: 'Calls Implied Volatility',
+                        data: aggregateDataByX(filteredData.filter(item => item.Type === 'Call'), 'Moneyness', 'Implied Volatility'),
+                        borderColor: '#FFFF00', // Yellow
+                        backgroundColor: 'rgba(255, 255, 0, 0.2)', // Yellow shade
+                        pointRadius: 1,
+                        fill: true,
+                        showLine: true,
+                        borderDash: [],
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Puts Implied Volatility',
+                        data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Moneyness', 'Implied Volatility'),
+                        borderColor: '#A020F0', // Purple
+                        backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
+                        pointRadius: 1,
+                        fill: true,
+                        showLine: true,
+                        borderDash: [5, 5],
+                        yAxisID: 'y'
+                    }
+                ];
+                if (yfIVChart) yfIVChart.destroy();
+                const canvas = document.getElementById('yf-iv-chart');
+                if (!canvas.getContext('2d')) {
+                    throw new Error('Canvas context not available for yf-iv-chart');
+                }
+                yfIVChart = new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' },
+                                min: 0,
+                                max: 200,
+                                grid: { color: '#A855F7' },
+                                ticks: { color: '#FFFFFF' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Implied Volatility (%)', color: '#FFFFFF' },
+                                beginAtZero: true,
+                                grid: { color: '#A855F7' },
+                                ticks: { color: '#FFFFFF' }
+                            }
+                        },
+                        backgroundColor: '#1A1A2E'
+                    }
+                });
+                createStatsTable(yfIVChart, 'yf-iv-chart');
+            } catch (error) {
+                console.error('Error updating Yahoo Finance IV chart:', error);
+                document.getElementById('yf-iv-error').textContent = `Error rendering chart: ${error.message}`;
+                document.getElementById('yf-iv-error').style.display = 'block';
+            }
+        }
         
         function updateCallVolSurface() {
             try {
@@ -1520,7 +1613,7 @@
                 const errorDiv = document.getElementById('surface-error');
                 errorDiv.style.display = 'none';
                 console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length);
-                const surfaceData = prepareSurfaceData(filteredData, 'IV_mid');
+                const surfaceData = prepareSurfaceData(filteredData, 'Smoothed_IV');
                 console.log('Surface data:', {
                     x: surfaceData.x.slice(0, 5),
                     y: surfaceData.y.slice(0, 5),
@@ -1547,7 +1640,7 @@
                     [0.7, '#6ece58'],
                     [0.8, '#b5de2b'],
                     [0.9, '#fde725']
-                ];
+                ]; // Viridis colorscale
                 const numTicks = 6;
                 const tickInterval = (maxZ - minZ) / (numTicks - 1);
                 const tickvals = [];
@@ -1562,7 +1655,7 @@
                     y: surfaceData.y,
                     z: surfaceData.z,
                     type: 'surface',
-                    colorscale: 'Viridis',
+                    colorscale: 'Viridis', // Use named 'Viridis' colorscale
                     cmin: minZ,
                     cmax: maxZ,
                     showscale: true,
@@ -1581,24 +1674,29 @@
                         xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF', autorange: true },
                         yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', autorange: true },
                         zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
-                        aspectmode: 'auto',
+                        aspectmode: 'auto', // Allow surface to fill space automatically
                         bgcolor: '#1A1A2E'
                     },
-                    margin: { l: 0, r: 0, b: 0, t: 50 },
+                    margin: { l: 0, r: 0, b: 0, t: 50 }, // Reduce margins to maximize space
                     width: '100%',
                     height: '100%',
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
                 };
                 Plotly.newPlot('call-vol-surface', plotData, layout);
-                document.getElementById('moneyness-value').textContent = `${document.getElementById('moneyness-slider').dataset.min} - ${document.getElementById('moneyness-slider').dataset.max}`;
-                document.getElementById('expiry-t-value').textContent = `${document.getElementById('expiry-t-slider').dataset.min} - ${document.getElementById('expiry-t-slider').dataset.max}`;
-                const moneynessSlider = document.getElementById('moneyness-slider');
-                const expiryTSlider = document.getElementById('expiry-t-slider');
-                [moneynessSlider, expiryTSlider].forEach(slider => {
+                // Update numeric value displays
+                document.getElementById('moneyness-min-value').textContent = document.getElementById('moneyness-min-slider').value;
+                document.getElementById('moneyness-max-value').textContent = document.getElementById('moneyness-max-slider').value;
+                document.getElementById('expiry-t-min-value').textContent = document.getElementById('expiry-t-min-slider').value;
+                document.getElementById('expiry-t-max-value').textContent = document.getElementById('expiry-t-max-slider').value;
+                const moneynessMinSlider = document.getElementById('moneyness-min-slider');
+                const moneynessMaxSlider = document.getElementById('moneyness-max-slider');
+                const expiryTMinSlider = document.getElementById('expiry-t-min-slider');
+                const expiryTMaxSlider = document.getElementById('expiry-t-max-slider');
+                [moneynessMinSlider, moneynessMaxSlider, expiryTMinSlider, expiryTMaxSlider].forEach(slider => {
                     slider.addEventListener('input', () => {
                         updateCallVolSurface();
-                        document.getElementById(slider.id.replace('-slider', '-value')).textContent = `${slider.dataset.min} - ${slider.dataset.max}`;
+                        document.getElementById(slider.id.replace('-slider', '-value')).textContent = slider.value;
                     });
                 });
             } catch (error) {
@@ -1933,6 +2031,7 @@
                 console.log('Updating all charts and tables');
                 updateMoneynessVsIV();
                 updateExpiryVsIV();
+                updateYFIVChart();
                 updateSkewVsExpiry();
                 updateRealisedVolChart();
                 updateCallVolSurface();
@@ -1954,6 +2053,7 @@
                 const chartConfigs = [
                     { canvasId: 'moneyness-vs-iv-chart', selectId: 'expiry-select' },
                     { canvasId: 'expiry-vs-iv-chart', selectId: 'moneyness-select' },
+                    { canvasId: 'yf-iv-chart', selectId: 'yf-expiry-select' },
                     { canvasId: 'skew-vs-expiry-chart', selectId: null },
                     { canvasId: 'realised-vol-chart', selectId: null },
                     { canvasId: 'volume-chart', selectId: 'ticker-search' },
@@ -1977,6 +2077,17 @@
                     }
                 });
                 const expirySelect = document.getElementById('expiry-select');
+                const yfExpirySelect = document.getElementById('yf-expiry-select');
+                expirySelect.addEventListener('change', () => {
+                    console.log('Expiry select changed to:', expirySelect.value);
+                    yfExpirySelect.value = expirySelect.value;
+                    updateCharts();
+                });
+                yfExpirySelect.addEventListener('change', () => {
+                    console.log('YF Expiry select changed to:', yfExpirySelect.value);
+                    expirySelect.value = yfExpirySelect.value;
+                    updateCharts();
+                });
                 document.getElementById('moneyness-select').addEventListener('change', () => {
                     console.log('Moneyness select changed to:', document.getElementById('moneyness-select').value);
                     updateCharts();
@@ -1990,10 +2101,6 @@
                     const dateSelect = document.getElementById('date-select');
                     const timeSelect = document.getElementById('time-select');
                     loadData(dateSelect.value + '_' + timeSelect.value);
-                });
-                expirySelect.addEventListener('change', () => {
-                    console.log('Expiry select changed to:', expirySelect.value);
-                    updateCharts();
                 });
             } catch (error) {
                 console.error('Error adding keyboard navigation:', error);
