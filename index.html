@@ -19,6 +19,7 @@
             height: 100vh;
             font-size: 14px;
         }
+    
         .sidebar {
             width: 250px;
             background: #25253D;
@@ -26,6 +27,7 @@
             border-right: 1px solid #A855F7;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
         }
+    
         .sidebar a {
             color: #A855F7;
             text-decoration: none;
@@ -35,11 +37,13 @@
             transition: color 0.3s ease, background-color 0.3s ease;
             border-radius: 4px;
         }
+    
         .sidebar a:hover {
             color: #FFFFFF;
             background-color: #D8B4FE;
             text-decoration: none;
         }
+    
         .sidebar select, .sidebar input {
             width: 100%;
             padding: 8px;
@@ -51,16 +55,19 @@
             font-size: 14px;
             transition: border-color 0.3s ease;
         }
+    
         .sidebar select:focus, .sidebar input:focus {
             border-color: #D8B4FE;
             outline: none;
         }
+    
         .main-content {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             background: #1A1A2E;
         }
+    
         .chart-container {
             background-color: #25253D;
             padding: 20px;
@@ -68,32 +75,41 @@
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            height: 600px; /* Increased height for a larger plot */
         }
+    
         .stats-table, .skew-table, .summary-table, .ranking-table, .raw-data-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
             background-color: #25253D;
         }
+    
         .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td {
             border: 1px solid #A855F7;
             padding: 10px;
             text-align: left;
             color: #FFFFFF;
         }
+    
         .stats-table th, .skew-table th, .summary-table th, .ranking-table th, .raw-data-table th {
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
         }
+    
         .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
             background-color: #4B4B6F;
         }
+    
         canvas {
             max-width: 100%;
             border-radius: 4px;
             background-color: #25253D;
         }
+    
         .header {
             text-align: center;
             padding: 15px;
@@ -104,6 +120,7 @@
             color: #FFFFFF;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
+    
         .ticker-display {
             font-size: 24px;
             margin-bottom: 15px;
@@ -113,12 +130,14 @@
             padding: 10px;
             border-radius: 4px;
         }
+    
         .select-container {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 10px;
         }
+    
         .arrow-button, .toggle-button {
             background-color: #25253D;
             color: #FFFFFF;
@@ -128,80 +147,74 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
+    
         .arrow-button:hover, .toggle-button:hover {
             background-color: #D8B4FE;
         }
+    
         #historic-error {
             color: #F87171;
             padding: 10px;
             text-align: center;
         }
+    
         .line-swatch {
             display: inline-block;
             vertical-align: middle;
             margin-right: 5px;
         }
+    
         .overview-container {
             display: flex;
             gap: 20px;
         }
+    
         .overview-container .chart-container {
             flex: 1;
         }
+    
         .volatility-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
         }
+    
         .volatility-grid .chart-container {
             margin-bottom: 0;
         }
-        #call-vol-surface {
-            height: 400px;
-            background-color: #25253D;
-        }
-        .slider-container {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        .slider-container input {
-            width: 150px;
-        }
-        .error-message {
-            color: #F87171;
-            text-align: center;
-            padding: 10px;
-        }
+    
         .ranking-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
         }
+    
         .ranking-grid .chart-container {
             margin-bottom: 0;
         }
+    
         #call-vol-surface {
-            height: 100% !important;
+            height: 85% !important; /* 85% of container to leave space for sliders */
             width: 100% !important;
             min-height: 400px; /* Minimum height to ensure visibility */
+            flex-grow: 1; /* Allow the plot to grow and fill available space */
         }
-        
+    
         .slider-container {
             margin-top: 10px;
             display: flex;
             flex-direction: column;
             gap: 15px;
             justify-content: center;
+            flex-shrink: 0; /* Prevent sliders from shrinking */
         }
-        
+    
         .slider-group {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-        
+    
         .pretty-slider {
             width: 200px;
             padding: 5px 0;
@@ -213,11 +226,11 @@
             opacity: 0.7;
             transition: opacity 0.2s;
         }
-        
+    
         .pretty-slider:hover {
             opacity: 1;
         }
-        
+    
         .pretty-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -229,7 +242,7 @@
             border: 2px solid #A855F7;
             box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
         }
-        
+    
         .pretty-slider::-moz-range-thumb {
             width: 15px;
             height: 15px;
@@ -238,6 +251,19 @@
             border-radius: 50%;
             border: 2px solid #A855F7;
             box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
+        }
+    
+        .slider-value {
+            margin-left: 10px;
+            color: #D8B4FE;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    
+        .error-message {
+            color: #F87171;
+            text-align: center;
+            padding: 10px;
         }
     </style>
 </head>
@@ -322,18 +348,22 @@
                 <canvas id="delta-vs-iv-chart"></canvas>
                 <div id="delta-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" style="height: 600px;">
                 <h3>Call Volatility Surface</h3>
-                <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
+                <div id="call-vol-surface" style="height: 85%; width: 100%;"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
                 <div class="slider-container">
                     <div class="slider-group">
-                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider"></label>
-                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider"></label>
+                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider">
+                            <span id="moneyness-min-value" class="slider-value">0.6</span></label>
+                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider">
+                            <span id="moneyness-max-value" class="slider-value">2.5</span></label>
                     </div>
                     <div class="slider-group">
-                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider"></label>
-                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider"></label>
+                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider">
+                            <span id="expiry-t-min-value" class="slider-value">0.2</span></label>
+                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider">
+                            <span id="expiry-t-max-value" class="slider-value">5.0</span></label>
                     </div>
                 </div>
             </div>
@@ -1580,18 +1610,7 @@
                 }
                 const minZ = surfaceData.minZ;
                 const maxZ = surfaceData.maxZ;
-                const colorscale = [
-                    [0, '#440154'],
-                    [0.1, '#482878'],
-                    [0.2, '#3e4989'],
-                    [0.3, '#31688e'],
-                    [0.4, '#26828e'],
-                    [0.5, '#1f9e89'],
-                    [0.6, '#35b779'],
-                    [0.7, '#6ece58'],
-                    [0.8, '#b5de2b'],
-                    [0.9, '#fde725']
-                ]; // Viridis colorscale
+                const colorscale = 'Viridis'; // Using named 'Viridis' colorscale
                 const numTicks = 6;
                 const tickInterval = (maxZ - minZ) / (numTicks - 1);
                 const tickvals = [];
@@ -1606,7 +1625,7 @@
                     y: surfaceData.y,
                     z: surfaceData.z,
                     type: 'surface',
-                    colorscale: 'Viridis', // Use named 'Viridis' colorscale
+                    colorscale: colorscale,
                     cmin: minZ,
                     cmax: maxZ,
                     showscale: true,
@@ -1628,19 +1647,27 @@
                         aspectmode: 'auto', // Allow surface to fill space automatically
                         bgcolor: '#1A1A2E'
                     },
-                    margin: { l: 0, r: 0, b: 0, t: 50 }, // Reduce margins to maximize space
-                    width: '100%',
-                    height: '100%',
+                    margin: { l: 0, r: 0, b: 0, t: 50 }, // Minimize margins
+                    width: '100%', // Ensure full width
+                    height: '100%', // Ensure full height within container
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
                 };
-                Plotly.newPlot('call-vol-surface', plotData, layout);
+                Plotly.react('call-vol-surface', plotData, layout); // Use react for dynamic updates
+                // Update numeric value displays
+                document.getElementById('moneyness-min-value').textContent = document.getElementById('moneyness-min-slider').value;
+                document.getElementById('moneyness-max-value').textContent = document.getElementById('moneyness-max-slider').value;
+                document.getElementById('expiry-t-min-value').textContent = document.getElementById('expiry-t-min-slider').value;
+                document.getElementById('expiry-t-max-value').textContent = document.getElementById('expiry-t-max-slider').value;
                 const moneynessMinSlider = document.getElementById('moneyness-min-slider');
                 const moneynessMaxSlider = document.getElementById('moneyness-max-slider');
                 const expiryTMinSlider = document.getElementById('expiry-t-min-slider');
                 const expiryTMaxSlider = document.getElementById('expiry-t-max-slider');
                 [moneynessMinSlider, moneynessMaxSlider, expiryTMinSlider, expiryTMaxSlider].forEach(slider => {
-                    slider.addEventListener('input', () => updateCharts());
+                    slider.addEventListener('input', () => {
+                        updateCallVolSurface(); // Update plot and values on slider change
+                        document.getElementById(slider.id.replace('-slider', '-value')).textContent = slider.value;
+                    });
                 });
             } catch (error) {
                 console.error('Error updating Call Volatility Surface:', error);
