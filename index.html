@@ -2013,99 +2013,6 @@
                     return '20250827_2136'; // Fallback
                 };
 
-                const updateSection = (targetId) => {
-                    const target = document.getElementById(targetId);
-                    document.querySelectorAll('.overview-container, .volatility-grid, .chart-container').forEach(container => {
-                        container.style.display = 'none';
-                    });
-                    target.style.display = target.classList.contains('overview-container') ? 'flex' :
-                                          target.classList.contains('volatility-grid') ? 'grid' : 'block';
-                    console.log(`Updating section: ${targetId}, data sizes:`, {
-                        data: data.length,
-                        historicData: historicData.length,
-                        skewData: skewData.length,
-                        rankingData: rankingData.length
-                    });
-
-                    requestAnimationFrame(() => {
-                        // Clear existing content to prevent overlap
-                        if (targetId === 'overview') {
-                            const summaryTable = document.getElementById('summary-table');
-                            const skewTable = document.getElementById('skew-table');
-                            summaryTable.innerHTML = '';
-                            skewTable.innerHTML = '';
-                            console.log('Rendering Overview with flex layout');
-                            if (historicData.length) {
-                                // Force canvas redraw
-                                const canvas = document.getElementById('historic-price-chart');
-                                const parent = canvas.parentNode;
-                                const newCanvas = document.createElement('canvas');
-                                newCanvas.id = 'historic-price-chart';
-                                newCanvas.width = canvas.width;
-                                newCanvas.height = canvas.height;
-                                parent.replaceChild(newCanvas, canvas);
-                                updateHistoricChart();
-                            } else {
-                                console.warn('No historic data for Overview');
-                                document.getElementById('historic-error').style.display = 'block';
-                                document.getElementById('historic-error').textContent = 'No historic data available';
-                            }
-                            if (rankingData.length) updateSummaryTable();
-                            if (skewData.length) updateSkewTable();
-                            console.log('Updated Overview charts and tables');
-                        } else if (targetId === 'volatility') {
-                            console.log('Rendering Volatility with grid layout');
-                            if (data.length) {
-                                // Force canvas redraw for Chart.js charts
-                                ['moneyness-vs-iv-chart', 'expiry-vs-iv-chart', 'delta-vs-iv-chart'].forEach(chartId => {
-                                    const canvas = document.getElementById(chartId);
-                                    const parent = canvas.parentNode;
-                                    const newCanvas = document.createElement('canvas');
-                                    newCanvas.id = chartId;
-                                    newCanvas.width = canvas.width;
-                                    newCanvas.height = canvas.height;
-                                    parent.replaceChild(newCanvas, canvas);
-                                });
-                                // Ensure Plotly div is visible and cleared
-                                const plotlyDiv = document.getElementById('call-vol-surface');
-                                plotlyDiv.style.display = 'block';
-                                Plotly.purge('call-vol-surface');
-                                updateMoneynessVsIV();
-                                updateExpiryVsIV();
-                                updateDeltaVsIV();
-                                updateCallVolSurface();
-                            } else {
-                                console.warn('No data available for Volatility charts');
-                                document.getElementById('historic-error').style.display = 'block';
-                                document.getElementById('historic-error').textContent = 'No data available for volatility charts';
-                            }
-                            console.log('Updated Volatility charts');
-                        } else if (targetId === 'ranking') {
-                            console.log('Rendering Ranking with block layout');
-                            if (rankingData.length) {
-                                // Force canvas redraw
-                                ['volume-chart', 'open-interest-chart'].forEach(chartId => {
-                                    const canvas = document.getElementById(chartId);
-                                    const parent = canvas.parentNode;
-                                    const newCanvas = document.createElement('canvas');
-                                    newCanvas.id = chartId;
-                                    newCanvas.width = canvas.width;
-                                    newCanvas.height = canvas.height;
-                                    parent.replaceChild(newCanvas, canvas);
-                                });
-                                updateVolumeChart();
-                                updateOpenInterestChart();
-                                updateRankingTable();
-                            }
-                            console.log('Updated Ranking table');
-                        } else if (targetId === 'data-table') {
-                            console.log('Rendering Data Table with block layout');
-                            if (rawData.length) updateRawDataTable();
-                            console.log('Updated Data Table');
-                        }
-                    });
-                };
-
                 fetch('data/dates.json?v=' + Date.now())
                     .then(response => {
                         if (!response.ok) throw new Error('Failed to load dates.json');
@@ -2172,20 +2079,17 @@
                             }
                         });
 
-                        tickerSearch.addEventListener('input', async () => {
+                        tickerSearch.addEventListener('change', async () => {  // Changed from 'input' to 'change'
                             console.log('Ticker changed to:', tickerSearch.value);
                             document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
                             const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                             if (await validateTimestamp(timestamp)) {
-                                clearTimeout(loadDataTimeout);
-                                loadDataTimeout = setTimeout(async () => {
-                                    await loadData(timestamp);
-                                    updateDropdowns();
-                                    const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
-                                    const sectionId = currentSection ? currentSection.id : 'overview';
-                                    updateSection(sectionId);
-                                    console.log('Updated section after ticker change:', sectionId);
-                                }, 100);
+                                await loadData(timestamp);
+                                updateDropdowns();
+                                const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const sectionId = currentSection ? currentSection.id : 'overview';
+                                updateSection(sectionId);
+                                console.log('Updated section after ticker change:', sectionId);
                             } else {
                                 console.warn('Invalid timestamp:', timestamp);
                                 document.getElementById('historic-error').style.display = 'block';
