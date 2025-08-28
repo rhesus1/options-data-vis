@@ -239,6 +239,12 @@
             border: 2px solid #A855F7;
             box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
         }
+        .slider-value {
+            margin-left: 10px;
+            color: #D8B4FE;
+            font-weight: bold;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -328,12 +334,16 @@
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
                 <div class="slider-container">
                     <div class="slider-group">
-                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider"></label>
-                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider"></label>
+                        <label>Moneyness Min: <input type="range" id="moneyness-min-slider" min="0.1" max="3" step="0.1" value="0.6" class="pretty-slider">
+                            <span id="moneyness-min-value" class="slider-value">0.6</span></label>
+                        <label>Moneyness Max: <input type="range" id="moneyness-max-slider" min="0.1" max="3" step="0.1" value="2.5" class="pretty-slider">
+                            <span id="moneyness-max-value" class="slider-value">2.5</span></label>
                     </div>
                     <div class="slider-group">
-                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider"></label>
-                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider"></label>
+                        <label>Expiry (T) Min: <input type="range" id="expiry-t-min-slider" min="0" max="5" step="0.1" value="0.2" class="pretty-slider">
+                            <span id="expiry-t-min-value" class="slider-value">0.2</span></label>
+                        <label>Expiry (T) Max: <input type="range" id="expiry-t-max-slider" min="0" max="5" step="0.1" value="5" class="pretty-slider">
+                            <span id="expiry-t-max-value" class="slider-value">5.0</span></label>
                     </div>
                 </div>
             </div>
@@ -1635,12 +1645,20 @@
                     plot_bgcolor: '#1A1A2E'
                 };
                 Plotly.newPlot('call-vol-surface', plotData, layout);
+                // Update numeric value displays
+                document.getElementById('moneyness-min-value').textContent = document.getElementById('moneyness-min-slider').value;
+                document.getElementById('moneyness-max-value').textContent = document.getElementById('moneyness-max-slider').value;
+                document.getElementById('expiry-t-min-value').textContent = document.getElementById('expiry-t-min-slider').value;
+                document.getElementById('expiry-t-max-value').textContent = document.getElementById('expiry-t-max-slider').value;
                 const moneynessMinSlider = document.getElementById('moneyness-min-slider');
                 const moneynessMaxSlider = document.getElementById('moneyness-max-slider');
                 const expiryTMinSlider = document.getElementById('expiry-t-min-slider');
                 const expiryTMaxSlider = document.getElementById('expiry-t-max-slider');
                 [moneynessMinSlider, moneynessMaxSlider, expiryTMinSlider, expiryTMaxSlider].forEach(slider => {
-                    slider.addEventListener('input', () => updateCharts());
+                    slider.addEventListener('input', () => {
+                        updateCallVolSurface();
+                        document.getElementById(slider.id.replace('-slider', '-value')).textContent = slider.value;
+                    });
                 });
             } catch (error) {
                 console.error('Error updating Call Volatility Surface:', error);
