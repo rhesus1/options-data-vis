@@ -758,9 +758,9 @@
                         label: 'Skew 25 Delta',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_25_delta'),
                         borderColor: '#FFA500', // Orange
-                        backgroundColor: '#FFA500',
+                        backgroundColor: 'rgba(255, 165, 0, 0.2)', // Orange shade
                         pointRadius: 1,
-                        fill: false,
+                        fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
@@ -769,9 +769,9 @@
                         label: 'Skew 75 Delta',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_75_delta'),
                         borderColor: '#00FF00', // Green
-                        backgroundColor: '#00FF00',
+                        backgroundColor: 'rgba(0, 255, 0, 0.2)', // Green shade
                         pointRadius: 1,
-                        fill: false,
+                        fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
@@ -780,9 +780,9 @@
                         label: 'Skew Call 25/75',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_call_25_75'),
                         borderColor: '#FF0000', // Red
-                        backgroundColor: '#FF0000',
+                        backgroundColor: 'rgba(255, 0, 0, 0.2)', // Red shade
                         pointRadius: 1,
-                        fill: false,
+                        fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
@@ -790,10 +790,10 @@
                     {
                         label: 'Skew Put 25/75',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_put_25_75'),
-                        borderColor: '#A020F0', // Blue
-                        backgroundColor: '#A020F0',
+                        borderColor: '#A020F0', // Purple
+                        backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
                         pointRadius: 1,
-                        fill: false,
+                        fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
@@ -814,13 +814,13 @@
                                 type: 'time',
                                 time: { unit: 'day' },
                                 title: { display: true, text: 'Expiry Date', color: '#FFFFFF' },
-                                grid: { display: false }, // Remove grid lines
+                                grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Skew', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { display: false }, // Remove grid lines
+                                grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1186,6 +1186,12 @@
                         yAxisID: 'y'
                     }
                 ];
+                // Calculate min and max moneyness from data
+                const moneynessValues = filteredData
+                    .filter(item => Number.isFinite(item.Moneyness))
+                    .map(item => item.Moneyness * 100); // Convert to percentage
+                const minMoneyness = moneynessValues.length > 0 ? Math.min(...moneynessValues) : 0;
+                const maxMoneyness = moneynessValues.length > 0 ? Math.max(...moneynessValues) : 200;
                 if (moneynessChart) moneynessChart.destroy();
                 const canvas = document.getElementById('moneyness-vs-iv-chart');
                 if (!canvas.getContext('2d')) {
@@ -1200,15 +1206,15 @@
                             x: {
                                 type: 'linear',
                                 title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' },
-                                min: 0,
-                                max: 200,
-                                grid: { display: false }, // Remove grid lines
+                                min: minMoneyness, // Dynamic min
+                                max: maxMoneyness, // Dynamic max
+                                grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { display: false }, // Remove grid lines
+                                grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1583,6 +1589,12 @@
                         yAxisID: 'y'
                     }
                 ];
+                // Calculate min and max moneyness from data
+                const moneynessValues = filteredData
+                    .filter(item => Number.isFinite(item.Moneyness))
+                    .map(item => item.Moneyness * 100); // Convert to percentage
+                const minMoneyness = moneynessValues.length > 0 ? Math.min(...moneynessValues) : 0;
+                const maxMoneyness = moneynessValues.length > 0 ? Math.max(...moneynessValues) : 200;
                 if (yfIVChart) yfIVChart.destroy();
                 const canvas = document.getElementById('yf-iv-chart');
                 if (!canvas.getContext('2d')) {
@@ -1597,15 +1609,15 @@
                             x: {
                                 type: 'linear',
                                 title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' },
-                                min: 0,
-                                max: 200,
-                                grid: { display: false }, // Remove grid lines
+                                min: minMoneyness, // Dynamic min
+                                max: maxMoneyness, // Dynamic max
+                                grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Implied Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { display: false }, // Remove grid lines
+                                grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
