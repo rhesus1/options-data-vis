@@ -142,7 +142,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
         processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
         
+        prev_day_historic = load_historic_data(prev_day_ts) if prev_day_ts else pd.DataFrame()
+        prev_week_historic = load_historic_data(prev_week_ts) if prev_week_ts else pd.DataFrame()
+        
         latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty else pd.DataFrame()
+        prev_day_historic_latest = prev_day_historic.loc[prev_day_historic.groupby('Ticker')['Date'].idxmax()] if not prev_day_historic.empty else pd.DataFrame()
+        prev_week_historic_latest = prev_week_historic.loc[prev_week_historic.groupby('Ticker')['Date'].idxmax()] if not prev_week_historic.empty else pd.DataFrame()
         
         def get_prev_value(ticker, target_date, col):
             g = df_historic[df_historic['Ticker'] == ticker]
@@ -151,7 +156,27 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 return None
             return prev.loc[prev['Date'].idxmax(), col]
         
-        def calculate_weighted_iv(ticker_df):
+        def filter_3m_expiry(ticker_df, current_dt):
+            if 'Expiry' not in ticker_df.columns:
+                return pd.DataFrame()
+            try:
+                ticker_df['Expiry'] = pd.to_datetime(ticker_df['Expiry'])
+                days_to_expiry = (ticker_df['Expiry'] - current_dt).dt.days
+                # Target 3-month expiry (approx 90 days, allowing range 75-105 days)
+                valid_expiry = ticker_df[(days_to_expiry >= 75) & (days_to_expiry <= 105)]
+                if valid_expiry.empty:
+                    return pd.DataFrame()
+                # Select the expiry closest to 90 days
+                valid_expiry['Days_Diff'] = abs(days_to_expiry - 90)
+                closest_expiry = valid_expiry.loc[valid_expiry['Days_Diff'].idxmin(), 'Expiry']
+                return valid_expiry[valid_expiry['Expiry'] == closest_expiry]
+            except Exception as e:
+                print(f"Error filtering 3-month expiry: {e}")
+                return pd.DataFrame()
+        
+        def calculate_weighted_iv(ticker_df, expiry_filter=False, current_dt=None):
+            if expiry_filter and current_dt is not None:
+                ticker_df = filter_3m_expiry(ticker_df, current_dt)
             if ticker_df.empty or 'IV_mid' not in ticker_df.columns or ticker_df['IV_mid'].isna().all():
                 return np.nan
             mid = (ticker_df['Bid'] + ticker_df['Ask']) / 2
@@ -164,6 +189,17 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 return np.nan
             weighted_iv = np.average(ticker_df.loc[valid, 'IV_mid'], weights=weights[valid])
             return weighted_iv
+        
+        def calculate_atm_iv(ticker_df, current_price, current_dt):
+            ticker_df_3m = filter_3m_expiry(ticker_df, current_dt)
+            if ticker_df_3m.empty or 'Strike' not in ticker_df_3m.columns or 'IV_mid' not in ticker_df_3m.columns:
+                return np.nan
+            if pd.isna(current_price) or current_price == 'N/A':
+                return np.nan
+            # Find the strike closest to the current price
+            ticker_df_3m['Strike_Diff'] = abs(ticker_df_3m['Strike'] - current_price)
+            atm_option = ticker_df_3m.loc[ticker_df_3m['Strike_Diff'].idxmin()]
+            return atm_option['IV_mid'] if not pd.isna(atm_option['IV_mid']) else np.nan
         
         def calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt):
             past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
@@ -238,13 +274,26 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             vol_1w_pct = (vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol != 0 else 'N/A'
             ticker_processed = df_processed[df_processed['Ticker'] == ticker]
             weighted_iv = calculate_weighted_iv(ticker_processed) if not ticker_processed.empty else np.nan
+            weighted_iv_3m = calculate_weighted_iv(ticker_processed, expiry_filter=True, current_dt=current_dt) if not ticker_processed.empty else np.nan
             ticker_processed_prev_day = processed_prev_day[processed_prev_day['Ticker'] == ticker] if 'Ticker' in processed_prev_day.columns else pd.DataFrame()
-            weighted_iv_prev_day = calculate_weighted_iv(ticker_processed_prev_day) if not ticker_processed_prev_day.empty else np.nan
-            weighted_iv_1d_pct = (weighted_iv - weighted_iv_prev_day) / weighted_iv_prev_day * 100 if not np.isnan(weighted_iv_prev_day) and weighted_iv_prev_day != 0 else 'N/A'
             ticker_processed_prev_week = processed_prev_week[processed_prev_week['Ticker'] == ticker] if 'Ticker' in processed_prev_week.columns else pd.DataFrame()
+            weighted_iv_prev_day = calculate_weighted_iv(ticker_processed_prev_day) if not ticker_processed_prev_day.empty else np.nan
+            weighted_iv_3m_prev_day = calculate_weighted_iv(ticker_processed_prev_day, expiry_filter=True, current_dt=current_dt - timedelta(days=1)) if not ticker_processed_prev_day.empty else np.nan
             weighted_iv_prev_week = calculate_weighted_iv(ticker_processed_prev_week) if not ticker_processed_prev_week.empty else np.nan
+            weighted_iv_3m_prev_week = calculate_weighted_iv(ticker_processed_prev_week, expiry_filter=True, current_dt=current_dt - timedelta(days=7)) if not ticker_processed_prev_week.empty else np.nan
+            weighted_iv_1d_pct = (weighted_iv - weighted_iv_prev_day) / weighted_iv_prev_day * 100 if not np.isnan(weighted_iv_prev_day) and weighted_iv_prev_day != 0 else 'N/A'
             weighted_iv_1w_pct = (weighted_iv - weighted_iv_prev_week) / weighted_iv_prev_week * 100 if not np.isnan(weighted_iv_prev_week) and weighted_iv_prev_week != 0 else 'N/A'
+            weighted_iv_3m_1d_pct = (weighted_iv_3m - weighted_iv_3m_prev_day) / weighted_iv_3m_prev_day * 100 if not np.isnan(weighted_iv_3m_prev_day) and weighted_iv_3m_prev_day != 0 else 'N/A'
+            weighted_iv_3m_1w_pct = (weighted_iv_3m - weighted_iv_3m_prev_week) / weighted_iv_3m_prev_week * 100 if not np.isnan(weighted_iv_3m_prev_week) and weighted_iv_3m_prev_week != 0 else 'N/A'
             latest = latest_historic[latest_historic['Ticker'] == ticker] if not latest_historic.empty else pd.DataFrame()
+            current_price = latest['Close'].values[0] if not latest.empty and 'Close' in latest.columns else 'N/A'
+            prev_day_price = prev_day_historic_latest['Close'].values[0] if not prev_day_historic_latest.empty and prev_day_historic_latest['Ticker'].eq(ticker).any() and 'Close' in prev_day_historic_latest.columns else 'N/A'
+            prev_week_price = prev_week_historic_latest['Close'].values[0] if not prev_week_historic_latest.empty and prev_week_historic_latest['Ticker'].eq(ticker).any() and 'Close' in prev_week_historic_latest.columns else 'N/A'
+            atm_iv_3m = calculate_atm_iv(ticker_processed, current_price, current_dt) if not ticker_processed.empty else np.nan
+            atm_iv_3m_prev_day = calculate_atm_iv(ticker_processed_prev_day, prev_day_price, current_dt - timedelta(days=1)) if not ticker_processed_prev_day.empty else np.nan
+            atm_iv_3m_prev_week = calculate_atm_iv(ticker_processed_prev_week, prev_week_price, current_dt - timedelta(days=7)) if not ticker_processed_prev_week.empty else np.nan
+            atm_iv_3m_1d_pct = (atm_iv_3m - atm_iv_3m_prev_day) / atm_iv_3m_prev_day * 100 if not np.isnan(atm_iv_3m_prev_day) and atm_iv_3m_prev_day != 0 else 'N/A'
+            atm_iv_3m_1w_pct = (atm_iv_3m - atm_iv_3m_prev_week) / atm_iv_3m_prev_week * 100 if not np.isnan(atm_iv_3m_prev_week) and atm_iv_3m_prev_week != 0 else 'N/A'
             rank_dict = {
                 'Ticker': ticker,
                 'Latest Close': 'N/A',
@@ -269,6 +318,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 'Realised Volatility 180d (%)': 'N/A',
                 'Realised Volatility 252d (%)': 'N/A',
                 'Weighted IV (%)': weighted_iv * 100 if not np.isnan(weighted_iv) else 'N/A',
+                'Weighted IV 3m (%)': weighted_iv_3m * 100 if not np.isnan(weighted_iv_3m) else 'N/A',
+                'Weighted IV 3m 1d (%)': weighted_iv_3m_1d_pct,
+                'Weighted IV 3m 1w (%)': weighted_iv_3m_1w_pct,
+                'ATM IV 3m (%)': atm_iv_3m * 100 if not np.isnan(atm_iv_3m) else 'N/A',
+                'ATM IV 3m 1d (%)': atm_iv_3m_1d_pct,
+                'ATM IV 3m 1w (%)': atm_iv_3m_1w_pct,
                 'Weighted IV 1d (%)': weighted_iv_1d_pct,
                 'Weighted IV 1w (%)': weighted_iv_1w_pct,
                 'Rvol100d - Weighted IV': 'N/A',
@@ -353,6 +408,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                     rank_dict['Latest Close'] = hist['Close'].iloc[-1]
                     rank_dict['Latest High'] = hist['High'].iloc[-1]
                     rank_dict['Latest Low'] = hist['Low'].iloc[-1]
+                    current_price = hist['Close'].iloc[-1]
+                    atm_iv_3m = calculate_atm_iv(ticker_processed, current_price, current_dt) if not ticker_processed.empty else np.nan
+                    rank_dict['ATM IV 3m (%)'] = atm_iv_3m * 100 if not np.isnan(atm_iv_3m) else 'N/A'
+                    # Note: 1d and 1w changes for ATM IV 3m are not calculated here due to missing historical prices
+                    rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
+                    rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
                 for rvol_type in rvol_types:
                     current_vol = calculate_rvol_days(ticker, int(rvol_type))
                     rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol
@@ -415,6 +476,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'Realised Volatility 180d (%)',
             'Realised Volatility 252d (%)',
             'Weighted IV (%)',
+            'Weighted IV 3m (%)',
+            'Weighted IV 3m 1d (%)',
+            'Weighted IV 3m 1w (%)',
+            'ATM IV 3m (%)',
+            'ATM IV 3m 1d (%)',
+            'ATM IV 3m 1w (%)',
             'Weighted IV 1d (%)',
             'Weighted IV 1w (%)',
             'Rvol100d - Weighted IV',
