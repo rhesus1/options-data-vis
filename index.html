@@ -907,6 +907,8 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No ranking data available';
+                    cell.colSpan = 2;
+                    cell.style.color = '#FFFFFF';
                     console.warn('No ranking data for summary table');
                     return;
                 }
@@ -920,9 +922,16 @@
                 }
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
-                const th = document.createElement('th');
-                th.textContent = 'Metric';
-                headerRow.appendChild(th);
+                const thMetric = document.createElement('th');
+                thMetric.textContent = 'Metric';
+                thMetric.style.textAlign = 'left';
+                thMetric.style.color = '#FFFFFF';
+                const thValue = document.createElement('th');
+                thValue.textContent = 'Value';
+                thValue.style.textAlign = 'right';
+                thValue.style.color = '#FFFFFF';
+                headerRow.appendChild(thMetric);
+                headerRow.appendChild(thValue);
                 table.appendChild(thead);
                 const tbody = document.createElement('tbody');
                 const filteredRankingData = rankingData.find(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
@@ -965,11 +974,19 @@
                 metrics.push({ name: 'ATM 12m/3m Ratio', value: atmRatio });
                 metrics.forEach(metric => {
                     const row = tbody.insertRow();
-                    const cell = row.insertCell();
-                    cell.textContent = `${metric.name}\t${metric.value}`;
-                    if (metric.name.includes('(%)') && Number.isFinite(parseFloat(metric.value))) {
+                    const metricCell = row.insertCell();
+                    metricCell.textContent = `${metric.name} >`;
+                    metricCell.style.textAlign = 'left';
+                    metricCell.style.color = '#FFFFFF';
+                    const valueCell = row.insertCell();
+                    valueCell.textContent = metric.value;
+                    valueCell.style.textAlign = 'right';
+                    valueCell.style.color = '#FFFFFF';
+                    // Apply color to specific percent change metrics
+                    const isPercentChange = ['Close 1d (%)', 'Close 1w (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Volume 1d (%)', 'Volume 1w (%)', 'OI 1d (%)', 'OI 1w (%)'].includes(metric.name);
+                    if (isPercentChange && Number.isFinite(parseFloat(metric.value)) && metric.value !== 'N/A') {
                         const val = parseFloat(metric.value);
-                        cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
+                        valueCell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
                     }
                 });
                 table.appendChild(tbody);
@@ -977,7 +994,7 @@
             } catch (error) {
                 console.error('Error updating summary table:', error);
                 const table = document.getElementById('summary-table');
-                table.innerHTML = '<tr><td>Error loading summary table</td></tr>';
+                table.innerHTML = '<tr><td colspan="2">Error loading summary table</td></tr>';
             }
         }
 
@@ -990,6 +1007,7 @@
                     const cell = row.insertCell();
                     cell.textContent = 'No ranking data available';
                     cell.colSpan = 33;
+                    cell.style.color = '#FFFFFF';
                     console.warn('No ranking data for ranking table');
                     return;
                 }
@@ -1043,6 +1061,7 @@
                     th.textContent = text;
                     th.dataset.column = text;
                     th.dataset.order = 'desc';
+                    th.style.color = '#FFFFFF';
                     th.addEventListener('click', () => sortTable('ranking-table', index));
                     headerRow.appendChild(th);
                 });
@@ -1063,7 +1082,15 @@
                             value = value === 'N/A' || value == null ? 'N/A' : value;
                         }
                         cell.textContent = value;
-                        if ((col.includes('(%)') || col.includes('Rvol') || col.includes('Weighted IV') || col === 'Rvol100d - Weighted IV') && Number.isFinite(parseFloat(item[col]))) {
+                        cell.style.color = '#FFFFFF';
+                        // Apply color to specific percent change metrics
+                        const isPercentChange = [
+                            'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
+                            'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
+                            'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Rvol100d - Weighted IV',
+                            'Volume 1d (%)', 'Volume 1w (%)', 'OI 1d (%)', 'OI 1w (%)'
+                        ].includes(col);
+                        if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
                             const val = parseFloat(item[col]);
                             cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
                         }
