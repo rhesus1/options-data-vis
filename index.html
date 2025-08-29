@@ -819,7 +819,8 @@
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_25_delta'),
                         borderColor: '#FFA500', // Orange
                         backgroundColor: 'rgba(255, 165, 0, 0.2)', // Orange shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
@@ -830,7 +831,8 @@
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_75_delta'),
                         borderColor: '#00FF00', // Green
                         backgroundColor: 'rgba(0, 255, 0, 0.2)', // Green shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
@@ -841,7 +843,8 @@
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_call_25_75'),
                         borderColor: '#FF0000', // Red
                         backgroundColor: 'rgba(255, 0, 0, 0.2)', // Red shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
@@ -852,7 +855,8 @@
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_put_25_75'),
                         borderColor: '#A020F0', // Purple
                         backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true, // Enable shading
                         showLine: true,
                         borderDash: [],
@@ -1228,7 +1232,8 @@
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Call'), 'Moneyness', 'Smoothed_IV'),
                         borderColor: '#FFFF00', // Yellow
                         backgroundColor: 'rgba(255, 255, 0, 0.2)', // Yellow shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true,
                         showLine: true,
                         borderDash: [],
@@ -1239,7 +1244,8 @@
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Moneyness', 'Smoothed_IV'),
                         borderColor: '#A020F0', // Purple
                         backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true,
                         showLine: true,
                         borderDash: [],
@@ -1309,7 +1315,8 @@
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Call'), 'Expiry', 'Smoothed_IV'),
                         borderColor: '#FFFF00', // Yellow
                         backgroundColor: 'rgba(255, 255, 0, 0.2)', // Yellow shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true,
                         showLine: true,
                         borderDash: [],
@@ -1320,7 +1327,8 @@
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Expiry', 'Smoothed_IV'),
                         borderColor: '#A020F0', // Purple
                         backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true,
                         showLine: true,
                         borderDash: [],
@@ -1631,7 +1639,8 @@
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Call'), 'Moneyness', 'Implied Volatility'),
                         borderColor: '#FFFF00', // Yellow
                         backgroundColor: 'rgba(255, 255, 0, 0.2)', // Yellow shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true,
                         showLine: true,
                         borderDash: [],
@@ -1642,7 +1651,8 @@
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Moneyness', 'Implied Volatility'),
                         borderColor: '#A020F0', // Purple
                         backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
-                        pointRadius: 1,
+                        pointRadius: 3,
+                        pointStyle: 'circle',
                         fill: true,
                         showLine: true,
                         borderDash: [],
