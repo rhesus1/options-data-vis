@@ -73,7 +73,6 @@
         .chart-container {
             background-color: #25253D;
             padding: 20px;
-            border: 1px solid #26A69A;
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -864,8 +863,8 @@
                     {
                         label: 'Skew Put 25/75',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_put_25_75'),
-                        borderColor: '#A020F0', // Purple
-                        backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
+                        borderColor: '#26A69A', // Teal
+                        backgroundColor: 'rgba(38, 166, 154, 0.2)', // Teal shade
                         pointRadius: 3,
                         pointStyle: 'circle',
                         fill: true, // Enable shading
@@ -1253,8 +1252,8 @@
                     {
                         label: 'Puts Smoothed IV',
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Moneyness', 'Smoothed_IV'),
-                        borderColor: '#A020F0', // Purple
-                        backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
+                        borderColor: '#26A69A', // Teal
+                        backgroundColor: 'rgba(38, 166, 154, 0.2)', // Teal shade
                         pointRadius: 3,
                         pointStyle: 'circle',
                         fill: true,
@@ -1336,8 +1335,8 @@
                     {
                         label: 'Puts Smoothed IV',
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Expiry', 'Smoothed_IV'),
-                        borderColor: '#A020F0', // Purple
-                        backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
+                        borderColor: '#26A69A', // Teal
+                        backgroundColor: 'rgba(38, 166, 154, 0.2)', // Teal shade
                         pointRadius: 3,
                         pointStyle: 'circle',
                         fill: true,
@@ -1474,8 +1473,8 @@
                     {
                         label: '252-day Realised Vol (%)',
                         data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#A020F0', // Purple
-                        backgroundColor: 'rgba(160, 32, 240, 0.2)',
+                        borderColor: '#26A69A', // Teal
+                        backgroundColor: 'rgba(38, 166, 154, 0.2)', // Teal shade
                         pointRadius: 1,
                         fill: true,
                         showLine: true,
@@ -1660,8 +1659,8 @@
                     {
                         label: 'Puts Implied Volatility',
                         data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Moneyness', 'Implied Volatility'),
-                        borderColor: '#A020F0', // Purple
-                        backgroundColor: 'rgba(160, 32, 240, 0.2)', // Purple shade
+                        borderColor: '#26A69A', // Teal
+                        backgroundColor: 'rgba(38, 166, 154, 0.2)', // Teal shade
                         pointRadius: 3,
                         pointStyle: 'circle',
                         fill: true,
