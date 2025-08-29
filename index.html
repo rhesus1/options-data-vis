@@ -149,9 +149,49 @@
             vertical-align: middle;
             margin-right: 5px;
         }
-        .overview-container {
-            display: flex;
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 80% 20%;
+            grid-template-rows: auto auto;
             gap: 20px;
+        }
+        .historic-container {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        .summary-container {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        .contracts-container {
+            grid-column: span 1;
+            grid-row: 2;
+        }
+        .contracts-container:nth-child(3) {
+            grid-column: 1;
+        }
+        .contracts-container:nth-child(4) {
+            grid-column: 2;
+        }
+        .contracts-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 15px;
+            background-color: #25253D;
+        }
+        .contracts-table th, .contracts-table td {
+            border: 1px solid #26A69A;
+            padding: 10px;
+            text-align: left;
+            color: #FFFFFF;
+        }
+        .contracts-table th {
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .contracts-table th:hover {
+            background-color: #4B4B6F;
         }
         .overview-container .chart-container {
             flex: 1;
@@ -272,8 +312,8 @@
     </div>
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">Selected Ticker: N/A</div>
-        <div id="overview" class="overview-container">
-            <div class="chart-container">
+        <div id="overview" class="overview-grid">
+            <div class="chart-container historic-container">
                 <h2>Historic Stock Price</h2>
                 <div class="select-container">
                     <label for="history-select">Select History Length: </label>
@@ -291,19 +331,17 @@
                 <canvas id="historic-price-chart"></canvas>
                 <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
             </div>
-            <div class="chart-container">
+            <div class="chart-container summary-container">
                 <h2>Summary</h2>
                 <table id="summary-table" class="summary-table"></table>
             </div>
-            <div class="contracts-container">
-                <div class="chart-container">
-                    <h2>Top 10 Volume Contracts</h2>
-                    <table id="top-volume-table" class="contracts-table"></table>
-                </div>
-                <div class="chart-container">
-                    <h2>Top 10 Open Interest Contracts</h2>
-                    <table id="top-open-interest-table" class="contracts-table"></table>
-                </div>
+            <div class="chart-container contracts-container">
+                <h2>Top 10 Volume Contracts</h2>
+                <table id="top-volume-table" class="contracts-table"></table>
+            </div>
+            <div class="chart-container contracts-container">
+                <h2>Top 10 Open Interest Contracts</h2>
+                <table id="top-open-interest-table" class="contracts-table"></table>
             </div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
