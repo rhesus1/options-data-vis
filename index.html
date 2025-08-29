@@ -77,24 +77,24 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
-        .stats-table, .skew-table, .summary-table, .ranking-table, .raw-data-table {
+        .stats-table, .summary-table, .ranking-table, .raw-data-table, .contracts-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
             background-color: #25253D;
         }
-        .stats-table th, .stats-table td, .skew-table th, .skew-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td {
+        .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td {
             border: 1px solid #26A69A;
             padding: 10px;
             text-align: left;
             color: #FFFFFF;
         }
-        .stats-table th, .skew-table th, .summary-table th, .ranking-table th, .raw-data-table th {
+        .stats-table th, .summary-table th, .ranking-table th, .raw-data-table th, .contracts-table th {
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
         }
-        .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover {
+        .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover {
             background-color: #4B4B6F;
         }
         canvas {
@@ -193,9 +193,6 @@
         .contracts-table th:hover {
             background-color: #4B4B6F;
         }
-        .overview-container .chart-container {
-            flex: 1;
-        }
         .volatility-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -260,29 +257,9 @@
         .ranking-grid .chart-container {
             margin-bottom: 0;
         }
-        .contracts-container {
-            display: flex;
-            gap: 20px;
-        }
-        .contracts-table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 15px;
-            background-color: #25253D;
-        }
-        .contracts-table th, .contracts-table td {
-            border: 1px solid #26A69A;
-            padding: 10px;
-            text-align: left;
-            color: #FFFFFF;
-        }
-        .contracts-table th {
-            background-color: #373758;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .contracts-table th:hover {
-            background-color: #4B4B6F;
+        .chart-container h2 {
+            margin-bottom: 15px;
+            text-align: center;
         }
     </style>
 </head>
