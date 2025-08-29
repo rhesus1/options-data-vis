@@ -163,15 +163,15 @@
             grid-column: 2;
             grid-row: 1;
         }
-        .contracts-container {
-            grid-column: span 1;
-            grid-row: 2;
-        }
         .contracts-container:nth-child(3) {
             grid-column: 1;
+            grid-row: 2;
+            width: 50%;
         }
         .contracts-container:nth-child(4) {
             grid-column: 2;
+            grid-row: 2;
+            width: 50%;
         }
         .contracts-table {
             border-collapse: collapse;
@@ -1452,6 +1452,7 @@
                 document.getElementById('realised-vol-error').style.display = 'block';
             }
         }
+        
         function prepareSurfaceData(filteredData, zKey) {
             try {
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
@@ -1464,13 +1465,13 @@
                 const tFilteredData = filteredData.filter(item => {
                     const t = calculateTimeToExpiry(item.Expiry, datasetDate);
                     const moneyness = item.Moneyness;
-                    return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && moneyness >= moneynessMin && moneyness <= moneynessMax;
+                    return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && Number.isFinite(moneyness) && moneyness >= moneynessMin && moneyness <= moneynessMax;
                 });
                 if (tFilteredData.length === 0) {
                     console.warn('No filtered data for surface');
                     return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
                 }
-                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 10) * 0.1))]
+                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 100) * 0.01))]
                     .filter(val => !isNaN(val) && val >= moneynessMin && val <= moneynessMax)
                     .sort((a, b) => a - b);
                 const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
@@ -1492,7 +1493,7 @@
                 const zData = [];
                 moneynessValues.forEach(() => zData.push(new Array(expiryValues.length).fill(null)));
                 tFilteredData.forEach(item => {
-                    const moneynessIndex = moneynessValues.indexOf(Math.round(item.Moneyness * 10) * 0.1);
+                    const moneynessIndex = moneynessValues.indexOf(Math.round(item.Moneyness * 100) * 0.01);
                     const expiryIndex = expiryValues.indexOf(normalizeDate(item.Expiry));
                     if (moneynessIndex >= 0 && expiryIndex >= 0 && Number.isFinite(item[zKey])) {
                         zData[moneynessIndex][expiryIndex] = item[zKey] * 100;
@@ -1515,6 +1516,7 @@
                 return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
             }
         }
+        
         function calculateTimeToExpiry(expiryDate, referenceDate) {
             try {
                 const expiry = new Date(expiryDate);
@@ -1669,7 +1671,7 @@
                 }
             }
         }
-
+        
         function updateYFIVChart() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
@@ -2202,7 +2204,7 @@
                 sections.forEach(id => {
                     const element = document.getElementById(id);
                     if (id === sectionId) {
-                        element.style.display = id === 'overview' ? 'flex' : id === 'volatility' ? 'grid' : 'block';
+                        element.style.display = id === 'overview' ? 'grid' : id === 'volatility' ? 'grid' : 'block';
                     } else {
                         element.style.display = 'none';
                     }
@@ -2214,7 +2216,7 @@
                 document.getElementById('historic-error').style.display = 'block';
             }
         }
-        
+                
         function updateCharts() {
             try {
                 console.log('Updating all charts and tables');
