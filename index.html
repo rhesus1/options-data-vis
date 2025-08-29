@@ -220,6 +220,30 @@
         .ranking-grid .chart-container {
             margin-bottom: 0;
         }
+        .contracts-container {
+            display: flex;
+            gap: 20px;
+        }
+        .contracts-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 15px;
+            background-color: #25253D;
+        }
+        .contracts-table th, .contracts-table td {
+            border: 1px solid #26A69A;
+            padding: 10px;
+            text-align: left;
+            color: #FFFFFF;
+        }
+        .contracts-table th {
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .contracts-table th:hover {
+            background-color: #4B4B6F;
+        }
     </style>
 </head>
 <body>
@@ -270,6 +294,16 @@
             <div class="chart-container">
                 <h2>Summary</h2>
                 <table id="summary-table" class="summary-table"></table>
+            </div>
+            <div class="contracts-container">
+                <div class="chart-container">
+                    <h2>Top 10 Volume Contracts</h2>
+                    <table id="top-volume-table" class="contracts-table"></table>
+                </div>
+                <div class="chart-container">
+                    <h2>Top 10 Open Interest Contracts</h2>
+                    <table id="top-open-interest-table" class="contracts-table"></table>
+                </div>
             </div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
@@ -739,74 +773,8 @@
         }
 
         function updateSkewTable() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
-                let selectedExpiry = document.getElementById('expiry-select').value;
-                const filteredSkewData = skewData.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
-                const table = document.getElementById('skew-table');
-                table.innerHTML = '';
-                if (filteredSkewData.length === 0) {
-                    const row = table.insertRow();
-                    const cell = row.insertCell();
-                    cell.textContent = 'No skew metrics available';
-                    cell.colSpan = 6;
-                    console.warn('No skew data for ticker:', selectedTicker);
-                    return;
-                }
-                const uniqueExpiries = [...new Set(filteredSkewData.map(item => item.Expiry))]
-                    .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
-                if (!selectedExpiry || isNaN(new Date(selectedExpiry).getTime())) {
-                    selectedExpiry = uniqueExpiries[0] || null;
-                    if (selectedExpiry) {
-                        document.getElementById('expiry-select').value = selectedExpiry;
-                        console.log('Set default expiry:', selectedExpiry);
-                    }
-                }
-                let normalizedSelectedExpiry = null;
-                if (selectedExpiry) {
-                    try {
-                        normalizedSelectedExpiry = normalizeDate(selectedExpiry);
-                    } catch (e) {
-                        console.warn('Invalid expiry date, using default:', e);
-                        normalizedSelectedExpiry = uniqueExpiries.length > 0 ? normalizeDate(uniqueExpiries[0]) : null;
-                    }
-                }
-                const thead = document.createElement('thead');
-                const headerRow = thead.insertRow();
-                ['Expiry', 'Skew 25 Delta', 'Skew 75 Delta', 'Skew Call 25/75', 'Skew Put 25/75', 'ATM 12m/3m Ratio'].forEach(text => {
-                    const th = document.createElement('th');
-                    th.textContent = text;
-                    headerRow.appendChild(th);
-                });
-                table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                const selectedRow = normalizedSelectedExpiry ? filteredSkewData.find(item => {
-                    try {
-                        return normalizeDate(item.Expiry) === normalizedSelectedExpiry;
-                    } catch {
-                        return false;
-                    }
-                }) : filteredSkewData[0];
-                const row = tbody.insertRow();
-                if (selectedRow && selectedRow.Expiry) {
-                    row.insertCell().textContent = new Date(selectedRow.Expiry).toLocaleDateString('en-GB');
-                    row.insertCell().textContent = Number.isFinite(selectedRow.Skew_25_delta) ? selectedRow.Skew_25_delta.toFixed(4) : 'N/A';
-                    row.insertCell().textContent = Number.isFinite(selectedRow.Skew_75_delta) ? selectedRow.Skew_75_delta.toFixed(4) : 'N/A';
-                    row.insertCell().textContent = Number.isFinite(selectedRow.Skew_call_25_75) ? selectedRow.Skew_call_25_75.toFixed(4) : 'N/A';
-                    row.insertCell().textContent = Number.isFinite(selectedRow.Skew_put_25_75) ? selectedRow.Skew_put_25_75.toFixed(4) : 'N/A';
-                    row.insertCell().textContent = Number.isFinite(selectedRow.ATM_12m_3m_Ratio) ? selectedRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
-                } else {
-                    const cell = row.insertCell();
-                    cell.textContent = 'No data for selected expiry';
-                    cell.colSpan = 6;
-                }
-                table.appendChild(tbody);
-                console.log('Skew table updated for expiry:', normalizedSelectedExpiry);
-            } catch (error) {
-                console.error('Error updating skew table:', error);
-                const table = document.getElementById('skew-table');
-                table.innerHTML = '<tr><td colspan="6">Error loading skew table</td></tr>';
-            }
+            // Do nothing, as skew table is removed from Overview
+            console.log('Skipping updateSkewTable as skew table is removed from Overview');
         }
         
         function updateSkewVsExpiry() {
@@ -1483,6 +1451,10 @@
                     const moneyness = item.Moneyness;
                     return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && moneyness >= moneynessMin && moneyness <= moneynessMax;
                 });
+                if (tFilteredData.length === 0) {
+                    console.warn('No filtered data for surface');
+                    return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
+                }
                 const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 10) * 0.1))]
                     .filter(val => !isNaN(val) && val >= moneynessMin && val <= moneynessMax)
                     .sort((a, b) => a - b);
@@ -1492,6 +1464,10 @@
                         return t !== null && t >= expiryTMin && t <= expiryTMax;
                     })
                     .sort((a, b) => new Date(a) - new Date(b));
+                if (moneynessValues.length === 0 || expiryValues.length === 0) {
+                    console.warn('No moneyness or expiry values for surface');
+                    return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
+                }
                 const zData = [];
                 moneynessValues.forEach(() => zData.push(new Array(expiryValues.length).fill(null)));
                 tFilteredData.forEach(item => {
@@ -1501,7 +1477,6 @@
                         zData[moneynessIndex][expiryIndex] = item[zKey] * 100;
                     }
                 });
-                const expiryTimes = expiryValues.map(date => calculateTimeToExpiry(date, datasetDate));
                 interpolateAlongExpiry(zData, expiryTimes);
                 interpolateAlongMoneyness(zData, moneynessValues);
                 const zValues = zData.flat().filter(v => Number.isFinite(v));
@@ -1529,6 +1504,91 @@
             } catch (error) {
                 console.error('Error calculating time to expiry:', error);
                 return null;
+            }
+        }
+
+        function updateTopContractsTables() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
+                const volumeTable = document.getElementById('top-volume-table');
+                const openInterestTable = document.getElementById('top-open-interest-table');
+                volumeTable.innerHTML = '';
+                openInterestTable.innerHTML = '';
+        
+                // Filter data for the selected ticker
+                const filteredData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
+        
+                if (!filteredData.length) {
+                    console.warn('No data for top contracts tables:', { ticker: selectedTicker });
+                    const volumeRow = volumeTable.insertRow();
+                    const volumeCell = volumeRow.insertCell();
+                    volumeCell.textContent = 'No contract data available';
+                    volumeCell.colSpan = 7;
+        
+                    const oiRow = openInterestTable.insertRow();
+                    const oiCell = oiRow.insertCell();
+                    oiCell.textContent = 'No contract data available';
+                    oiCell.colSpan = 7;
+                    return;
+                }
+        
+                // Sort for top 10 by Volume and Open Interest
+                const topVolume = [...filteredData]
+                    .filter(item => Number.isFinite(item.Volume))
+                    .sort((a, b) => (b.Volume || 0) - (a.Volume || 0))
+                    .slice(0, 10);
+                const topOpenInterest = [...filteredData]
+                    .filter(item => Number.isFinite(item['Open Interest']))
+                    .sort((a, b) => (b['Open Interest'] || 0) - (a['Open Interest'] || 0))
+                    .slice(0, 10);
+        
+                // Common function to create table
+                const createTable = (table, data, title) => {
+                    const thead = document.createElement('thead');
+                    const headerRow = thead.insertRow();
+                    ['Strike', 'Expiry', 'Type', 'Bid', 'Ask', 'Volume', 'Open Interest'].forEach(text => {
+                        const th = document.createElement('th');
+                        th.textContent = text;
+                        headerRow.appendChild(th);
+                    });
+                    table.appendChild(thead);
+        
+                    const tbody = document.createElement('tbody');
+                    if (data.length === 0) {
+                        const row = tbody.insertRow();
+                        const cell = row.insertCell();
+                        cell.textContent = `No ${title.toLowerCase()} data available`;
+                        cell.colSpan = 7;
+                    } else {
+                        data.forEach(item => {
+                            const row = tbody.insertRow();
+                            const fields = {
+                                Strike: Number.isFinite(item.Strike) ? item.Strike.toFixed(2) : 'N/A',
+                                Expiry: item.Expiry ? new Date(item.Expiry).toLocaleDateString('en-GB') : 'N/A',
+                                Type: item.Type || 'N/A',
+                                Bid: Number.isFinite(item.Bid) ? item.Bid.toFixed(2) : 'N/A',
+                                Ask: Number.isFinite(item.Ask) ? item.Ask.toFixed(2) : 'N/A',
+                                Volume: Number.isFinite(item.Volume) ? parseInt(item.Volume).toLocaleString('en-US') : 'N/A',
+                                'Open Interest': Number.isFinite(item['Open Interest']) ? parseInt(item['Open Interest']).toLocaleString('en-US') : 'N/A'
+                            };
+                            Object.values(fields).forEach(value => {
+                                const cell = row.insertCell();
+                                cell.textContent = value;
+                            });
+                        });
+                    }
+                    table.appendChild(tbody);
+                };
+        
+                createTable(volumeTable, topVolume, 'Volume');
+                createTable(openInterestTable, topOpenInterest, 'Open Interest');
+                console.log('Top contracts tables updated:', { topVolume: topVolume.length, topOpenInterest: topOpenInterest.length });
+            } catch (error) {
+                console.error('Error updating top contracts tables:', error);
+                const volumeTable = document.getElementById('top-volume-table');
+                const openInterestTable = document.getElementById('top-open-interest-table');
+                volumeTable.innerHTML = '<tr><td colspan="7">Error loading volume table</td></tr>';
+                openInterestTable.innerHTML = '<tr><td colspan="7">Error loading open interest table</td></tr>';
             }
         }
 
@@ -2122,8 +2182,8 @@
                 updateSkewVsExpiry();
                 updateRealisedVolChart();
                 updateCallVolSurface();
-                updateSkewTable();
                 updateSummaryTable();
+                updateTopContractsTables();
                 updateVolumeChart();
                 updateOpenInterestChart();
                 updateHistoricChart();
