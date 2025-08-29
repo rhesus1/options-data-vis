@@ -1476,11 +1476,17 @@
                 const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
                     .filter(val => {
                         const t = calculateTimeToExpiry(val, datasetDate);
-                        return t !== null && t >= expiryTMin && t <= expiryTMax;
+                        return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax;
                     })
                     .sort((a, b) => new Date(a) - new Date(b));
                 if (moneynessValues.length === 0 || expiryValues.length === 0) {
                     console.warn('No moneyness or expiry values for surface');
+                    return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
+                }
+                // Calculate expiryTimes for interpolation
+                const expiryTimes = expiryValues.map(val => calculateTimeToExpiry(val, datasetDate)).filter(t => t !== null && Number.isFinite(t));
+                if (expiryTimes.length === 0) {
+                    console.warn('No valid expiry times for surface');
                     return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
                 }
                 const zData = [];
@@ -1509,7 +1515,6 @@
                 return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
             }
         }
-
         function calculateTimeToExpiry(expiryDate, referenceDate) {
             try {
                 const expiry = new Date(expiryDate);
@@ -1608,6 +1613,10 @@
         }
 
         function interpolateAlongExpiry(zData, expiryTimes) {
+            if (!zData || zData.length === 0 || !zData[0] || zData[0].length === 0 || !expiryTimes || expiryTimes.length === 0) {
+                console.warn('No valid data for expiry interpolation');
+                return;
+            }
             for (let y = 0; y < zData.length; y++) {
                 const row = zData[y];
                 const known = [];
@@ -1633,6 +1642,10 @@
         }
         
         function interpolateAlongMoneyness(zData, moneynessValues) {
+            if (!zData || zData.length === 0 || !zData[0] || zData[0].length === 0 || !moneynessValues || moneynessValues.length === 0) {
+                console.warn('No valid data for moneyness interpolation');
+                return;
+            }
             for (let x = 0; x < zData[0].length; x++) {
                 const col = zData.map(row => row[x]);
                 const known = [];
@@ -1743,10 +1756,17 @@
         function updateCallVolSurface() {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Type === 'Call');
+                const filteredData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker && item.Type === 'Call');
                 const errorDiv = document.getElementById('surface-error');
                 errorDiv.style.display = 'none';
                 console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length);
+                if (!filteredData.length) {
+                    console.warn('No call option data for volatility surface:', { ticker: selectedTicker });
+                    Plotly.purge('call-vol-surface');
+                    errorDiv.textContent = 'No call option data available';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
                 const moneynessSlider = document.getElementById('moneyness-slider');
                 const expiryTSlider = document.getElementById('expiry-t-slider');
                 const moneynessMin = parseFloat(moneynessSlider.noUiSlider.get()[0]);
@@ -1757,8 +1777,15 @@
                 const tFilteredData = filteredData.filter(item => {
                     const t = calculateTimeToExpiry(item.Expiry, datasetDate);
                     const moneyness = item.Moneyness;
-                    return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && moneyness >= moneynessMin && moneyness <= moneynessMax;
+                    return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && Number.isFinite(moneyness) && moneyness >= moneynessMin && moneyness <= moneynessMax;
                 });
+                if (!tFilteredData.length) {
+                    console.warn('No data after time and moneyness filtering for volatility surface:', { ticker: selectedTicker });
+                    Plotly.purge('call-vol-surface');
+                    errorDiv.textContent = 'No data for selected moneyness and expiry range';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
                 const surfaceData = prepareSurfaceData(tFilteredData, 'Smoothed_IV');
                 console.log('Surface data:', {
                     x: surfaceData.x.slice(0, 5),
@@ -1841,11 +1868,11 @@
                         aspectmode: 'auto',
                         bgcolor: '#1A1A2E',
                         camera: {
-                            eye: { x: 1.5, y: 1.5, z: 1.5 }, // Adjusted for centered view
-                            center: { x: 0, y: 0, z: 0 } // Center the plot
+                            eye: { x: 1.5, y: 1.5, z: 1.5 },
+                            center: { x: 0, y: 0, z: 0 }
                         }
                     },
-                    margin: { l: 40, r: 40, b: 40, t: 60 }, // Balanced margins for centering
+                    margin: { l: 40, r: 40, b: 40, t: 60 },
                     autosize: true,
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
