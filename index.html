@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
     <style>
@@ -367,6 +367,7 @@
         let rankingTableVisible = false;
         let lastLoadDataTimestamp = null;
         let loadDataTimeout = null;
+        let lastTicker = null;
 
         function parseCSV(csvText) {
             try {
@@ -379,6 +380,26 @@
             } catch (error) {
                 console.error('Error parsing CSV:', error);
                 return [];
+            }
+        }
+
+        async function fetchWithErrorHandling(url, array) {
+            try {
+                const response = await fetch(`${url}?v=${Date.now()}`);
+                if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+                const parsedData = parseCSV(await response.text());
+                array.splice(0, array.length, ...parsedData);
+                if (parsedData.length > 0) {
+                    console.log(`Sample row from ${url}:`, parsedData[0]);
+                } else {
+                    console.warn(`No data parsed from ${url}`);
+                }
+                console.log(`Data loaded from ${url}, size:`, array.length, 'sample:', array.slice(0, 5));
+            } catch (error) {
+                console.warn(`Error loading ${url}:`, error);
+                array.splice(0, array.length);
+                document.getElementById('historic-error').textContent = `Failed to load ${url}: ${error.message}`;
+                document.getElementById('historic-error').style.display = 'block';
             }
         }
 
@@ -462,24 +483,30 @@
 
         async function loadData(timestamp) {
             try {
-                if (lastLoadDataTimestamp === timestamp) {
-                    console.log(`Skipping redundant loadData for timestamp: ${timestamp}`);
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
+                // Only skip if both timestamp and ticker are unchanged
+                if (lastLoadDataTimestamp === timestamp && lastTicker === selectedTicker) {
+                    console.log(`Skipping redundant loadData for timestamp: ${timestamp}, ticker: ${selectedTicker}`);
                     return Promise.resolve();
                 }
                 lastLoadDataTimestamp = timestamp;
+                lastTicker = selectedTicker;
                 clearTimeout(loadDataTimeout);
                 document.getElementById('historic-error').textContent = 'Loading data...';
                 document.getElementById('historic-error').style.display = 'block';
                 const source = document.getElementById('source-select').value;
                 const prefix = source === 'yfinance' ? '_yfinance' : '';
-                let selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}, ticker: ${selectedTicker}`);
+        
+                // Clear existing data
                 data = [];
                 rawData = [];
                 skewData = [];
                 slopeData = [];
                 historicData = [];
                 eventsData = [];
+                rankingData = [];
+        
                 const checkFileExists = async (url) => {
                     try {
                         const response = await fetch(url, { method: 'HEAD' });
@@ -488,6 +515,8 @@
                         return false;
                     }
                 };
+        
+                // Load ranking data first to populate ticker list
                 const rankingExists = await checkFileExists(`data/${timestamp}/ranking/ranking${prefix}.csv`);
                 if (!rankingExists) {
                     throw new Error(`Ranking file not found: data/${timestamp}/ranking/ranking${prefix}.csv`);
@@ -495,6 +524,8 @@
                 const rankingResponse = await fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=${Date.now()}`);
                 rankingData = parseCSV(await rankingResponse.text());
                 console.log('Ranking data loaded, size:', rankingData.length, 'sample:', rankingData.slice(0, 5));
+        
+                // Populate ticker datalist
                 const tickerDatalist = document.getElementById('ticker-datalist');
                 tickerDatalist.innerHTML = '';
                 const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
@@ -503,17 +534,23 @@
                     option.value = val;
                     tickerDatalist.appendChild(option);
                 });
+        
+                // Validate selected ticker
                 if (!uniqueTickers.includes(selectedTicker)) {
-                    selectedTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0] || '';
-                    document.getElementById('ticker-search').value = selectedTicker;
+                    console.warn(`Selected ticker ${selectedTicker} not in ranking data, defaulting`);
+                    const defaultTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0] || '';
+                    document.getElementById('ticker-search').value = defaultTicker;
+                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${defaultTicker || 'N/A'}`;
+                    if (!defaultTicker) {
+                        console.warn('No valid tickers available');
+                        document.getElementById('historic-error').textContent = 'No valid tickers available';
+                        return Promise.resolve();
+                    }
+                } else {
+                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker || 'N/A'}`;
                 }
-                document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker || 'N/A'}`;
-                console.log('Ticker search populated, selected:', selectedTicker);
-                if (!selectedTicker) {
-                    console.warn('No ticker selected, clearing data');
-                    document.getElementById('historic-error').textContent = 'No ticker selected';
-                    return Promise.resolve();
-                }
+        
+                // Load remaining data files
                 const [processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists] = await Promise.all([
                     checkFileExists(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`),
                     checkFileExists(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`),
@@ -523,29 +560,19 @@
                     checkFileExists(`data/Events.csv`)
                 ]);
                 console.log('File existence check:', { processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists });
-                const fetchWithErrorHandling = async (url, array) => {
-                    try {
-                        const response = await fetch(`${url}?v=${Date.now()}`);
-                        if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-                        array.splice(0, array.length, ...parseCSV(await response.text()));
-                        console.log(`Data loaded from ${url}, size:`, array.length, 'sample:', array.slice(0, 5));
-                    } catch (error) {
-                        console.warn(`Error loading ${url}:`, error);
-                        array.splice(0, array.length);
-                        document.getElementById('historic-error').textContent = `Failed to load ${url}: ${error.message}`;
-                    }
-                };
+        
                 await Promise.all([
-                    fetchWithErrorHandling(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, data),
-                    fetchWithErrorHandling(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, rawData),
-                    fetchWithErrorHandling(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, skewData),
-                    fetchWithErrorHandling(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, slopeData),
-                    fetchWithErrorHandling(`data/${timestamp}/historic/historic_${selectedTicker}.csv`, historicData).then(() => {
+                    processedExists ? fetchWithErrorHandling(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, data) : Promise.resolve(),
+                    rawExists ? fetchWithErrorHandling(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, rawData) : Promise.resolve(),
+                    skewExists ? fetchWithErrorHandling(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, skewData) : Promise.resolve(),
+                    slopeExists ? fetchWithErrorHandling(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, slopeData) : Promise.resolve(),
+                    historicExists ? fetchWithErrorHandling(`data/${timestamp}/historic/historic_${selectedTicker}.csv`, historicData).then(() => {
                         document.getElementById('historic-error').style.display = historicData.length ? 'none' : 'block';
                         if (!historicData.length) document.getElementById('historic-error').textContent = 'No historic data available';
-                    }),
-                    fetchWithErrorHandling(`data/Events.csv`, eventsData)
+                    }) : Promise.resolve(),
+                    eventsExists ? fetchWithErrorHandling(`data/Events.csv`, eventsData) : Promise.resolve()
                 ]);
+        
                 console.log('Data load complete:', {
                     data: data.slice(0, 5),
                     historicData: historicData.slice(0, 5),
@@ -555,6 +582,7 @@
                     eventsData: eventsData.slice(0, 5),
                     rankingData: rankingData.slice(0, 5)
                 });
+        
                 document.getElementById('historic-error').style.display = 'none';
                 return Promise.resolve();
             } catch (error) {
@@ -570,6 +598,7 @@
                 eventsData = [];
                 rankingData = [];
                 document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
+                document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
             }
         }
@@ -586,12 +615,21 @@
                     tickerDatalist.appendChild(option);
                 });
                 if (uniqueTickers.length > 0 && !tickerSearch.value) {
-                    tickerSearch.value = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0];
-                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase()}`;
+                    const defaultTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0];
+                    tickerSearch.value = defaultTicker;
+                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${defaultTicker}`;
+                } else if (!uniqueTickers.length) {
+                    console.warn('No tickers available for selection');
+                    tickerSearch.value = '';
+                    document.getElementById('ticker-display').textContent = 'Selected Ticker: N/A';
+                    document.getElementById('historic-error').textContent = 'No tickers available';
+                    document.getElementById('historic-error').style.display = 'block';
                 }
                 console.log('Ticker search populated, selected:', tickerSearch.value);
             } catch (error) {
                 console.error('Error populating ticker search:', error);
+                document.getElementById('historic-error').textContent = `Error populating ticker search: ${error.message}`;
+                document.getElementById('historic-error').style.display = 'block';
             }
         }
 
@@ -599,67 +637,89 @@
             try {
                 const tickerSearch = document.getElementById('ticker-search');
                 const selectedTicker = tickerSearch.value.toUpperCase() || 'MSTR';
-                const tickerData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
+                const tickerData = data.filter(item => item.Ticker === selectedTicker);
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
+        
                 const moneynessSelect = document.getElementById('moneyness-select');
                 const expirySelect = document.getElementById('expiry-select');
                 const yfExpirySelect = document.getElementById('yf-expiry-select');
+        
+                // Clear dropdowns with default message if no data
                 if (!tickerData.length) {
                     console.warn('No data for dropdowns, ticker:', selectedTicker);
-                    expirySelect.innerHTML = '<option value="">No expiries available</option>';
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
+                    expirySelect.innerHTML = '<option value="">No expiries available</option>';
                     yfExpirySelect.innerHTML = '<option value="">No expiries available</option>';
+                    document.getElementById('historic-error').textContent = `No data available for ticker: ${selectedTicker}`;
+                    document.getElementById('historic-error').style.display = 'block';
                     return;
                 }
+        
                 const prevMoneyness = moneynessSelect.value;
                 const prevExpiry = expirySelect.value;
                 const prevYFExpiry = yfExpirySelect.value;
+        
+                // Populate moneyness dropdown
                 const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
                     .filter(val => !isNaN(val)).sort((a, b) => a - b);
                 moneynessSelect.innerHTML = '';
-                uniqueRoundedMoneyness.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.text = `${(val * 100).toFixed(0)}%`;
-                    moneynessSelect.appendChild(option);
-                });
-                const targetMoneyness = 1.0;
-                let closestMoneyness = uniqueRoundedMoneyness[0];
-                if (uniqueRoundedMoneyness.length > 0) {
-                    closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
-                        Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev
-                    );
-                }
-                if (prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness)) {
-                    moneynessSelect.value = prevMoneyness;
-                } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
-                    moneynessSelect.value = targetMoneyness.toString();
-                } else if (uniqueRoundedMoneyness.length > 0) {
-                    moneynessSelect.value = closestMoneyness.toString();
+                if (uniqueRoundedMoneyness.length === 0) {
+                    moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
                 } else {
-                    moneynessSelect.value = '';
+                    uniqueRoundedMoneyness.forEach(val => {
+                        const option = document.createElement('option');
+                        option.value = val;
+                        option.text = `${(val * 100).toFixed(0)}%`;
+                        moneynessSelect.appendChild(option);
+                    });
+        
+                    const targetMoneyness = 1.0;
+                    let closestMoneyness = uniqueRoundedMoneyness[0];
+                    if (uniqueRoundedMoneyness.length > 0) {
+                        closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
+                            Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev
+                        );
+                    }
+                    if (prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness)) {
+                        moneynessSelect.value = prevMoneyness;
+                    } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
+                        moneynessSelect.value = targetMoneyness.toString();
+                    } else if (uniqueRoundedMoneyness.length > 0) {
+                        moneynessSelect.value = closestMoneyness.toString();
+                    } else {
+                        moneynessSelect.value = '';
+                    }
                 }
                 console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
+        
+                // Populate expiry dropdowns
                 const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                     .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
                 expirySelect.innerHTML = '';
                 yfExpirySelect.innerHTML = '';
-                uniqueExpiries.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.text = new Date(val).toLocaleDateString('en-GB');
-                    expirySelect.appendChild(option);
-                    yfExpirySelect.appendChild(option.cloneNode(true));
-                });
-                if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
-                    expirySelect.value = prevExpiry;
-                    yfExpirySelect.value = prevExpiry;
-                } else if (uniqueExpiries.length > 0) {
-                    expirySelect.value = uniqueExpiries[0];
-                    yfExpirySelect.value = uniqueExpiries[0];
+                if (uniqueExpiries.length === 0) {
+                    expirySelect.innerHTML = '<option value="">No expiries available</option>';
+                    yfExpirySelect.innerHTML = '<option value="">No expiries available</option>';
+                    console.warn('No valid expiries found for ticker:', selectedTicker);
                 } else {
-                    expirySelect.value = '';
-                    yfExpirySelect.value = '';
+                    uniqueExpiries.forEach(val => {
+                        const option = document.createElement('option');
+                        option.value = val;
+                        option.text = new Date(val).toLocaleDateString('en-GB');
+                        expirySelect.appendChild(option);
+                        yfExpirySelect.appendChild(option.cloneNode(true));
+                    });
+        
+                    if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
+                        expirySelect.value = prevExpiry;
+                        yfExpirySelect.value = prevExpiry;
+                    } else if (uniqueExpiries.length > 0) {
+                        expirySelect.value = uniqueExpiries[0];
+                        yfExpirySelect.value = uniqueExpiries[0];
+                    } else {
+                        expirySelect.value = '';
+                        yfExpirySelect.value = '';
+                    }
                 }
                 console.log('Expiry dropdowns updated, selected:', expirySelect.value, 'YF Expiry:', yfExpirySelect.value);
             } catch (error) {
