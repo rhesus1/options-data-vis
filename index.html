@@ -288,7 +288,7 @@
         <a href="#data-table">Data Table</a>
     </div>
     <div class="main-content">
-        <div class="ticker-display" id="ticker-display">Selected Ticker: N/A</div>
+        <div class="ticker-display" id="ticker-display">N/A</div>
         <div id="overview" class="overview-grid">
             <div class="chart-container historic-container">
                 <h2>Historic Stock Price</h2>
@@ -598,14 +598,14 @@
                     console.warn(`Selected ticker ${selectedTicker} not in ranking data, defaulting`);
                     const defaultTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0] || '';
                     document.getElementById('ticker-search').value = defaultTicker;
-                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${defaultTicker || 'N/A'}`;
+                    document.getElementById('ticker-display').textContent = `${defaultTicker || 'N/A'}`;
                     if (!defaultTicker) {
                         console.warn('No valid tickers available');
                         document.getElementById('historic-error').textContent = 'No valid tickers available';
                         return Promise.resolve();
                     }
                 } else {
-                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${selectedTicker || 'N/A'}`;
+                    document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
                 }
         
                 // Load remaining data files
@@ -647,7 +647,7 @@
                 console.error('Error in loadData:', error);
                 document.getElementById('ticker-search').value = '';
                 document.getElementById('ticker-datalist').innerHTML = '';
-                document.getElementById('ticker-display').textContent = 'Selected Ticker: N/A';
+                document.getElementById('ticker-display').textContent = 'N/A';
                 data = [];
                 rawData = [];
                 skewData = [];
@@ -675,11 +675,11 @@
                 if (uniqueTickers.length > 0 && !tickerSearch.value) {
                     const defaultTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0];
                     tickerSearch.value = defaultTicker;
-                    document.getElementById('ticker-display').textContent = `Selected Ticker: ${defaultTicker}`;
+                    document.getElementById('ticker-display').textContent = `${defaultTicker}`;
                 } else if (!uniqueTickers.length) {
                     console.warn('No tickers available for selection');
                     tickerSearch.value = '';
-                    document.getElementById('ticker-display').textContent = 'Selected Ticker: N/A';
+                    document.getElementById('ticker-display').textContent = 'N/A';
                     document.getElementById('historic-error').textContent = 'No tickers available';
                     document.getElementById('historic-error').style.display = 'block';
                 }
@@ -2451,7 +2451,7 @@
                         });
                         tickerSearch.addEventListener('input', debounce(async () => {
                             console.log('Ticker changed to:', tickerSearch.value);
-                            document.getElementById('ticker-display').textContent = `Selected Ticker: ${tickerSearch.value.toUpperCase() || 'N/A'}`;
+                            document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
                             const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
