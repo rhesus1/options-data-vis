@@ -1,13 +1,60 @@
-import sys
 import pandas as pd
 import numpy as np
-import json
-from datetime import datetime, timedelta
-import os
-from scipy.stats import norm
+from datetime import datetime
 import glob
+import os
+import json
+from scipy.optimize import brentq
+from scipy.stats import norm
+from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
+from scipy.interpolate import interp1d
+from joblib import Parallel, delayed
+import multiprocessing
+import warnings
+import statsmodels.api as sm
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-def load_rvol_from_historic(ticker, timestamp, days):
+def black_scholes_call(S, K, T, r, q, sigma):
+    if T <= 0 or sigma <= 0:
+        return max(S - K, 0)
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
+def black_scholes_put(S, K, T, r, q, sigma):
+    if T <= 0 or sigma <= 0:
+        return max(K - S, 0)
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
+
+def black_scholes_delta(S, K, T, r, q, sigma, option_type):
+    if T <= 0 or sigma <= 0:
+        return 0.0
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    if option_type.lower() == 'call':
+        return norm.cdf(d1)
+    else:
+        return norm.cdf(d1) - 1
+
+def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
+    if price <= 0 or T <= 0:
+        return np.nan
+    intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
+    if price < intrinsic * np.exp(-r * T):
+        return np.nan
+    def objective(sigma):
+        if option_type.lower() == 'call':
+            return black_scholes_call(S, K, T, r, q, sigma) - price
+        else:
+            return black_scholes_put(S, K, T, r, q, sigma) - price
+    try:
+        iv = brentq(objective, 0.0001, 50.0)
+        return np.clip(iv, 0.05, 5.0)
+    except ValueError:
+        return np.nan
+
+def load_rvol_from_historic(ticker, timestamp, days=100):
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     if not os.path.exists(historic_file):
         return None
@@ -17,318 +64,404 @@ def load_rvol_from_historic(ticker, timestamp, days):
     col = f'Realised_Vol_Close_{days}'
     if col not in df_hist.columns:
         return None
-    latest_vol = df_hist[col].iloc[-1]
+    latest_vol = df_hist[col].iloc[-1] / 100  # Convert percentage to decimal
     return latest_vol if not pd.isna(latest_vol) else None
 
-def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
-    dates_file = os.path.join(data_dir, 'dates.json')
-    try:
-        with open(dates_file, 'r') as f:
-            dates = json.load(f)
-    except Exception:
-        return
-    timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
-    if timestamp not in timestamps:
-        return
-    sources = ['yfinance']
-    for source in sources:
-        prefix = '_yfinance' if source == 'yfinance' else ''
-        current_index = timestamps.index(timestamp)
-        current_dt = datetime.strptime(timestamp[:8], "%Y%m%d")
-        past_year_start = current_dt - timedelta(days=365)
-        prev_day_ts = None
-        for ts in timestamps[:current_index][::-1]:
-            ts_dt = datetime.strptime(ts[:8], "%Y%m%d")
-            if ts_dt <= current_dt - timedelta(days=1):
-                prev_day_ts = ts
-                break
-        prev_week_ts = None
-        for ts in timestamps[:current_index][::-1]:
-            ts_dt = datetime.strptime(ts[:8], "%Y%m%d")
-            if ts_dt <= current_dt - timedelta(days=7):
-                prev_week_ts = ts
-                break
-        def get_option_totals(ts, prefix):
-            if ts is None:
-                return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
-            raw_dir = f'data/{ts}/raw{prefix}'
-            if not os.path.exists(raw_dir):
-                return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
-            raw_files = glob.glob(f'{raw_dir}/raw{prefix}_*.csv')
-            totals = []
-            for file in raw_files:
-                ticker = os.path.basename(file).split(f'raw{prefix}_')[1].split('.csv')[0]
-                try:
-                    df = pd.read_csv(file)
-                    oi_sum = df['Open Interest'].sum() if 'Open Interest' in df.columns else 0
-                    vol_sum = df['Volume'].sum() if 'Volume' in df.columns else 0
-                    totals.append({'Ticker': ticker, 'OI': oi_sum, 'Vol': vol_sum})
-                except Exception:
-                    continue
-            return pd.DataFrame(totals)
-        current_option = get_option_totals(timestamp, prefix)
-        prev_day_option = get_option_totals(prev_day_ts, prefix)
-        prev_week_option = get_option_totals(prev_week_ts, prefix)
-        def load_historic_data(ts):
-            historic_dir = f'data/{ts}/historic'
-            if not os.path.exists(historic_dir):
-                return pd.DataFrame()
-            historic_files = glob.glob(f'{historic_dir}/historic_*.csv')
-            dfs = []
-            required_columns = ['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']
-            for file in historic_files:
-                try:
-                    df = pd.read_csv(file, parse_dates=['Date'])
-                    missing_cols = [col for col in required_columns if col not in df.columns]
-                    if missing_cols:
-                        continue
-                    dfs.append(df)
-                except Exception:
-                    continue
-            if not dfs:
-                return pd.DataFrame()
-            df_concat = pd.concat(dfs, ignore_index=True)
-            return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
-        df_historic = load_historic_data(timestamp)
-        def load_processed_data(ts, prefix):
-            processed_dir = f'data/{ts}/processed{prefix}'
-            if not os.path.exists(processed_dir):
-                return pd.DataFrame()
-            processed_files = glob.glob(f'{processed_dir}/processed{prefix}_*.csv')
-            dfs = []
-            for file in processed_files:
-                try:
-                    df = pd.read_csv(file)
-                    dfs.append(df)
-                except Exception:
-                    continue
-            if not dfs:
-                return pd.DataFrame()
-            return pd.concat(dfs, ignore_index=True)
-        df_processed = load_processed_data(timestamp, prefix)
-        if df_processed.empty:
+def calc_Ivol_Rvol(df, rvol100d):
+    if df.empty:
+        return df
+    df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d if rvol100d else np.nan
+    return df
+
+def compute_ivs(row, S, r, q):
+    if pd.isna(row['Years_to_Expiry']):
+        return np.nan, np.nan, np.nan, np.nan, np.nan
+    T = max(row['Years_to_Expiry'], 0.0001)
+    option_type = row['Type'].lower()
+    contract_name = row['Contract Name']
+    iv_bid = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name)
+    iv_ask = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name)
+    iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
+    iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
+    delta = black_scholes_delta(S, row['Strike'], T, r, q, iv_mid, option_type)
+    return iv_bid, iv_ask, iv_mid, iv_spread, delta
+
+def calculate_metrics(df, ticker, r):
+    if df.empty:
+        return df, pd.DataFrame(), pd.DataFrame()
+    skew_data = []
+    for exp in df["Expiry"].unique():
+        for strike in df["Strike"].unique():
+            call_iv = df[(df["Type"] == "Call") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
+            put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
+            if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
+                skew = put_iv.iloc[0] / call_iv.iloc[0]
+                skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
+    skew_df = pd.DataFrame(skew_data)
+    slope_data = []
+    for strike in df["Strike"].unique():
+        for opt_type in ["Call", "Put"]:
+            subset = df[(df["Strike"] == strike) & (df["Type"] == opt_type)].sort_values("Expiry")
+            if len(subset) > 1:
+                iv_diff = subset["IV_mid"].diff()
+                subset["Expiry_dt"] = pd.to_datetime(subset["Expiry"])
+                time_diff = (subset["Expiry_dt"] - subset["Expiry_dt"].shift(1)).map(lambda x: x.days / 365.0)
+                slope = iv_diff / time_diff
+                for i in range(1, len(subset)):
+                    slope_data.append({
+                        "Strike": strike,
+                        "Type": opt_type,
+                        "Expiry": subset["Expiry"].iloc[i],
+                        "IV Slope": slope.iloc[i]
+                    })
+    slope_df = pd.DataFrame(slope_data)
+    return df, skew_df, slope_df
+
+def calculate_iv_mid(df, ticker, r, timestamp):
+    if df.empty:
+        return df, None, None, None
+    required_columns = ['Ticker', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Bid Stock', 'Ask Stock']
+    if not all(col in df.columns for col in required_columns):
+        return df, None, None, None
+    S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
+    q = 0.0  # Assume zero dividend yield if not available
+    today = datetime.today()
+    df["Expiry_dt"] = pd.to_datetime(df["Expiry"])
+    df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
+    df = df[df['Years_to_Expiry'] > 0]
+    if df.empty:
+        return df, None, None, None
+    df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
+    df['Moneyness'] = df['Strike'] / df['Forward']
+    df['LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
+    df['IV_bid'] = np.nan
+    df['IV_ask'] = np.nan
+    df['IV_mid'] = np.nan
+    df['IV_spread'] = np.nan
+    df['Delta'] = np.nan
+    results = Parallel(n_jobs=4, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
+    df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
+    df = df[df['IV_mid'] > 0]
+    return df, S, r, q
+
+def smooth_iv_per_expiry(options_df):
+    if options_df.empty:
+        options_df['Smoothed_IV'] = np.nan
+        return options_df
+    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
+    for exp, group in options_df.groupby('Expiry'):
+        if len(group) < 3 or group['IV_mid'].isna().all():
+            smoothed_iv.loc[group.index] = group['IV_mid']
             continue
-        processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
-        processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
-        latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty else pd.DataFrame()
-        prev_day_historic_latest = load_historic_data(prev_day_ts).loc[load_historic_data(prev_day_ts).groupby('Ticker')['Date'].idxmax()] if prev_day_ts else pd.DataFrame()
-        prev_week_historic_latest = load_historic_data(prev_week_ts).loc[load_historic_data(prev_week_ts).groupby('Ticker')['Date'].idxmax()] if prev_week_ts else pd.DataFrame()
-        def get_prev_value(ticker, target_date, col):
-            g = df_historic[df_historic['Ticker'] == ticker]
-            prev = g[g['Date'] <= target_date]
-            if prev.empty or col not in prev.columns:
-                return None
-            return prev.loc[prev['Date'].idxmax(), col]
-        def filter_3m_expiry(ticker_df, current_dt):
-            if 'Expiry' not in ticker_df.columns:
-                return pd.DataFrame()
-            try:
-                ticker_df['Expiry'] = pd.to_datetime(ticker_df['Expiry'])
-                days_to_expiry = (ticker_df['Expiry'] - current_dt).dt.days
-                valid_expiry = ticker_df[(days_to_expiry >= 75) & (days_to_expiry <= 105)]
-                if valid_expiry.empty:
-                    return pd.DataFrame()
-                valid_expiry['Days_Diff'] = abs(days_to_expiry - 90)
-                closest_expiry = valid_expiry.loc[valid_expiry['Days_Diff'].idxmin(), 'Expiry']
-                return valid_expiry[valid_expiry['Expiry'] == closest_expiry]
-            except Exception:
-                return pd.DataFrame()
-        def calculate_weighted_iv(ticker_df, expiry_filter=False, current_dt=None):
-            if expiry_filter and current_dt is not None:
-                ticker_df = filter_3m_expiry(ticker_df, current_dt)
-            if ticker_df.empty or 'IV_mid' not in ticker_df.columns or ticker_df['IV_mid'].isna().all():
-                return np.nan
-            mid = (ticker_df['Bid'] + ticker_df['Ask']) / 2
-            spread = ticker_df['Ask'] - ticker_df['Bid']
-            smi = 100 * (spread / mid)
-            smi = smi.replace(0, np.nan)
-            weights = np.log(1 + ticker_df['Open Interest']) / smi
-            valid = (~weights.isna()) & (~ticker_df['IV_mid'].isna())
-            if not valid.any():
-                return np.nan
-            weighted_iv = np.average(ticker_df.loc[valid, 'IV_mid'], weights=weights[valid])
-            return weighted_iv
-        def calculate_atm_iv(ticker_df, current_price, current_dt):
-            ticker_df_3m = filter_3m_expiry(ticker_df, current_dt)
-            if ticker_df_3m.empty or 'Strike' not in ticker_df_3m.columns or 'IV_mid' not in ticker_df_3m.columns:
-                return np.nan
-            if pd.isna(current_price) or current_price == 'N/A':
-                return np.nan
-            ticker_df_3m['Strike_Diff'] = abs(ticker_df_3m['Strike'] - current_price)
-            atm_option = ticker_df_3m.loc[ticker_df_3m['Strike_Diff'].idxmin()]
-            return atm_option['IV_mid'] if not pd.isna(atm_option['IV_mid']) else np.nan
-        def calculate_rvol_percentile(ticker, rvol, historic_data, start_date, end_date):
-            past_year = historic_data[(historic_data['Ticker'] == ticker) & (historic_data['Date'] >= start_date) & (historic_data['Date'] <= end_date)]
-            vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns else pd.Series()
-            if vols.empty or rvol == 'N/A' or pd.isna(rvol):
-                return 'N/A'
-            return (vols < rvol).sum() / len(vols) * 100
-        def calculate_rvol_z_score_percentile(ticker, rvol, historic_data, start_date, end_date):
-            past_year = historic_data[(historic_data['Ticker'] == ticker) & (historic_data['Date'] >= start_date) & (historic_data['Date'] <= end_date)]
-            vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns else pd.Series()
-            if vols.empty or rvol == 'N/A' or pd.isna(rvol):
-                return 'N/A'
-            if vols.std() == 0:
-                return 'N/A'
-            z_score = (rvol - vols.mean()) / vols.std()
-            return norm.cdf(z_score) * 100
-        ranking = []
-        tickers = set(df_processed['Ticker'].unique()) | set(latest_historic['Ticker'].unique()) if not df_processed.empty and not latest_historic.empty else set()
-        rvol_types = ['30', '60', '100', '180', '252']
-        for ticker in tickers:
-            rank_dict = {'Ticker': ticker}
-            ticker_processed = df_processed[df_processed['Ticker'] == ticker] if not df_processed.empty else pd.DataFrame()
-            weighted_iv = calculate_weighted_iv(ticker_processed) * 100 if not ticker_processed.empty else np.nan
-            weighted_iv_3m = calculate_weighted_iv(ticker_processed, expiry_filter=True, current_dt=current_dt) * 100 if not ticker_processed.empty else np.nan
-            prev_day_weighted_iv = calculate_weighted_iv(processed_prev_day[processed_prev_day['Ticker'] == ticker]) * 100 if not processed_prev_day.empty else np.nan
-            prev_week_weighted_iv = calculate_weighted_iv(processed_prev_week[processed_prev_week['Ticker'] == ticker]) * 100 if not processed_prev_week.empty else np.nan
-            rank_dict['Weighted IV (%)'] = weighted_iv if not np.isnan(weighted_iv) else 'N/A'
-            rank_dict['Weighted IV 3m (%)'] = weighted_iv_3m if not np.isnan(weighted_iv_3m) else 'N/A'
-            rank_dict['Weighted IV 1d (%)'] = (weighted_iv - prev_day_weighted_iv) / prev_day_weighted_iv * 100 if not np.isnan(weighted_iv) and not np.isnan(prev_day_weighted_iv) and prev_day_weighted_iv != 0 else 'N/A'
-            rank_dict['Weighted IV 1w (%)'] = (weighted_iv - prev_week_weighted_iv) / prev_week_weighted_iv * 100 if not np.isnan(weighted_iv) and not np.isnan(prev_week_weighted_iv) and prev_week_weighted_iv != 0 else 'N/A'
-            ticker_option = current_option[current_option['Ticker'] == ticker] if not current_option.empty else pd.DataFrame()
-            ticker_prev_day_option = prev_day_option[prev_day_option['Ticker'] == ticker] if not prev_day_option.empty else pd.DataFrame()
-            ticker_prev_week_option = prev_week_option[prev_week_option['Ticker'] == ticker] if not prev_week_option.empty else pd.DataFrame()
-            rank_dict['Volume'] = ticker_option['Vol'].iloc[0] if not ticker_option.empty else 0
-            rank_dict['Open Interest'] = ticker_option['OI'].iloc[0] if not ticker_option.empty else 0
-            prev_day_vol = ticker_prev_day_option['Vol'].iloc[0] if not ticker_prev_day_option.empty else 0
-            prev_week_vol = ticker_prev_week_option['Vol'].iloc[0] if not ticker_prev_week_option.empty else 0
-            prev_day_oi = ticker_prev_day_option['OI'].iloc[0] if not ticker_prev_day_option.empty else 0
-            prev_week_oi = ticker_prev_week_option['OI'].iloc[0] if not ticker_prev_week_option.empty else 0
-            rank_dict['Volume 1d (%)'] = (rank_dict['Volume'] - prev_day_vol) / prev_day_vol * 100 if prev_day_vol != 0 else 'N/A'
-            rank_dict['Volume 1w (%)'] = (rank_dict['Volume'] - prev_week_vol) / prev_week_vol * 100 if prev_week_vol != 0 else 'N/A'
-            rank_dict['OI 1d (%)'] = (rank_dict['Open Interest'] - prev_day_oi) / prev_day_oi * 100 if prev_day_oi != 0 else 'N/A'
-            rank_dict['OI 1w (%)'] = (rank_dict['Open Interest'] - prev_week_oi) / prev_week_oi * 100 if prev_week_oi != 0 else 'N/A'
-            if not latest_historic.empty and ticker in latest_historic['Ticker'].values:
-                ticker_historic = latest_historic[latest_historic['Ticker'] == ticker]
-                rank_dict['Latest Close'] = ticker_historic['Close'].iloc[0] if not ticker_historic.empty else 'N/A'
-                rank_dict['Latest High'] = ticker_historic['High'].iloc[0] if not ticker_historic.empty else 'N/A'
-                rank_dict['Latest Low'] = ticker_historic['Low'].iloc[0] if not ticker_historic.empty else 'N/A'
-                current_price = ticker_historic['Close'].iloc[0] if not ticker_historic.empty else 'N/A'
-                prev_day_close = prev_day_historic_latest[prev_day_historic_latest['Ticker'] == ticker]['Close'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
-                prev_week_close = prev_week_historic_latest[prev_week_historic_latest['Ticker'] == ticker]['Close'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
-                prev_day_high = prev_day_historic_latest[prev_day_historic_latest['Ticker'] == ticker]['High'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
-                prev_week_high = prev_week_historic_latest[prev_week_historic_latest['Ticker'] == ticker]['High'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
-                prev_day_low = prev_day_historic_latest[prev_day_historic_latest['Ticker'] == ticker]['Low'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
-                prev_week_low = prev_week_historic_latest[prev_week_historic_latest['Ticker'] == ticker]['Low'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
-                rank_dict['Close 1d (%)'] = (rank_dict['Latest Close'] - prev_day_close) / prev_day_close * 100 if prev_day_close is not None and prev_day_close != 0 and rank_dict['Latest Close'] != 'N/A' else 'N/A'
-                rank_dict['Close 1w (%)'] = (rank_dict['Latest Close'] - prev_week_close) / prev_week_close * 100 if prev_week_close is not None and prev_week_close != 0 and rank_dict['Latest Close'] != 'N/A' else 'N/A'
-                rank_dict['High 1d (%)'] = (rank_dict['Latest High'] - prev_day_high) / prev_day_high * 100 if prev_day_high is not None and prev_day_high != 0 and rank_dict['Latest High'] != 'N/A' else 'N/A'
-                rank_dict['High 1w (%)'] = (rank_dict['Latest High'] - prev_week_high) / prev_week_high * 100 if prev_week_high is not None and prev_week_high != 0 and rank_dict['Latest High'] != 'N/A' else 'N/A'
-                rank_dict['Low 1d (%)'] = (rank_dict['Latest Low'] - prev_day_low) / prev_day_low * 100 if prev_day_low is not None and prev_day_low != 0 and rank_dict['Latest Low'] != 'N/A' else 'N/A'
-                rank_dict['Low 1w (%)'] = (rank_dict['Latest Low'] - prev_week_low) / prev_week_low * 100 if prev_week_low is not None and prev_week_low != 0 and rank_dict['Latest Low'] != 'N/A' else 'N/A'
-                atm_iv_3m = calculate_atm_iv(ticker_processed, current_price, current_dt) * 100 if not ticker_processed.empty and current_price != 'N/A' else 'N/A'
-                rank_dict['ATM IV 3m (%)'] = atm_iv_3m if atm_iv_3m != 'N/A' else 'N/A'
-                rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
-                rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
-                for rvol_type in rvol_types:
-                    current_vol = load_rvol_from_historic(ticker, timestamp, rvol_type)
-                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol if current_vol is not None else 'N/A'
-                    if rvol_type == '100':
-                        prev_day_vol = load_rvol_from_historic(ticker, prev_day_ts, 100) if prev_day_ts else None
-                        vol_1d_pct = (current_vol - prev_day_vol) / prev_day_vol * 100 if prev_day_vol is not None and prev_day_vol != 0 and current_vol != 'N/A' and not pd.isna(current_vol) else 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = vol_1d_pct
-                        prev_week_vol = load_rvol_from_historic(ticker, prev_week_ts, 100) if prev_week_ts else None
-                        vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 and current_vol != 'N/A' and not pd.isna(current_vol) else 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = vol_1w_pct
-                        past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-                        vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns and not past_year.empty else pd.Series()
-                        if not vols.empty:
-                            min_vol = vols.min()
-                            max_vol = vols.max()
-                            mean_vol = vols.mean()
-                            percentile = calculate_rvol_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
-                            z_score_percentile = calculate_rvol_z_score_percentile(ticker, current_vol, df_historic, past_year_start, current_dt)
-                        else:
-                            min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol if rvol_type == '100' else 'N/A'
-                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol if rvol_type == '100' else 'N/A'
-                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol if rvol_type == '100' else 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Percentile (%)', 'N/A')
-                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Z-Score Percentile (%)', 'N/A')
-                        rvol100d_minus_weighted_iv = current_vol - weighted_iv if current_vol != 'N/A' and not pd.isna(current_vol) and not np.isnan(weighted_iv) else 'N/A'
-                        rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv if rvol_type == '100' else rank_dict.get('Rvol100d - Weighted IV', 'N/A')
+        if len(group) >= 5:
+            mean_iv = np.mean(group['IV_mid'])
+            std_iv = np.std(group['IV_mid'])
+            if std_iv > 0:
+                z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
+                is_outlier = z_scores > 3
+                cleaned_group = group[~is_outlier]
             else:
-                current_price = 'N/A'
-                rank_dict['Latest Close'] = 'N/A'
-                rank_dict['Latest High'] = 'N/A'
-                rank_dict['Latest Low'] = 'N/A'
-                rank_dict['Close 1d (%)'] = 'N/A'
-                rank_dict['Close 1w (%)'] = 'N/A'
-                rank_dict['High 1d (%)'] = 'N/A'
-                rank_dict['High 1w (%)'] = 'N/A'
-                rank_dict['Low 1d (%)'] = 'N/A'
-                rank_dict['Low 1w (%)'] = 'N/A'
-                rank_dict['ATM IV 3m (%)'] = 'N/A'
-                rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
-                rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
-                for rvol_type in rvol_types:
-                    current_vol = load_rvol_from_historic(ticker, timestamp, rvol_type)
-                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol if current_vol is not None else 'N/A'
-                    if rvol_type == '100':
-                        prev_day_vol = load_rvol_from_historic(ticker, prev_day_ts, 100) if prev_day_ts else None
-                        vol_1d_pct = (current_vol - prev_day_vol) / prev_day_vol * 100 if prev_day_vol is not None and prev_day_vol != 0 and current_vol != 'N/A' and not pd.isna(current_vol) else 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = vol_1d_pct
-                        prev_week_vol = load_rvol_from_historic(ticker, prev_week_ts, 100) if prev_week_ts else None
-                        vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 and current_vol != 'N/A' and not pd.isna(current_vol) else 'N/A'
-                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = vol_1w_pct
-                        hist = load_historic_data(timestamp)
-                        past_year = hist[(hist['Ticker'] == ticker) & (hist['Date'] >= past_year_start) & (hist['Date'] <= current_dt)]
-                        vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns else pd.Series()
-                        if not vols.empty:
-                            min_vol = vols.min()
-                            max_vol = vols.max()
-                            mean_vol = vols.mean()
-                            percentile = calculate_rvol_percentile(ticker, current_vol, hist, past_year_start, current_dt)
-                            z_score_percentile = calculate_rvol_z_score_percentile(ticker, current_vol, hist, past_year_start, current_dt)
-                        else:
-                            min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol if rvol_type == '100' else 'N/A'
-                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol if rvol_type == '100' else 'N/A'
-                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol if rvol_type == '100' else 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Percentile (%)', 'N/A')
-                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Z-Score Percentile (%)', 'N/A')
-                        rvol100d_minus_weighted_iv = current_vol - weighted_iv if current_vol != 'N/A' and not pd.isna(current_vol) and not np.isnan(weighted_iv) else 'N/A'
-                        rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv if rvol_type == '100' else rank_dict.get('Rvol100d - Weighted IV', 'N/A')
-            ranking.append(rank_dict)
-        ranking = sorted(ranking, key=lambda x: x.get('Rvol100d - Weighted IV', float('-inf')), reverse=True)
-        for i, rank_dict in enumerate(ranking):
-            rank_dict['Rank'] = i + 1
-        column_order = [
-            'Rank', 'Ticker', 'Latest Close', 'Latest High', 'Latest Low',
-            'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
-            'Realised Volatility 30d (%)', 'Realised Volatility 60d (%)', 'Realised Volatility 100d (%)',
-            'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
-            'Min Realised Volatility 100d (1y)', 'Max Realised Volatility 100d (1y)', 'Mean Realised Volatility 100d (1y)',
-            'Rvol 100d Percentile (%)', 'Rvol 100d Z-Score Percentile (%)',
-            'Realised Volatility 180d (%)', 'Realised Volatility 252d (%)',
-            'Weighted IV (%)', 'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
-            'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
-            'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Rvol100d - Weighted IV',
-            'Volume', 'Volume 1d (%)', 'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
-        ]
-        df_ranking = pd.DataFrame(ranking)
-        ranking_dir = f'data/{timestamp}/ranking'
-        os.makedirs(ranking_dir, exist_ok=True)
-        output_file = f'{ranking_dir}/ranking{prefix}.csv'
-        df_ranking.to_csv(output_file, index=False)
+                cleaned_group = group
+        else:
+            cleaned_group = group
+        if len(cleaned_group) < 3 or cleaned_group['IV_mid'].isna().all():
+            smoothed_iv.loc[group.index] = group['IV_mid']
+            continue
+        if cleaned_group['LogMoneyness'].duplicated().any():
+            agg_group = cleaned_group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
+            x = agg_group['LogMoneyness'].values
+            y = agg_group['IV_mid'].values
+        else:
+            sorted_group = cleaned_group.sort_values('LogMoneyness')
+            x = sorted_group['LogMoneyness'].values
+            y = sorted_group['IV_mid'].values
+        try:
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)
+            x_smooth = lowess_smoothed[:, 0]
+            y_smooth = lowess_smoothed[:, 1]
+            interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
+            smoothed_values = interpolator(group['LogMoneyness'].values)
+            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
+        except Exception:
+            smoothed_iv.loc[group.index] = group['IV_mid']
+    options_df['Smoothed_IV'] = smoothed_iv
+    return options_df
+
+def compute_local_vol_from_iv_row(row, r, q, interp):
+    y = row['LogMoneyness']
+    T = row['Years_to_Expiry']
+    if T <= 0 or pd.isna(row['Smoothed_IV']):
+        return None
+    w = row['Smoothed_IV'] ** 2 * T
+    h_t = max(0.01 * T, 1e-4)
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+    try:
+        w_T_plus = interp(np.array([[y, T + h_t]]))[0]
+        w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
+        dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
+        w_y_plus = interp(np.array([[y + h_y, T]]))[0]
+        w_y_minus = interp(np.array([[y - h_y, T]]))[0]
+        dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
+        d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
+        if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
+            return None
+    except Exception:
+        return None
+    denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
+    if denom <= 1e-10 or dw_dT <= 0:
+        local_vol = 0.0
+    else:
+        local_vol_sq = dw_dT / denom
+        local_vol = np.sqrt(max(local_vol_sq, 0)) if local_vol_sq > 0 else 0.0
+        if local_vol > 2.0:
+            local_vol = np.nan
+    return {
+        "Strike": row['Strike'],
+        "Expiry": row['Expiry'],
+        "Local Vol": local_vol
+    }
+
+def process_options(options_df, option_type, r, q, ticker):
+    if options_df.empty:
+        return pd.DataFrame(), None, options_df
+    options_df = options_df[options_df['IV_mid'] > 0]
+    options_df = options_df[options_df['Years_to_Expiry'] > 0]
+    if len(options_df) < 3:
+        options_df['Smoothed_IV'] = options_df['IV_mid']
+        return pd.DataFrame(), None, options_df
+    options_df = smooth_iv_per_expiry(options_df)
+    smoothed_df = options_df.copy()
+    smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
+    points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
+    values = smoothed_df['TotalVariance'].values
+    try:
+        interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
+    except Exception:
+        interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
+    local_data = Parallel(n_jobs=4, backend='threading')(
+        delayed(compute_local_vol_from_iv_row)(row, r, q, interp)
+        for _, row in smoothed_df.iterrows()
+    )
+    local_data = [d for d in local_data if d is not None]
+    local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
+    return local_df, interp, smoothed_df
+
+def calculate_local_vol_from_iv(df, S, r, q, ticker):
+    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
+    if not all(col in df.columns for col in required_columns):
+        return pd.DataFrame(), pd.DataFrame(), None, None, df
+    calls = df[df['Type'] == 'Call'].copy()
+    puts = df[df['Type'] == 'Put'].copy()
+    call_local_df, call_interp, calls_smoothed = process_options(calls, 'Call', r, q, ticker)
+    put_local_df, put_interp, puts_smoothed = process_options(puts, 'Put', r, q, ticker)
+    smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index()
+    return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
+
+def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
+    def delta_diff(K):
+        delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
+        return delta - target_delta if option_type.lower() == 'call' else delta - (-target_delta)
+    try:
+        K = brentq(delta_diff, S * 0.5, S * 2.0)
+        return K
+    except ValueError:
+        return np.nan
+
+def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
+    def get_iv(interp, y, T):
+        if interp is None or T <= 0:
+            return np.nan
+        try:
+            w = interp(np.array([[y, T]]))[0]
+            if np.isnan(w) or w <= 0:
+                return np.nan
+            return np.sqrt(w / T)
+        except Exception:
+            return np.nan
+    skew_data = []
+    target_deltas = [0.25, 0.75]
+    target_terms = [0.25, 1.0]
+    for exp in sorted(df['Expiry'].unique()):
+        T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
+        if np.isnan(T):
+            continue
+        atm_iv = get_iv(call_interp, 0.0, T)
+        if np.isnan(atm_iv):
+            continue
+        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
+        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
+        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
+        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
+        iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
+        iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
+        iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
+        iv_put_75 = get_iv(put_interp, np.log(put_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_75) else np.nan
+        skew_25 = iv_put_25 / iv_call_25 if not np.isnan(iv_put_25) and not np.isnan(iv_call_25) and iv_call_25 > 0 else np.nan
+        skew_75 = iv_put_75 / iv_call_75 if not np.isnan(iv_put_75) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
+        skew_call_25_75 = iv_call_25 / iv_call_75 if not np.isnan(iv_call_25) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
+        skew_put_25_75 = iv_put_25 / iv_put_75 if not np.isnan(iv_put_25) and not np.isnan(iv_put_75) and iv_put_75 > 0 else np.nan
+        skew_data.append({
+            'Expiry': exp,
+            'Skew_25_delta': skew_25,
+            'Skew_75_delta': skew_75,
+            'Skew_call_25_75': skew_call_25_75,
+            'Skew_put_25_75': skew_put_25_75,
+            'IV_put_25_delta': iv_put_25,
+            'IV_put_75_delta': iv_put_75,
+            'IV_call_25_delta': iv_call_25,
+            'IV_call_75_delta': iv_call_75,
+            'Strike_call_25_delta': call_strike_25,
+            'Strike_call_75_delta': call_strike_75,
+            'Strike_put_25_delta': put_strike_25,
+            'Strike_put_75_delta': put_strike_75
+        })
+    slope_data = []
+    for delta in target_deltas:
+        for opt_type in ['call', 'put']:
+            interp = call_interp if opt_type == 'call' else put_interp
+            iv_3m = get_iv(interp, 0.0, 0.25)
+            if np.isnan(iv_3m):
+                continue
+            strike_3m = find_strike_for_delta(S, 0.25, r, q, iv_3m, delta, opt_type)
+            log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
+            iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
+            iv_12m = get_iv(interp, 0.0, 1.0)
+            if np.isnan(iv_12m):
+                continue
+            strike_12m = find_strike_for_delta(S, 1.0, r, q, iv_12m, delta, opt_type)
+            log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
+            iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
+            slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
+            slope_data.append({
+                'Delta': delta,
+                'Type': opt_type.capitalize(),
+                'IV_Slope_3m_12m': slope,
+                'IV_3m': iv_3m_delta,
+                'IV_12m': iv_12m_delta,
+                'Strike_3m': strike_3m,
+                'Strike_12m': strike_12m
+            })
+    skew_metrics_df = pd.DataFrame(skew_data)
+    slope_metrics_df = pd.DataFrame(slope_data)
+    atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
+    atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
+    atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
+    skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
+    skew_metrics_df['ATM_IV_3m'] = atm_iv_3m
+    skew_metrics_df['ATM_IV_12m'] = atm_iv_12m
+    return skew_metrics_df, slope_metrics_df
+
+def process_ticker(ticker, df, full_df, r, timestamp):
+    if df.empty:
+        return df, pd.DataFrame(), pd.DataFrame()
+    if not all(col in df.columns for col in ['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type']):
+        return df, pd.DataFrame(), pd.DataFrame()
+    try:
+        ticker_df = df[df['Ticker'] == ticker].copy()
+        ticker_full = full_df[full_df['Ticker'] == ticker].copy()
+        rvol100d = load_rvol_from_historic(ticker, timestamp)
+        ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r, timestamp)
+        if ticker_df.empty:
+            return ticker_df, pd.DataFrame(), pd.DataFrame()
+        ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
+        ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
+        try:
+            call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q, ticker)
+            ticker_df = smoothed_df
+        except Exception:
+            call_local_df, put_local_df, call_interp, put_interp = pd.DataFrame(), pd.DataFrame(), None, None
+        skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q, ticker)
+        skew_metrics_df['Ticker'] = ticker
+        slope_metrics_df['Ticker'] = ticker
+        if not call_local_df.empty:
+            ticker_df = ticker_df.merge(
+                call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
+                on=['Strike', 'Expiry'],
+                how='left'
+            )
+        else:
+            ticker_df['Call Local Vol'] = np.nan
+        if not put_local_df.empty:
+            ticker_df = ticker_df.merge(
+                put_local_df.rename(columns={'Local Vol': 'Put Local Vol'}),
+                on=['Strike', 'Expiry'],
+                how='left'
+            )
+        else:
+            ticker_df['Put Local Vol'] = np.nan
+        ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
+        return ticker_df, skew_metrics_df, slope_metrics_df
+    except Exception:
+        return df, pd.DataFrame(), pd.DataFrame()
+
+def process_data(timestamp, prefix=""):
+    cleaned_dir = f'data/{timestamp}/cleaned{prefix}'
+    raw_dir = f'data/{timestamp}/raw{prefix}'
+    if not os.path.exists(cleaned_dir):
+        return None, None, None
+    cleaned_files = glob.glob(f'{cleaned_dir}/cleaned{prefix}_*.csv')
+    if not cleaned_files:
+        return None, None, None
+    tnx_file = f'data/{timestamp}/historic/historic_^TNX.csv'
+    if os.path.exists(tnx_file):
+        tnx_data = pd.read_csv(tnx_file)
+        r = tnx_data['Close'].iloc[-1] / 100 if not tnx_data.empty else 0.05
+    else:
+        r = 0.05
+    processed_dir = f'data/{timestamp}/processed{prefix}'
+    skew_dir = f'data/{timestamp}/skew_metrics{prefix}'
+    slope_dir = f'data/{timestamp}/slope_metrics{prefix}'
+    os.makedirs(processed_dir, exist_ok=True)
+    os.makedirs(skew_dir, exist_ok=True)
+    os.makedirs(slope_dir, exist_ok=True)
+    processed_dfs = []
+    skew_metrics_dfs = []
+    slope_metrics_dfs = []
+    for clean_file in cleaned_files:
+        ticker = os.path.basename(clean_file).split(f'cleaned{prefix}_')[1].split('.csv')[0]
+        raw_file = f'{raw_dir}/raw{prefix}_{ticker}.csv'
+        if not os.path.exists(raw_file):
+            continue
+        try:
+            df = pd.read_csv(clean_file, parse_dates=['Expiry'])
+            full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
+            if df.empty:
+                continue
+            ticker_df, skew_df, slope_df = process_ticker(ticker, df, full_df, r, timestamp)
+            if not ticker_df.empty:
+                processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
+                ticker_df.to_csv(processed_filename, index=False)
+                processed_dfs.append(ticker_df)
+            if not skew_df.empty:
+                skew_filename = f'{skew_dir}/skew_metrics{prefix}_{ticker}.csv'
+                skew_df.to_csv(skew_filename, index=False)
+                skew_metrics_dfs.append(skew_df)
+            if not slope_df.empty:
+                slope_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
+                slope_df.to_csv(slope_filename, index=False)
+                slope_metrics_dfs.append(slope_df)
+        except Exception:
+            continue
+    return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
-    data_dir = 'data'
-    dates_file = os.path.join(data_dir, 'dates.json')
-    try:
+    timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
+    if not timestamp_dirs:
+        return
+    latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
+    timestamp = os.path.basename(latest_timestamp_dir)
+    dates_file = 'data/dates.json'
+    if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
             dates = json.load(f)
-    except Exception:
-        return
-    timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
-    if len(sys.argv) > 1:
-        timestamp = sys.argv[1]
-        sources = ['yfinance']
-        calculate_ranking_metrics(timestamp, sources)
     else:
-        sources = ['yfinance']
-        for timestamp in timestamps:
-            calculate_ranking_metrics(timestamp, sources)
+        dates = []
+    if timestamp not in dates:
+        dates.append(timestamp)
+        dates.sort(reverse=True)
+        with open(dates_file, 'w') as f:
+            json.dump(dates, f)
+    process_data(timestamp, prefix="")
+    process_data(timestamp, prefix="_yfinance")
 
 main()
