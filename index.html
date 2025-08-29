@@ -152,7 +152,7 @@
         }
         .volatility-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* Adjusted for six charts */
+            grid-template-columns: repeat(2, 1fr); /* Two plots per row as requested */
             gap: 20px;
         }
         .volatility-grid .chart-container {
@@ -773,7 +773,7 @@
                         pointRadius: 1,
                         fill: false,
                         showLine: true,
-                        borderDash: [5, 5],
+                        borderDash: [],
                         yAxisID: 'y'
                     },
                     {
@@ -784,7 +784,7 @@
                         pointRadius: 1,
                         fill: false,
                         showLine: true,
-                        borderDash: [10, 5],
+                        borderDash: [],
                         yAxisID: 'y'
                     },
                     {
@@ -795,7 +795,7 @@
                         pointRadius: 1,
                         fill: false,
                         showLine: true,
-                        borderDash: [2, 2],
+                        borderDash: [],
                         yAxisID: 'y'
                     }
                 ];
@@ -814,13 +814,13 @@
                                 type: 'time',
                                 time: { unit: 'day' },
                                 title: { display: true, text: 'Expiry Date', color: '#FFFFFF' },
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Skew', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1182,7 +1182,7 @@
                         pointRadius: 1,
                         fill: true,
                         showLine: true,
-                        borderDash: [5, 5],
+                        borderDash: [],
                         yAxisID: 'y'
                     }
                 ];
@@ -1202,13 +1202,13 @@
                                 title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' },
                                 min: 0,
                                 max: 200,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1257,7 +1257,7 @@
                         pointRadius: 1,
                         fill: true,
                         showLine: true,
-                        borderDash: [5, 5],
+                        borderDash: [],
                         yAxisID: 'y'
                     }
                 ];
@@ -1276,13 +1276,13 @@
                                 type: 'time',
                                 time: { unit: 'day' },
                                 title: { display: true, text: 'Expiry Date', color: '#FFFFFF' },
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1412,13 +1412,13 @@
                                 type: 'time',
                                 time: { unit: 'month' },
                                 title: { display: true, text: 'Date', color: '#FFFFFF' },
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Realised Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1432,7 +1432,6 @@
                 document.getElementById('realised-vol-error').style.display = 'block';
             }
         }
-
         function prepareSurfaceData(filteredData, zKey) {
             try {
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
@@ -1580,7 +1579,7 @@
                         pointRadius: 1,
                         fill: true,
                         showLine: true,
-                        borderDash: [5, 5],
+                        borderDash: [],
                         yAxisID: 'y'
                     }
                 ];
@@ -1600,13 +1599,13 @@
                                 title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' },
                                 min: 0,
                                 max: 200,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Implied Volatility (%)', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1698,9 +1697,27 @@
                 const layout = {
                     title: { text: 'Call Implied Volatility Surface (%)', font: { color: '#FFFFFF', size: 16 }, y: 0.95 },
                     scene: {
-                        xaxis: { title: 'Expiry', type: 'date', tickformat: '%Y-%m-%d', color: '#FFFFFF', autorange: true },
-                        yaxis: { title: 'Moneyness (%)', color: '#FFFFFF', autorange: true },
-                        zaxis: { title: 'Volatility (%)', color: '#FFFFFF', range: [minZ, maxZ], autorange: false },
+                        xaxis: { 
+                            title: { text: 'Expiry', color: '#FFFFFF' }, 
+                            type: 'date', 
+                            tickformat: '%Y-%m-%d', 
+                            color: '#FFFFFF', 
+                            autorange: true,
+                            showgrid: false // Remove grid lines
+                        },
+                        yaxis: { 
+                            title: { text: 'Moneyness (%)', color: '#FFFFFF' }, 
+                            color: '#FFFFFF', 
+                            autorange: true,
+                            showgrid: false // Remove grid lines
+                        },
+                        zaxis: { 
+                            title: { text: 'Volatility (%)', color: '#FFFFFF' }, 
+                            color: '#FFFFFF', 
+                            range: [minZ, maxZ], 
+                            autorange: false,
+                            showgrid: false // Remove grid lines
+                        },
                         aspectmode: 'auto',
                         bgcolor: '#1A1A2E'
                     },
@@ -1808,13 +1825,13 @@
                                 type: 'time',
                                 time: { unit: 'month' },
                                 title: { display: true, text: 'Date', color: '#FFFFFF' },
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             },
                             y: {
                                 title: { display: true, text: 'Stock Price ($)', color: '#FFFFFF' },
                                 beginAtZero: false,
-                                grid: { color: '#A855F7' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: { color: '#FFFFFF' }
                             }
                         },
@@ -1859,11 +1876,15 @@
                     options: {
                         plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
-                            x: { title: { display: true, text: 'Ticker', color: '#FFFFFF' }, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } },
+                            x: {
+                                title: { display: true, text: 'Ticker', color: '#FFFFFF' },
+                                grid: { display: false }, // Remove grid lines
+                                ticks: { color: '#FFFFFF' }
+                            },
                             y: {
                                 title: { display: true, text: 'Volume', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { color: '#FFFFFF33' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: {
                                     color: '#FFFFFF',
                                     callback: value => Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -1910,11 +1931,15 @@
                     options: {
                         plugins: { legend: { labels: { color: '#FFFFFF' } } },
                         scales: {
-                            x: { title: { display: true, text: 'Ticker', color: '#FFFFFF' }, grid: { color: '#FFFFFF33' }, ticks: { color: '#FFFFFF' } },
+                            x: {
+                                title: { display: true, text: 'Ticker', color: '#FFFFFF' },
+                                grid: { display: false }, // Remove grid lines
+                                ticks: { color: '#FFFFFF' }
+                            },
                             y: {
                                 title: { display: true, text: 'Open Interest', color: '#FFFFFF' },
                                 beginAtZero: true,
-                                grid: { color: '#FFFFFF33' },
+                                grid: { display: false }, // Remove grid lines
                                 ticks: {
                                     color: '#FFFFFF',
                                     callback: value => Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
