@@ -250,7 +250,7 @@
         <div class="ticker-display" id="ticker-display">Selected Ticker: N/A</div>
         <div id="overview" class="overview-container">
             <div class="chart-container">
-                <h2>Historic Stock Price with Realised Volatility</h2>
+                <h2>Historic Stock Price</h2>
                 <div class="select-container">
                     <label for="history-select">Select History Length: </label>
                     <button class="arrow-button" onclick="changeSelect('history-select', -1)">&#9664;</button>
@@ -270,7 +270,6 @@
             <div class="chart-container">
                 <h2>Summary</h2>
                 <table id="summary-table" class="summary-table"></table>
-                <table id="skew-table" class="skew-table"></table>
             </div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
@@ -919,7 +918,6 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No ranking data available';
-                    cell.colSpan = 4;
                     console.warn('No ranking data for summary table');
                     return;
                 }
@@ -933,57 +931,34 @@
                 }
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
-                ['Metric', 'Value', 'Metric', 'Value'].forEach(text => {
-                    const th = document.createElement('th');
-                    th.textContent = text;
-                    headerRow.appendChild(th);
-                });
+                const th = document.createElement('th');
+                th.textContent = 'Metric';
+                headerRow.appendChild(th);
                 table.appendChild(thead);
                 const tbody = document.createElement('tbody');
-                const changeMetrics = [
-                    'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
-                    'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)', 'Volume 1d (%)',
-                    'Volume 1w (%)', 'OI 1d (%)', 'OI 1w (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)'
-                ];
-                const metrics = [];
                 const filteredRankingData = rankingData.find(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
+                const metrics = [];
                 if (filteredRankingData) {
                     metrics.push(
-                        { name: 'Ticker', value: filteredRankingData['Ticker'] || 'N/A', key: 'Ticker' },
-                        { name: 'Latest Close ($)', value: Number.isFinite(filteredRankingData['Latest Close']) ? filteredRankingData['Latest Close'].toFixed(2) : 'N/A', key: 'Latest Close' },
-                        { name: 'Latest High ($)', value: Number.isFinite(filteredRankingData['Latest High']) ? filteredRankingData['Latest High'].toFixed(2) : 'N/A', key: 'Latest High' },
-                        { name: 'Latest Low ($)', value: Number.isFinite(filteredRankingData['Latest Low']) ? filteredRankingData['Latest Low'].toFixed(2) : 'N/A', key: 'Latest Low' },
-                        { name: 'Close 1d (%)', value: Number.isFinite(filteredRankingData['Close 1d (%)']) ? filteredRankingData['Close 1d (%)'].toFixed(2) : 'N/A', key: 'Close 1d (%)' },
-                        { name: 'Close 1w (%)', value: Number.isFinite(filteredRankingData['Close 1w (%)']) ? filteredRankingData['Close 1w (%)'].toFixed(2) : 'N/A', key: 'Close 1w (%)' },
-                        { name: 'High 1d (%)', value: Number.isFinite(filteredRankingData['High 1d (%)']) ? filteredRankingData['High 1d (%)'].toFixed(2) : 'N/A', key: 'High 1d (%)' },
-                        { name: 'High 1w (%)', value: Number.isFinite(filteredRankingData['High 1w (%)']) ? filteredRankingData['High 1w (%)'].toFixed(2) : 'N/A', key: 'High 1w (%)' },
-                        { name: 'Low 1d (%)', value: Number.isFinite(filteredRankingData['Low 1d (%)']) ? filteredRankingData['Low 1d (%)'].toFixed(2) : 'N/A', key: 'Low 1d (%)' },
-                        { name: 'Low 1w (%)', value: Number.isFinite(filteredRankingData['Low 1w (%)']) ? filteredRankingData['Low 1w (%)'].toFixed(2) : 'N/A', key: 'Low 1w (%)' },
-                        { name: 'Realised Volatility 30d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 30d (%)']) ? filteredRankingData['Realised Volatility 30d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 30d (%)' },
-                        { name: 'Realised Volatility 60d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 60d (%)']) ? filteredRankingData['Realised Volatility 60d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 60d (%)' },
-                        { name: 'Realised Volatility 100d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d (%)']) ? filteredRankingData['Realised Volatility 100d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 100d (%)' },
-                        { name: 'Realised Volatility 100d 1d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d 1d (%)']) ? filteredRankingData['Realised Volatility 100d 1d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 100d 1d (%)' },
-                        { name: 'Realised Volatility 100d 1w (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d 1w (%)']) ? filteredRankingData['Realised Volatility 100d 1w (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 100d 1w (%)' },
-                        { name: 'Min Realised Volatility 100d (1y)', value: Number.isFinite(filteredRankingData['Min Realised Volatility 100d (1y)']) ? filteredRankingData['Min Realised Volatility 100d (1y)'].toFixed(2) : 'N/A', key: 'Min Realised Volatility 100d (1y)' },
-                        { name: 'Max Realised Volatility 100d (1y)', value: Number.isFinite(filteredRankingData['Max Realised Volatility 100d (1y)']) ? filteredRankingData['Max Realised Volatility 100d (1y)'].toFixed(2) : 'N/A', key: 'Max Realised Volatility 100d (1y)' },
-                        { name: 'Mean Realised Volatility 100d (1y)', value: Number.isFinite(filteredRankingData['Mean Realised Volatility 100d (1y)']) ? filteredRankingData['Mean Realised Volatility 100d (1y)'].toFixed(2) : 'N/A', key: 'Mean Realised Volatility 100d (1y)' },
-                        { name: 'Rvol 100d Percentile (%)', value: Number.isFinite(filteredRankingData['Rvol 100d Percentile (%)']) ? filteredRankingData['Rvol 100d Percentile (%)'].toFixed(2) : 'N/A', key: 'Rvol 100d Percentile (%)' },
-                        { name: 'Rvol 100d Z-Score Percentile (%)', value: Number.isFinite(filteredRankingData['Rvol 100d Z-Score Percentile (%)']) ? filteredRankingData['Rvol 100d Z-Score Percentile (%)'].toFixed(2) : 'N/A', key: 'Rvol 100d Z-Score Percentile (%)' },
-                        { name: 'Realised Volatility 180d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 180d (%)']) ? filteredRankingData['Realised Volatility 180d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 180d (%)' },
-                        { name: 'Realised Volatility 252d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 252d (%)']) ? filteredRankingData['Realised Volatility 252d (%)'].toFixed(2) : 'N/A', key: 'Realised Volatility 252d (%)' },
-                        { name: 'Weighted IV (%)', value: Number.isFinite(filteredRankingData['Weighted IV (%)']) ? filteredRankingData['Weighted IV (%)'].toFixed(2) : 'N/A', key: 'Weighted IV (%)' },
-                        { name: 'Weighted IV 1d (%)', value: Number.isFinite(filteredRankingData['Weighted IV 1d (%)']) ? filteredRankingData['Weighted IV 1d (%)'].toFixed(2) : 'N/A', key: 'Weighted IV 1d (%)' },
-                        { name: 'Weighted IV 1w (%)', value: Number.isFinite(filteredRankingData['Weighted IV 1w (%)']) ? filteredRankingData['Weighted IV 1w (%)'].toFixed(2) : 'N/A', key: 'Weighted IV 1w (%)' },
-                        { name: 'Rvol100d - Weighted IV', value: Number.isFinite(filteredRankingData['Rvol100d - Weighted IV']) ? filteredRankingData['Rvol100d - Weighted IV'].toFixed(2) : 'N/A', key: 'Rvol100d - Weighted IV' },
-                        { name: 'Volume', value: Number.isFinite(filteredRankingData['Volume']) ? parseInt(filteredRankingData['Volume']).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A', key: 'Volume' },
-                        { name: 'Volume 1d (%)', value: Number.isFinite(filteredRankingData['Volume 1d (%)']) ? filteredRankingData['Volume 1d (%)'].toFixed(2) : 'N/A', key: 'Volume 1d (%)' },
-                        { name: 'Volume 1w (%)', value: Number.isFinite(filteredRankingData['Volume 1w (%)']) ? filteredRankingData['Volume 1w (%)'].toFixed(2) : 'N/A', key: 'Volume 1w (%)' },
-                        { name: 'Open Interest', value: Number.isFinite(filteredRankingData['Open Interest']) ? parseInt(filteredRankingData['Open Interest']).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A', key: 'Open Interest' },
-                        { name: 'OI 1d (%)', value: Number.isFinite(filteredRankingData['OI 1d (%)']) ? filteredRankingData['OI 1d (%)'].toFixed(2) : 'N/A', key: 'OI 1d (%)' },
-                        { name: 'OI 1w (%)', value: Number.isFinite(filteredRankingData['OI 1w (%)']) ? filteredRankingData['OI 1w (%)'].toFixed(2) : 'N/A', key: 'OI 1w (%)' }
+                        { name: 'Latest Close ($)', value: Number.isFinite(filteredRankingData['Latest Close']) ? filteredRankingData['Latest Close'].toFixed(2) : 'N/A' },
+                        { name: 'Open ($)', value: Number.isFinite(filteredRankingData['Latest Open']) ? filteredRankingData['Latest Open'].toFixed(2) : 'N/A' },
+                        { name: 'Low ($)', value: Number.isFinite(filteredRankingData['Latest Low']) ? filteredRankingData['Latest Low'].toFixed(2) : 'N/A' },
+                        { name: 'High ($)', value: Number.isFinite(filteredRankingData['Latest High']) ? filteredRankingData['Latest High'].toFixed(2) : 'N/A' },
+                        { name: 'Daily Volume', value: Number.isFinite(filteredRankingData['Volume']) ? parseInt(filteredRankingData['Volume']).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A' },
+                        { name: 'Close 1d (%)', value: Number.isFinite(filteredRankingData['Close 1d (%)']) ? filteredRankingData['Close 1d (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Close 1w (%)', value: Number.isFinite(filteredRankingData['Close 1w (%)']) ? filteredRankingData['Close 1w (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Realised Volatility 100d (%)', value: Number.isFinite(filteredRankingData['Realised Volatility 100d (%)']) ? filteredRankingData['Realised Volatility 100d (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Weighted IV (%)', value: Number.isFinite(filteredRankingData['Weighted IV (%)']) ? filteredRankingData['Weighted IV (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Weighted IV 1d (%)', value: Number.isFinite(filteredRankingData['Weighted IV 1d (%)']) ? filteredRankingData['Weighted IV 1d (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Weighted IV 1w (%)', value: Number.isFinite(filteredRankingData['Weighted IV 1w (%)']) ? filteredRankingData['Weighted IV 1w (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Volume 1d (%)', value: Number.isFinite(filteredRankingData['Volume 1d (%)']) ? filteredRankingData['Volume 1d (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Volume 1w (%)', value: Number.isFinite(filteredRankingData['Volume 1w (%)']) ? filteredRankingData['Volume 1w (%)'].toFixed(2) : 'N/A' },
+                        { name: 'Open Interest', value: Number.isFinite(filteredRankingData['Open Interest']) ? parseInt(filteredRankingData['Open Interest']).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A' },
+                        { name: 'OI 1d (%)', value: Number.isFinite(filteredRankingData['OI 1d (%)']) ? filteredRankingData['OI 1d (%)'].toFixed(2) : 'N/A' },
+                        { name: 'OI 1w (%)', value: Number.isFinite(filteredRankingData['OI 1w (%)']) ? filteredRankingData['OI 1w (%)'].toFixed(2) : 'N/A' }
                     );
                 } else {
-                    metrics.push({ name: 'Ticker', value: selectedTicker || 'N/A', key: 'Ticker' });
+                    metrics.push({ name: 'Ticker', value: selectedTicker || 'N/A' });
                     console.warn('No ranking data for ticker:', selectedTicker);
                 }
                 let atmRatio = 'N/A';
@@ -998,44 +973,22 @@
                 if (selectedSkewRow) {
                     atmRatio = Number.isFinite(selectedSkewRow.ATM_12m_3m_Ratio) ? selectedSkewRow.ATM_12m_3m_Ratio.toFixed(4) : 'N/A';
                 }
-                metrics.push({ name: 'ATM 12m/3m Ratio', value: atmRatio, key: 'ATM_12m_3m_Ratio' });
-                const filteredSlopeData = slopeData.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker);
-                if (filteredSlopeData.length > 0) {
-                    filteredSlopeData.forEach(item => {
-                        metrics.push({
-                            name: `IV Slope 3m/12m (${item.Type} Delta ${Number.isFinite(item.Delta) ? item.Delta.toFixed(2) : 'N/A'})`,
-                            value: Number.isFinite(item.IV_Slope_3m_12m) ? item.IV_Slope_3m_12m.toFixed(4) : 'N/A',
-                            key: `IV_Slope_3m_12m_${item.Type}_${item.Delta}`
-                        });
-                    });
-                } else {
-                    metrics.push({ name: 'IV Slope 3m/12m', value: 'No slope metrics available', key: 'IV_Slope_3m_12m' });
-                }
-                for (let i = 0; i < metrics.length; i += 2) {
+                metrics.push({ name: 'ATM 12m/3m Ratio', value: atmRatio });
+                metrics.forEach(metric => {
                     const row = tbody.insertRow();
-                    const metric1Cell = row.insertCell();
-                    metric1Cell.textContent = metrics[i].name;
-                    const value1Cell = row.insertCell();
-                    value1Cell.textContent = metrics[i].value;
-                    if (changeMetrics.includes(metrics[i].name) && Number.isFinite(parseFloat(metrics[i].value))) {
-                        const val = parseFloat(metrics[i].value);
-                        value1Cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
+                    const cell = row.insertCell();
+                    cell.textContent = `${metric.name}\t${metric.value}`;
+                    if (metric.name.includes('(%)') && Number.isFinite(parseFloat(metric.value))) {
+                        const val = parseFloat(metric.value);
+                        cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
                     }
-                    const metric2Cell = row.insertCell();
-                    metric2Cell.textContent = i + 1 < metrics.length ? metrics[i + 1].name : '';
-                    const value2Cell = row.insertCell();
-                    value2Cell.textContent = i + 1 < metrics.length ? metrics[i + 1].value : '';
-                    if (i + 1 < metrics.length && changeMetrics.includes(metrics[i + 1].name) && Number.isFinite(parseFloat(metrics[i + 1].value))) {
-                        const val = parseFloat(metrics[i + 1].value);
-                        value2Cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
-                    }
-                }
+                });
                 table.appendChild(tbody);
                 console.log('Summary table updated with metrics:', metrics.map(m => ({ name: m.name, value: m.value })));
             } catch (error) {
                 console.error('Error updating summary table:', error);
                 const table = document.getElementById('summary-table');
-                table.innerHTML = '<tr><td colspan="4">Error loading summary table</td></tr>';
+                table.innerHTML = '<tr><td>Error loading summary table</td></tr>';
             }
         }
 
