@@ -60,29 +60,24 @@ def calculate_rvol_days(ticker, days):
         stock = yf.Ticker(ticker)
         hist = stock.history(period="1y")
         if hist.empty or len(hist) < days + 1:
-            print(f"Warning: Insufficient history data for {ticker} ({len(hist)} rows)")
             return None
         hist_last = hist.iloc[-(days + 1):]
         log_returns = np.log(hist_last["Close"] / hist_last["Close"].shift(1)).dropna()
         if len(log_returns) < 2:
-            print(f"Warning: Insufficient log returns for {ticker} ({len(log_returns)})")
             return None
         realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
         return realised_vol
-    except Exception as e:
-        print(f"Error calculating rvol for {ticker}: {e}")
+    except Exception:
         return None
 
 def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
-        print("Warning: Empty DataFrame in calc_Ivol_Rvol")
         return df
     df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d if rvol100d else np.nan
     return df
 
 def compute_ivs(row, S, r, q):
     if pd.isna(row['Years_to_Expiry']):
-        print(f"Warning: NaN Years_to_Expiry for {row['Contract Name']}")
         return np.nan, np.nan, np.nan, np.nan, np.nan
     T = max(row['Years_to_Expiry'], 0.0001)
     option_type = row['Type'].lower()
@@ -96,7 +91,6 @@ def compute_ivs(row, S, r, q):
 
 def calculate_metrics(df, ticker, r):
     if df.empty:
-        print(f"Warning: Empty DataFrame for {ticker} in calculate_metrics")
         return df, pd.DataFrame(), pd.DataFrame()
     skew_data = []
     for exp in df["Expiry"].unique():
@@ -128,11 +122,9 @@ def calculate_metrics(df, ticker, r):
 
 def calculate_iv_mid(df, ticker, r):
     if df.empty:
-        print(f"Warning: Empty DataFrame for {ticker} in calculate_iv_mid")
         return df, None, None, None
     required_columns = ['Ticker', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask']
     if not all(col in df.columns for col in required_columns):
-        print(f"Error: Missing columns for {ticker}: {df.columns}")
         return df, None, None, None
     stock = yf.Ticker(ticker)
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
@@ -140,12 +132,8 @@ def calculate_iv_mid(df, ticker, r):
     today = datetime.today()
     df["Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
-    invalid_expiry = df['Years_to_Expiry'] <= 0
-    if invalid_expiry.any():
-        print(f"Warning: {ticker} has {invalid_expiry.sum()} rows with invalid expiry")
-        df = df[~invalid_expiry]
+    df = df[df['Years_to_Expiry'] > 0]
     if df.empty:
-        print(f"Error: No valid rows for {ticker} after expiry filter")
         return df, None, None, None
     df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
     df['Moneyness'] = df['Strike'] / df['Forward']
@@ -157,22 +145,16 @@ def calculate_iv_mid(df, ticker, r):
     df['Delta'] = np.nan
     results = Parallel(n_jobs=4, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
-    invalid_iv = df['IV_mid'].isna() | (df['IV_mid'] <= 0)
-    if invalid_iv.any():
-        print(f"Warning: {ticker} has {invalid_iv.sum()} rows with invalid IV_mid")
-        df = df[~invalid_iv]
+    df = df[df['IV_mid'] > 0]
     return df, S, r, q
 
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
-        print("Warning: Empty DataFrame in smooth_iv_per_expiry")
         options_df['Smoothed_IV'] = np.nan
         return options_df
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
-        print(f"Smoothing IV for expiry {exp}: {len(group)} rows")
         if len(group) < 3 or group['IV_mid'].isna().all():
-            print(f"Skipping smoothing for expiry {exp}: too few rows or all NaN")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if len(group) >= 5:
@@ -187,7 +169,6 @@ def smooth_iv_per_expiry(options_df):
         else:
             cleaned_group = group
         if len(cleaned_group) < 3 or cleaned_group['IV_mid'].isna().all():
-            print(f"Skipping smoothing for expiry {exp}: insufficient valid data")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if cleaned_group['LogMoneyness'].duplicated().any():
@@ -205,8 +186,7 @@ def smooth_iv_per_expiry(options_df):
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
             smoothed_values = interpolator(group['LogMoneyness'].values)
             smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
-        except Exception as e:
-            print(f"Warning: LOWESS failed for expiry {exp}: {e}")
+        except Exception:
             smoothed_iv.loc[group.index] = group['IV_mid']
     options_df['Smoothed_IV'] = smoothed_iv
     return options_df
@@ -215,7 +195,6 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     y = row['LogMoneyness']
     T = row['Years_to_Expiry']
     if T <= 0 or pd.isna(row['Smoothed_IV']):
-        print(f"Warning: Invalid Smoothed_IV or Years_to_Expiry for Strike {row['Strike']}, Expiry {row['Expiry']}")
         return None
     w = row['Smoothed_IV'] ** 2 * T
     h_t = max(0.01 * T, 1e-4)
@@ -229,10 +208,8 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
         dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
         d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
         if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
-            print(f"Warning: NaN derivatives for Strike {row['Strike']}, Expiry {row['Expiry']}")
             return None
-    except Exception as e:
-        print(f"Warning: Interpolation failed for Strike {row['Strike']}, Expiry {row['Expiry']}: {e}")
+    except Exception:
         return None
     denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
     if denom <= 1e-10 or dw_dT <= 0:
@@ -249,27 +226,21 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
     }
 
 def process_options(options_df, option_type, r, q, ticker):
-    print(f"Processing {ticker} {option_type} options: {len(options_df)} rows")
     if options_df.empty:
-        print(f"No data for {ticker} {option_type} options")
         return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
-    print(f"Valid {ticker} {option_type} rows after filtering: {len(options_df)}")
     if len(options_df) < 3:
-        print(f"Too few valid rows for {ticker} {option_type}: {len(options_df)}")
         options_df['Smoothed_IV'] = options_df['IV_mid']
         return pd.DataFrame(), None, options_df
     options_df = smooth_iv_per_expiry(options_df)
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-    print(f"Smoothed {ticker} {option_type} rows: {len(smoothed_df)}")
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
     values = smoothed_df['TotalVariance'].values
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
-    except Exception as e:
-        print(f"RBFInterpolator failed for {ticker} {option_type}: {e}")
+    except Exception:
         interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
     local_data = Parallel(n_jobs=4, backend='threading')(
         delayed(compute_local_vol_from_iv_row)(row, r, q, interp)
@@ -277,13 +248,11 @@ def process_options(options_df, option_type, r, q, ticker):
     )
     local_data = [d for d in local_data if d is not None]
     local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
-    print(f"Local volatility rows for {ticker} {option_type}: {len(local_df)}")
     return local_df, interp, smoothed_df
 
 def calculate_local_vol_from_iv(df, S, r, q, ticker):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in df.columns for col in required_columns):
-        print(f"Error: Missing columns for {ticker} in calculate_local_vol_from_iv: {df.columns}")
         return pd.DataFrame(), pd.DataFrame(), None, None, df
     calls = df[df['Type'] == 'Call'].copy()
     puts = df[df['Type'] == 'Put'].copy()
@@ -311,8 +280,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
             if np.isnan(w) or w <= 0:
                 return np.nan
             return np.sqrt(w / T)
-        except Exception as e:
-            print(f"Warning: IV interpolation failed for {ticker}: {e}")
+        except Exception:
             return np.nan
     skew_data = []
     target_deltas = [0.25, 0.75]
@@ -388,33 +356,23 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
     return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, df, full_df, r):
-    print(f"\n=== Processing {ticker} ===")
     if df.empty:
-        print(f"Error: Empty DataFrame for {ticker} in cleaned file")
         return df, pd.DataFrame(), pd.DataFrame()
     if not all(col in df.columns for col in ['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type']):
-        print(f"Error: Missing required columns for {ticker}: {df.columns}")
         return df, pd.DataFrame(), pd.DataFrame()
     try:
         ticker_df = df[df['Ticker'] == ticker].copy()
         ticker_full = full_df[full_df['Ticker'] == ticker].copy()
-        print(f"Initial rows for {ticker}: {len(ticker_df)}")
-        print(f"Unique expiries: {ticker_df['Expiry'].nunique()}, Unique strikes: {ticker_df['Strike'].nunique()}")
         rvol100d = calculate_rvol_days(ticker, 100)
-        print(f"Realised Volatility for {ticker}: {rvol100d * 100:.2f}% if rvol100d else 'N/A'")
         ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
         if ticker_df.empty:
-            print(f"Error: No valid rows after calculate_iv_mid for {ticker}")
             return ticker_df, pd.DataFrame(), pd.DataFrame()
         ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
         ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
-        print(f"Rows after calculate_metrics: {len(ticker_df)}")
         try:
             call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q, ticker)
             ticker_df = smoothed_df
-            print(f"Rows in smoothed_df: {len(ticker_df)}")
-        except Exception as e:
-            print(f"Warning: Local volatility calculation failed for {ticker}: {e}")
+        except Exception:
             call_local_df, put_local_df, call_interp, put_interp = pd.DataFrame(), pd.DataFrame(), None, None
         skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q, ticker)
         skew_metrics_df['Ticker'] = ticker
@@ -436,29 +394,18 @@ def process_ticker(ticker, df, full_df, r):
         else:
             ticker_df['Put Local Vol'] = np.nan
         ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-        print(f"Completed processing for {ticker}")
         return ticker_df, skew_metrics_df, slope_metrics_df
-    except Exception as e:
-        print(f"Error processing {ticker}: {e}")
+    except Exception:
         return df, pd.DataFrame(), pd.DataFrame()
 
-def process_data(timestamp, prefix="", all_tickers=None):
+def process_data(timestamp, prefix=""):
     cleaned_dir = f'data/{timestamp}/cleaned{prefix}'
     raw_dir = f'data/{timestamp}/raw{prefix}'
-    print(f"\n=== Processing data for timestamp {timestamp}, prefix {prefix} ===")
     if not os.path.exists(cleaned_dir):
-        print(f"Error: Cleaned directory {cleaned_dir} not found")
         return None, None, None
     cleaned_files = glob.glob(f'{cleaned_dir}/cleaned{prefix}_*.csv')
-    print(f"Found {len(cleaned_files)} cleaned files: {[os.path.basename(f) for f in cleaned_files]}")
     if not cleaned_files:
-        print(f"No cleaned files found in {cleaned_dir}")
         return None, None, None
-    if all_tickers:
-        available_tickers = [os.path.basename(f).split(f'cleaned{prefix}_')[1].split('.csv')[0] for f in cleaned_files]
-        missing_tickers = [t for t in all_tickers if t not in available_tickers]
-        if missing_tickers:
-            print(f"Missing tickers: {missing_tickers}")
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
     r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     processed_dir = f'data/{timestamp}/processed{prefix}'
@@ -474,76 +421,32 @@ def process_data(timestamp, prefix="", all_tickers=None):
         ticker = os.path.basename(clean_file).split(f'cleaned{prefix}_')[1].split('.csv')[0]
         raw_file = f'{raw_dir}/raw{prefix}_{ticker}.csv'
         if not os.path.exists(raw_file):
-            print(f"Warning: Corresponding raw file {raw_file} not found for {ticker}")
             continue
         try:
             df = pd.read_csv(clean_file, parse_dates=['Expiry'])
             full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
             if df.empty:
-                print(f"Warning: No data for {ticker} in {clean_file}")
                 continue
             ticker_df, skew_df, slope_df = process_ticker(ticker, df, full_df, r)
             if not ticker_df.empty:
                 processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
                 ticker_df.to_csv(processed_filename, index=False)
-                print(f"Processed {prefix}data for {ticker} saved to {processed_filename}")
-                processed_json_filename = f'{processed_dir}/processed{prefix}_{ticker}.json'
-                ticker_df.to_json(processed_json_filename, orient='records', date_format='iso')
-                print(f"Processed {prefix}data for {ticker} saved to {processed_json_filename}")
                 processed_dfs.append(ticker_df)
             if not skew_df.empty:
                 skew_filename = f'{skew_dir}/skew_metrics{prefix}_{ticker}.csv'
                 skew_df.to_csv(skew_filename, index=False)
-                print(f"Skew metrics {prefix}for {ticker} saved to {skew_filename}")
                 skew_metrics_dfs.append(skew_df)
             if not slope_df.empty:
                 slope_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
                 slope_df.to_csv(slope_filename, index=False)
-                print(f"Slope metrics {prefix}for {ticker} saved to {slope_filename}")
                 slope_metrics_dfs.append(slope_df)
-        except Exception as e:
-            print(f"Error handling {ticker} in process_data: {e}")
+        except Exception:
             continue
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
-    # Define full ticker list to check for missing tickers
-    all_tickers = [
-        "AAL", "ABBV", "ABNB", "ABR", "ACCD", "AEIS", "AFRM", "AG", "AKAM", "ALNY", "ALRM", "ALTM", "ALTR",
-        "AMD", "AMPH", "AMZN", "AORT", "APLS", "AR", "ARAY", "ARCH", "ARRY", "ASND", "ASRT", "ATEC", "ATI",
-        "ATSG", "AVDL", "AVGO", "AWK", "AXON", "AY", "BA", "BABA", "BAND", "BB", "BBAI", "BBIO", "BE", "BEST",
-        "BFH", "BHR", "BILI", "BILL", "BKD", "BKNG", "BL", "BLMN", "BMRN", "BMY", "BOX", "BSY", "BTSG", "BTU",
-        "BURL", "BXMT", "BYND", "CABO", "CAKE", "CAMP", "CAMT", "CBRL", "CCL", "CDLX", "CDMO", "CDP", "CENX",
-        "CERE", "CFLT", "CHEF", "CHGG", "CHRS", "CHTR", "CMI", "CMPO", "CMRC", "CMS", "CNK", "CNMD", "CNP",
-        "CNX", "COIN", "COLL", "CRNC", "CSGS", "CSIQ", "CTO", "CUTR", "CVX", "CYBR", "CYRX", "CYTK", "DAY",
-        "DBRG", "DBX", "DDD", "DDOG", "DIS", "DKNG", "DM", "DNMR", "DOCN", "DUK", "DVAX", "DXCM", "EB", "ECPG",
-        "EEFT", "EGHT", "EGIO", "ENOV", "ENPH", "ENV", "ENVX", "EQT", "EQX", "ETSY", "EVBG", "EVH", "EVRG",
-        "EXAS", "EXPE", "EYE", "EZPW", "F", "FARO", "FE", "FIVN", "FLR", "FOUR", "FRPT", "FRT", "FSLY", "FSRN",
-        "FTCHF", "FUBO", "FVRR", "FWONK", "GBX", "GCI", "GDS", "GEO", "GES", "GH", "GKOS", "GMED", "GOSS",
-        "GPN", "GPRE", "GPRO", "GRPN", "GTLS", "GVA", "GWRE", "HAE", "HALO", "HASI", "HCAT", "HCI", "HLF",
-        "HLIT", "HLX", "HOPE", "HOUS", "HRTG", "HTHT", "HUBS", "IART", "IBM", "IDCC", "IIIV", "IMAX", "IMCR",
-        "INDI", "INFN", "INN", "INSG", "INSM", "INVA", "IONS", "IQ", "IRTC", "IRWD", "ITGR", "ITRI", "JAMF",
-        "JAZZ", "JBLU", "JBT", "JD", "JOYY", "JPM", "KHC", "KOS", "KPTI", "KRG", "LAB", "LAC", "LAZR", "LCID",
-        "LCII", "LI", "LITE", "LIVN", "LNT", "LNTH", "LPSN", "LRN", "LSXMA", "LUV", "LYFT", "LYV", "MARA",
-        "MAXN", "MCHP", "MCS", "MDB", "MDRX", "MGNI", "MGPI", "MIDD", "MIRM", "MITK", "MITT", "MKSI", "MLAB",
-        "MMM", "MMSI", "MMYT", "MNKD", "MODG", "MODN", "MOMO", "MP", "MRK", "MSFT", "MSTR", "MTCH", "MTH",
-        "MTN", "MTSI", "NBR", "NCLH", "NEE", "NEO", "NET", "NICE", "NIO", "NKE", "NKLA", "NMFC", "NOG",
-        "NOTV", "NOVA", "NRG", "NSIT", "NSTG", "NTNX", "NTRA", "NVAX", "NVCR", "NVMI", "NVRO", "NVST", "OKTA",
-        "OMCL", "OMER", "ON", "OPEN", "OPK", "ORA", "PANW", "PAR", "PATK", "PCG", "PCRX", "PCT", "PD", "PDD",
-        "PEB", "PEGA", "PENN", "PEP", "PETQ", "PI", "PLUG", "PMT", "PODD", "POST", "PPL", "PR", "PRCH", "PRFT",
-        "PRGS", "PRO", "PSEC", "PSN", "PTCT", "PTON", "QD", "QTWO", "RCL", "RDFN", "REAL", "REXR", "RGEN",
-        "RH", "RIG", "RIVN", "RKLB", "RNG", "RPAY", "RPD", "RTX", "RUN", "RVNC", "RWT", "SABR", "SATS", "SAVE",
-        "SE", "SEDG", "SENS", "SGH", "SHAK", "SHEL", "SHOP", "SIRI", "SKIN", "SLB", "SLNA", "SMCI", "SMTC",
-        "SNAP", "SO", "SOFI", "SPB", "SPCE", "SPHR", "SPOT", "SPR", "SRPT", "SSRM", "STWD", "STX", "TCOM",
-        "TDOC", "TEVA", "TGT", "TMDX", "TNDM", "TPIC", "TREE", "TRIP", "TSLA", "TTEK", "TTGT", "TTWO",
-        "TVTX", "TWO", "TWOU", "TYL", "U", "UBER", "UNIT", "UPHL", "UPST", "UPWK", "V", "VAC", "VATE",
-        "VECO", "VERI", "VERX", "VIAV", "VNET", "VREX", "VRM", "VRNS", "VRNT", "VSH", "VTNR", "VTR", "W",
-        "WB", "WDC", "WEC", "WELL", "WGO", "WIX", "WK", "WKC", "WOLF", "WT", "X", "XERS", "XIFR", "XMTR",
-        "XOM", "XRX", "XYZ", "Z", "ZD", "ZS", "ZTO"
-    ]
     timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
     if not timestamp_dirs:
-        print("No timestamp folders found")
         return
     latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
     timestamp = os.path.basename(latest_timestamp_dir)
@@ -558,10 +461,7 @@ def main():
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
-        print(f"Updated dates list in {dates_file} with timestamp: {timestamp}")
-    print(f"Processing Nasdaq data for {timestamp}")
-    process_data(timestamp, prefix="", all_tickers=all_tickers)
-    print(f"Processing yfinance data for {timestamp}")
-    process_data(timestamp, prefix="_yfinance", all_tickers=all_tickers)
+    process_data(timestamp, prefix="")
+    process_data(timestamp, prefix="_yfinance")
 
 main()
