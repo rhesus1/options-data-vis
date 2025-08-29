@@ -20,6 +20,7 @@
             display: flex;
             height: 100vh;
             font-size: 14px;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
         }
         .sidebar {
             width: 250px;
@@ -69,13 +70,16 @@
             padding: 20px;
             overflow-y: auto;
             background: #1A1A2E;
+            max-width: 100%; /* Ensure content doesn’t exceed viewport */
         }
         .chart-container {
             background-color: #25253D;
-            padding: 20px;
+            padding: 15px; /* Reduced padding to save space */
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            box-sizing: border-box; /* Include padding in width */
         }
         .stats-table, .summary-table, .ranking-table, .raw-data-table, .contracts-table {
             border-collapse: collapse;
@@ -151,29 +155,54 @@
         }
         .overview-grid {
             display: grid;
-            grid-template-columns: repeat(10, 7%); /* 10 columns, each 10% width */
+            grid-template-columns: 4fr 1fr; /* Top row: 4/5 (80%) for Historic, 1/5 (20%) for Summary */
             grid-template-rows: auto auto; /* Two rows: auto-sized based on content */
-            gap: 20px;
+            gap: 10px; /* Reduced gap to minimize overflow */
+            max-width: 100%; /* Prevent grid from exceeding container */
         }
         .historic-container {
-            grid-column: 1 / 9; /* Span 8 columns (80%) */
+            grid-column: 1;
             grid-row: 1;
         }
         .summary-container {
-            grid-column: 9 / 11; /* Span 2 columns (20%) */
+            grid-column: 2;
             grid-row: 1;
         }
         .contracts-container:nth-child(3) {
-            grid-column: 1 / 6; /* Span 5 columns (50%) */
+            grid-column: 1;
             grid-row: 2;
+            width: 100%; /* Take full width of the column */
+            box-sizing: border-box; /* Include padding in width */
         }
         .contracts-container:nth-child(4) {
-            grid-column: 6 / 11; /* Span 5 columns (50%) */
+            grid-column: 2;
             grid-row: 2;
+            width: 100%; /* Take full width of the column */
+            box-sizing: border-box; /* Include padding in width */
         }
-        /* Ensure bottom row elements take full available width within their columns */
-        .contracts-container {
+        /* Adjust table styling to reduce squishing and overlap */
+        .contracts-table {
+            border-collapse: collapse;
             width: 100%;
+            margin-top: 15px;
+            background-color: #25253D;
+            font-size: 11px; /* Further reduce font size */
+            overflow-x: auto; /* Allow horizontal scroll within table if content overflows */
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .contracts-table th, .contracts-table td {
+            border: 1px solid #26A69A;
+            padding: 6px; /* Further reduce padding */
+            text-align: left;
+            color: #FFFFFF;
+        }
+        .contracts-table th {
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .contracts-table th:hover {
+            background-color: #4B4B6F;
         }
         .volatility-grid {
             display: grid;
