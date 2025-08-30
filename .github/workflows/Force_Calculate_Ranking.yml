@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250830_1809)'
+        description: 'Date timestamp to process (e.g., 20250830_1820)'
         required: true
         type: string
 jobs:
@@ -19,4 +19,30 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas numpy scipy
+    - name: Create data directory
+      run: mkdir -p data
+    - name: Log timestamp and input files
+      run: |
+        echo "Running Force_Calculate_Ranking.py with timestamp: ${{ inputs.date }}"
+        ls -R data/${{ inputs.date }}/processed_yfinance* || echo "No processed files found"
+        ls -R data/${{ inputs.date }}/historic* || echo "No historic files found"
+    - name: Run the ranking script
+      run: python Force_Calculate_Ranking.py ${{ inputs.date }}
+    - name: Log output files
+      run: |
+        echo "Ranking files:"
+        ls -R data/${{ inputs.date }}/ranking* || echo "No ranking files generated"
+        ls ranking_error.log || echo "No error log generated"
+    - name: Commit and push updated data
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data
+        git add ranking_error.log
+        git commit -m "Auto-update ranking metrics for ${{ inputs.date }}" || echo "No changes to commit"
+        git push
