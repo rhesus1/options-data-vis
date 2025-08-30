@@ -12,13 +12,38 @@ def load_rvol_from_historic(ticker, timestamp, days):
     if not os.path.exists(historic_file):
         return None
     df_hist = pd.read_csv(historic_file, parse_dates=['Date'])
-    if df_hist.empty:
+    if df_hist.empty or 'Ticker' not in df_hist.columns:
         return None
     col = f'Realised_Vol_Close_{days}'
     if col not in df_hist.columns:
         return None
     latest_vol = df_hist[col].iloc[-1]
     return latest_vol if not pd.isna(latest_vol) else None
+
+def load_historic_data(ts):
+    if ts is None:
+        return pd.DataFrame(columns=['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'])
+    historic_dir = f'data/{ts}/historic'
+    if not os.path.exists(historic_dir):
+        return pd.DataFrame(columns=['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'])
+    historic_files = glob.glob(f'{historic_dir}/historic_*.csv')
+    dfs = []
+    required_columns = ['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']
+    for file in historic_files:
+        try:
+            df = pd.read_csv(file, parse_dates=['Date'])
+            if 'Ticker' not in df.columns or df.empty:
+                continue
+            missing_cols = [col for col in required_columns if col not in df.columns]
+            if missing_cols:
+                continue
+            dfs.append(df)
+        except Exception:
+            continue
+    if not dfs:
+        return pd.DataFrame(columns=required_columns)
+    df_concat = pd.concat(dfs, ignore_index=True)
+    return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
 
 def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
     dates_file = os.path.join(data_dir, 'dates.json')
@@ -69,26 +94,6 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         current_option = get_option_totals(timestamp, prefix)
         prev_day_option = get_option_totals(prev_day_ts, prefix)
         prev_week_option = get_option_totals(prev_week_ts, prefix)
-        def load_historic_data(ts):
-            historic_dir = f'data/{ts}/historic'
-            if not os.path.exists(historic_dir):
-                return pd.DataFrame()
-            historic_files = glob.glob(f'{historic_dir}/historic_*.csv')
-            dfs = []
-            required_columns = ['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']
-            for file in historic_files:
-                try:
-                    df = pd.read_csv(file, parse_dates=['Date'])
-                    missing_cols = [col for col in required_columns if col not in df.columns]
-                    if missing_cols:
-                        continue
-                    dfs.append(df)
-                except Exception:
-                    continue
-            if not dfs:
-                return pd.DataFrame()
-            df_concat = pd.concat(dfs, ignore_index=True)
-            return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
         df_historic = load_historic_data(timestamp)
         def load_processed_data(ts, prefix):
             processed_dir = f'data/{ts}/processed{prefix}'
@@ -110,9 +115,11 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             continue
         processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
         processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
-        latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty else pd.DataFrame()
-        prev_day_historic_latest = load_historic_data(prev_day_ts).loc[load_historic_data(prev_day_ts).groupby('Ticker')['Date'].idxmax()] if prev_day_ts else pd.DataFrame()
-        prev_week_historic_latest = load_historic_data(prev_week_ts).loc[load_historic_data(prev_week_ts).groupby('Ticker')['Date'].idxmax()] if prev_week_ts else pd.DataFrame()
+        latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty and 'Ticker' in df_historic.columns else pd.DataFrame()
+        prev_day_historic = load_historic_data(prev_day_ts)
+        prev_day_historic_latest = prev_day_historic.loc[prev_day_historic.groupby('Ticker')['Date'].idxmax()] if not prev_day_historic.empty and 'Ticker' in prev_day_historic.columns else pd.DataFrame()
+        prev_week_historic = load_historic_data(prev_week_ts)
+        prev_week_historic_latest = prev_week_historic.loc[prev_week_historic.groupby('Ticker')['Date'].idxmax()] if not prev_week_historic.empty and 'Ticker' in prev_week_historic.columns else pd.DataFrame()
         def get_prev_value(ticker, target_date, col):
             g = df_historic[df_historic['Ticker'] == ticker]
             prev = g[g['Date'] <= target_date]
@@ -205,12 +212,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 rank_dict['Latest High'] = ticker_historic['High'].iloc[0] if not ticker_historic.empty else 'N/A'
                 rank_dict['Latest Low'] = ticker_historic['Low'].iloc[0] if not ticker_historic.empty else 'N/A'
                 current_price = ticker_historic['Close'].iloc[0] if not ticker_historic.empty else 'N/A'
-                prev_day_close = prev_day_historic_latest[prev_day_historic_latest['Ticker'] == ticker]['Close'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
-                prev_week_close = prev_week_historic_latest[prev_week_historic_latest['Ticker'] == ticker]['Close'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
-                prev_day_high = prev_day_historic_latest[prev_day_historic_latest['Ticker'] == ticker]['High'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
-                prev_week_high = prev_week_historic_latest[prev_week_historic_latest['Ticker'] == ticker]['High'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
-                prev_day_low = prev_day_historic_latest[prev_day_historic_latest['Ticker'] == ticker]['Low'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
-                prev_week_low = prev_week_historic_latest[prev_week_historic_latest['Ticker'] == ticker]['Low'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
+                prev_day_close = prev_day_historic_latest['Close'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
+                prev_week_close = prev_week_historic_latest['Close'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
+                prev_day_high = prev_day_historic_latest['High'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
+                prev_week_high = prev_week_historic_latest['High'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
+                prev_day_low = prev_day_historic_latest['Low'].iloc[0] if not prev_day_historic_latest.empty and ticker in prev_day_historic_latest['Ticker'].values else None
+                prev_week_low = prev_week_historic_latest['Low'].iloc[0] if not prev_week_historic_latest.empty and ticker in prev_week_historic_latest['Ticker'].values else None
                 rank_dict['Close 1d (%)'] = (rank_dict['Latest Close'] - prev_day_close) / prev_day_close * 100 if prev_day_close is not None and prev_day_close != 0 and rank_dict['Latest Close'] != 'N/A' else 'N/A'
                 rank_dict['Close 1w (%)'] = (rank_dict['Latest Close'] - prev_week_close) / prev_week_close * 100 if prev_week_close is not None and prev_week_close != 0 and rank_dict['Latest Close'] != 'N/A' else 'N/A'
                 rank_dict['High 1d (%)'] = (rank_dict['Latest High'] - prev_day_high) / prev_day_high * 100 if prev_day_high is not None and prev_day_high != 0 and rank_dict['Latest High'] != 'N/A' else 'N/A'
@@ -232,7 +239,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         vol_1w_pct = (current_vol - prev_week_vol) / prev_week_vol * 100 if prev_week_vol is not None and prev_week_vol != 0 and current_vol != 'N/A' and not pd.isna(current_vol) else 'N/A'
                         rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = vol_1w_pct
                         past_year = df_historic[(df_historic['Ticker'] == ticker) & (df_historic['Date'] >= past_year_start) & (df_historic['Date'] <= current_dt)]
-                        vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns and not past_year.empty else pd.Series()
+                        vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns else pd.Series()
                         if not vols.empty:
                             min_vol = vols.min()
                             max_vol = vols.max()
