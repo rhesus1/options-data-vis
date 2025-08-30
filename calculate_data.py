@@ -492,7 +492,7 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             f.write(f"Error processing {ticker}: {str(e)}\n")
         return df, pd.DataFrame(), pd.DataFrame(), None
 
-def process_data(timestamp, prefix=""):
+def process_data(timestamp, prefix="_yfinance"):
     cleaned_dir = f'data/{timestamp}/cleaned{prefix}'
     raw_dir = f'data/{timestamp}/raw{prefix}'
     if not os.path.exists(cleaned_dir):
@@ -584,7 +584,6 @@ def main():
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
-    #process_data(timestamp, prefix="")
     process_data(timestamp, prefix="_yfinance")
 
 main()
