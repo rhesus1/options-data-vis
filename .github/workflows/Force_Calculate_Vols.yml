@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250830_1220)'
+        description: 'Date timestamp to process (e.g., 20250830_1727)'
         required: true
         type: string
 jobs:
@@ -24,12 +24,30 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pandas numpy scipy joblib statsmodels
+    - name: Log timestamp and input files
+      run: |
+        echo "Running Force_Calculate_Vols.py with timestamp: ${{ inputs.date }}"
+        ls -R data/${{ inputs.date }}/cleaned* || echo "No cleaned files found"
+        ls -R data/${{ inputs.date }}/raw* || echo "No raw files found"
+        ls -R data/${{ inputs.date }}/historic* || echo "No historic files found"
     - name: Run the script
       run: python Force_Calculate_Vols.py ${{ inputs.date }}
+    - name: Log output files
+      run: |
+        echo "Processed files:"
+        ls -R data/${{ inputs.date }}/processed* || echo "No processed files found"
+        echo "Skew metrics files:"
+        ls -R data/${{ inputs.date }}/skew_metrics* || echo "No skew metrics files found"
+        echo "Slope metrics files:"
+        ls -R data/${{ inputs.date }}/slope_metrics* || echo "No slope metrics files found"
+        echo "Vol fit file:"
+        ls -R data/${{ inputs.date }}/vol_fit* || echo "No vol fit file found"
+        ls data_error.log || echo "No error log generated"
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add data
+        git add data_error.log
         git commit -m "Auto-update processed data for ${{ inputs.date }}" || echo "No changes to commit"
         git push
