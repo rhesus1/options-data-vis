@@ -24,42 +24,51 @@ jobs:
     - name: Log timestamp and input files
       run: |
         python -c "
-        import json
+        import glob
         import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        print(f'Running calculate_data.py with timestamp: {latest_date}')
-        os.system(f'ls -R data/{latest_date}/cleaned* || echo \"No cleaned files found\"')
-        os.system(f'ls -R data/{latest_date}/raw* || echo \"No raw files found\"')
-        os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
+        timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
+        if not timestamp_dirs:
+            print('No timestamp folders found')
+            sys.exit(1)
+        latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
+        timestamp = os.path.basename(latest_timestamp_dir)
+        print(f'Running calculate_data.py with timestamp: {timestamp}')
+        os.system(f'ls -R data/{timestamp}/cleaned_yfinance* || echo \"No cleaned files found\"')
+        os.system(f'ls -R data/{timestamp}/raw_yfinance* || echo \"No raw files found\"')
+        os.system(f'ls -R data/{timestamp}/historic* || echo \"No historic files found\"')
         "
     - name: Run calculate script
       run: |
         python -c "
-        import json
+        import glob
         import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
+        timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
+        if not timestamp_dirs:
+            print('No timestamp folders found')
+            sys.exit(1)
+        latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
+        timestamp = os.path.basename(latest_timestamp_dir)
         os.system(f'python calculate_data.py')
         "
     - name: Log output files
       run: |
         python -c "
-        import json
+        import glob
         import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
+        timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
+        if not timestamp_dirs:
+            print('No timestamp folders found')
+            sys.exit(1)
+        latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
+        timestamp = os.path.basename(latest_timestamp_dir)
         print('Processed files:')
-        os.system(f'ls -R data/{latest_date}/processed* || echo \"No processed files found\"')
+        os.system(f'ls -R data/{timestamp}/processed_yfinance* || echo \"No processed files found\"')
         print('Skew metrics files:')
-        os.system(f'ls -R data/{latest_date}/skew_metrics* || echo \"No skew metrics files found\"')
+        os.system(f'ls -R data/{timestamp}/skew_metrics_yfinance* || echo \"No skew metrics files found\"')
         print('Slope metrics files:')
-        os.system(f'ls -R data/{latest_date}/slope_metrics* || echo \"No slope metrics files found\"')
+        os.system(f'ls -R data/{timestamp}/slope_metrics_yfinance* || echo \"No slope metrics files found\"')
         print('Vol fit file:')
-        os.system(f'ls -R data/{latest_date}/vol_fit* || echo \"No vol fit file found\"')
+        os.system(f'ls -R data/{timestamp}/vol_fit* || echo \"No vol fit file found\"')
         os.system(f'ls data_error.log || echo \"No error log generated\"')
         "
     - name: Commit and push updated data
