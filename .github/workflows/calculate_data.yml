@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy scipy joblib statsmodels
+        pip install pandas numpy scipy joblib statsmodels yfinance
     - name: Create data directory
       run: mkdir -p data
     - name: Log timestamp and input files
@@ -58,7 +58,7 @@ jobs:
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add data
-        git add data_error.log
+        git add data data_error.log
         git commit -m "Auto-update processed data" || echo "No changes to commit"
         git push
+      continue-on-error: true
