@@ -34,15 +34,7 @@ jobs:
         os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
         "
     - name: Run ranking metrics calculation
-      run: |
-        python -c "
-        import json
-        import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        os.system(f'python calculate_ranking_metrics.py {latest_date}')
-        "
+      run: python calculate_ranking_metrics.py
     - name: Log output files
       run: |
         python -c "
