@@ -440,7 +440,11 @@ def fetch_tnx_data(timestamp):
         tnx_data.to_csv(tnx_file, index=False)
         with open('data_error.log', 'a') as f:
             f.write(f"Saved ^TNX data to {tnx_file}\n")
-        return tnx_data['Close'].iloc[-1] / 100
+        # Ensure scalar float is returned
+        close_price = tnx_data['Close'].iloc[-1]
+        if isinstance(close_price, (pd.Series, np.ndarray)):
+            close_price = close_price.item()
+        return float(close_price) / 100
     except Exception as e:
         with open('data_error.log', 'a') as f:
             f.write(f"Failed to fetch ^TNX from yfinance: {str(e)}\n")
@@ -470,7 +474,7 @@ def process_data(timestamp, prefix="_yfinance"):
         if r is None:
             r = 0.05
             with open('data_error.log', 'a') as f:
-                f.write(f"No ^TNX data fetched, using default r=0.05\n")
+                f.write(f"No ^TNX data fetched, using default r={r:.4f}\n")
         else:
             with open('data_error.log', 'a') as f:
                 f.write(f"Fetched ^TNX from yfinance: r={r:.4f}\n")
