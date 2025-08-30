@@ -4,7 +4,7 @@ from datetime import datetime
 import glob
 import os
 import json
-from scipy.optimize import brentq
+from scipy.optimize import brentq, least_squares
 from scipy.stats import norm
 from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
 from scipy.interpolate import interp1d
@@ -53,6 +53,69 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return np.clip(iv, 0.05, 5.0)
     except ValueError:
         return np.nan
+
+def global_vol_model_hyp(x, a0, a1, b0, b1, m0, m1, rho0, rho1, sigma0, sigma1, c):
+    moneyness, tau = x
+    k = np.log(moneyness)
+    a_T = a0 + a1 / (1 + c * tau)
+    b_T = b0 + b1 / (1 + c * tau)
+    m_T = m0 + m1 / (1 + c * tau)
+    rho_T = rho0 + rho1 / (1 + c * tau)
+    sigma_T = sigma0 + sigma1 / (1 + c * tau)
+    return a_T + b_T * (rho_T * (k - m_T) + np.sqrt((k - m_T)**2 + sigma_T**2))
+
+MODEL_CONFIG = {
+    'hyp': {
+        'func': global_vol_model_hyp,
+        'p0': [0.2, 0.1, 0.1, 0.05, 0.0, 0.0, -0.3, -0.1, 0.1, 0.05, 0.1],
+        'bounds': ([0, -np.inf, 0, -np.inf, -np.inf, -np.inf, -1, -1, 0.01, -np.inf, 0],
+                   [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 1, 1, np.inf, np.inf, np.inf])
+    }
+}
+
+def fit_single_ticker(df, model='hyp'):
+    df = df.copy()
+    df.loc[:, 'SMI'] = 100 * (df['Ask'] - df['Bid']).clip(lower=0) / (df['Bid'] + df['Ask']).clip(lower=1e-6) / 2
+    df.loc[:, 'weight'] = np.log(1 + df['Open Interest']) / df['SMI'].clip(lower=1e-6)
+    df.loc[:, 'weight'] = np.where(df['Years_to_Expiry'].between(2.0, 2.6), df['weight'] * 5.0, df['weight'])
+    df = df[
+        (df['IV_mid'] > 0) &
+        (df['weight'] > 0) &
+        (df['Bid'] >= 0) &
+        (df['Ask'] >= df['Bid']) &
+        (df['SMI'] > 0)
+    ]
+    if len(df) < 4:
+        return None, None
+    df = df.sort_values(['Moneyness', 'Years_to_Expiry'])
+    df = df.drop_duplicates(subset=['Moneyness', 'Years_to_Expiry'], keep='first')
+    M = df['Moneyness'].values
+    tau = df['Years_to_Expiry'].values
+    IV = df['IV_mid'].values
+    w = df['weight'].values
+    xdata = np.vstack((M, tau))
+    IV_all = IV
+    w_all = w
+    model_config = MODEL_CONFIG[model]
+    model_func = model_config['func']
+    p0 = model_config['p0']
+    bounds = model_config['bounds']
+    try:
+        def residuals(params):
+            return np.sqrt(w_all) * (model_func(xdata, *params) - IV_all)
+        result = least_squares(
+            residuals,
+            p0,
+            bounds=bounds,
+            method='trf',
+            max_nfev=50000
+        )
+        popt = result.x
+        IV_pred = model_func(xdata, *popt)
+        residuals = np.sum(w * (IV - IV_pred)**2)
+        return popt, residuals
+    except Exception:
+        return None, None
 
 def load_rvol_from_historic(ticker, timestamp, days=100):
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
@@ -132,7 +195,7 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     today = datetime.today()
     df.loc[:, "Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df.loc[:, 'Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
-    df = df.copy()  # Create a new copy after filtering
+    df = df.copy()
     df = df[df['Years_to_Expiry'] > 0]
     if df.empty:
         return df, None, None, None
@@ -236,7 +299,7 @@ def process_options(options_df, option_type, r, q, ticker):
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
-    values = smoothed_df['TotalVariance'].values
+    values = smoothed_df['Smoothed_IV'].values * smoothed_df['Years_to_Expiry'].values
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
     except Exception:
@@ -260,7 +323,7 @@ def calculate_local_vol_from_iv(df, S, r, q, ticker):
     smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index()
     return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
 
-def find_strike_for_delta(S, T, r, q, sigma, target_delta,植物_type):
+def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
     def delta_diff(K):
         delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
         return delta - target_delta if option_type.lower() == 'call' else delta - (-target_delta)
@@ -319,14 +382,13 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
             'Strike_put_75_delta': put_strike_75
         })
     skew_metrics_df = pd.DataFrame(skew_data)
-    slope_metrics_df = pd.DataFrame(slope_data)
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
     skew_metrics_df.loc[:, 'ATM_12m_3m_Ratio'] = atm_ratio
     skew_metrics_df.loc[:, 'ATM_IV_3m'] = atm_iv_3m
     skew_metrics_df.loc[:, 'ATM_IV_12m'] = atm_iv_12m
-    return skew_metrics_df, slope_metrics_df
+    return skew_metrics_df, pd.DataFrame()
 
 def process_ticker(ticker, df, full_df, r, timestamp):
     if df.empty:
@@ -367,9 +429,26 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         else:
             ticker_df.loc[:, 'Put Local Vol'] = np.nan
         ticker_df.loc[:, 'Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-        return ticker_df, skew_metrics_df, slope_metrics_df
+        # Fit hyperbolic volatility model
+        vol_fit_params, vol_fit_residuals = fit_single_ticker(ticker_df[ticker_df['Type'] == 'Call'], model='hyp')
+        vol_fit_data = {
+            'Ticker': ticker,
+            'a0': vol_fit_params[0] if vol_fit_params is not None else np.nan,
+            'a1': vol_fit_params[1] if vol_fit_params is not None else np.nan,
+            'b0': vol_fit_params[2] if vol_fit_params is not None else np.nan,
+            'b1': vol_fit_params[3] if vol_fit_params is not None else np.nan,
+            'm0': vol_fit_params[4] if vol_fit_params is not None else np.nan,
+            'm1': vol_fit_params[5] if vol_fit_params is not None else np.nan,
+            'rho0': vol_fit_params[6] if vol_fit_params is not None else np.nan,
+            'rho1': vol_fit_params[7] if vol_fit_params is not None else np.nan,
+            'sigma0': vol_fit_params[8] if vol_fit_params is not None else np.nan,
+            'sigma1': vol_fit_params[9] if vol_fit_params is not None else np.nan,
+            'c': vol_fit_params[10] if vol_fit_params is not None else np.nan,
+            'Residuals': vol_fit_residuals if vol_fit_residuals is not None else np.nan
+        }
+        return ticker_df, skew_df, slope_df, vol_fit_data
     except Exception:
-        return df, pd.DataFrame(), pd.DataFrame()
+        return df, pd.DataFrame(), pd.DataFrame(), None
 
 def process_data(timestamp, prefix=""):
     cleaned_dir = f'data/{timestamp}/cleaned{prefix}'
@@ -388,12 +467,15 @@ def process_data(timestamp, prefix=""):
     processed_dir = f'data/{timestamp}/processed{prefix}'
     skew_dir = f'data/{timestamp}/skew_metrics{prefix}'
     slope_dir = f'data/{timestamp}/slope_metrics{prefix}'
+    vol_fit_dir = f'data/{timestamp}/vol_fit'
     os.makedirs(processed_dir, exist_ok=True)
     os.makedirs(skew_dir, exist_ok=True)
     os.makedirs(slope_dir, exist_ok=True)
+    os.makedirs(vol_fit_dir, exist_ok=True)
     processed_dfs = []
     skew_metrics_dfs = []
     slope_metrics_dfs = []
+    vol_fit_data = []
     for clean_file in cleaned_files:
         ticker = os.path.basename(clean_file).split(f'cleaned{prefix}_')[1].split('.csv')[0]
         raw_file = f'{raw_dir}/raw{prefix}_{ticker}.csv'
@@ -404,7 +486,7 @@ def process_data(timestamp, prefix=""):
             full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
             if df.empty:
                 continue
-            ticker_df, skew_df, slope_df = process_ticker(ticker, df, full_df, r, timestamp)
+            ticker_df, skew_df, slope_df, vol_fit_row = process_ticker(ticker, df, full_df, r, timestamp)
             if not ticker_df.empty:
                 processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
                 ticker_df.to_csv(processed_filename, index=False)
@@ -417,8 +499,14 @@ def process_data(timestamp, prefix=""):
                 slope_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
                 slope_df.to_csv(slope_filename, index=False)
                 slope_metrics_dfs.append(slope_df)
+            if vol_fit_row is not None:
+                vol_fit_data.append(vol_fit_row)
         except Exception:
             continue
+    if vol_fit_data:
+        vol_fit_df = pd.DataFrame(vol_fit_data)
+        vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
+        vol_fit_df.to_csv(vol_fit_filename, index=False)
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
