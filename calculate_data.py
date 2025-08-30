@@ -457,7 +457,7 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             'Ticker': ticker,
             'a0': vol_fit_params[0] if vol_fit_params is not None else np.nan,
             'a1': vol_fit_params[1] if vol_fit_params is not None else np.nan,
-            'b0': vol_fit_params[2] if vol_fit_params is not None else np.nan
+            'b0': vol_fit_params[2] if vol_fit_params is not None else np.nan,
             'b1': vol_fit_params[3] if vol_fit_params is not None else np.nan,
             'm0': vol_fit_params[4] if vol_fit_params is not None else np.nan,
             'm1': vol_fit_params[5] if vol_fit_params is not None else np.nan,
