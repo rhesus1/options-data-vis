@@ -120,12 +120,18 @@ def fit_single_ticker(df, model='hyp'):
 def load_rvol_from_historic(ticker, timestamp, days=100):
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     if not os.path.exists(historic_file):
+        with open('data_error.log', 'a') as f:
+            f.write(f"No historic file found for {ticker}: {historic_file}\n")
         return None
     df_hist = pd.read_csv(historic_file, parse_dates=['Date'])
     if df_hist.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Empty historic file for {ticker}: {historic_file}\n")
         return None
     col = f'Realised_Vol_Close_{days}'
     if col not in df_hist.columns:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Column {col} not found in historic file for {ticker}\n")
         return None
     latest_vol = df_hist[col].iloc[-1] / 100
     return latest_vol if not pd.isna(latest_vol) else None
@@ -566,24 +572,18 @@ def process_data(timestamp, prefix="_yfinance"):
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
-    timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
-    if not timestamp_dirs:
-        with open('data_error.log', 'a') as f:
-            f.write("No timestamp directories found\n")
-        return
-    latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
-    timestamp = os.path.basename(latest_timestamp_dir)
     dates_file = 'data/dates.json'
-    if os.path.exists(dates_file):
-        with open(dates_file, 'r') as f:
-            dates = json.load(f)
-    else:
-        dates = []
-    if timestamp not in dates:
-        dates.append(timestamp)
-        dates.sort(reverse=True)
-        with open(dates_file, 'w') as f:
-            json.dump(dates, f)
+    if not os.path.exists(dates_file):
+        with open('data_error.log', 'a') as f:
+            f.write("No dates.json found\n")
+        return
+    with open(dates_file, 'r') as f:
+        dates = json.load(f)
+    if not dates:
+        with open('data_error.log', 'a') as f:
+            f.write("Empty dates.json\n")
+        return
+    timestamp = max(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     process_data(timestamp, prefix="_yfinance")
 
 main()
