@@ -120,18 +120,12 @@ def fit_single_ticker(df, model='hyp'):
 def load_rvol_from_historic(ticker, timestamp, days=100):
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     if not os.path.exists(historic_file):
-        with open('data_error.log', 'a') as f:
-            f.write(f"No historic file found for {ticker}: {historic_file}\n")
         return None
     df_hist = pd.read_csv(historic_file, parse_dates=['Date'])
     if df_hist.empty:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Empty historic file for {ticker}: {historic_file}\n")
         return None
     col = f'Realised_Vol_Close_{days}'
     if col not in df_hist.columns:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Column {col} not found in historic file for {ticker}\n")
         return None
     latest_vol = df_hist[col].iloc[-1] / 100
     return latest_vol if not pd.isna(latest_vol) else None
@@ -187,12 +181,6 @@ def calculate_metrics(df, ticker, r):
                         "IV Slope": slope.iloc[i]
                     })
     slope_df = pd.DataFrame(slope_data)
-    if skew_df.empty:
-        with open('data_error.log', 'a') as f:
-            f.write(f"No skew metrics generated for {ticker} in calculate_metrics\n")
-    if slope_df.empty:
-        with open('data_error.log', 'a') as f:
-            f.write(f"No slope metrics generated for {ticker} in calculate_metrics\n")
     return df, skew_df, slope_df
 
 def calculate_iv_mid(df, ticker, r, timestamp):
@@ -469,7 +457,7 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             'Ticker': ticker,
             'a0': vol_fit_params[0] if vol_fit_params is not None else np.nan,
             'a1': vol_fit_params[1] if vol_fit_params is not None else np.nan,
-            'b0': vol_fit_params[2] if vol_fit_params is not None else np.nan,
+            'b0': vol_fit_params[2] if vol_fit_params is not None else np.nan
             'b1': vol_fit_params[3] if vol_fit_params is not None else np.nan,
             'm0': vol_fit_params[4] if vol_fit_params is not None else np.nan,
             'm1': vol_fit_params[5] if vol_fit_params is not None else np.nan,
