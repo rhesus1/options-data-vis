@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250812_2111)'
+        description: 'Date timestamp to process (e.g., 20250830_1809)'
         required: true
         type: string
 jobs:
@@ -22,8 +22,17 @@ jobs:
         pip install pandas numpy
     - name: Create data directory
       run: mkdir -p data
+    - name: Log timestamp and input files
+      run: |
+        echo "Running Force_Clean.py with timestamp: ${{ inputs.date }}"
+        ls -R data/${{ inputs.date }}/raw_yfinance* || echo "No raw files found"
+        ls -R data/${{ inputs.date }}/historic* || echo "No historic files found"
     - name: Run clean script
       run: python Force_Clean.py ${{ inputs.date }}
+    - name: Log output files
+      run: |
+        echo "Cleaned files:"
+        ls -R data/${{ inputs.date }}/cleaned_yfinance* || echo "No cleaned files found"
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
