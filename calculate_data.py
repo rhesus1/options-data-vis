@@ -64,13 +64,14 @@ def load_rvol_from_historic(ticker, timestamp, days=100):
     col = f'Realised_Vol_Close_{days}'
     if col not in df_hist.columns:
         return None
-    latest_vol = df_hist[col].iloc[-1] / 100  # Convert percentage to decimal
+    latest_vol = df_hist[col].iloc[-1] / 100
     return latest_vol if not pd.isna(latest_vol) else None
 
 def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
         return df
-    df["Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d if rvol100d else np.nan
+    df = df.copy()
+    df.loc[:, "Ivol/Rvol100d Ratio"] = df["IV_mid"] / rvol100d if rvol100d else np.nan
     return df
 
 def compute_ivs(row, S, r, q):
@@ -89,6 +90,7 @@ def compute_ivs(row, S, r, q):
 def calculate_metrics(df, ticker, r):
     if df.empty:
         return df, pd.DataFrame(), pd.DataFrame()
+    df = df.copy()
     skew_data = []
     for exp in df["Expiry"].unique():
         for strike in df["Strike"].unique():
@@ -104,7 +106,8 @@ def calculate_metrics(df, ticker, r):
             subset = df[(df["Strike"] == strike) & (df["Type"] == opt_type)].sort_values("Expiry")
             if len(subset) > 1:
                 iv_diff = subset["IV_mid"].diff()
-                subset["Expiry_dt"] = pd.to_datetime(subset["Expiry"])
+                subset = subset.copy()
+                subset.loc[:, "Expiry_dt"] = pd.to_datetime(subset["Expiry"])
                 time_diff = (subset["Expiry_dt"] - subset["Expiry_dt"].shift(1)).map(lambda x: x.days / 365.0)
                 slope = iv_diff / time_diff
                 for i in range(1, len(subset)):
@@ -123,31 +126,30 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     required_columns = ['Ticker', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Bid Stock', 'Ask Stock']
     if not all(col in df.columns for col in required_columns):
         return df, None, None, None
+    df = df.copy()
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
-    q = 0.0  # Assume zero dividend yield if not available
+    q = 0.0
     today = datetime.today()
-    df["Expiry_dt"] = pd.to_datetime(df["Expiry"])
-    df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
+    df.loc[:, "Expiry_dt"] = pd.to_datetime(df["Expiry"])
+    df.loc[:, 'Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
+    df = df.copy()  # Create a new copy after filtering
     df = df[df['Years_to_Expiry'] > 0]
     if df.empty:
         return df, None, None, None
-    df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
-    df['Moneyness'] = df['Strike'] / df['Forward']
-    df['LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
-    df['IV_bid'] = np.nan
-    df['IV_ask'] = np.nan
-    df['IV_mid'] = np.nan
-    df['IV_spread'] = np.nan
-    df['Delta'] = np.nan
+    df.loc[:, 'Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
+    df.loc[:, 'Moneyness'] = df['Strike'] / df['Forward']
+    df.loc[:, 'LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
     results = Parallel(n_jobs=4, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
-    df[['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
+    df.loc[:, ['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
     df = df[df['IV_mid'] > 0]
     return df, S, r, q
 
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
-        options_df['Smoothed_IV'] = np.nan
+        options_df = options_df.copy()
+        options_df.loc[:, 'Smoothed_IV'] = np.nan
         return options_df
+    options_df = options_df.copy()
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3 or group['IV_mid'].isna().all():
@@ -184,7 +186,7 @@ def smooth_iv_per_expiry(options_df):
             smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
         except Exception:
             smoothed_iv.loc[group.index] = group['IV_mid']
-    options_df['Smoothed_IV'] = smoothed_iv
+    options_df.loc[:, 'Smoothed_IV'] = smoothed_iv
     return options_df
 
 def compute_local_vol_from_iv_row(row, r, q, interp):
@@ -227,7 +229,8 @@ def process_options(options_df, option_type, r, q, ticker):
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
     if len(options_df) < 3:
-        options_df['Smoothed_IV'] = options_df['IV_mid']
+        options_df = options_df.copy()
+        options_df.loc[:, 'Smoothed_IV'] = options_df['IV_mid']
         return pd.DataFrame(), None, options_df
     options_df = smooth_iv_per_expiry(options_df)
     smoothed_df = options_df.copy()
@@ -257,7 +260,7 @@ def calculate_local_vol_from_iv(df, S, r, q, ticker):
     smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index()
     return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
 
-def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
+def find_strike_for_delta(S, T, r, q, sigma, target_delta,植物_type):
     def delta_diff(K):
         delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
         return delta - target_delta if option_type.lower() == 'call' else delta - (-target_delta)
@@ -315,40 +318,14 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
             'Strike_put_25_delta': put_strike_25,
             'Strike_put_75_delta': put_strike_75
         })
-    slope_data = []
-    for delta in target_deltas:
-        for opt_type in ['call', 'put']:
-            interp = call_interp if opt_type == 'call' else put_interp
-            iv_3m = get_iv(interp, 0.0, 0.25)
-            if np.isnan(iv_3m):
-                continue
-            strike_3m = find_strike_for_delta(S, 0.25, r, q, iv_3m, delta, opt_type)
-            log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
-            iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
-            iv_12m = get_iv(interp, 0.0, 1.0)
-            if np.isnan(iv_12m):
-                continue
-            strike_12m = find_strike_for_delta(S, 1.0, r, q, iv_12m, delta, opt_type)
-            log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
-            iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
-            slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
-            slope_data.append({
-                'Delta': delta,
-                'Type': opt_type.capitalize(),
-                'IV_Slope_3m_12m': slope,
-                'IV_3m': iv_3m_delta,
-                'IV_12m': iv_12m_delta,
-                'Strike_3m': strike_3m,
-                'Strike_12m': strike_12m
-            })
     skew_metrics_df = pd.DataFrame(skew_data)
     slope_metrics_df = pd.DataFrame(slope_data)
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
-    skew_metrics_df['ATM_12m_3m_Ratio'] = atm_ratio
-    skew_metrics_df['ATM_IV_3m'] = atm_iv_3m
-    skew_metrics_df['ATM_IV_12m'] = atm_iv_12m
+    skew_metrics_df.loc[:, 'ATM_12m_3m_Ratio'] = atm_ratio
+    skew_metrics_df.loc[:, 'ATM_IV_3m'] = atm_iv_3m
+    skew_metrics_df.loc[:, 'ATM_IV_12m'] = atm_iv_12m
     return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, df, full_df, r, timestamp):
@@ -371,8 +348,8 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         except Exception:
             call_local_df, put_local_df, call_interp, put_interp = pd.DataFrame(), pd.DataFrame(), None, None
         skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q, ticker)
-        skew_metrics_df['Ticker'] = ticker
-        slope_metrics_df['Ticker'] = ticker
+        skew_metrics_df.loc[:, 'Ticker'] = ticker
+        slope_metrics_df.loc[:, 'Ticker'] = ticker
         if not call_local_df.empty:
             ticker_df = ticker_df.merge(
                 call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
@@ -380,7 +357,7 @@ def process_ticker(ticker, df, full_df, r, timestamp):
                 how='left'
             )
         else:
-            ticker_df['Call Local Vol'] = np.nan
+            ticker_df.loc[:, 'Call Local Vol'] = np.nan
         if not put_local_df.empty:
             ticker_df = ticker_df.merge(
                 put_local_df.rename(columns={'Local Vol': 'Put Local Vol'}),
@@ -388,8 +365,8 @@ def process_ticker(ticker, df, full_df, r, timestamp):
                 how='left'
             )
         else:
-            ticker_df['Put Local Vol'] = np.nan
-        ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
+            ticker_df.loc[:, 'Put Local Vol'] = np.nan
+        ticker_df.loc[:, 'Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
         return ticker_df, skew_metrics_df, slope_metrics_df
     except Exception:
         return df, pd.DataFrame(), pd.DataFrame()
