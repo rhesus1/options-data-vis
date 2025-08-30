@@ -29,7 +29,6 @@ def main():
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
     
-    #process_data(timestamp, prefix="")
     process_data(timestamp, prefix="_yfinance")
 
 main()
