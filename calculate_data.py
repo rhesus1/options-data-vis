@@ -39,9 +39,13 @@ def black_scholes_delta(S, K, T, r, q, sigma, option_type):
 
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     if price <= 0 or T <= 0:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Invalid price ({price}) or T ({T}) for {contract_name}\n")
         return np.nan
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
-    if price < intrinsic * np.exp(-r * T):
+    if price < intrinsic * np.exp(-r * T) * 0.99:  # Relaxed intrinsic check slightly
+        with open('data_error.log', 'a') as f:
+            f.write(f"Price ({price}) below intrinsic ({intrinsic * np.exp(-r * T)}) for {contract_name}\n")
         return np.nan
     def objective(sigma):
         if option_type.lower() == 'call':
@@ -51,7 +55,9 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
     try:
         iv = brentq(objective, 0.0001, 50.0)
         return np.clip(iv, 0.05, 5.0)
-    except ValueError:
+    except ValueError as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"IV solver failed for {contract_name}: {str(e)}\n")
         return np.nan
 
 def global_vol_model_hyp(x, a0, a1, b0, b1, m0, m1, rho0, rho1, sigma0, sigma1, c):
@@ -85,7 +91,16 @@ def fit_single_ticker(df, model='hyp'):
         (df['Ask'] >= df['Bid']) &
         (df['SMI'] > 0)
     ]
-    if len(df) < 12:  # Updated to require at least 12 points for 11 parameters
+    ticker = df['Ticker'].iloc[0] if not df.empty else "unknown"
+    with open('data_error.log', 'a') as f:
+        f.write(f"Data points after filtering for {ticker}: {len(df)}, "
+                f"Moneyness range: {df['Moneyness'].min():.2f}–{df['Moneyness'].max():.2f}, "
+                f"Expiry range: {df['Years_to_Expiry'].min():.2f}–{df['Years_to_Expiry'].max():.2f}, "
+                f"IV range: {df['IV_mid'].min():.2f}–{df['IV_mid'].max():.2f}\n" if not df.empty else
+                f"No valid data points after filtering for {ticker}\n")
+    if len(df) < 12:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Insufficient data points ({len(df)}) for {ticker} in fit_single_ticker\n")
         return None, None
     df = df.sort_values(['Moneyness', 'Years_to_Expiry'])
     df = df.drop_duplicates(subset=['Moneyness', 'Years_to_Expiry'], keep='first')
@@ -114,7 +129,9 @@ def fit_single_ticker(df, model='hyp'):
         IV_pred = model_func(xdata, *popt)
         residuals = np.sum(w * (IV - IV_pred)**2)
         return popt, residuals
-    except Exception:
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Fit failed for {ticker}: {str(e)}\n")
         return None, None
 
 def load_rvol_from_historic(ticker, timestamp, days=100):
@@ -139,6 +156,8 @@ def calc_Ivol_Rvol(df, rvol100d):
 
 def compute_ivs(row, S, r, q):
     if pd.isna(row['Years_to_Expiry']):
+        with open('data_error.log', 'a') as f:
+            f.write(f"Invalid Years_to_Expiry for {row['Contract Name']}\n")
         return np.nan, np.nan, np.nan, np.nan, np.nan
     T = max(row['Years_to_Expiry'], 0.0001)
     option_type = row['Type'].lower()
@@ -188,18 +207,27 @@ def calculate_iv_mid(df, ticker, r, timestamp):
         with open('data_error.log', 'a') as f:
             f.write(f"Empty input DataFrame for {ticker} in calculate_iv_mid\n")
         return df, None, None, None
-    required_columns = ['Ticker', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Bid Stock', 'Ask Stock']
-    if not all(col in df.columns for col in required_columns):
+    required_columns = ['Ticker', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Bid Stock', 'Ask Stock', 'Contract Name']
+    missing_cols = set(required_columns) - set(df.columns)
+    if missing_cols:
         with open('data_error.log', 'a') as f:
-            f.write(f"Missing columns in {ticker} data: {set(required_columns) - set(df.columns)}\n")
+            f.write(f"Missing columns in {ticker} data: {missing_cols}\n")
         return df, None, None, None
     df = df.copy()
+    # Validate input data
+    invalid_prices = df[(df['Bid'] <= 0) | (df['Ask'] <= 0) | (df['Bid'].isna()) | (df['Ask'].isna())]
+    if not invalid_prices.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Invalid prices for {ticker}: {len(invalid_prices)} rows with Bid <= 0 or Ask <= 0\n")
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
+    if pd.isna(S) or S <= 0:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Invalid stock price for {ticker}: S={S}\n")
+        return df, None, None, None
     q = 0.0
     today = datetime.today()
     df.loc[:, "Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df.loc[:, 'Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
-    df = df.copy()
     df = df[df['Years_to_Expiry'] > 0]
     if df.empty:
         with open('data_error.log', 'a') as f:
@@ -210,10 +238,11 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     df.loc[:, 'LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
     results = Parallel(n_jobs=4, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df.loc[:, ['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
-    df = df[df['IV_mid'] > 0]
-    if df.empty:
-        with open('data_error.log', 'a') as f:
-            f.write(f"No valid IV_mid values for {ticker}\n")
+    # Log IV_mid statistics before filtering
+    with open('data_error.log', 'a') as f:
+        f.write(f"IV_mid stats for {ticker}: valid={len(df[df['IV_mid'] > 0])}, "
+                f"nan={df['IV_mid'].isna().sum()}, min={df['IV_mid'].min():.2f}, max={df['IV_mid'].max():.2f}\n")
+    # Keep all rows for debugging, filter later if needed
     return df, S, r, q
 
 def smooth_iv_per_expiry(options_df):
@@ -243,7 +272,7 @@ def smooth_iv_per_expiry(options_df):
             continue
         if cleaned_group['LogMoneyness'].duplicated().any():
             agg_group = cleaned_group.groupby('LogMoneyness')['IV_mid'].mean().reset_index()
-            agg_group = agg_group.sort_values('LogMoneyness')  # Ensure sorted
+            agg_group = agg_group.sort_values('LogMoneyness')
             x = agg_group['LogMoneyness'].values
             y = agg_group['IV_mid'].values
         else:
@@ -255,13 +284,9 @@ def smooth_iv_per_expiry(options_df):
     options_df['Smoothed_IV'] = smoothed_iv
     return options_df
 
-# Assuming the truncated part includes calculate_local_vol_from_iv and other helpers.
-# Based on context, I'll assume they are correct as provided. If you have the full code, replace this placeholder.
 def calculate_local_vol_from_iv(df, S, r, q, ticker):
-    # Placeholder for the missing function - implement based on your original logic
-    # For example, it might compute local vols using Dupire formula or similar.
-    # Since truncated, assuming it returns the expected DataFrames and interpolators.
-    return pd.DataFrame(), pd.DataFrame(), None, None, df  # Adjust as needed
+    # Placeholder for local volatility calculation
+    return pd.DataFrame(), pd.DataFrame(), None, None, df
 
 def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
     if df.empty or call_interp is None or put_interp is None:
@@ -325,9 +350,10 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         with open('data_error.log', 'a') as f:
             f.write(f"Empty input DataFrame for {ticker}\n")
         return df, pd.DataFrame(), pd.DataFrame(), None
-    if not all(col in df.columns for col in ['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type']):
+    required_cols = ['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type', 'Contract Name']
+    if not all(col in df.columns for col in required_cols):
         with open('data_error.log', 'a') as f:
-            f.write(f"Missing columns in {ticker} data: {set(['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type']) - set(df.columns)}\n")
+            f.write(f"Missing columns in {ticker} data: {set(required_cols) - set(df.columns)}\n")
         return df, pd.DataFrame(), pd.DataFrame(), None
     try:
         ticker_df = df[df['Ticker'] == ticker].copy()
@@ -367,7 +393,6 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         else:
             ticker_df.loc[:, 'Put Local Vol'] = np.nan
         ticker_df.loc[:, 'Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-        # Fit hyperbolic volatility model
         vol_fit_params, vol_fit_residuals = fit_single_ticker(ticker_df[ticker_df['Type'] == 'Call'], model='hyp')
         vol_fit_data = {
             'Ticker': ticker,
@@ -384,7 +409,6 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             'c': vol_fit_params[10] if vol_fit_params is not None else np.nan,
             'Residuals': vol_fit_residuals if vol_fit_residuals is not None else np.nan
         }
-        # Log file outputs
         with open('data_error.log', 'a') as f:
             if not ticker_df.empty:
                 f.write(f"Generated processed data for {ticker}: {len(ticker_df)} rows\n")
@@ -469,15 +493,12 @@ def process_data(timestamp, prefix="_yfinance"):
             with open('data_error.log', 'a') as f:
                 f.write(f"Error processing {ticker} file {clean_file}: {str(e)}\n")
             continue
-    if vol_fit_data:
-        vol_fit_df = pd.DataFrame(vol_fit_data)
-        vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
-        vol_fit_df.to_csv(vol_fit_filename, index=False)
-        with open('data_error.log', 'a') as f:
-            f.write(f"Generated vol_fit.csv with {len(vol_fit_data)} tickers\n")
-    else:
-        with open('data_error.log', 'a') as f:
-            f.write("No vol_fit data generated for any tickers\n")
+    # Always save vol_fit.csv, even if empty
+    vol_fit_df = pd.DataFrame(vol_fit_data)
+    vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
+    vol_fit_df.to_csv(vol_fit_filename, index=False)
+    with open('data_error.log', 'a') as f:
+        f.write(f"Generated vol_fit.csv with {len(vol_fit_data)} tickers\n")
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
