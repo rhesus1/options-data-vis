@@ -5,11 +5,6 @@ on:
     types:
       - completed
   workflow_dispatch:
-    inputs:
-      date:
-        description: 'Date timestamp to process (e.g., 20250830_1220)'
-        required: true
-        type: string
 jobs:
   calculate-ranking:
     runs-on: ubuntu-latest
@@ -26,24 +21,47 @@ jobs:
         pip install pandas numpy scipy
     - name: Create data directory
       run: mkdir -p data
+    - name: Log timestamp and input files
+      run: |
+        python -c "
+        import json
+        import os
+        with open('data/dates.json', 'r') as f:
+            dates = json.load(f)
+        latest_date = max(dates, key=lambda x: x)
+        print(f'Running calculate_ranking_metrics.py with timestamp: {latest_date}')
+        os.system(f'ls -R data/{latest_date}/processed_yfinance* || echo \"No processed files found\"')
+        os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
+        "
     - name: Run ranking metrics calculation
       run: |
         python -c "
         import json
         import os
-        timestamp = '${{ github.event.inputs.date }}' if '${{ github.event.inputs.date }}' else None
-        if not timestamp:
-            with open('data/dates.json', 'r') as f:
-                dates = json.load(f)
-            timestamp = max(dates, key=lambda x: x)
-        os.system(f'python calculate_ranking_metrics.py {timestamp}')
+        with open('data/dates.json', 'r') as f:
+            dates = json.load(f)
+        latest_date = max(dates, key=lambda x: x)
+        os.system(f'python calculate_ranking_metrics.py {latest_date}')
+        "
+    - name: Log output files
+      run: |
+        python -c "
+        import json
+        import os
+        with open('data/dates.json', 'r') as f:
+            dates = json.load(f)
+        latest_date = max(dates, key=lambda x: x)
+        print('Ranking files:')
+        os.system(f'ls -R data/{latest_date}/ranking* || echo \"No ranking files generated\"')
+        os.system(f'ls ranking_error.log || echo \"No error log generated\"')
         "
     - name: Commit and push updated ranking data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add data
-        git commit -m "Auto-update ranking metrics for ${{ github.event.inputs.date || 'latest timestamp' }}" || echo "No changes to commit"
+        git add ranking_error.log
+        git commit -m "Auto-update ranking metrics" || echo "No changes to commit"
         git push
     - name: Send email with yfinance ranking metrics
       uses: dawidd6/action-send-mail@v3
@@ -57,7 +75,7 @@ jobs:
         from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
           Attached is the latest Options ranking metrics CSV file for yfinance data.
-          Timestamp: ${{ github.event.inputs.date || 'latest timestamp' }}
+          Timestamp: latest timestamp
         attachments: |
-          data/${{ github.event.inputs.date || 'latest' }}/ranking/ranking_yfinance.csv
+          data/latest/ranking/ranking_yfinance.csv
         secure: true
