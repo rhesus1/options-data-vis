@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250830_1823)'
+        description: 'Date timestamp to process (e.g., 20250830_1838)'
         required: true
         type: string
 jobs:
