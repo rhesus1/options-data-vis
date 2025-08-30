@@ -10,6 +10,8 @@ def main():
     else:
         timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
         if not timestamp_dirs:
+            with open('data_error.log', 'a') as f:
+                f.write("No timestamp folders found\n")
             return
         latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
         timestamp = os.path.basename(latest_timestamp_dir)
@@ -27,7 +29,7 @@ def main():
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
     
-    process_data(timestamp, prefix="")
+    #process_data(timestamp, prefix="")
     process_data(timestamp, prefix="_yfinance")
 
 main()
