@@ -24,44 +24,27 @@ jobs:
     - name: Log timestamp and input files
       run: |
         python -c "
-        import glob
+        import json
         import os
-        timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
-        if not timestamp_dirs:
-            print('No timestamp folders found')
-            sys.exit(1)
-        latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
-        timestamp = os.path.basename(latest_timestamp_dir)
-        print(f'Running clean_data.py with timestamp: {timestamp}')
-        os.system(f'ls -R data/{timestamp}/raw_yfinance* || echo \"No raw files found\"')
-        os.system(f'ls -R data/{timestamp}/historic* || echo \"No historic files found\"')
+        with open('data/dates.json', 'r') as f:
+            dates = json.load(f)
+        latest_date = max(dates, key=lambda x: x)
+        print(f'Running clean_data.py with timestamp: {latest_date}')
+        os.system(f'ls -R data/{latest_date}/raw_yfinance* || echo \"No raw files found\"')
+        os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
         "
     - name: Run clean script
-      run: |
-        python -c "
-        import glob
-        import os
-        timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
-        if not timestamp_dirs:
-            print('No timestamp folders found')
-            sys.exit(1)
-        latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
-        timestamp = os.path.basename(latest_timestamp_dir)
-        os.system(f'python clean_data.py')
-        "
+      run: python clean_data.py
     - name: Log output files
       run: |
         python -c "
-        import glob
+        import json
         import os
-        timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
-        if not timestamp_dirs:
-            print('No timestamp folders found')
-            sys.exit(1)
-        latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
-        timestamp = os.path.basename(latest_timestamp_dir)
+        with open('data/dates.json', 'r') as f:
+            dates = json.load(f)
+        latest_date = max(dates, key=lambda x: x)
         print('Cleaned files:')
-        os.system(f'ls -R data/{timestamp}/cleaned_yfinance* || echo \"No cleaned files found\"')
+        os.system(f'ls -R data/{latest_date}/cleaned_yfinance* || echo \"No cleaned files found\"')
         "
     - name: Commit and push updated data
       run: |
