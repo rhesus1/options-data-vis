@@ -161,7 +161,7 @@ def calculate_metrics(df, ticker, r):
             put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
             if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
                 skew = put_iv.iloc[0] / call_iv.iloc[0]
-                skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
+                skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": skew})
     skew_df = pd.DataFrame(skew_data)
     slope_data = []
     for strike in df["Strike"].unique():
@@ -181,13 +181,23 @@ def calculate_metrics(df, ticker, r):
                         "IV Slope": slope.iloc[i]
                     })
     slope_df = pd.DataFrame(slope_data)
+    if skew_df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"No skew metrics generated for {ticker} in calculate_metrics\n")
+    if slope_df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"No slope metrics generated for {ticker} in calculate_metrics\n")
     return df, skew_df, slope_df
 
 def calculate_iv_mid(df, ticker, r, timestamp):
     if df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Empty input DataFrame for {ticker} in calculate_iv_mid\n")
         return df, None, None, None
     required_columns = ['Ticker', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Bid Stock', 'Ask Stock']
     if not all(col in df.columns for col in required_columns):
+        with open('data_error.log', 'a') as f:
+            f.write(f"Missing columns in {ticker} data: {set(required_columns) - set(df.columns)}\n")
         return df, None, None, None
     df = df.copy()
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
@@ -198,6 +208,8 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     df = df.copy()
     df = df[df['Years_to_Expiry'] > 0]
     if df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"No valid expiries for {ticker} after filtering Years_to_Expiry > 0\n")
         return df, None, None, None
     df.loc[:, 'Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
     df.loc[:, 'Moneyness'] = df['Strike'] / df['Forward']
@@ -205,6 +217,9 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     results = Parallel(n_jobs=4, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df.loc[:, ['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
     df = df[df['IV_mid'] > 0]
+    if df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"No valid IV_mid values for {ticker}\n")
     return df, S, r, q
 
 def smooth_iv_per_expiry(options_df):
@@ -315,6 +330,8 @@ def process_options(options_df, option_type, r, q, ticker):
 def calculate_local_vol_from_iv(df, S, r, q, ticker):
     required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
     if not all(col in df.columns for col in required_columns):
+        with open('data_error.log', 'a') as f:
+            f.write(f"Missing columns for local vol in {ticker}: {set(required_columns) - set(df.columns)}\n")
         return pd.DataFrame(), pd.DataFrame(), None, None, df
     calls = df[df['Type'] == 'Call'].copy()
     puts = df[df['Type'] == 'Put'].copy()
@@ -388,26 +405,37 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
     skew_metrics_df.loc[:, 'ATM_12m_3m_Ratio'] = atm_ratio
     skew_metrics_df.loc[:, 'ATM_IV_3m'] = atm_iv_3m
     skew_metrics_df.loc[:, 'ATM_IV_12m'] = atm_iv_12m
+    if skew_metrics_df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"No skew metrics generated for {ticker} in calculate_skew_metrics\n")
     return skew_metrics_df, pd.DataFrame()
 
 def process_ticker(ticker, df, full_df, r, timestamp):
     if df.empty:
-        return df, pd.DataFrame(), pd.DataFrame()
+        with open('data_error.log', 'a') as f:
+            f.write(f"Empty input DataFrame for {ticker}\n")
+        return df, pd.DataFrame(), pd.DataFrame(), None
     if not all(col in df.columns for col in ['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type']):
-        return df, pd.DataFrame(), pd.DataFrame()
+        with open('data_error.log', 'a') as f:
+            f.write(f"Missing columns in {ticker} data: {set(['Ticker', 'Expiry', 'Strike', 'Bid', 'Ask', 'Type']) - set(df.columns)}\n")
+        return df, pd.DataFrame(), pd.DataFrame(), None
     try:
         ticker_df = df[df['Ticker'] == ticker].copy()
         ticker_full = full_df[full_df['Ticker'] == ticker].copy()
         rvol100d = load_rvol_from_historic(ticker, timestamp)
         ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r, timestamp)
         if ticker_df.empty:
-            return ticker_df, pd.DataFrame(), pd.DataFrame()
+            with open('data_error.log', 'a') as f:
+                f.write(f"No valid data after IV calculation for {ticker}\n")
+            return ticker_df, pd.DataFrame(), pd.DataFrame(), None
         ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
         ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
         try:
             call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q, ticker)
             ticker_df = smoothed_df
-        except Exception:
+        except Exception as e:
+            with open('data_error.log', 'a') as f:
+                f.write(f"Local vol calculation failed for {ticker}: {str(e)}\n")
             call_local_df, put_local_df, call_interp, put_interp = pd.DataFrame(), pd.DataFrame(), None, None
         skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q, ticker)
         skew_metrics_df.loc[:, 'Ticker'] = ticker
@@ -446,17 +474,35 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             'c': vol_fit_params[10] if vol_fit_params is not None else np.nan,
             'Residuals': vol_fit_residuals if vol_fit_residuals is not None else np.nan
         }
+        # Log file outputs
+        with open('data_error.log', 'a') as f:
+            if not ticker_df.empty:
+                f.write(f"Generated processed data for {ticker}: {len(ticker_df)} rows\n")
+            if not skew_df.empty:
+                f.write(f"Generated skew metrics for {ticker}: {len(skew_df)} rows\n")
+            if not slope_df.empty:
+                f.write(f"Generated slope metrics for {ticker}: {len(slope_df)} rows\n")
+            if not skew_metrics_df.empty:
+                f.write(f"Generated skew metrics (delta-based) for {ticker}: {len(skew_metrics_df)} rows\n")
+            if vol_fit_data['Residuals'] is not np.nan:
+                f.write(f"Generated vol fit data for {ticker}\n")
         return ticker_df, skew_df, slope_df, vol_fit_data
-    except Exception:
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Error processing {ticker}: {str(e)}\n")
         return df, pd.DataFrame(), pd.DataFrame(), None
 
 def process_data(timestamp, prefix=""):
     cleaned_dir = f'data/{timestamp}/cleaned{prefix}'
     raw_dir = f'data/{timestamp}/raw{prefix}'
     if not os.path.exists(cleaned_dir):
+        with open('data_error.log', 'a') as f:
+            f.write(f"No cleaned directory found: {cleaned_dir}\n")
         return None, None, None
     cleaned_files = glob.glob(f'{cleaned_dir}/cleaned{prefix}_*.csv')
     if not cleaned_files:
+        with open('data_error.log', 'a') as f:
+            f.write(f"No cleaned files found in {cleaned_dir}\n")
         return None, None, None
     tnx_file = f'data/{timestamp}/historic/historic_^TNX.csv'
     if os.path.exists(tnx_file):
@@ -464,6 +510,8 @@ def process_data(timestamp, prefix=""):
         r = tnx_data['Close'].iloc[-1] / 100 if not tnx_data.empty else 0.05
     else:
         r = 0.05
+        with open('data_error.log', 'a') as f:
+            f.write(f"No TNX file found: {tnx_file}, using default r=0.05\n")
     processed_dir = f'data/{timestamp}/processed{prefix}'
     skew_dir = f'data/{timestamp}/skew_metrics{prefix}'
     slope_dir = f'data/{timestamp}/slope_metrics{prefix}'
@@ -480,11 +528,15 @@ def process_data(timestamp, prefix=""):
         ticker = os.path.basename(clean_file).split(f'cleaned{prefix}_')[1].split('.csv')[0]
         raw_file = f'{raw_dir}/raw{prefix}_{ticker}.csv'
         if not os.path.exists(raw_file):
+            with open('data_error.log', 'a') as f:
+                f.write(f"No raw file found for {ticker}: {raw_file}\n")
             continue
         try:
             df = pd.read_csv(clean_file, parse_dates=['Expiry'])
             full_df = pd.read_csv(raw_file, parse_dates=['Expiry'])
             if df.empty:
+                with open('data_error.log', 'a') as f:
+                    f.write(f"Empty cleaned file for {ticker}: {clean_file}\n")
                 continue
             ticker_df, skew_df, slope_df, vol_fit_row = process_ticker(ticker, df, full_df, r, timestamp)
             if not ticker_df.empty:
@@ -501,17 +553,23 @@ def process_data(timestamp, prefix=""):
                 slope_metrics_dfs.append(slope_df)
             if vol_fit_row is not None:
                 vol_fit_data.append(vol_fit_row)
-        except Exception:
+        except Exception as e:
+            with open('data_error.log', 'a') as f:
+                f.write(f"Error processing {ticker} file {clean_file}: {str(e)}\n")
             continue
     if vol_fit_data:
         vol_fit_df = pd.DataFrame(vol_fit_data)
         vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
         vol_fit_df.to_csv(vol_fit_filename, index=False)
+        with open('data_error.log', 'a') as f:
+            f.write(f"Generated vol_fit.csv with {len(vol_fit_data)} tickers\n")
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
     timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
     if not timestamp_dirs:
+        with open('data_error.log', 'a') as f:
+            f.write("No timestamp directories found\n")
         return
     latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
     timestamp = os.path.basename(latest_timestamp_dir)
@@ -526,7 +584,7 @@ def main():
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
-    #process_data(timestamp, prefix="")
+    process_data(timestamp, prefix="")
     process_data(timestamp, prefix="_yfinance")
 
 main()
