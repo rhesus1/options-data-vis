@@ -2,7 +2,7 @@ name: Fetch Options Data
 on:
   schedule:
     - cron: '0 21 * * 1-5'  # Daily at 10:00 PM BST (9:00 PM UTC)
-  workflow_dispatch: # Manual trigger option
+  workflow_dispatch:
 jobs:
   fetch:
     runs-on: ubuntu-latest
@@ -13,34 +13,10 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-    - name: Install Chromium and Chromedriver
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y chromium-browser chromium-chromedriver
-        CHROME_VERSION=$(chromium-browser --version | cut -d ' ' -f 2 | cut -d '.' -f 1)
-        CHROMEDRIVER_VERSION=$(chromedriver --version | cut -d ' ' -f 2 | cut -d '.' -f 1)
-        echo "Installed Chromium version: $CHROME_VERSION"
-        echo "Installed Chromedriver version: $CHROMEDRIVER_VERSION"
-        if [ -z "$CHROME_VERSION" ] || [ -z "$CHROMEDRIVER_VERSION" ] || [ "$CHROME_VERSION" != "$CHROMEDRIVER_VERSION" ]; then
-          echo "Version mismatch or installation failed. Falling back to manual Chromedriver install..."
-          wget -N https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome-stable_current_amd64.deb
-          sudo apt-get -f install -y
-          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f 3 | cut -d '.' -f 1)
-          wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION} -O /tmp/LATEST_RELEASE
-          LATEST_VERSION=$(cat /tmp/LATEST_RELEASE)
-          wget https://chromedriver.storage.googleapis.com/${LATEST_VERSION}/chromedriver_linux64.zip
-          unzip -o chromedriver_linux64.zip -d /tmp
-          sudo mv /tmp/chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-          CHROMEDRIVER_VERSION=$(chromedriver --version | cut -d ' ' -f 2 | cut -d '.' -f 1)
-          echo "Fallback Chromium version: $CHROME_VERSION"
-          echo "Fallback Chromedriver version: $CHROMEDRIVER_VERSION"
-        fi
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yfinance pandas numpy selenium beautifulsoup4
+        pip install yfinance pandas numpy
     - name: Create data directory
       run: mkdir -p data
     - name: Run fetch script
