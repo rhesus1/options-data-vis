@@ -1,4 +1,3 @@
-import sys
 import pandas as pd
 import numpy as np
 import json
@@ -6,16 +5,23 @@ from datetime import datetime, timedelta
 import os
 from scipy.stats import norm
 import glob
+import sys
 
 def load_rvol_from_historic(ticker, timestamp, days):
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     if not os.path.exists(historic_file):
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"No historic file found for {ticker}: {historic_file}\n")
         return None
     df_hist = pd.read_csv(historic_file, parse_dates=['Date'])
     if df_hist.empty or 'Ticker' not in df_hist.columns:
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"Empty or invalid historic file for {ticker}: {historic_file}\n")
         return None
     col = f'Realised_Vol_Close_{days}'
     if col not in df_hist.columns:
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"Column {col} not found in historic file for {ticker}\n")
         return None
     latest_vol = df_hist[col].iloc[-1]
     return latest_vol if not pd.isna(latest_vol) else None
@@ -25,6 +31,8 @@ def load_historic_data(ts):
         return pd.DataFrame(columns=['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'])
     historic_dir = f'data/{ts}/historic'
     if not os.path.exists(historic_dir):
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"No historic directory found: {historic_dir}\n")
         return pd.DataFrame(columns=['Date', 'Ticker', 'Close', 'High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'])
     historic_files = glob.glob(f'{historic_dir}/historic_*.csv')
     dfs = []
@@ -33,34 +41,47 @@ def load_historic_data(ts):
         try:
             df = pd.read_csv(file, parse_dates=['Date'])
             if 'Ticker' not in df.columns or df.empty:
+                with open('ranking_error.log', 'a') as f:
+                    f.write(f"Empty or invalid historic file: {file}\n")
                 continue
             missing_cols = [col for col in required_columns if col not in df.columns]
             if missing_cols:
+                with open('ranking_error.log', 'a') as f:
+                    f.write(f"Missing columns {missing_cols} in historic file: {file}\n")
                 continue
             dfs.append(df)
-        except Exception:
+        except Exception as e:
+            with open('ranking_error.log', 'a') as f:
+                f.write(f"Error reading historic file {file}: {str(e)}\n")
             continue
     if not dfs:
         return pd.DataFrame(columns=required_columns)
     df_concat = pd.concat(dfs, ignore_index=True)
     return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
 
-def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
+def calculate_ranking_metrics(timestamp, sources=['yfinance'], data_dir='data'):
     dates_file = os.path.join(data_dir, 'dates.json')
     try:
         with open(dates_file, 'r') as f:
             dates = json.load(f)
-    except Exception:
+    except Exception as e:
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"Error reading dates.json: {str(e)}\n")
         return
+    
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     if timestamp not in timestamps:
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"Timestamp {timestamp} not found in dates.json\n")
         return
-    sources = ['yfinance']
+    
     for source in sources:
         prefix = '_yfinance' if source == 'yfinance' else ''
         current_index = timestamps.index(timestamp)
         current_dt = datetime.strptime(timestamp[:8], "%Y%m%d")
         past_year_start = current_dt - timedelta(days=365)
+        
+        # Find previous day and week timestamps
         prev_day_ts = None
         for ts in timestamps[:current_index][::-1]:
             ts_dt = datetime.strptime(ts[:8], "%Y%m%d")
@@ -73,11 +94,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             if ts_dt <= current_dt - timedelta(days=7):
                 prev_week_ts = ts
                 break
+        
         def get_option_totals(ts, prefix):
             if ts is None:
                 return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
             raw_dir = f'data/{ts}/raw{prefix}'
             if not os.path.exists(raw_dir):
+                with open('ranking_error.log', 'a') as f:
+                    f.write(f"No raw directory found: {raw_dir}\n")
                 return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
             raw_files = glob.glob(f'{raw_dir}/raw{prefix}_*.csv')
             totals = []
@@ -88,16 +112,23 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                     oi_sum = df['Open Interest'].sum() if 'Open Interest' in df.columns else 0
                     vol_sum = df['Volume'].sum() if 'Volume' in df.columns else 0
                     totals.append({'Ticker': ticker, 'OI': oi_sum, 'Vol': vol_sum})
-                except Exception:
+                except Exception as e:
+                    with open('ranking_error.log', 'a') as f:
+                        f.write(f"Error reading raw file {file}: {str(e)}\n")
                     continue
             return pd.DataFrame(totals)
+        
         current_option = get_option_totals(timestamp, prefix)
         prev_day_option = get_option_totals(prev_day_ts, prefix)
         prev_week_option = get_option_totals(prev_week_ts, prefix)
+        
         df_historic = load_historic_data(timestamp)
+        
         def load_processed_data(ts, prefix):
             processed_dir = f'data/{ts}/processed{prefix}'
             if not os.path.exists(processed_dir):
+                with open('ranking_error.log', 'a') as f:
+                    f.write(f"No processed directory found: {processed_dir}\n")
                 return pd.DataFrame()
             processed_files = glob.glob(f'{processed_dir}/processed{prefix}_*.csv')
             dfs = []
@@ -105,27 +136,36 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 try:
                     df = pd.read_csv(file)
                     dfs.append(df)
-                except Exception:
+                except Exception as e:
+                    with open('ranking_error.log', 'a') as f:
+                        f.write(f"Error reading processed file {file}: {str(e)}\n")
                     continue
             if not dfs:
                 return pd.DataFrame()
             return pd.concat(dfs, ignore_index=True)
+        
         df_processed = load_processed_data(timestamp, prefix)
         if df_processed.empty:
+            with open('ranking_error.log', 'a') as f:
+                f.write(f"No processed data found for {timestamp} and source {source}\n")
             continue
+        
         processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
         processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
+        
         latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty and 'Ticker' in df_historic.columns else pd.DataFrame()
         prev_day_historic = load_historic_data(prev_day_ts)
         prev_day_historic_latest = prev_day_historic.loc[prev_day_historic.groupby('Ticker')['Date'].idxmax()] if not prev_day_historic.empty and 'Ticker' in prev_day_historic.columns else pd.DataFrame()
         prev_week_historic = load_historic_data(prev_week_ts)
         prev_week_historic_latest = prev_week_historic.loc[prev_week_historic.groupby('Ticker')['Date'].idxmax()] if not prev_week_historic.empty and 'Ticker' in prev_week_historic.columns else pd.DataFrame()
+        
         def get_prev_value(ticker, target_date, col):
             g = df_historic[df_historic['Ticker'] == ticker]
             prev = g[g['Date'] <= target_date]
             if prev.empty or col not in prev.columns:
                 return None
             return prev.loc[prev['Date'].idxmax(), col]
+        
         def filter_3m_expiry(ticker_df, current_dt):
             if 'Expiry' not in ticker_df.columns:
                 return pd.DataFrame()
@@ -139,8 +179,11 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 valid_expiry.loc[:, 'Days_Diff'] = abs(days_to_expiry.loc[valid_expiry.index] - 90)
                 closest_expiry = valid_expiry.loc[valid_expiry['Days_Diff'].idxmin(), 'Expiry']
                 return valid_expiry[valid_expiry['Expiry'] == closest_expiry]
-            except Exception:
+            except Exception as e:
+                with open('ranking_error.log', 'a') as f:
+                    f.write(f"Error filtering 3m expiry for ticker: {str(e)}\n")
                 return pd.DataFrame()
+        
         def calculate_weighted_iv(ticker_df, expiry_filter=False, current_dt=None):
             if expiry_filter and current_dt is not None:
                 ticker_df = filter_3m_expiry(ticker_df, current_dt)
@@ -156,6 +199,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 return np.nan
             weighted_iv = np.average(ticker_df.loc[valid, 'IV_mid'], weights=weights[valid])
             return weighted_iv
+        
         def calculate_atm_iv(ticker_df, current_price, current_dt):
             ticker_df_3m = filter_3m_expiry(ticker_df, current_dt)
             if ticker_df_3m.empty or 'Strike' not in ticker_df_3m.columns or 'IV_mid' not in ticker_df_3m.columns:
@@ -165,12 +209,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             ticker_df_3m.loc[:, 'Strike_Diff'] = abs(ticker_df_3m['Strike'] - current_price)
             atm_option = ticker_df_3m.loc[ticker_df_3m['Strike_Diff'].idxmin()]
             return atm_option['IV_mid'] if not pd.isna(atm_option['IV_mid']) else np.nan
+        
         def calculate_rvol_percentile(ticker, rvol, historic_data, start_date, end_date):
             past_year = historic_data[(historic_data['Ticker'] == ticker) & (historic_data['Date'] >= start_date) & (historic_data['Date'] <= end_date)]
             vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns else pd.Series()
             if vols.empty or rvol is None or pd.isna(rvol):
                 return np.nan
             return (vols < rvol).sum() / len(vols) * 100
+        
         def calculate_rvol_z_score_percentile(ticker, rvol, historic_data, start_date, end_date):
             past_year = historic_data[(historic_data['Ticker'] == ticker) & (historic_data['Date'] >= start_date) & (historic_data['Date'] <= end_date)]
             vols = past_year['Realised_Vol_Close_100'].dropna() if 'Realised_Vol_Close_100' in past_year.columns else pd.Series()
@@ -180,9 +226,11 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 return np.nan
             z_score = (rvol - vols.mean()) / vols.std()
             return norm.cdf(z_score) * 100
+        
         ranking = []
         tickers = set(df_processed['Ticker'].unique()) | set(latest_historic['Ticker'].unique()) if not df_processed.empty and not latest_historic.empty else set()
         rvol_types = ['30', '60', '100', '180', '252']
+        
         for ticker in tickers:
             rank_dict = {'Ticker': ticker}
             ticker_processed = df_processed[df_processed['Ticker'] == ticker] if not df_processed.empty else pd.DataFrame()
@@ -300,12 +348,15 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             rvol100d_minus_weighted_iv = current_vol - weighted_iv if current_vol is not None and not np.isnan(weighted_iv) else float('-inf')
                             rank_dict['Rvol100d - Weighted IV'] = rvol100d_minus_weighted_iv
             ranking.append(rank_dict)
+        
         def sort_key(item):
             value = item.get('Rvol100d - Weighted IV', float('-inf'))
             return value if isinstance(value, (int, float)) else float('-inf')
+        
         ranking = sorted(ranking, key=sort_key, reverse=True)
         for i, rank_dict in enumerate(ranking):
             rank_dict['Rank'] = i + 1
+        
         column_order = [
             'Rank', 'Ticker', 'Latest Close', 'Latest High', 'Latest Low',
             'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
@@ -319,11 +370,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Rvol100d - Weighted IV',
             'Volume', 'Volume 1d (%)', 'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
         ]
+        
         df_ranking = pd.DataFrame(ranking)
         ranking_dir = f'data/{timestamp}/ranking'
         os.makedirs(ranking_dir, exist_ok=True)
         output_file = f'{ranking_dir}/ranking{prefix}.csv'
         df_ranking.to_csv(output_file, index=False)
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"Generated ranking file for {source}: {output_file} with {len(df_ranking)} tickers\n")
 
 def main():
     data_dir = 'data'
@@ -331,16 +385,21 @@ def main():
     try:
         with open(dates_file, 'r') as f:
             dates = json.load(f)
-    except Exception:
+    except Exception as e:
+        with open('ranking_error.log', 'a') as f:
+            f.write(f"Error reading dates.json in main: {str(e)}\n")
+        return
+    if not dates:
+        with open('ranking_error.log', 'a') as f:
+            f.write("Empty dates.json\n")
         return
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
+    sources = ['yfinance']
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
-        sources = ['yfinance']
         calculate_ranking_metrics(timestamp, sources)
     else:
-        sources = ['yfinance']
-        for timestamp in timestamps:
-            calculate_ranking_metrics(timestamp, sources)
+        timestamp = timestamps[-1]  # Use the latest timestamp
+        calculate_ranking_metrics(timestamp, sources)
 
 main()
