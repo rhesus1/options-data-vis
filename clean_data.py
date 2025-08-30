@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import glob
 import os
+import json
 
 def clean_data(file_path):
     df = pd.read_csv(file_path, parse_dates=['Expiry'])
@@ -50,12 +51,16 @@ def clean_data(file_path):
     return df
 
 def main():
-    timestamp_dirs = [d for d in glob.glob('data/*') if os.path.isdir(d) and d.split('/')[-1].replace('_', '').isdigit() and len(d.split('/')[-1]) == 13]
-    if not timestamp_dirs:
-        print("No timestamp folders found")
+    dates_file = 'data/dates.json'
+    if not os.path.exists(dates_file):
+        print("No dates.json found")
         return
-    latest_timestamp_dir = max(timestamp_dirs, key=os.path.getctime)
-    timestamp = os.path.basename(latest_timestamp_dir)
+    with open(dates_file, 'r') as f:
+        dates = json.load(f)
+    if not dates:
+        print("Empty dates.json")
+        return
+    timestamp = max(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     
     # Process yfinance raw data
     raw_yfinance_dir = f'data/{timestamp}/raw_yfinance'
