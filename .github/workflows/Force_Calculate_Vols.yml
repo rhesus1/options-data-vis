@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250812_2111)'
+        description: 'Date timestamp to process (e.g., 20250830_1220)'
         required: true
         type: string
 jobs:
@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yfinance pandas numpy scipy joblib statsmodels
+        pip install pandas numpy scipy joblib statsmodels
     - name: Run the script
       run: python Force_Calculate_Vols.py ${{ inputs.date }}
     - name: Commit and push updated data
