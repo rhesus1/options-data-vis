@@ -4,6 +4,7 @@ from datetime import datetime
 import glob
 import os
 import json
+import yfinance as yf
 from scipy.optimize import brentq, least_squares
 from scipy.stats import norm
 from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
@@ -43,7 +44,7 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
             f.write(f"Invalid price ({price}) or T ({T}) for {contract_name}\n")
         return np.nan
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
-    if price < intrinsic * np.exp(-r * T) * 0.99:  # Relaxed intrinsic check slightly
+    if price < intrinsic * np.exp(-r * T) * 0.99:
         with open('data_error.log', 'a') as f:
             f.write(f"Price ({price}) below intrinsic ({intrinsic * np.exp(-r * T)}) for {contract_name}\n")
         return np.nan
@@ -214,7 +215,6 @@ def calculate_iv_mid(df, ticker, r, timestamp):
             f.write(f"Missing columns in {ticker} data: {missing_cols}\n")
         return df, None, None, None
     df = df.copy()
-    # Validate input data
     invalid_prices = df[(df['Bid'] <= 0) | (df['Ask'] <= 0) | (df['Bid'].isna()) | (df['Ask'].isna())]
     if not invalid_prices.empty:
         with open('data_error.log', 'a') as f:
@@ -238,11 +238,9 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     df.loc[:, 'LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
     results = Parallel(n_jobs=4, backend='threading')(delayed(compute_ivs)(row, S, r, q) for _, row in df.iterrows())
     df.loc[:, ['IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta']] = pd.DataFrame(results, index=df.index)
-    # Log IV_mid statistics before filtering
     with open('data_error.log', 'a') as f:
         f.write(f"IV_mid stats for {ticker}: valid={len(df[df['IV_mid'] > 0])}, "
                 f"nan={df['IV_mid'].isna().sum()}, min={df['IV_mid'].min():.2f}, max={df['IV_mid'].max():.2f}\n")
-    # Keep all rows for debugging, filter later if needed
     return df, S, r, q
 
 def smooth_iv_per_expiry(options_df):
@@ -285,7 +283,6 @@ def smooth_iv_per_expiry(options_df):
     return options_df
 
 def calculate_local_vol_from_iv(df, S, r, q, ticker):
-    # Placeholder for local volatility calculation
     return pd.DataFrame(), pd.DataFrame(), None, None, df
 
 def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
@@ -428,6 +425,27 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             f.write(f"Error processing {ticker}: {str(e)}\n")
         return df, pd.DataFrame(), pd.DataFrame(), None
 
+def fetch_tnx_data(timestamp):
+    """Fetch ^TNX data from yfinance and save to historic file."""
+    tnx_file = f'data/{timestamp}/historic/historic_^TNX.csv'
+    try:
+        tnx = yf.download('^TNX', period='1d', progress=False)
+        if tnx.empty:
+            with open('data_error.log', 'a') as f:
+                f.write(f"yfinance returned empty data for ^TNX\n")
+            return None
+        tnx_data = tnx.reset_index()
+        tnx_data = tnx_data[['Date', 'Close']]
+        os.makedirs(os.path.dirname(tnx_file), exist_ok=True)
+        tnx_data.to_csv(tnx_file, index=False)
+        with open('data_error.log', 'a') as f:
+            f.write(f"Saved ^TNX data to {tnx_file}\n")
+        return tnx_data['Close'].iloc[-1] / 100
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Failed to fetch ^TNX from yfinance: {str(e)}\n")
+        return None
+
 def process_data(timestamp, prefix="_yfinance"):
     cleaned_dir = f'data/{timestamp}/cleaned{prefix}'
     raw_dir = f'data/{timestamp}/raw{prefix}'
@@ -440,14 +458,22 @@ def process_data(timestamp, prefix="_yfinance"):
         with open('data_error.log', 'a') as f:
             f.write(f"No cleaned files found in {cleaned_dir}\n")
         return None, None, None
+    # Fetch or load ^TNX data
     tnx_file = f'data/{timestamp}/historic/historic_^TNX.csv'
     if os.path.exists(tnx_file):
         tnx_data = pd.read_csv(tnx_file)
         r = tnx_data['Close'].iloc[-1] / 100 if not tnx_data.empty else 0.05
-    else:
-        r = 0.05
         with open('data_error.log', 'a') as f:
-            f.write(f"No TNX file found: {tnx_file}, using default r=0.05\n")
+            f.write(f"Loaded ^TNX from {tnx_file}: r={r:.4f}\n")
+    else:
+        r = fetch_tnx_data(timestamp)
+        if r is None:
+            r = 0.05
+            with open('data_error.log', 'a') as f:
+                f.write(f"No ^TNX data fetched, using default r=0.05\n")
+        else:
+            with open('data_error.log', 'a') as f:
+                f.write(f"Fetched ^TNX from yfinance: r={r:.4f}\n")
     processed_dir = f'data/{timestamp}/processed{prefix}'
     skew_dir = f'data/{timestamp}/skew_metrics{prefix}'
     slope_dir = f'data/{timestamp}/slope_metrics{prefix}'
@@ -493,7 +519,6 @@ def process_data(timestamp, prefix="_yfinance"):
             with open('data_error.log', 'a') as f:
                 f.write(f"Error processing {ticker} file {clean_file}: {str(e)}\n")
             continue
-    # Always save vol_fit.csv, even if empty
     vol_fit_df = pd.DataFrame(vol_fit_data)
     vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
     vol_fit_df.to_csv(vol_fit_filename, index=False)
