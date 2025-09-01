@@ -144,10 +144,24 @@ def calculate_iv_mid(df, ticker, r):
 
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
+        print("Warning: Input DataFrame is empty in smooth_iv_per_expiry")
+        options_df['Smoothed_IV'] = np.nan
+        return options_df
+    # Ensure required columns exist
+    required_columns = ['Expiry', 'LogMoneyness', 'IV_mid']
+    if not all(col in options_df.columns for col in required_columns):
+        print(f"Warning: Missing required columns {set(required_columns) - set(options_df.columns)} in smooth_iv_per_expiry")
+        options_df['Smoothed_IV'] = np.nan
         return options_df
     smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
+            print(f"Warning: Insufficient data points ({len(group)}) for expiry {exp}. Using IV_mid.")
+            smoothed_iv.loc[group.index] = group['IV_mid']
+            continue
+        # Check for valid IV_mid values
+        if group['IV_mid'].isna().all() or group['LogMoneyness'].isna().all():
+            print(f"Warning: All IV_mid or LogMoneyness are NaN for expiry {exp}. Using IV_mid.")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if len(group) >= 5:
@@ -162,6 +176,7 @@ def smooth_iv_per_expiry(options_df):
         else:
             cleaned_group = group
         if len(cleaned_group) < 3:
+            print(f"Warning: Insufficient valid data points ({len(cleaned_group)}) after cleaning for expiry {exp}. Using IV_mid.")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if cleaned_group['LogMoneyness'].duplicated().any():
@@ -232,29 +247,38 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
 
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
+        print(f"Warning: No {option_type} options data provided")
         return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
+    if options_df.empty:
+        print(f"Warning: No valid {option_type} options after filtering")
+        options_df['Smoothed_IV'] = np.nan
+        return pd.DataFrame(), None, options_df
     options_df = smooth_iv_per_expiry(options_df)
+    if 'Smoothed_IV' not in options_df.columns:
+        print(f"Warning: Smoothed_IV not created for {option_type} options")
+        options_df['Smoothed_IV'] = options_df['IV_mid']
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
     values = smoothed_df['TotalVariance'].values
     if len(smoothed_df) < 3:
+        print(f"Warning: Insufficient data points ({len(smoothed_df)}) for {option_type} interpolation")
         return pd.DataFrame(), None, smoothed_df
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.001)
     except Exception as e:
-        print(f"Warning: RBFInterpolator failed: {e}. Falling back to LinearNDInterpolator.")
+        print(f"Warning: RBFInterpolator failed for {option_type}: {e}. Falling back to LinearNDInterpolator.")
         try:
             interp = LinearNDInterpolator(points, values, fill_value=np.nan)
         except Exception as e:
-            print(f"Warning: LinearNDInterpolator failed: {e}. Falling back to CloughTocher2DInterpolator.")
+            print(f"Warning: LinearNDInterpolator failed for {option_type}: {e}. Falling back to CloughTocher2DInterpolator.")
             try:
                 interp = CloughTocher2DInterpolator(points, values, fill_value=np.nan)
             except Exception as e:
-                print(f"Error: All interpolators failed: {e}")
+                print(f"Error: All interpolators failed for {option_type}: {e}")
                 return pd.DataFrame(), None, smoothed_df
     results = Parallel(n_jobs=-1)(delayed(compute_local_vol_from_iv_row)(row, r, q, interp) for _, row in smoothed_df.iterrows())
     local_vol_df = pd.DataFrame([res for res in results if res is not None])
@@ -434,10 +458,14 @@ def main():
     os.makedirs(slope_dir, exist_ok=True)
     os.makedirs(historic_dir, exist_ok=True)
     os.makedirs(ranking_dir, exist_ok=True)
-    tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-    r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
+    try:
+        tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
+        r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
+    except Exception as e:
+        print(f"Warning: Failed to download ^TNX data: {e}. Using default risk-free rate of 5%.")
+        r = 0.05
     for ticker in tickers:
-        clean_file = os.path.join(clean_dir, f'{ticker}.csv')
+        clean_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
         raw_file = os.path.join(raw_dir, f'{ticker}.csv')
         if not os.path.exists(clean_file):
             print(f"No cleaned file for {ticker} in {clean_dir}")
@@ -449,14 +477,14 @@ def main():
         full_df_ticker = pd.read_csv(raw_file, parse_dates=['Expiry'])
         pdf, sdf, slope_df = process_ticker(ticker, df_ticker, full_df_ticker, r)
         if pdf is not None:
-            pdf.to_csv(os.path.join(processed_dir, f'{ticker}.csv'), index=False)
-            pdf.to_json(os.path.join(processed_dir, f'{ticker}.json'), orient='records', date_format='iso')
+            pdf.to_csv(os.path.join(processed_dir, f'processed_yfinance_{ticker}.csv'), index=False)
+            pdf.to_json(os.path.join(processed_dir, f'processed_yfinance_{ticker}.json'), orient='records', date_format='iso')
             print(f"Processed data for {ticker} saved to {processed_dir}")
         if sdf is not None:
-            sdf.to_csv(os.path.join(skew_dir, f'{ticker}.csv'), index=False)
+            sdf.to_csv(os.path.join(skew_dir, f'skew_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Skew metrics for {ticker} saved to {skew_dir}")
         if slope_df is not None:
-            slope_df.to_csv(os.path.join(slope_dir, f'{ticker}.csv'), index=False)
+            slope_df.to_csv(os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Slope metrics for {ticker} saved to {slope_dir}")
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
