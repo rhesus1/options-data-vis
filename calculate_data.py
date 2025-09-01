@@ -1,3 +1,4 @@
+```python
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -13,7 +14,7 @@ from joblib import Parallel, delayed
 import multiprocessing
 import warnings
 import statsmodels.api as sm
-warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
 
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
@@ -181,7 +182,7 @@ def calculate_metrics(df, ticker, r):
             put_iv = df[(df["Type"] == "Put") & (df["Strike"] == strike) & (df["Expiry"] == exp)]["IV_mid"]
             if not call_iv.empty and not put_iv.empty and call_iv.iloc[0] > 0:
                 skew = put_iv.iloc[0] / call_iv.iloc[0]
-                skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": skew})
+                skew_data.append({"Expiry": exp, "Strike": strike, "Vol Skew": f"{skew*100:.2f}%"})
     skew_df = pd.DataFrame(skew_data)
     slope_data = []
     for strike in df["Strike"].unique():
@@ -224,7 +225,13 @@ def calculate_iv_mid(df, ticker, r, timestamp):
         with open('data_error.log', 'a') as f:
             f.write(f"Invalid stock price for {ticker}: S={S}\n")
         return df, None, None, None
-    q = 0.0
+    try:
+        stock = yf.Ticker(ticker)
+        q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Failed to fetch dividend yield for {ticker}: {str(e)}, using q=0.0\n")
+        q = 0.0
     today = datetime.today()
     df.loc[:, "Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df.loc[:, 'Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
@@ -277,36 +284,139 @@ def smooth_iv_per_expiry(options_df):
             sorted_group = cleaned_group.sort_values('LogMoneyness')
             x = sorted_group['LogMoneyness'].values
             y = sorted_group['IV_mid'].values
-        interp_f = interp1d(x, y, kind='quadratic', fill_value="extrapolate")
-        smoothed_iv.loc[group.index] = interp_f(group['LogMoneyness'])
+        try:
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)
+            x_smooth = lowess_smoothed[:, 0]
+            y_smooth = lowess_smoothed[:, 1]
+            interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
+            smoothed_values = interpolator(group['LogMoneyness'].values)
+            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
+        except Exception as e:
+            with open('data_error.log', 'a') as f:
+                f.write(f"LOWESS failed for expiry {exp} in {options_df['Ticker'].iloc[0]}: {str(e)}, using IV_mid directly\n")
+            smoothed_iv.loc[group.index] = group['IV_mid']
     options_df['Smoothed_IV'] = smoothed_iv
     return options_df
 
+def compute_local_vol_from_iv_row(row, r, q, interp):
+    y = row['LogMoneyness']
+    T = row['Years_to_Expiry']
+    if T <= 0 or pd.isna(row['Smoothed_IV']):
+        with open('data_error.log', 'a') as f:
+            f.write(f"Invalid Smoothed_IV or Years_to_Expiry for Strike {row['Strike']}, Expiry {row['Expiry']}\n")
+        return None
+    w = row['Smoothed_IV'] ** 2 * T
+    h_t = max(0.01 * T, 1e-4)
+    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
+    try:
+        w_T_plus = interp(np.array([[y, T + h_t]]))[0]
+        w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
+        dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
+        w_y_plus = interp(np.array([[y + h_y, T]]))[0]
+        w_y_minus = interp(np.array([[y - h_y, T]]))[0]
+        dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
+        d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
+        if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
+            return None
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Interpolation failed for Strike {row['Strike']}, Expiry {row['Expiry']}: {str(e)}\n")
+        return None
+    denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
+    if denom <= 1e-10 or dw_dT <= 0:
+        local_vol = 0.0
+    else:
+        local_vol_sq = dw_dT / denom
+        local_vol = np.sqrt(max(local_vol_sq, 0)) if local_vol_sq > 0 else 0.0
+        if local_vol > 2.0:
+            local_vol = np.nan
+    return {
+        "Strike": row['Strike'],
+        "Expiry": row['Expiry'],
+        "Local Vol": local_vol
+    }
+
+def process_options(options_df, option_type, r, q):
+    if options_df.empty:
+        options_df = options_df.copy()
+        options_df.loc[:, 'Smoothed_IV'] = np.nan
+        return pd.DataFrame(), None, options_df
+    options_df = options_df[options_df['IV_mid'] > 0]
+    options_df = options_df[options_df['Years_to_Expiry'] > 0]
+    options_df = smooth_iv_per_expiry(options_df)
+    if 'Smoothed_IV' not in options_df.columns:
+        options_df.loc[:, 'Smoothed_IV'] = options_df['IV_mid']
+    smoothed_df = options_df.copy()
+    smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
+    smoothed_df.loc[:, 'TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
+    points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
+    values = smoothed_df['TotalVariance'].values
+    if len(smoothed_df) < 3:
+        return pd.DataFrame(), None, smoothed_df
+    try:
+        interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"RBF fit failed for {option_type} in {options_df['Ticker'].iloc[0]}: {str(e)}, using linear fallback\n")
+        interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
+    local_data = Parallel(n_jobs=4, backend='threading')(
+        delayed(compute_local_vol_from_iv_row)(row, r, q, interp)
+        for _, row in smoothed_df.iterrows()
+    )
+    local_data = [d for d in local_data if d is not None]
+    local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
+    return local_df, interp, smoothed_df
+
 def calculate_local_vol_from_iv(df, S, r, q, ticker):
-    return pd.DataFrame(), pd.DataFrame(), None, None, df
+    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
+    missing_cols = set(required_columns) - set(df.columns)
+    if missing_cols:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Missing columns for local vol in {ticker}: {missing_cols}\n")
+        return pd.DataFrame(), pd.DataFrame(), None, None, df
+    calls = df[df['Type'] == 'Call'].copy()
+    puts = df[df['Type'] == 'Put'].copy()
+    call_local_df, call_interp, calls_smoothed = process_options(calls, 'Call', r, q)
+    put_local_df, put_interp, puts_smoothed = process_options(puts, 'Put', r, q)
+    smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index()
+    return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
+
+def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
+    def delta_diff(K):
+        delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
+        return delta - target_delta if option_type.lower() == 'call' else delta - (-target_delta)
+    try:
+        K = brentq(delta_diff, S * 0.5, S * 2.0)
+        return K
+    except ValueError:
+        return np.nan
 
 def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
     if df.empty or call_interp is None or put_interp is None:
         with open('data_error.log', 'a') as f:
             f.write(f"Insufficient data for skew metrics in {ticker}\n")
         return pd.DataFrame(), pd.DataFrame()
+    def get_iv(interp, y, T):
+        if interp is None or T <= 0:
+            return np.nan
+        w = interp(np.array([[y, T]]))[0]
+        if np.isnan(w) or w <= 0:
+            return np.nan
+        return np.sqrt(w / T)
     skew_data = []
-    for exp in df['Expiry'].unique():
-        T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0]
-        def find_strike(delta, option_type, interp):
-            def objective(K):
-                sigma = interp(np.log(K / (S * np.exp((r - q) * T))), T)
-                return black_scholes_delta(S, K, T, r, q, sigma, option_type) - delta
-            try:
-                return brentq(objective, 0.01 * S, 10 * S)
-            except:
-                return np.nan
-        call_strike_25 = find_strike(0.25, 'call', call_interp)
-        call_strike_75 = find_strike(0.75, 'call', call_interp)
-        put_strike_25 = find_strike(-0.25, 'put', put_interp)
-        put_strike_75 = find_strike(-0.75, 'put', put_interp)
-        def get_iv(interp, log_m, tau):
-            return interp(log_m, tau)
+    target_deltas = [0.25, 0.75]
+    target_terms = [0.25, 1.0]
+    for exp in sorted(df['Expiry'].unique()):
+        T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
+        if np.isnan(T):
+            continue
+        atm_iv = get_iv(call_interp, 0.0, T)
+        if np.isnan(atm_iv):
+            continue
+        call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
+        call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
+        put_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'put')
+        put_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'put')
         iv_call_25 = get_iv(call_interp, np.log(call_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_25) else np.nan
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
@@ -330,7 +440,34 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
             'Strike_put_25_delta': put_strike_25,
             'Strike_put_75_delta': put_strike_75
         })
+    slope_data = []
+    for delta in target_deltas:
+        for opt_type in ['call', 'put']:
+            interp = call_interp if opt_type == 'call' else put_interp
+            iv_3m = get_iv(interp, 0.0, 0.25)
+            if np.isnan(iv_3m):
+                continue
+            strike_3m = find_strike_for_delta(S, 0.25, r, q, iv_3m, delta, opt_type)
+            log_moneyness_3m = np.log(strike_3m / (S * np.exp((r - q) * 0.25))) if not np.isnan(strike_3m) else np.nan
+            iv_3m_delta = get_iv(interp, log_moneyness_3m, 0.25) if not np.isnan(log_moneyness_3m) else np.nan
+            iv_12m = get_iv(interp, 0.0, 1.0)
+            if np.isnan(iv_12m):
+                continue
+            strike_12m = find_strike_for_delta(S, 1.0, r, q, iv_12m, delta, opt_type)
+            log_moneyness_12m = np.log(strike_12m / (S * np.exp((r - q) * 1.0))) if not np.isnan(strike_12m) else np.nan
+            iv_12m_delta = get_iv(interp, log_moneyness_12m, 1.0) if not np.isnan(log_moneyness_12m) else np.nan
+            slope = (iv_12m_delta - iv_3m_delta) / (1.0 - 0.25) if not np.isnan(iv_3m_delta) and not np.isnan(iv_12m_delta) else np.nan
+            slope_data.append({
+                'Delta': delta,
+                'Type': opt_type.capitalize(),
+                'IV_Slope_3m_12m': slope,
+                'IV_3m': iv_3m_delta,
+                'IV_12m': iv_12m_delta,
+                'Strike_3m': strike_3m,
+                'Strike_12m': strike_12m
+            })
     skew_metrics_df = pd.DataFrame(skew_data)
+    slope_metrics_df = pd.DataFrame(slope_data)
     atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
     atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
     atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
@@ -340,7 +477,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
     if skew_metrics_df.empty:
         with open('data_error.log', 'a') as f:
             f.write(f"No skew metrics generated for {ticker} in calculate_skew_metrics\n")
-    return skew_metrics_df, pd.DataFrame()
+    return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, df, full_df, r, timestamp):
     if df.empty:
@@ -436,11 +573,11 @@ def fetch_tnx_data(timestamp):
             return None
         tnx_data = tnx.reset_index()
         tnx_data = tnx_data[['Date', 'Close']]
+        tnx_data['Close'] = pd.to_numeric(tnx_data['Close'], errors='coerce')
         os.makedirs(os.path.dirname(tnx_file), exist_ok=True)
         tnx_data.to_csv(tnx_file, index=False)
         with open('data_error.log', 'a') as f:
             f.write(f"Saved ^TNX data to {tnx_file}\n")
-        # Ensure scalar float is returned
         close_price = tnx_data['Close'].iloc[-1]
         if isinstance(close_price, (pd.Series, np.ndarray)):
             close_price = close_price.item()
@@ -466,7 +603,8 @@ def process_data(timestamp, prefix="_yfinance"):
     tnx_file = f'data/{timestamp}/historic/historic_^TNX.csv'
     if os.path.exists(tnx_file):
         tnx_data = pd.read_csv(tnx_file)
-        r = tnx_data['Close'].iloc[-1] / 100 if not tnx_data.empty else 0.05
+        tnx_data['Close'] = pd.to_numeric(tnx_data['Close'], errors='coerce')
+        r = tnx_data['Close'].iloc[-1] / 100 if not tnx_data.empty and not pd.isna(tnx_data['Close'].iloc[-1]) else 0.05
         with open('data_error.log', 'a') as f:
             f.write(f"Loaded ^TNX from {tnx_file}: r={r:.4f}\n")
     else:
