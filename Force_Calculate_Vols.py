@@ -122,15 +122,19 @@ def calculate_metrics(df, ticker, r):
     slope_df = pd.DataFrame(slope_data)
     return df, skew_df, slope_df
 
-def calculate_iv_mid(df, ticker, r):
+def calculate_iv_mid(df, ticker, r, timestamp):
     if df.empty:
+        return df, None, None, None
+    try:
+        timestamp_dt = datetime.strptime(timestamp, '%Y%m%d_%H%M')
+    except ValueError:
+        print(f"Warning: Invalid timestamp format {timestamp}. Using default risk-free rate and no date reference.")
         return df, None, None, None
     stock = yf.Ticker(ticker)
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
     q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
-    today = datetime.today()
-    df["Expiry_dt"] = df["Expiry"]
-    df['Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
+    df["Expiry_dt"] = pd.to_datetime(df["Expiry"])
+    df['Years_to_Expiry'] = (df['Expiry_dt'] - timestamp_dt).dt.days / 365.25
     df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
     df['Moneyness'] = df['Strike'] / df['Forward']
     df['LogMoneyness'] = np.log(df['Strike'] / df['Forward'])
@@ -148,7 +152,6 @@ def smooth_iv_per_expiry(options_df):
         print("Warning: Input DataFrame is empty in smooth_iv_per_expiry")
         options_df['Smoothed_IV'] = np.nan
         return options_df
-    # Ensure required columns exist
     required_columns = ['Expiry', 'LogMoneyness', 'IV_mid']
     if not all(col in options_df.columns for col in required_columns):
         print(f"Warning: Missing required columns {set(required_columns) - set(options_df.columns)} in smooth_iv_per_expiry")
@@ -160,7 +163,6 @@ def smooth_iv_per_expiry(options_df):
             print(f"Warning: Insufficient data points ({len(group)}) for expiry {exp}. Using IV_mid.")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
-        # Check for valid IV_mid values
         if group['IV_mid'].isna().all() or group['LogMoneyness'].isna().all():
             print(f"Warning: All IV_mid or LogMoneyness are NaN for expiry {exp}. Using IV_mid.")
             smoothed_iv.loc[group.index] = group['IV_mid']
@@ -383,7 +385,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
     skew_metrics_df['ATM_IV_12m'] = atm_iv_12m
     return skew_metrics_df, slope_metrics_df
 
-def process_ticker(ticker, df, full_df, r):
+def process_ticker(ticker, df, full_df, r, timestamp):
     print(f"Processing calculations for {ticker}...")
     ticker_df = df.copy()
     ticker_full = full_df.copy()
@@ -393,7 +395,7 @@ def process_ticker(ticker, df, full_df, r):
     rvol100d = calculate_rvol_days(ticker, 100)
     print(f"\nRealised Volatility for {ticker}:")
     print(f"100-day: {rvol100d * 100:.2f}%" if rvol100d is not None else "100-day: N/A")
-    ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r)
+    ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r, timestamp)
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q)
@@ -418,7 +420,6 @@ def process_ticker(ticker, df, full_df, r):
     else:
         ticker_df['Put Local Vol'] = np.nan
     ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-    # Select desired columns
     desired_columns = [
         "Ticker", "Contract Name", "Type", "Expiry", "Strike", "Moneyness", "Bid", "Ask", "Volume",
         "Open Interest", "Bid Stock", "Ask Stock", "Last Stock Price", "Implied Volatility",
@@ -479,7 +480,7 @@ def main():
             continue
         df_ticker = pd.read_csv(clean_file, parse_dates=['Expiry'])
         full_df_ticker = pd.read_csv(raw_file, parse_dates=['Expiry'])
-        pdf, sdf, slope_df = process_ticker(ticker, df_ticker, full_df_ticker, r)
+        pdf, sdf, slope_df = process_ticker(ticker, df_ticker, full_df_ticker, r, timestamp)
         if pdf is not None:
             pdf.to_csv(os.path.join(processed_dir, f'processed_yfinance_{ticker}.csv'), index=False)
             pdf.to_json(os.path.join(processed_dir, f'processed_yfinance_{ticker}.json'), orient='records', date_format='iso')
@@ -499,8 +500,8 @@ def main():
     if timestamp not in dates:
         dates.append(timestamp)
         dates.sort(reverse=True)
-    with open(dates_file, 'w') as f:
-        json.dump(dates, f)
+        with open(dates_file, 'w') as f:
+            json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
 
 main()
