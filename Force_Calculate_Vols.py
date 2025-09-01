@@ -1,4 +1,3 @@
-import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -15,7 +14,7 @@ import multiprocessing
 import sys
 import warnings
 import statsmodels.api as sm
-warnings.filterwarnings("ignore", category=FutureWarning, module="yfinance")
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 def black_scholes_call(S, K, T, r, q, sigma):
     if T <= 0 or sigma <= 0:
@@ -56,21 +55,6 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         return np.clip(iv, 0.05, 5.0)
     except ValueError:
         return np.nan
-
-def calculate_rvol_days(ticker, days):
-    try:
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period="1y")
-        if hist.empty or len(hist) < days + 1:
-            return None
-        hist_last = hist.iloc[-(days + 1):]
-        log_returns = np.log(hist_last["Close"] / hist_last["Close"].shift(1)).dropna()
-        if len(log_returns) < 2:
-            return None
-        realised_vol = np.std(log_returns, ddof=1) * np.sqrt(252)
-        return realised_vol
-    except Exception:
-        return None
 
 def calc_Ivol_Rvol(df, rvol100d):
     if df.empty:
@@ -130,9 +114,8 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     except ValueError:
         print(f"Warning: Invalid timestamp format {timestamp}. Using default risk-free rate and no date reference.")
         return df, None, None, None
-    stock = yf.Ticker(ticker)
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
-    q = float(stock.info.get('trailingAnnualDividendYield', 0.0))
+    q = 0.0  # Set dividend yield to 0 as requested
     df["Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df['Years_to_Expiry'] = (df['Expiry_dt'] - timestamp_dt).dt.days / 365.25
     df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
@@ -392,9 +375,20 @@ def process_ticker(ticker, df, full_df, r, timestamp):
     if ticker_df.empty:
         print(f"Warning: No data for ticker {ticker} in df")
         return None, None, None
-    rvol100d = calculate_rvol_days(ticker, 100)
-    print(f"\nRealised Volatility for {ticker}:")
-    print(f"100-day: {rvol100d * 100:.2f}%" if rvol100d is not None else "100-day: N/A")
+    # Load historic data to get Realised_Vol_Close_100 for the specific timestamp
+    historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
+    rvol100d = np.nan
+    if os.path.exists(historic_file):
+        try:
+            historic_df = pd.read_csv(historic_file, parse_dates=['Date'])
+            if not historic_df.empty and 'Realised_Vol_Close_100' in historic_df.columns:
+                rvol100d = historic_df['Realised_Vol_Close_100'].iloc[-1] / 100  # Convert from percentage to decimal
+            else:
+                print(f"Warning: No valid Realised_Vol_Close_100 data for {ticker} in {historic_file}")
+        except Exception as e:
+            print(f"Error reading historic file for {ticker}: {e}")
+    else:
+        print(f"No historic file found for {ticker} in data/{timestamp}/historic")
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r, timestamp)
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
@@ -419,7 +413,7 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         )
     else:
         ticker_df['Put Local Vol'] = np.nan
-    ticker_df['Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
+    ticker_df['Realised Vol 100d'] = rvol100d if not np.isnan(rvol100d) else np.nan
     desired_columns = [
         "Ticker", "Contract Name", "Type", "Expiry", "Strike", "Moneyness", "Bid", "Ask", "Volume",
         "Open Interest", "Bid Stock", "Ask Stock", "Last Stock Price", "Implied Volatility",
@@ -463,12 +457,7 @@ def main():
     os.makedirs(slope_dir, exist_ok=True)
     os.makedirs(historic_dir, exist_ok=True)
     os.makedirs(ranking_dir, exist_ok=True)
-    try:
-        tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-        r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
-    except Exception as e:
-        print(f"Warning: Failed to download ^TNX data: {e}. Using default risk-free rate of 5%.")
-        r = 0.05
+    r = 0.05  # Default risk-free rate
     for ticker in tickers:
         clean_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
         raw_file = os.path.join(raw_dir, f'raw_yfinance_{ticker}.csv')
@@ -500,8 +489,8 @@ def main():
     if timestamp not in dates:
         dates.append(timestamp)
         dates.sort(reverse=True)
-        with open(dates_file, 'w') as f:
-            json.dump(dates, f)
+    with open(dates_file, 'w') as f:
+        json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
 
 main()
