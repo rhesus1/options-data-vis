@@ -18,24 +18,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy scipy
+        pip install pandas numpy scipy yfinance
     - name: Create data directory
       run: mkdir -p data
-    - name: Log timestamp and input files
-      run: |
-        python -c "
-        import json
-        import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        print(f'Running calculate_ranking_metrics.py with timestamp: {latest_date}')
-        os.system(f'ls -R data/{latest_date}/processed_yfinance* || echo \"No processed files found\"')
-        os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
-        "
     - name: Run ranking metrics calculation
-      run: python calculate_ranking_metrics.py
-    - name: Log output files
       run: |
         python -c "
         import json
@@ -43,17 +29,14 @@ jobs:
         with open('data/dates.json', 'r') as f:
             dates = json.load(f)
         latest_date = max(dates, key=lambda x: x)
-        print('Ranking files:')
-        os.system(f'ls -R data/{latest_date}/ranking* || echo \"No ranking files generated\"')
-        os.system(f'ls ranking_error.log || echo \"No error log generated\"')
+        os.system(f'python calculate_ranking_metrics.py {latest_date}')
         "
     - name: Commit and push updated ranking data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add data
-        git add ranking_error.log
-        git commit -m "Auto-update ranking metrics" || echo "No changes to commit"
+        git commit -m "Auto-update ranking metrics data" || echo "No changes to commit"
         git push
     - name: Send email with yfinance ranking metrics
       uses: dawidd6/action-send-mail@v3
@@ -67,7 +50,7 @@ jobs:
         from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
           Attached is the latest Options ranking metrics CSV file for yfinance data.
-          Timestamp: latest timestamp
+          Timestamp: ${latest_date}
         attachments: |
-          data/latest/ranking/ranking_yfinance.csv
+          data/${latest_date}/ranking/ranking_yfinance.csv
         secure: true
