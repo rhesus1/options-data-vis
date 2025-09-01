@@ -97,7 +97,7 @@ def fit_single_ticker(df, model='hyp'):
         f.write(f"Data points after filtering for {ticker}: {len(df)}, "
                 f"Moneyness range: {df['Moneyness'].min():.2f}–{df['Moneyness'].max():.2f}, "
                 f"Expiry range: {df['Years_to_Expiry'].min():.2f}–{df['Years_to_Expiry'].max():.2f}, "
-                f"IV range: {df['Smoothed_IV'].min():.2f}–{df['Smoothed_IV'].max():.2f}\n" if not df.empty else
+                f"Smoothed_IV range: {df['Smoothed_IV'].min():.2f}–{df['Smoothed_IV'].max():.2f}\n" if not df.empty else
                 f"No valid data points after filtering for {ticker}\n")
     if len(df) < 12:
         with open('data_error.log', 'a') as f:
@@ -235,13 +235,12 @@ def calculate_iv_mid(df, ticker, r, timestamp):
         with open('data_error.log', 'a') as f:
             f.write(f"Failed to fetch dividend yield for {ticker}: {str(e)}, using q=0.0\n")
         q = 0.0
-    # Use timestamp for historical data
     try:
-        today = datetime.strptime(timestamp, "%Y%m%d_%H%M")
+        today = pd.to_datetime(timestamp, format='%Y%m%d_%H%M')
     except ValueError as e:
         with open('data_error.log', 'a') as f:
             f.write(f"Invalid timestamp format {timestamp} for {ticker}: {str(e)}, using current date\n")
-        today = datetime.now()
+        today = pd.to_datetime('20250901_1355', format='%Y%m%d_%H%M')  # Fallback to current date/time
     df.loc[:, "Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df.loc[:, 'Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
     df = df[df['Years_to_Expiry'] > 0]
@@ -512,14 +511,11 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
         try:
             call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q, ticker)
-            # Use smoothed_df for fitting
-            vol_fit_params, vol_fit_residuals = fit_single_ticker(smoothed_df[smoothed_df['Type'] == 'Call'], model='hyp')
             ticker_df = smoothed_df
         except Exception as e:
             with open('data_error.log', 'a') as f:
                 f.write(f"Local vol calculation failed for {ticker}: {str(e)}\n")
             call_local_df, put_local_df, call_interp, put_interp = pd.DataFrame(), pd.DataFrame(), None, None
-            vol_fit_params, vol_fit_residuals = fit_single_ticker(ticker_df[ticker_df['Type'] == 'Call'], model='hyp')
         skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q, ticker)
         skew_metrics_df.loc[:, 'Ticker'] = ticker
         slope_metrics_df.loc[:, 'Ticker'] = ticker
@@ -540,6 +536,17 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         else:
             ticker_df.loc[:, 'Put Local Vol'] = np.nan
         ticker_df.loc[:, 'Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
+        # Merge delta-based skew and slope metrics into ticker_df
+        if not skew_metrics_df.empty:
+            for col in ['Skew_25_delta', 'Skew_75_delta', 'Skew_call_25_75', 'Skew_put_25_75', 
+                        'IV_put_25_delta', 'IV_put_75_delta', 'IV_call_25_delta', 'IV_call_75_delta',
+                        'Strike_call_25_delta', 'Strike_call_75_delta', 'Strike_put_25_delta', 'Strike_put_75_delta',
+                        'ATM_12m_3m_Ratio', 'ATM_IV_3m', 'ATM_IV_12m']:
+                ticker_df.loc[:, col] = skew_metrics_df.loc[skew_metrics_df['Expiry'] == ticker_df['Expiry'], col].reindex(ticker_df.index, method='ffill').values
+        if not slope_metrics_df.empty:
+            for col in ['IV_Slope_3m_12m', 'IV_3m', 'IV_12m', 'Strike_3m', 'Strike_12m']:
+                ticker_df.loc[:, col] = slope_metrics_df.loc[slope_metrics_df['Type'] == ticker_df['Type'], col].reindex(ticker_df.index, method='ffill').values
+        vol_fit_params, vol_fit_residuals = fit_single_ticker(ticker_df[ticker_df['Type'] == 'Call'], model='hyp')
         vol_fit_data = {
             'Ticker': ticker,
             'a0': vol_fit_params[0] if vol_fit_params is not None else np.nan,
@@ -555,18 +562,43 @@ def process_ticker(ticker, df, full_df, r, timestamp):
             'c': vol_fit_params[10] if vol_fit_params is not None else np.nan,
             'Residuals': vol_fit_residuals if vol_fit_residuals is not None else np.nan
         }
-        with open('data_error.log', 'a') as f:
-            if not ticker_df.empty:
-                f.write(f"Generated processed data for {ticker}: {len(ticker_df)} rows\n")
-            if not skew_df.empty:
-                f.write(f"Generated skew metrics for {ticker}: {len(skew_df)} rows\n")
-            if not slope_df.empty:
-                f.write(f"Generated slope metrics for {ticker}: {len(slope_df)} rows\n")
-            if not skew_metrics_df.empty:
-                f.write(f"Generated skew metrics (delta-based) for {ticker}: {len(skew_metrics_df)} rows\n")
-            if vol_fit_data['Residuals'] is not np.nan:
+        # Save files
+        processed_dir = f'data/{timestamp}/processed{prefix}'
+        skew_dir = f'data/{timestamp}/skew_metrics{prefix}'
+        slope_dir = f'data/{timestamp}/slope_metrics{prefix}'
+        os.makedirs(processed_dir, exist_ok=True)
+        os.makedirs(skew_dir, exist_ok=True)
+        os.makedirs(slope_dir, exist_ok=True)
+        if not ticker_df.empty:
+            processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
+            ticker_df.to_csv(processed_filename, index=False)
+            with open('data_error.log', 'a') as f:
+                f.write(f"Saved processed data for {ticker} to {processed_filename} with columns: {list(ticker_df.columns)}\n")
+        if not skew_df.empty:
+            skew_filename = f'{skew_dir}/strike_skew_metrics{prefix}_{ticker}.csv'
+            skew_df.to_csv(skew_filename, index=False)
+            with open('data_error.log', 'a') as f:
+                f.write(f"Saved strike skew metrics for {ticker} to {skew_filename}: {len(skew_df)} rows\n")
+        if not slope_df.empty:
+            slope_filename = f'{slope_dir}/strike_slope_metrics{prefix}_{ticker}.csv'
+            slope_df.to_csv(slope_filename, index=False)
+            with open('data_error.log', 'a') as f:
+                f.write(f"Saved strike slope metrics for {ticker} to {slope_filename}: {len(slope_df)} rows\n")
+        if not skew_metrics_df.empty:
+            skew_metrics_filename = f'{skew_dir}/skew_metrics{prefix}_{ticker}.csv'
+            skew_metrics_df.to_csv(skew_metrics_filename, index=False)
+            with open('data_error.log', 'a') as f:
+                f.write(f"Saved delta-based skew metrics for {ticker} to {skew_metrics_filename}: {len(skew_metrics_df)} rows\n")
+        if not slope_metrics_df.empty:
+            slope_metrics_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
+            slope_metrics_df.to_csv(slope_metrics_filename, index=False)
+            with open('data_error.log', 'a') as f:
+                f.write(f"Saved delta-based slope metrics for {ticker} to {slope_metrics_filename}: {len(slope_metrics_df)} rows\n")
+        if vol_fit_data['Residuals'] is not np.nan:
+            with open('data_error.log', 'a') as f:
                 f.write(f"Generated vol fit data for {ticker}\n")
-            else:
+        else:
+            with open('data_error.log', 'a') as f:
                 f.write(f"No vol fit data for {ticker} (insufficient points or fitting failed)\n")
         return ticker_df, skew_df, slope_df, vol_fit_data
     except Exception as e:
@@ -667,11 +699,30 @@ def process_data(timestamp, prefix="_yfinance"):
             with open('data_error.log', 'a') as f:
                 f.write(f"Error processing {ticker} file {clean_file}: {str(e)}\n")
             continue
+    # Save combined files
+    if processed_dfs:
+        combined_processed = pd.concat(processed_dfs, ignore_index=True)
+        processed_filename = f'{processed_dir}/processed{prefix}_all.csv'
+        combined_processed.to_csv(processed_filename, index=False)
+        with open('data_error.log', 'a') as f:
+            f.write(f"Saved combined processed data to {processed_filename} with columns: {list(combined_processed.columns)}\n")
+    if skew_metrics_dfs:
+        combined_skew_metrics = pd.concat(skew_metrics_dfs, ignore_index=True)
+        skew_metrics_filename = f'{skew_dir}/skew_metrics{prefix}_all.csv'
+        combined_skew_metrics.to_csv(skew_metrics_filename, index=False)
+        with open('data_error.log', 'a') as f:
+            f.write(f"Saved combined delta-based skew metrics to {skew_metrics_filename}: {len(combined_skew_metrics)} rows\n")
+    if slope_metrics_dfs:
+        combined_slope_metrics = pd.concat(slope_metrics_dfs, ignore_index=True)
+        slope_metrics_filename = f'{slope_dir}/slope_metrics{prefix}_all.csv'
+        combined_slope_metrics.to_csv(slope_metrics_filename, index=False)
+        with open('data_error.log', 'a') as f:
+            f.write(f"Saved combined delta-based slope metrics to {slope_metrics_filename}: {len(combined_slope_metrics)} rows\n")
     vol_fit_df = pd.DataFrame(vol_fit_data)
     vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
     vol_fit_df.to_csv(vol_fit_filename, index=False)
     with open('data_error.log', 'a') as f:
-        f.write(f"Generated vol_fit.csv with {len(vol_fit_data)} tickers\n")
+        f.write(f"Saved vol_fit data to {vol_fit_filename} with {len(vol_fit_data)} tickers\n")
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
