@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy scipy joblib statsmodels yfinance
+        pip install pandas numpy scipy statsmodels yfinance
     - name: Create data directory
       run: mkdir -p data
     - name: Log timestamp and input files
@@ -30,9 +30,9 @@ jobs:
             dates = json.load(f)
         latest_date = max(dates, key=lambda x: x)
         print(f'Running calculate_data.py with timestamp: {latest_date}')
-        os.system(f'ls -R data/{latest_date}/cleaned_yfinance* || echo \"No cleaned files found\"')
-        os.system(f'ls -R data/{latest_date}/raw_yfinance* || echo \"No raw files found\"')
-        os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
+        os.system(f'ls -R data/{latest_date}/cleaned_yfinance || echo \"No cleaned files found\"')
+        os.system(f'ls -R data/{latest_date}/raw_yfinance || echo \"No raw files found\"')
+        os.system(f'ls -R data/{latest_date}/historic || echo \"No historic files found\"')
         "
     - name: Run calculate script
       run: python calculate_data.py
@@ -45,20 +45,18 @@ jobs:
             dates = json.load(f)
         latest_date = max(dates, key=lambda x: x)
         print('Processed files:')
-        os.system(f'ls -R data/{latest_date}/processed_yfinance* || echo \"No processed files found\"')
+        os.system(f'ls -R data/{latest_date}/processed_yfinance || echo \"No processed files found\"')
         print('Skew metrics files:')
-        os.system(f'ls -R data/{latest_date}/skew_metrics_yfinance* || echo \"No skew metrics files found\"')
+        os.system(f'ls -R data/{latest_date}/skew_metrics_yfinance || echo \"No skew metrics files found\"')
         print('Slope metrics files:')
-        os.system(f'ls -R data/{latest_date}/slope_metrics_yfinance* || echo \"No slope metrics files found\"')
-        print('Vol fit file:')
-        os.system(f'ls -R data/{latest_date}/vol_fit* || echo \"No vol fit file found\"')
+        os.system(f'ls -R data/{latest_date}/slope_metrics_yfinance || echo \"No slope metrics files found\"')
         os.system(f'ls data_error.log || echo \"No error log generated\"')
         "
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add data data_error.log
+        git add data
+        git add data_error.log
         git commit -m "Auto-update processed data" || echo "No changes to commit"
         git push
-      continue-on-error: true
