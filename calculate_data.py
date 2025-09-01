@@ -608,10 +608,10 @@ def process_data(timestamp, prefix="_yfinance"):
             f.write(f"No cleaned directory found: {cleaned_dir}\n")
         return None, None, None
     # Read tickers from ticker.txt
-    tickers_file = 'ticker.txt'
+    tickers_file = 'tickers.txt'
     if not os.path.exists(tickers_file):
         with open('data_error.log', 'a') as f:
-            f.write(f"No ticker.txt found\n")
+            f.write(f"No tickers.txt found\n")
         return None, None, None
     with open(tickers_file, 'r') as f:
         tickers = [line.strip() for line in f if line.strip()]
