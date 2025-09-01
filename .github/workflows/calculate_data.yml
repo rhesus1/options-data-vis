@@ -1,62 +1,40 @@
-name: Calculate Options Data
+name: Clean Options Data
+
 on:
   workflow_run:
-    workflows: ["Clean Options Data"]
+    workflows: ["Fetch Options Data"]
     types:
       - completed
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger option
+
 jobs:
-  calculate:
+  clean:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy scipy statsmodels yfinance
+        pip install yfinance pandas numpy scipy  # Your script's requirements
+
     - name: Create data directory
       run: mkdir -p data
-    - name: Log timestamp and input files
-      run: |
-        python -c "
-        import json
-        import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        print(f'Running calculate_data.py with timestamp: {latest_date}')
-        os.system(f'ls -R data/{latest_date}/cleaned_yfinance || echo \"No cleaned files found\"')
-        os.system(f'ls -R data/{latest_date}/raw_yfinance || echo \"No raw files found\"')
-        os.system(f'ls -R data/{latest_date}/historic || echo \"No historic files found\"')
-        "
-    - name: Run calculate script
-      run: python calculate_data.py
-    - name: Log output files
-      run: |
-        python -c "
-        import json
-        import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        print('Processed files:')
-        os.system(f'ls -R data/{latest_date}/processed_yfinance || echo \"No processed files found\"')
-        print('Skew metrics files:')
-        os.system(f'ls -R data/{latest_date}/skew_metrics_yfinance || echo \"No skew metrics files found\"')
-        print('Slope metrics files:')
-        os.system(f'ls -R data/{latest_date}/slope_metrics_yfinance || echo \"No slope metrics files found\"')
-        os.system(f'ls data_error.log || echo \"No error log generated\"')
-        "
+
+    - name: Run clean script
+      run: python clean_data.py
+
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add data
-        git add data_error.log
-        git commit -m "Auto-update processed data" || echo "No changes to commit"
+        git commit -m "Auto-update cleaned data" || echo "No changes to commit"
         git push
