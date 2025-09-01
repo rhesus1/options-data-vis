@@ -442,8 +442,8 @@ def main():
     tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
     r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
     for ticker in tickers:
-        clean_file = os.path.join(clean_dir, f'{ticker}.csv')
-        raw_file = os.path.join(raw_dir, f'{ticker}.csv')
+        clean_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
+        raw_file = os.path.join(raw_dir, f'raw_yfinance_{ticker}.csv')
         if not os.path.exists(clean_file):
             print(f"No cleaned file for {ticker} in {clean_dir}")
             continue
@@ -454,14 +454,14 @@ def main():
         full_df_ticker = pd.read_csv(raw_file, parse_dates=['Expiry'])
         pdf, sdf, slope_df = process_ticker(ticker, df_ticker, full_df_ticker, r)
         if pdf is not None:
-            pdf.to_csv(os.path.join(processed_dir, f'{ticker}.csv'), index=False)
-            pdf.to_json(os.path.join(processed_dir, f'{ticker}.json'), orient='records', date_format='iso')
+            pdf.to_csv(os.path.join(processed_dir, f'processed_yfinance_{ticker}.csv'), index=False)
+            pdf.to_json(os.path.join(processed_dir, f'processed_yfinance_{ticker}.json'), orient='records', date_format='iso')
             print(f"Processed data for {ticker} saved to {processed_dir}")
         if sdf is not None:
-            sdf.to_csv(os.path.join(skew_dir, f'{ticker}.csv'), index=False)
+            sdf.to_csv(os.path.join(skew_dir, f'skew_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Skew metrics for {ticker} saved to {skew_dir}")
         if slope_df is not None:
-            slope_df.to_csv(os.path.join(slope_dir, f'{ticker}.csv'), index=False)
+            slope_df.to_csv(os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Slope metrics for {ticker} saved to {slope_dir}")
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
