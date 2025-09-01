@@ -42,7 +42,7 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
             f.write(f"Invalid price ({price}) or T ({T}) for {contract_name}\n")
         return np.nan
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
-    if price < intrinsic * np.exp(-r * T) * 0.95:  # Relaxed threshold
+    if price < intrinsic * np.exp(-r * T) * 0.9:  # Relaxed threshold to 0.9
         with open('data_error.log', 'a') as f:
             f.write(f"Price ({price}) below intrinsic ({intrinsic * np.exp(-r * T)}) for {contract_name}\n")
         return np.nan
@@ -443,6 +443,14 @@ def calculate_local_vol_from_iv(df, S, r, q, ticker):
     call_local_df, call_interp, calls_smoothed = process_options(calls, 'Call', r, q)
     put_local_df, put_interp, puts_smoothed = process_options(puts, 'Put', r, q)
     smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index() if not calls_smoothed.empty and not puts_smoothed.empty else (calls_smoothed if not calls_smoothed.empty else puts_smoothed)
+    if smoothed_df.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Empty smoothed_df for {ticker} in calculate_local_vol_from_iv\n")
+        df.loc[:, 'Smoothed_IV'] = np.nan
+        df.loc[:, 'TotalVariance'] = np.nan
+        df.loc[:, 'Call Local Vol'] = np.nan
+        df.loc[:, 'Put Local Vol'] = np.nan
+        return pd.DataFrame(), pd.DataFrame(), None, None, df
     with open('data_error.log', 'a') as f:
         f.write(f"Smoothed DataFrame for {ticker}: {len(smoothed_df)} rows\n")
     return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
@@ -469,12 +477,17 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
             with open('data_error.log', 'a') as f:
                 f.write(f"Invalid interp or T ({T}) for skew metrics\n")
             return np.nan
-        w = interp(np.array([[y, T]]))[0]
-        if np.isnan(w) or w <= 0:
+        try:
+            w = interp(np.array([[y, T]]))[0]
+            if np.isnan(w) or w <= 0:
+                with open('data_error.log', 'a') as f:
+                    f.write(f"Invalid total variance ({w}) for y={y}, T={T}\n")
+                return np.nan
+            return np.sqrt(w / T)
+        except Exception as e:
             with open('data_error.log', 'a') as f:
-                f.write(f"Invalid total variance ({w}) for y={y}, T={T}\n")
+                f.write(f"Interpolation failed for y={y}, T={T} in {ticker}: {str(e)}\n")
             return np.nan
-        return np.sqrt(w / T)
     skew_data = []
     target_deltas = [0.25, 0.75]
     target_terms = [0.25, 1.0]
