@@ -1,4 +1,5 @@
 import sys
+
 from calculate_ranking_metrics import calculate_ranking_metrics
 
 def main():
