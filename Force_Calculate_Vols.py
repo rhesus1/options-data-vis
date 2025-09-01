@@ -1,4 +1,3 @@
-# Force_Calculate_Vols.py
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -146,10 +145,24 @@ def calculate_iv_mid(df, ticker, r):
 
 def smooth_iv_per_expiry(options_df):
     if options_df.empty:
+        print("Warning: Input DataFrame is empty in smooth_iv_per_expiry")
+        options_df['Smoothed_IV'] = np.nan
         return options_df
-    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)      # Capped for plotting
+    # Ensure required columns exist
+    required_columns = ['Expiry', 'LogMoneyness', 'IV_mid']
+    if not all(col in options_df.columns for col in required_columns):
+        print(f"Warning: Missing required columns {set(required_columns) - set(options_df.columns)} in smooth_iv_per_expiry")
+        options_df['Smoothed_IV'] = np.nan
+        return options_df
+    smoothed_iv = pd.Series(np.nan, index=options_df.index, dtype=float)
     for exp, group in options_df.groupby('Expiry'):
         if len(group) < 3:
+            print(f"Warning: Insufficient data points ({len(group)}) for expiry {exp}. Using IV_mid.")
+            smoothed_iv.loc[group.index] = group['IV_mid']
+            continue
+        # Check for valid IV_mid values
+        if group['IV_mid'].isna().all() or group['LogMoneyness'].isna().all():
+            print(f"Warning: All IV_mid or LogMoneyness are NaN for expiry {exp}. Using IV_mid.")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if len(group) >= 5:
@@ -157,13 +170,14 @@ def smooth_iv_per_expiry(options_df):
             std_iv = np.std(group['IV_mid'])
             if std_iv > 0:
                 z_scores = np.abs((group['IV_mid'] - mean_iv) / std_iv)
-                is_outlier = z_scores > 3  # Tighter threshold
+                is_outlier = z_scores > 3
                 cleaned_group = group[~is_outlier]
             else:
                 cleaned_group = group
         else:
             cleaned_group = group
         if len(cleaned_group) < 3:
+            print(f"Warning: Insufficient valid data points ({len(cleaned_group)}) after cleaning for expiry {exp}. Using IV_mid.")
             smoothed_iv.loc[group.index] = group['IV_mid']
             continue
         if cleaned_group['LogMoneyness'].duplicated().any():
@@ -175,12 +189,12 @@ def smooth_iv_per_expiry(options_df):
             x = sorted_group['LogMoneyness'].values
             y = sorted_group['IV_mid'].values
         try:
-            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)  # Increased frac
+            lowess_smoothed = sm.nonparametric.lowess(y, x, frac=0.3, it=3)
             x_smooth = lowess_smoothed[:, 0]
             y_smooth = lowess_smoothed[:, 1]
             interpolator = interp1d(x_smooth, y_smooth, bounds_error=False, fill_value="extrapolate")
             smoothed_values = interpolator(group['LogMoneyness'].values)
-            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)  # Uncapped
+            smoothed_iv.loc[group.index] = pd.Series(smoothed_values, index=group.index)
         except Exception as e:
             print(f"Warning: LOWESS failed for expiry {exp}: {e}. Using IV_mid directly.")
             smoothed_iv.loc[group.index] = group['IV_mid']
@@ -234,29 +248,38 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
 
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
+        print(f"Warning: No {option_type} options data provided")
         return pd.DataFrame(), None, options_df
     options_df = options_df[options_df['IV_mid'] > 0]
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
+    if options_df.empty:
+        print(f"Warning: No valid {option_type} options after filtering")
+        options_df['Smoothed_IV'] = np.nan
+        return pd.DataFrame(), None, options_df
     options_df = smooth_iv_per_expiry(options_df)
+    if 'Smoothed_IV' not in options_df.columns:
+        print(f"Warning: Smoothed_IV not created for {option_type} options")
+        options_df['Smoothed_IV'] = options_df['IV_mid']
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
     smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
     values = smoothed_df['TotalVariance'].values
     if len(smoothed_df) < 3:
+        print(f"Warning: Insufficient data points ({len(smoothed_df)}) for {option_type} interpolation")
         return pd.DataFrame(), None, smoothed_df
     try:
         interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.001)
     except Exception as e:
-        print(f"Warning: RBFInterpolator failed: {e}. Falling back to LinearNDInterpolator.")
+        print(f"Warning: RBFInterpolator failed for {option_type}: {e}. Falling back to LinearNDInterpolator.")
         try:
             interp = LinearNDInterpolator(points, values, fill_value=np.nan)
         except Exception as e:
-            print(f"Warning: LinearNDInterpolator failed: {e}. Falling back to CloughTocher2DInterpolator.")
+            print(f"Warning: LinearNDInterpolator failed for {option_type}: {e}. Falling back to CloughTocher2DInterpolator.")
             try:
                 interp = CloughTocher2DInterpolator(points, values, fill_value=np.nan)
             except Exception as e:
-                print(f"Error: All interpolators failed: {e}")
+                print(f"Error: All interpolators failed for {option_type}: {e}")
                 return pd.DataFrame(), None, smoothed_df
     results = Parallel(n_jobs=-1)(delayed(compute_local_vol_from_iv_row)(row, r, q, interp) for _, row in smoothed_df.iterrows())
     local_vol_df = pd.DataFrame([res for res in results if res is not None])
@@ -439,8 +462,12 @@ def main():
     os.makedirs(slope_dir, exist_ok=True)
     os.makedirs(historic_dir, exist_ok=True)
     os.makedirs(ranking_dir, exist_ok=True)
-    tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
-    r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
+    try:
+        tnx_data = yf.download('^TNX', period='1d', auto_adjust=True)
+        r = tnx_data['Close'].iloc[-1].item() / 100 if not tnx_data.empty else 0.05
+    except Exception as e:
+        print(f"Warning: Failed to download ^TNX data: {e}. Using default risk-free rate of 5%.")
+        r = 0.05
     for ticker in tickers:
         clean_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
         raw_file = os.path.join(raw_dir, f'raw_yfinance_{ticker}.csv')
@@ -472,8 +499,8 @@ def main():
     if timestamp not in dates:
         dates.append(timestamp)
         dates.sort(reverse=True)
-        with open(dates_file, 'w') as f:
-            json.dump(dates, f)
+    with open(dates_file, 'w') as f:
+        json.dump(dates, f)
     print(f"Updated dates list in {dates_file}")
 
 main()
