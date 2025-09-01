@@ -37,7 +37,7 @@ def fetch_option_data_yfinance(ticker):
     if not option_data:
         return pd.DataFrame()
     yfinance_df = pd.concat(option_data, ignore_index=True)
-    columns = ['Ticker', 'contractSymbol', 'Type', 'Expiry', 'strike', 'bid', 'ask', 'volume', 'openInterest', 'impliedVolatility', 'Last Stock Price', 'Bid Stock', 'Ask Stock', 'Moneyness']
+    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Implied Volatility', 'Last Stock Price', 'Bid Stock', 'Ask Stock', 'Moneyness']
     yfinance_df = yfinance_df.rename(columns={
         'contractSymbol': 'Contract Name',
         'strike': 'Strike',
@@ -57,7 +57,7 @@ def fetch_historic_data(ticker):
     hist = stock.history(period='max')
     if hist.empty:
         return pd.DataFrame()
-    hist = hist[['High', 'Low', 'Close']]
+    hist = hist[['Open', 'High', 'Low', 'Close']]
     hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
     hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
@@ -67,8 +67,8 @@ def fetch_historic_data(ticker):
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
-    return hist[['Ticker', 'Date', 'High', 'Low', 'Close',
-                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 
+    return hist[['Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
+                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
                  'Realised_Vol_Close_180', 'Realised_Vol_Close_252']]
 
 def main():
