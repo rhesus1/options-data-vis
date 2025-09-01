@@ -5,9 +5,8 @@ import glob
 import os
 import json
 import yfinance as yf
-from scipy.optimize import brentq, least_squares
+from scipy.optimize import brentq
 from scipy.stats import norm
-from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
 from scipy.interpolate import interp1d
 import warnings
 import statsmodels.api as sm
@@ -42,9 +41,9 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
             f.write(f"Invalid price ({price}) or T ({T}) for {contract_name}\n")
         return np.nan
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
-    if price < intrinsic * np.exp(-r * T) * 0.9:  # Relaxed threshold to 0.9
+    if price < intrinsic * np.exp(-r * T) * 0.8:
         with open('data_error.log', 'a') as f:
-            f.write(f"Price ({price}) below intrinsic ({intrinsic * np.exp(-r * T)}) for {contract_name}\n")
+            f.write(f"Price ({price}) below relaxed intrinsic ({intrinsic * np.exp(-r * T) * 0.8}) for {contract_name}\n")
         return np.nan
     def objective(sigma):
         if option_type.lower() == 'call':
@@ -52,88 +51,12 @@ def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
         else:
             return black_scholes_put(S, K, T, r, q, sigma) - price
     try:
-        iv = brentq(objective, 0.0001, 10.0)  # Reduced upper bound for stability
+        iv = brentq(objective, 0.0001, 50.0)
         return np.clip(iv, 0.05, 5.0)
     except ValueError as e:
         with open('data_error.log', 'a') as f:
             f.write(f"IV solver failed for {contract_name}: {str(e)}\n")
         return np.nan
-
-def global_vol_model_hyp(x, a0, a1, b0, b1, m0, m1, rho0, rho1, sigma0, sigma1, c):
-    moneyness, tau = x
-    k = np.log(moneyness)
-    a_T = a0 + a1 / (1 + c * tau)
-    b_T = b0 + b1 / (1 + c * tau)
-    m_T = m0 + m1 / (1 + c * tau)
-    rho_T = rho0 + rho1 / (1 + c * tau)
-    sigma_T = sigma0 + sigma1 / (1 + c * tau)
-    return a_T + b_T * (rho_T * (k - m_T) + np.sqrt((k - m_T)**2 + sigma_T**2))
-
-MODEL_CONFIG = {
-    'hyp': {
-        'func': global_vol_model_hyp,
-        'p0': [0.2, 0.1, 0.1, 0.05, 0.0, 0.0, -0.3, -0.1, 0.1, 0.05, 0.1],
-        'bounds': ([0, -np.inf, 0, -np.inf, -np.inf, -np.inf, -1, -1, 0.01, -np.inf, 0],
-                   [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 1, 1, np.inf, np.inf, np.inf])
-    }
-}
-
-def fit_single_ticker(df, model='hyp'):
-    df = df.copy()
-    df.loc[:, 'SMI'] = 100 * (df['Ask'] - df['Bid']).clip(lower=0) / (df['Bid'] + df['Ask']).clip(lower=1e-6) / 2
-    df.loc[:, 'weight'] = np.log(1 + df['Open Interest'].fillna(0)) / df['SMI'].clip(lower=1e-6)
-    df.loc[:, 'weight'] = np.where(df['Years_to_Expiry'].between(2.0, 2.6), df['weight'] * 5.0, df['weight'])
-    df = df[
-        (df['IV_mid'].notna()) & (df['IV_mid'] > 0) &
-        (df['weight'] > 0) &
-        (df['Bid'].notna()) & (df['Bid'] >= 0) &
-        (df['Ask'].notna()) & (df['Ask'] >= df['Bid']) &
-        (df['SMI'] > 0)
-    ]
-    ticker = df['Ticker'].iloc[0] if not df.empty else "unknown"
-    with open('data_error.log', 'a') as f:
-        f.write(f"Data points after filtering for {ticker}: {len(df)}, "
-                f"Moneyness range: {df['Moneyness'].min():.2f}–{df['Moneyness'].max():.2f}, "
-                f"Expiry range: {df['Years_to_Expiry'].min():.2f}–{df['Years_to_Expiry'].max():.2f}, "
-                f"IV range: {df['IV_mid'].min():.2f}–{df['IV_mid'].max():.2f}\n" if not df.empty else
-                f"No valid data points after filtering for {ticker}\n")
-    if len(df) < 3:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Insufficient data points ({len(df)}) for {ticker} in fit_single_ticker\n")
-        return None, None
-    df = df.sort_values(['Moneyness', 'Years_to_Expiry'])
-    df = df.drop_duplicates(subset=['Moneyness', 'Years_to_Expiry'], keep='first')
-    M = df['Moneyness'].values
-    tau = df['Years_to_Expiry'].values
-    IV = df['IV_mid'].values
-    w = df['weight'].values
-    xdata = np.vstack((M, tau))
-    IV_all = IV
-    w_all = w
-    model_config = MODEL_CONFIG[model]
-    model_func = model_config['func']
-    p0 = model_config['p0']
-    bounds = model_config['bounds']
-    try:
-        def residuals(params):
-            return np.sqrt(w_all) * (model_func(xdata, *params) - IV_all)
-        result = least_squares(
-            residuals,
-            p0,
-            bounds=bounds,
-            method='trf',
-            max_nfev=50000
-        )
-        popt = result.x
-        IV_pred = model_func(xdata, *popt)
-        residuals = np.sum(w * (IV - IV_pred)**2)
-        with open('data_error.log', 'a') as f:
-            f.write(f"Vol fit successful for {ticker}: residuals={residuals:.4f}\n")
-        return popt, residuals
-    except Exception as e:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Fit failed for {ticker}: {str(e)}\n")
-        return None, None
 
 def load_rvol_from_historic(ticker, timestamp, days=100):
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
@@ -254,9 +177,8 @@ def calculate_iv_mid(df, ticker, r, timestamp):
     except ValueError as e:
         with open('data_error.log', 'a') as f:
             f.write(f"Invalid timestamp format {timestamp} for {ticker}: {str(e)}, using default date\n")
-        today = pd.to_datetime('20250901_1122', format='%Y%m%d_%H%M')
+        today = datetime.today()
     df.loc[:, "Expiry_dt"] = pd.to_datetime(df["Expiry"])
-    original_len = len(df)
     df.loc[:, 'Years_to_Expiry'] = (df['Expiry_dt'] - today).dt.days / 365.25
     invalid_expiry = df[df['Years_to_Expiry'] <= 0]
     if not invalid_expiry.empty:
@@ -343,118 +265,6 @@ def smooth_iv_per_expiry(options_df):
         f.write(f"Smoothed IV for {options_df['Ticker'].iloc[0]}: {len(options_df)} rows\n")
     return options_df
 
-def compute_local_vol_from_iv_row(row, r, q, interp):
-    y = row['LogMoneyness']
-    T = row['Years_to_Expiry']
-    if T <= 0 or pd.isna(row['Smoothed_IV']):
-        with open('data_error.log', 'a') as f:
-            f.write(f"Invalid Smoothed_IV or Years_to_Expiry ({T}) for Strike {row['Strike']}, Expiry {row['Expiry']}\n")
-        return None
-    w = row['Smoothed_IV'] ** 2 * T
-    h_t = max(0.01 * T, 1e-4)
-    h_y = max(0.01 * abs(y) if y != 0 else 0.01, 1e-4)
-    try:
-        w_T_plus = interp(np.array([[y, T + h_t]]))[0]
-        w_T_minus = interp(np.array([[y, max(T - h_t, 1e-6)]]))[0]
-        dw_dT = (w_T_plus - w_T_minus) / (2 * h_t)
-        w_y_plus = interp(np.array([[y + h_y, T]]))[0]
-        w_y_minus = interp(np.array([[y - h_y, T]]))[0]
-        dw_dy = (w_y_plus - w_y_minus) / (2 * h_y)
-        d2w_dy2 = (w_y_plus - 2 * w + w_y_minus) / (h_y ** 2)
-        if np.isnan(dw_dT) or np.isnan(dw_dy) or np.isnan(d2w_dy2):
-            with open('data_error.log', 'a') as f:
-                f.write(f"NaN derivatives for Strike {row['Strike']}, Expiry {row['Expiry']}\n")
-            return None
-    except Exception as e:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Interpolation failed for Strike {row['Strike']}, Expiry {row['Expiry']}: {str(e)}\n")
-        return None
-    denom = 1 - (y / w) * dw_dy + 0.25 * (-0.25 - 1/w + (y**2 / w**2)) * (dw_dy ** 2) + 0.5 * d2w_dy2
-    if denom <= 1e-10 or dw_dT <= 0:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Invalid denominator ({denom:.2e}) or dw_dT ({dw_dT:.2e}) for Strike {row['Strike']}, Expiry {row['Expiry']}\n")
-        local_vol = 0.0
-    else:
-        local_vol_sq = dw_dT / denom
-        local_vol = np.sqrt(max(local_vol_sq, 0)) if local_vol_sq > 0 else 0.0
-        if local_vol > 2.0:
-            with open('data_error.log', 'a') as f:
-                f.write(f"Local volatility ({local_vol:.2f}) exceeds 2.0 for Strike {row['Strike']}, Expiry {row['Expiry']}\n")
-            local_vol = np.nan
-    return {
-        "Strike": row['Strike'],
-        "Expiry": row['Expiry'],
-        "Local Vol": local_vol
-    }
-
-def process_options(options_df, option_type, r, q):
-    if options_df.empty:
-        options_df = options_df.copy()
-        options_df.loc[:, 'Smoothed_IV'] = np.nan
-        with open('data_error.log', 'a') as f:
-            f.write(f"Empty options DataFrame for {option_type} in {options_df['Ticker'].iloc[0] if not options_df.empty else 'unknown'}\n")
-        return pd.DataFrame(), None, options_df
-    options_df = options_df[options_df['IV_mid'].notna() & (options_df['IV_mid'] > 0)]
-    options_df = options_df[options_df['Years_to_Expiry'] > 0]
-    if options_df.empty:
-        options_df = options_df.copy()
-        options_df.loc[:, 'Smoothed_IV'] = np.nan
-        with open('data_error.log', 'a') as f:
-            f.write(f"No valid options data for {option_type} after filtering in {options_df['Ticker'].iloc[0] if not options_df.empty else 'unknown'}\n")
-        return pd.DataFrame(), None, options_df
-    options_df = smooth_iv_per_expiry(options_df)
-    if 'Smoothed_IV' not in options_df.columns:
-        options_df.loc[:, 'Smoothed_IV'] = options_df['IV_mid']
-    smoothed_df = options_df.copy()
-    smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-    smoothed_df.loc[:, 'TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
-    points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
-    values = smoothed_df['TotalVariance'].values
-    if len(smoothed_df) < 3:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Insufficient data ({len(smoothed_df)}) for {option_type} interpolation in {options_df['Ticker'].iloc[0]}\n")
-        return pd.DataFrame(), None, smoothed_df
-    try:
-        interp = RBFInterpolator(points, values, kernel='thin_plate_spline', smoothing=0.1)
-    except Exception as e:
-        with open('data_error.log', 'a') as f:
-            f.write(f"RBF fit failed for {option_type} in {options_df['Ticker'].iloc[0]}: {str(e)}, using linear fallback\n")
-        interp = LinearNDInterpolator(points, values, fill_value=np.nan, rescale=True)
-    local_data = [compute_local_vol_from_iv_row(row, r, q, interp) for _, row in smoothed_df.iterrows()]
-    local_data = [d for d in local_data if d is not None]
-    local_df = pd.DataFrame(local_data) if local_data else pd.DataFrame()
-    with open('data_error.log', 'a') as f:
-        f.write(f"Generated {len(local_data)} local vol rows for {option_type} in {options_df['Ticker'].iloc[0]}\n")
-    return local_df, interp, smoothed_df
-
-def calculate_local_vol_from_iv(df, S, r, q, ticker):
-    required_columns = ['Type', 'Strike', 'Expiry', 'IV_mid', 'Years_to_Expiry', 'Forward', 'LogMoneyness']
-    missing_cols = set(required_columns) - set(df.columns)
-    if missing_cols:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Missing columns for local vol in {ticker}: {missing_cols}\n")
-        df.loc[:, 'Smoothed_IV'] = np.nan
-        df.loc[:, 'TotalVariance'] = np.nan
-        df.loc[:, 'Call Local Vol'] = np.nan
-        df.loc[:, 'Put Local Vol'] = np.nan
-        return pd.DataFrame(), pd.DataFrame(), None, None, df
-    calls = df[df['Type'] == 'Call'].copy()
-    puts = df[df['Type'] == 'Put'].copy()
-    call_local_df, call_interp, calls_smoothed = process_options(calls, 'Call', r, q)
-    put_local_df, put_interp, puts_smoothed = process_options(puts, 'Put', r, q)
-    smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index() if not calls_smoothed.empty and not puts_smoothed.empty else (calls_smoothed if not calls_smoothed.empty else puts_smoothed)
-    if smoothed_df.empty:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Empty smoothed_df for {ticker} in calculate_local_vol_from_iv\n")
-        df.loc[:, 'Smoothed_IV'] = np.nan
-        df.loc[:, 'TotalVariance'] = np.nan
-        df.loc[:, 'Call Local Vol'] = np.nan
-        df.loc[:, 'Put Local Vol'] = np.nan
-        return pd.DataFrame(), pd.DataFrame(), None, None, df
-    with open('data_error.log', 'a') as f:
-        f.write(f"Smoothed DataFrame for {ticker}: {len(smoothed_df)} rows\n")
-    return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
-
 def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
     def delta_diff(K):
         delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
@@ -467,10 +277,31 @@ def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
             f.write(f"Failed to find strike for delta {target_delta} in {option_type}\n")
         return np.nan
 
-def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
-    if df.empty or call_interp is None or put_interp is None:
+def calculate_skew_metrics(df, S, r, q, ticker):
+    if df.empty:
         with open('data_error.log', 'a') as f:
-            f.write(f"Insufficient data for skew metrics in {ticker}\n")
+            f.write(f"Empty DataFrame for skew metrics in {ticker}\n")
+        return pd.DataFrame(), pd.DataFrame()
+    calls = df[df['Type'] == 'Call'].copy()
+    puts = df[df['Type'] == 'Put'].copy()
+    calls = calls[calls['IV_mid'].notna() & (calls['IV_mid'] > 0)]
+    puts = puts[puts['IV_mid'].notna() & (puts['IV_mid'] > 0)]
+    if calls.empty or puts.empty:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Insufficient valid IV data for {ticker}: calls={len(calls)}, puts={len(puts)}\n")
+        return pd.DataFrame(), pd.DataFrame()
+    calls = calls.sort_values(['Years_to_Expiry', 'LogMoneyness'])
+    puts = puts.sort_values(['Years_to_Expiry', 'LogMoneyness'])
+    call_points = np.column_stack((calls['LogMoneyness'], calls['Years_to_Expiry']))
+    put_points = np.column_stack((puts['LogMoneyness'], puts['Years_to_Expiry']))
+    call_values = calls['Smoothed_IV'].values
+    put_values = puts['Smoothed_IV'].values
+    try:
+        call_interp = LinearNDInterpolator(call_points, call_values, fill_value=np.nan, rescale=True)
+        put_interp = LinearNDInterpolator(put_points, put_values, fill_value=np.nan, rescale=True)
+    except Exception as e:
+        with open('data_error.log', 'a') as f:
+            f.write(f"Interpolation failed for {ticker}: {str(e)}\n")
         return pd.DataFrame(), pd.DataFrame()
     def get_iv(interp, y, T):
         if interp is None or T <= 0:
@@ -478,19 +309,18 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q, ticker):
                 f.write(f"Invalid interp or T ({T}) for skew metrics\n")
             return np.nan
         try:
-            w = interp(np.array([[y, T]]))[0]
-            if np.isnan(w) or w <= 0:
+            iv = interp(np.array([[y, T]]))[0]
+            if np.isnan(iv) or iv <= 0:
                 with open('data_error.log', 'a') as f:
-                    f.write(f"Invalid total variance ({w}) for y={y}, T={T}\n")
+                    f.write(f"Invalid IV ({iv}) for y={y}, T={T}\n")
                 return np.nan
-            return np.sqrt(w / T)
+            return iv
         except Exception as e:
             with open('data_error.log', 'a') as f:
                 f.write(f"Interpolation failed for y={y}, T={T} in {ticker}: {str(e)}\n")
             return np.nan
     skew_data = []
     target_deltas = [0.25, 0.75]
-    target_terms = [0.25, 1.0]
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T):
@@ -579,7 +409,7 @@ def process_ticker(ticker, df, full_df, r, timestamp):
     if ticker_df.empty:
         with open('data_error.log', 'a') as f:
             f.write(f"No data for ticker {ticker} in df\n")
-        return ticker_df, pd.DataFrame(), pd.DataFrame(), None
+        return None, None, None
     with open('data_error.log', 'a') as f:
         f.write(f"Processing {ticker}: {len(ticker_df)} rows in cleaned data, {len(ticker_full)} rows in raw data\n")
     rvol100d = load_rvol_from_historic(ticker, timestamp)
@@ -589,63 +419,19 @@ def process_ticker(ticker, df, full_df, r, timestamp):
     if ticker_df.empty:
         with open('data_error.log', 'a') as f:
             f.write(f"No valid data after IV calculation for {ticker}\n")
-        return ticker_df, pd.DataFrame(), pd.DataFrame(), None
+        return None, None, None
     with open('data_error.log', 'a') as f:
         f.write(f"Post-IV calculation columns for {ticker}: {list(ticker_df.columns)}\n")
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
+    ticker_df = smooth_iv_per_expiry(ticker_df)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
-    try:
-        call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q, ticker)
-        ticker_df = smoothed_df
-    except Exception as e:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Local vol calculation failed for {ticker}: {str(e)}\n")
-        call_local_df, put_local_df, call_interp, put_interp = pd.DataFrame(), pd.DataFrame(), None, None
-        ticker_df.loc[:, 'Smoothed_IV'] = ticker_df['IV_mid']
-        ticker_df.loc[:, 'TotalVariance'] = np.nan
-        ticker_df.loc[:, 'Call Local Vol'] = np.nan
-        ticker_df.loc[:, 'Put Local Vol'] = np.nan
-    with open('data_error.log', 'a') as f:
-        f.write(f"Post-local vol columns for {ticker}: {list(ticker_df.columns)}\n")
-    skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q, ticker)
+    skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, S, r, q, ticker)
     skew_metrics_df.loc[:, 'Ticker'] = ticker
     slope_metrics_df.loc[:, 'Ticker'] = ticker
-    if not call_local_df.empty:
-        ticker_df = ticker_df.merge(
-            call_local_df.rename(columns={'Local Vol': 'Call Local Vol'}),
-            on=['Strike', 'Expiry'],
-            how='left'
-        )
-    else:
-        ticker_df.loc[:, 'Call Local Vol'] = np.nan
-    if not put_local_df.empty:
-        ticker_df = ticker_df.merge(
-            put_local_df.rename(columns={'Local Vol': 'Put Local Vol'}),
-            on=['Strike', 'Expiry'],
-            how='left'
-        )
-    else:
-        ticker_df.loc[:, 'Put Local Vol'] = np.nan
     ticker_df.loc[:, 'Realised Vol 100d'] = rvol100d if rvol100d is not None else np.nan
-    vol_fit_params, vol_fit_residuals = fit_single_ticker(ticker_df[ticker_df['Type'] == 'Call'], model='hyp')
-    vol_fit_data = {
-        'Ticker': ticker,
-        'a0': vol_fit_params[0] if vol_fit_params is not None else np.nan,
-        'a1': vol_fit_params[1] if vol_fit_params is not None else np.nan,
-        'b0': vol_fit_params[2] if vol_fit_params is not None else np.nan,
-        'b1': vol_fit_params[3] if vol_fit_params is not None else np.nan,
-        'm0': vol_fit_params[4] if vol_fit_params is not None else np.nan,
-        'm1': vol_fit_params[5] if vol_fit_params is not None else np.nan,
-        'rho0': vol_fit_params[6] if vol_fit_params is not None else np.nan,
-        'rho1': vol_fit_params[7] if vol_fit_params is not None else np.nan,
-        'sigma0': vol_fit_params[8] if vol_fit_params is not None else np.nan,
-        'sigma1': vol_fit_params[9] if vol_fit_params is not None else np.nan,
-        'c': vol_fit_params[10] if vol_fit_params is not None else np.nan,
-        'Residuals': vol_fit_residuals if vol_fit_residuals is not None else np.nan
-    }
     with open('data_error.log', 'a') as f:
         f.write(f"Final columns for {ticker} before saving: {list(ticker_df.columns)}\n")
-    return ticker_df, skew_df, slope_df, vol_fit_data
+    return ticker_df, skew_df, slope_metrics_df
 
 def fetch_tnx_data(timestamp):
     tnx_file = f'data/{timestamp}/historic/historic_^TNX.csv'
@@ -677,16 +463,14 @@ def process_data(timestamp, prefix="_yfinance"):
     processed_dir = f'data/{timestamp}/processed{prefix}'
     skew_dir = f'data/{timestamp}/skew_metrics{prefix}'
     slope_dir = f'data/{timestamp}/slope_metrics{prefix}'
-    vol_fit_dir = f'data/{timestamp}/vol_fit'
     try:
         os.makedirs(cleaned_dir, exist_ok=True)
         os.makedirs(raw_dir, exist_ok=True)
         os.makedirs(processed_dir, exist_ok=True)
         os.makedirs(skew_dir, exist_ok=True)
         os.makedirs(slope_dir, exist_ok=True)
-        os.makedirs(vol_fit_dir, exist_ok=True)
         with open('data_error.log', 'a') as f:
-            f.write(f"Created directories: {cleaned_dir}, {raw_dir}, {processed_dir}, {skew_dir}, {slope_dir}, {vol_fit_dir}\n")
+            f.write(f"Created directories: {cleaned_dir}, {raw_dir}, {processed_dir}, {skew_dir}, {slope_dir}\n")
     except Exception as e:
         with open('data_error.log', 'a') as f:
             f.write(f"Failed to create directories: {str(e)}\n")
@@ -719,7 +503,6 @@ def process_data(timestamp, prefix="_yfinance"):
     processed_dfs = []
     skew_metrics_dfs = []
     slope_metrics_dfs = []
-    vol_fit_data = []
     for ticker in tickers:
         clean_file = f'{cleaned_dir}/cleaned{prefix}_{ticker}.csv'
         raw_file = f'{raw_dir}/raw{prefix}_{ticker}.csv'
@@ -738,22 +521,9 @@ def process_data(timestamp, prefix="_yfinance"):
                 with open('data_error.log', 'a') as f:
                     f.write(f"Empty cleaned file for {ticker}: {clean_file}\n")
                 continue
-            ticker_df, skew_df, slope_df, vol_fit_row = process_ticker(ticker, df, full_df, r, timestamp)
-            processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
-            skew_filename = f'{skew_dir}/strike_skew_metrics{prefix}_{ticker}.csv'
-            slope_filename = f'{slope_dir}/strike_slope_metrics{prefix}_{ticker}.csv'
-            skew_metrics_filename = f'{skew_dir}/skew_metrics{prefix}_{ticker}.csv'
-            slope_metrics_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
-            try:
-                os.makedirs(processed_dir, exist_ok=True)
-                os.makedirs(skew_dir, exist_ok=True)
-                os.makedirs(slope_dir, exist_ok=True)
-                with open('data_error.log', 'a') as f:
-                    f.write(f"Ensured directories exist: {processed_dir}, {skew_dir}, {slope_dir}\n")
-            except Exception as e:
-                with open('data_error.log', 'a') as f:
-                    f.write(f"Failed to create directories for {ticker}: {str(e)}\n")
-            if not ticker_df.empty:
+            ticker_df, skew_df, slope_metrics_df = process_ticker(ticker, df, full_df, r, timestamp)
+            if ticker_df is not None:
+                processed_filename = f'{processed_dir}/processed{prefix}_{ticker}.csv'
                 ticker_df.to_csv(processed_filename, index=False)
                 with open('data_error.log', 'a') as f:
                     f.write(f"Saved processed data for {ticker}: {len(ticker_df)} rows to {processed_filename}\n")
@@ -762,30 +532,15 @@ def process_data(timestamp, prefix="_yfinance"):
                 with open('data_error.log', 'a') as f:
                     f.write(f"Empty ticker_df for {ticker}, not saving processed file\n")
             if not skew_df.empty:
+                skew_filename = f'{skew_dir}/strike_skew_metrics{prefix}_{ticker}.csv'
                 skew_df.to_csv(skew_filename, index=False)
                 with open('data_error.log', 'a') as f:
                     f.write(f"Saved strike skew metrics for {ticker}: {len(skew_df)} rows to {skew_filename}\n")
-                skew_metrics_dfs.append(skew_df)
             else:
                 with open('data_error.log', 'a') as f:
                     f.write(f"Empty skew_df for {ticker}, not saving strike skew metrics\n")
-            if not slope_df.empty:
-                slope_df.to_csv(slope_filename, index=False)
-                with open('data_error.log', 'a') as f:
-                    f.write(f"Saved strike slope metrics for {ticker}: {len(slope_df)} rows to {slope_filename}\n")
-                slope_metrics_dfs.append(slope_df)
-            else:
-                with open('data_error.log', 'a') as f:
-                    f.write(f"Empty slope_df for {ticker}, not saving strike slope metrics\n")
-            if not skew_metrics_df.empty:
-                skew_metrics_df.to_csv(skew_metrics_filename, index=False)
-                with open('data_error.log', 'a') as f:
-                    f.write(f"Saved delta-based skew metrics for {ticker}: {len(skew_metrics_df)} rows to {skew_metrics_filename}\n")
-                skew_metrics_dfs.append(skew_metrics_df)
-            else:
-                with open('data_error.log', 'a') as f:
-                    f.write(f"Empty skew_metrics_df for {ticker}, not saving delta-based skew metrics\n")
             if not slope_metrics_df.empty:
+                slope_metrics_filename = f'{slope_dir}/slope_metrics{prefix}_{ticker}.csv'
                 slope_metrics_df.to_csv(slope_metrics_filename, index=False)
                 with open('data_error.log', 'a') as f:
                     f.write(f"Saved delta-based slope metrics for {ticker}: {len(slope_metrics_df)} rows to {slope_metrics_filename}\n")
@@ -793,21 +548,10 @@ def process_data(timestamp, prefix="_yfinance"):
             else:
                 with open('data_error.log', 'a') as f:
                     f.write(f"Empty slope_metrics_df for {ticker}, not saving delta-based slope metrics\n")
-            if vol_fit_row is not None:
-                vol_fit_data.append(vol_fit_row)
         except Exception as e:
             with open('data_error.log', 'a') as f:
                 f.write(f"Error processing {ticker} file {clean_file}: {str(e)}\n")
             continue
-    vol_fit_df = pd.DataFrame(vol_fit_data)
-    vol_fit_filename = f'{vol_fit_dir}/vol_fit.csv'
-    try:
-        vol_fit_df.to_csv(vol_fit_filename, index=False)
-        with open('data_error.log', 'a') as f:
-            f.write(f"Saved vol_fit.csv with {len(vol_fit_data)} tickers to {vol_fit_filename}\n")
-    except Exception as e:
-        with open('data_error.log', 'a') as f:
-            f.write(f"Failed to save vol_fit.csv: {str(e)}\n")
     return processed_dfs, skew_metrics_dfs, slope_metrics_dfs
 
 def main():
