@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250830_1838)'
+        description: 'Date timestamp to process (e.g., 20240901_1122)'
         required: true
         type: string
 jobs:
@@ -23,25 +23,23 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy scipy joblib statsmodels yfinance
+        pip install pandas numpy scipy statsmodels yfinance
     - name: Log timestamp and input files
       run: |
         echo "Running Force_Calculate_Vols.py with timestamp: ${{ inputs.date }}"
-        ls -R data/${{ inputs.date }}/cleaned_yfinance* || echo "No cleaned files found"
-        ls -R data/${{ inputs.date }}/raw_yfinance* || echo "No raw files found"
-        ls -R data/${{ inputs.date }}/historic* || echo "No historic files found"
+        ls -R data/${{ inputs.date }}/cleaned_yfinance || echo "No cleaned files found"
+        ls -R data/${{ inputs.date }}/raw_yfinance || echo "No raw files found"
+        ls -R data/${{ inputs.date }}/historic || echo "No historic files found"
     - name: Run the script
       run: python Force_Calculate_Vols.py ${{ inputs.date }}
     - name: Log output files
       run: |
         echo "Processed files:"
-        ls -R data/${{ inputs.date }}/processed_yfinance* || echo "No processed files found"
+        ls -R data/${{ inputs.date }}/processed_yfinance || echo "No processed files found"
         echo "Skew metrics files:"
-        ls -R data/${{ inputs.date }}/skew_metrics_yfinance* || echo "No skew metrics files found"
+        ls -R data/${{ inputs.date }}/skew_metrics_yfinance || echo "No skew metrics files found"
         echo "Slope metrics files:"
-        ls -R data/${{ inputs.date }}/slope_metrics_yfinance* || echo "No slope metrics files found"
-        echo "Vol fit file:"
-        ls -R data/${{ inputs.date }}/vol_fit* || echo "No vol fit file found"
+        ls -R data/${{ inputs.date }}/slope_metrics_yfinance || echo "No slope metrics files found"
         ls data_error.log || echo "No error log generated"
     - name: Commit and push updated data
       run: |
