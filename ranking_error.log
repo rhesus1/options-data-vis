@@ -7596,3 +7596,1640 @@ Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.
 Column Realised_Vol_Close_100 not found in historic file for MIDD
 Generated ranking file for yfinance: data/20250829_2118/ranking/ranking_yfinance.csv with 370 tickers
 No timestamp provided to Force_Calculate_Ranking.py
+Empty or invalid historic file: data/20250829_2118/historic/historic_^TNX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_VAL.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ENPH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SHAK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LITE.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_OBDC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LEU.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CWB.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MIR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_INSW.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SATS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PTON.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_DBX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BXMT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LRN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CAKE.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_VRNS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LCID.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BB.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TAP.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MIDD.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_WK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BABA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ALB.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ICVT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_COIN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_UAA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LIF.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_HAE.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_VNET.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ALKT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FRPT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GDS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SPR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GBDC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FLR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_JBTM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_UGI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BTG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_QTWO.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_KBH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_RIOT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GVA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CHEF.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_HTHT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_STNG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SIRI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GTLS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_NICE.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MSTR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SYNA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SSRM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_NOG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_AAL.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ODD.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CNK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BTU.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FSK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LIVN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_EQX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MMYT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ABR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CLSK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_HTGC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TSLX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TRIP.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_KRG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_AKAM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CNX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CZR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ITGR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BL.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_JAZZ.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PATK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_EEFT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_RGEN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_IDCC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TXNM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SBLK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FIZZ.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TMDX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ATEC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_DOCN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LBRDA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MMSI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LEVI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GME.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_AMBP.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_QFIN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MTCH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LNTH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_HASI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ALHC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PSN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_SMTC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_DASH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MTH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_IONS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_VERX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_UPST.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BILL.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LYFT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BILI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_DAY.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MKSI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_AMG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_OSIS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_POST.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MTN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_APLD.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_RNG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BFH.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BXSL.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ORA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MARA.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_RUN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_HALO.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MIRM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PGY.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CYTK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_VIAV.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CDP.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FSM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_STWD.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CORZ.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BOX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ETSY.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_IRTC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MAIN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_APLS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PENN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CFLT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TTEK.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LCII.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GKOS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CENX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ALRM.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_RIG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_IREN.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_REXR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MTSI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BTDR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PCT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_DDOG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_DJT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FRT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_VAC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_WIX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_EXAS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_AG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ITRI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_GEO.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MANU.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BTSG.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_PTCT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_NVMI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_XMTR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_CAMT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BBIO.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_FOUR.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BBAI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_BE.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_NVST.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_ENVX.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_TMHC.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_LMAT.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_W.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_MGNI.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_AEIS.csv
+Missing columns ['High', 'Low', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252'] in historic file: data/20250822_2122/historic/historic_WB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HRTG: data/20250822_2122/historic/historic_HRTG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CENX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BKD: data/20250822_2122/historic/historic_BKD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for XERS: data/20250822_2122/historic/historic_XERS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FWONK: data/20250822_2122/historic/historic_FWONK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PTON
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for RNG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SPB: data/20250822_2122/historic/historic_SPB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CNMD: data/20250822_2122/historic/historic_CNMD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for AG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for VERX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TTWO: data/20250822_2122/historic/historic_TTWO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LRN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NTRA: data/20250822_2122/historic/historic_NTRA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for RGEN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DUK: data/20250822_2122/historic/historic_DUK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PANW: data/20250822_2122/historic/historic_PANW.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BHR: data/20250822_2122/historic/historic_BHR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MDRX: data/20250822_2122/historic/historic_MDRX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AVGO: data/20250822_2122/historic/historic_AVGO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MMM: data/20250822_2122/historic/historic_MMM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for COIN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WGO: data/20250822_2122/historic/historic_WGO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NVAX: data/20250822_2122/historic/historic_NVAX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for HAE
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CNK
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for GKOS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for TTEK
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ARAY: data/20250822_2122/historic/historic_ARAY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LAB: data/20250822_2122/historic/historic_LAB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NBR: data/20250822_2122/historic/historic_NBR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FVRR: data/20250822_2122/historic/historic_FVRR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AMZN: data/20250822_2122/historic/historic_AMZN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for NOG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MSFT: data/20250822_2122/historic/historic_MSFT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for GDS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NRG: data/20250822_2122/historic/historic_NRG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PAR: data/20250822_2122/historic/historic_PAR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SHOP: data/20250822_2122/historic/historic_SHOP.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for JPM: data/20250822_2122/historic/historic_JPM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AMPH: data/20250822_2122/historic/historic_AMPH.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for IONS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BABA
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VECO: data/20250822_2122/historic/historic_VECO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ZS: data/20250822_2122/historic/historic_ZS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DIS: data/20250822_2122/historic/historic_DIS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EGHT: data/20250822_2122/historic/historic_EGHT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FUBO: data/20250822_2122/historic/historic_FUBO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for REAL: data/20250822_2122/historic/historic_REAL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SABR: data/20250822_2122/historic/historic_SABR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for WK
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MIRM
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MMSI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for AEIS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ABR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LCII
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SKIN: data/20250822_2122/historic/historic_SKIN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TYL: data/20250822_2122/historic/historic_TYL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CFLT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for NVST
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for XRX: data/20250822_2122/historic/historic_XRX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DNMR: data/20250822_2122/historic/historic_DNMR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CMI: data/20250822_2122/historic/historic_CMI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ASND: data/20250822_2122/historic/historic_ASND.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CABO: data/20250822_2122/historic/historic_CABO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ZTO: data/20250822_2122/historic/historic_ZTO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ZD: data/20250822_2122/historic/historic_ZD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CAKE
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VTR: data/20250822_2122/historic/historic_VTR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for JOYY: data/20250822_2122/historic/historic_JOYY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MITK: data/20250822_2122/historic/historic_MITK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PDD: data/20250822_2122/historic/historic_PDD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PRGS: data/20250822_2122/historic/historic_PRGS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for XIFR: data/20250822_2122/historic/historic_XIFR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BBAI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BOX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for OKTA: data/20250822_2122/historic/historic_OKTA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for JD: data/20250822_2122/historic/historic_JD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SPHR: data/20250822_2122/historic/historic_SPHR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WDC: data/20250822_2122/historic/historic_WDC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PRCH: data/20250822_2122/historic/historic_PRCH.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for UNIT: data/20250822_2122/historic/historic_UNIT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BURL: data/20250822_2122/historic/historic_BURL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for U: data/20250822_2122/historic/historic_U.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BA: data/20250822_2122/historic/historic_BA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ATEC
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ECPG: data/20250822_2122/historic/historic_ECPG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MTN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BE
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for UPHL: data/20250822_2122/historic/historic_UPHL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for OMER: data/20250822_2122/historic/historic_OMER.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VERI: data/20250822_2122/historic/historic_VERI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for OPK: data/20250822_2122/historic/historic_OPK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LNTH
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for EXAS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CBRL: data/20250822_2122/historic/historic_CBRL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LIVN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HOUS: data/20250822_2122/historic/historic_HOUS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GCI: data/20250822_2122/historic/historic_GCI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LCID
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LI: data/20250822_2122/historic/historic_LI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for SATS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BMY: data/20250822_2122/historic/historic_BMY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MAXN: data/20250822_2122/historic/historic_MAXN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for INSG: data/20250822_2122/historic/historic_INSG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ARRY: data/20250822_2122/historic/historic_ARRY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RKLB: data/20250822_2122/historic/historic_RKLB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LAZR: data/20250822_2122/historic/historic_LAZR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CHEF
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RPD: data/20250822_2122/historic/historic_RPD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MNKD: data/20250822_2122/historic/historic_MNKD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for W
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BSY: data/20250822_2122/historic/historic_BSY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MTH
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FSLY: data/20250822_2122/historic/historic_FSLY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for DAY
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TSLA: data/20250822_2122/historic/historic_TSLA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PCRX: data/20250822_2122/historic/historic_PCRX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for RUN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RPAY: data/20250822_2122/historic/historic_RPAY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PTCT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PRO: data/20250822_2122/historic/historic_PRO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LYFT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ASRT: data/20250822_2122/historic/historic_ASRT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MODG: data/20250822_2122/historic/historic_MODG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VREX: data/20250822_2122/historic/historic_VREX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NEO: data/20250822_2122/historic/historic_NEO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CHTR: data/20250822_2122/historic/historic_CHTR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for KHC: data/20250822_2122/historic/historic_KHC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CMPO: data/20250822_2122/historic/historic_CMPO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CCL: data/20250822_2122/historic/historic_CCL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for DOCN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for VAC
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MSTR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CVX: data/20250822_2122/historic/historic_CVX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GWRE: data/20250822_2122/historic/historic_GWRE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SOFI: data/20250822_2122/historic/historic_SOFI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ENVX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CYBR: data/20250822_2122/historic/historic_CYBR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for FLR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BYND: data/20250822_2122/historic/historic_BYND.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NEE: data/20250822_2122/historic/historic_NEE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for GVA
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RDFN: data/20250822_2122/historic/historic_RDFN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GPRO: data/20250822_2122/historic/historic_GPRO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SEDG: data/20250822_2122/historic/historic_SEDG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SNAP: data/20250822_2122/historic/historic_SNAP.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BILI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LAC: data/20250822_2122/historic/historic_LAC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for INVA: data/20250822_2122/historic/historic_INVA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for GEO
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PPL: data/20250822_2122/historic/historic_PPL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RTX: data/20250822_2122/historic/historic_RTX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FIVN: data/20250822_2122/historic/historic_FIVN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for VIAV
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MMYT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RWT: data/20250822_2122/historic/historic_RWT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PEP: data/20250822_2122/historic/historic_PEP.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TTGT: data/20250822_2122/historic/historic_TTGT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LNT: data/20250822_2122/historic/historic_LNT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BMRN: data/20250822_2122/historic/historic_BMRN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PSN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for XOM: data/20250822_2122/historic/historic_XOM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for RIG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SPOT: data/20250822_2122/historic/historic_SPOT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PLUG: data/20250822_2122/historic/historic_PLUG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ALRM
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CMRC: data/20250822_2122/historic/historic_CMRC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CYRX: data/20250822_2122/historic/historic_CYRX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PEB: data/20250822_2122/historic/historic_PEB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for SSRM
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NMFC: data/20250822_2122/historic/historic_NMFC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GRPN: data/20250822_2122/historic/historic_GRPN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NIO: data/20250822_2122/historic/historic_NIO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BXMT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EVH: data/20250822_2122/historic/historic_EVH.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for JAZZ
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for HASI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EZPW: data/20250822_2122/historic/historic_EZPW.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CSIQ: data/20250822_2122/historic/historic_CSIQ.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for DBX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SRPT: data/20250822_2122/historic/historic_SRPT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BFH
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SHEL: data/20250822_2122/historic/historic_SHEL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for AAL
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MKSI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IART: data/20250822_2122/historic/historic_IART.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for VNET
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TWO: data/20250822_2122/historic/historic_TWO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for TMDX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GPRE: data/20250822_2122/historic/historic_GPRE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for GH
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TDOC: data/20250822_2122/historic/historic_TDOC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CHGG: data/20250822_2122/historic/historic_CHGG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SO: data/20250822_2122/historic/historic_SO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AWK: data/20250822_2122/historic/historic_AWK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EQT: data/20250822_2122/historic/historic_EQT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BAND: data/20250822_2122/historic/historic_BAND.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for APLS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AMD: data/20250822_2122/historic/historic_AMD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for FRPT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ETSY
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LUV: data/20250822_2122/historic/historic_LUV.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AFRM: data/20250822_2122/historic/historic_AFRM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NSIT: data/20250822_2122/historic/historic_NSIT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CHRS: data/20250822_2122/historic/historic_CHRS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MIDD
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for WB
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MTSI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LYV: data/20250822_2122/historic/historic_LYV.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BKNG: data/20250822_2122/historic/historic_BKNG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HLIT: data/20250822_2122/historic/historic_HLIT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NTNX: data/20250822_2122/historic/historic_NTNX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IQ: data/20250822_2122/historic/historic_IQ.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for JBLU: data/20250822_2122/historic/historic_JBLU.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for LPSN: data/20250822_2122/historic/historic_LPSN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FARO: data/20250822_2122/historic/historic_FARO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IBM: data/20250822_2122/historic/historic_IBM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PATK
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AVDL: data/20250822_2122/historic/historic_AVDL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DBRG: data/20250822_2122/historic/historic_DBRG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PSEC: data/20250822_2122/historic/historic_PSEC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EXPE: data/20250822_2122/historic/historic_EXPE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ATI: data/20250822_2122/historic/historic_ATI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VRNT: data/20250822_2122/historic/historic_VRNT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NET: data/20250822_2122/historic/historic_NET.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VATE: data/20250822_2122/historic/historic_VATE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for AKAM
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RCL: data/20250822_2122/historic/historic_RCL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for F: data/20250822_2122/historic/historic_F.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for SPR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for FE: data/20250822_2122/historic/historic_FE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GOSS: data/20250822_2122/historic/historic_GOSS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ON: data/20250822_2122/historic/historic_ON.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MRK: data/20250822_2122/historic/historic_MRK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for LITE
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for VSH: data/20250822_2122/historic/historic_VSH.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SMCI: data/20250822_2122/historic/historic_SMCI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for KOS: data/20250822_2122/historic/historic_KOS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SENS: data/20250822_2122/historic/historic_SENS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CYTK
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for HALO
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PCG: data/20250822_2122/historic/historic_PCG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for IRTC
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MITT: data/20250822_2122/historic/historic_MITT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for VRNS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PENN
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GPN: data/20250822_2122/historic/historic_GPN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MP: data/20250822_2122/historic/historic_MP.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for FOUR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for XMTR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TPIC: data/20250822_2122/historic/historic_TPIC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for NVMI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HCAT: data/20250822_2122/historic/historic_HCAT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WKC: data/20250822_2122/historic/historic_WKC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DDD: data/20250822_2122/historic/historic_DDD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SE: data/20250822_2122/historic/historic_SE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for GTLS
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MCS: data/20250822_2122/historic/historic_MCS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MTCH
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CTO: data/20250822_2122/historic/historic_CTO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IMAX: data/20250822_2122/historic/historic_IMAX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IRWD: data/20250822_2122/historic/historic_IRWD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AR: data/20250822_2122/historic/historic_AR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DVAX: data/20250822_2122/historic/historic_DVAX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TREE: data/20250822_2122/historic/historic_TREE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for TRIP
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for INDI: data/20250822_2122/historic/historic_INDI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for REXR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for HTHT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GMED: data/20250822_2122/historic/historic_GMED.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TVTX: data/20250822_2122/historic/historic_TVTX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MARA
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DXCM: data/20250822_2122/historic/historic_DXCM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GES: data/20250822_2122/historic/historic_GES.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CDLX: data/20250822_2122/historic/historic_CDLX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HOPE: data/20250822_2122/historic/historic_HOPE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RIVN: data/20250822_2122/historic/historic_RIVN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for INN: data/20250822_2122/historic/historic_INN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BL
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for QTWO
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for WIX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MGPI: data/20250822_2122/historic/historic_MGPI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for UBER: data/20250822_2122/historic/historic_UBER.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for JAMF: data/20250822_2122/historic/historic_JAMF.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for KRG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for XYZ: data/20250822_2122/historic/historic_XYZ.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CMS: data/20250822_2122/historic/historic_CMS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CRNC: data/20250822_2122/historic/historic_CRNC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for KPTI: data/20250822_2122/historic/historic_KPTI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for OPEN: data/20250822_2122/historic/historic_OPEN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MCHP: data/20250822_2122/historic/historic_MCHP.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IMCR: data/20250822_2122/historic/historic_IMCR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for INSM: data/20250822_2122/historic/historic_INSM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for V: data/20250822_2122/historic/historic_V.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MDB: data/20250822_2122/historic/historic_MDB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ITRI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for EQX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CDP
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BBIO
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HUBS: data/20250822_2122/historic/historic_HUBS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for EEFT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WELL: data/20250822_2122/historic/historic_WELL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TCOM: data/20250822_2122/historic/historic_TCOM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AORT: data/20250822_2122/historic/historic_AORT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for QD: data/20250822_2122/historic/historic_QD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HLX: data/20250822_2122/historic/historic_HLX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for STWD
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EYE: data/20250822_2122/historic/historic_EYE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for PCT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for UPWK: data/20250822_2122/historic/historic_UPWK.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for COLL: data/20250822_2122/historic/historic_COLL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ITGR
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TNDM: data/20250822_2122/historic/historic_TNDM.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NCLH: data/20250822_2122/historic/historic_NCLH.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EB: data/20250822_2122/historic/historic_EB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ABBV: data/20250822_2122/historic/historic_ABBV.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CAMT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WOLF: data/20250822_2122/historic/historic_WOLF.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ABNB: data/20250822_2122/historic/historic_ABNB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for FRT
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CNP: data/20250822_2122/historic/historic_CNP.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NVCR: data/20250822_2122/historic/historic_NVCR.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TEVA: data/20250822_2122/historic/historic_TEVA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for IDCC
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for OMCL: data/20250822_2122/historic/historic_OMCL.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for RH: data/20250822_2122/historic/historic_RH.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BILL
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for DDOG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NKE: data/20250822_2122/historic/historic_NKE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BB
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PODD: data/20250822_2122/historic/historic_PODD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for AXON: data/20250822_2122/historic/historic_AXON.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for STX: data/20250822_2122/historic/historic_STX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for SIRI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HCI: data/20250822_2122/historic/historic_HCI.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for IIIV: data/20250822_2122/historic/historic_IIIV.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for NICE
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WEC: data/20250822_2122/historic/historic_WEC.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ORA
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BTSG
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for BLMN: data/20250822_2122/historic/historic_BLMN.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for MGNI
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for DKNG: data/20250822_2122/historic/historic_DKNG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for EVRG: data/20250822_2122/historic/historic_EVRG.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for Z: data/20250822_2122/historic/historic_Z.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PD: data/20250822_2122/historic/historic_PD.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SPCE: data/20250822_2122/historic/historic_SPCE.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for WT: data/20250822_2122/historic/historic_WT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MLAB: data/20250822_2122/historic/historic_MLAB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for SHAK
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for HLF: data/20250822_2122/historic/historic_HLF.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for TGT: data/20250822_2122/historic/historic_TGT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PMT: data/20250822_2122/historic/historic_PMT.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for SLB: data/20250822_2122/historic/historic_SLB.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for CSGS: data/20250822_2122/historic/historic_CSGS.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for ENPH
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for PEGA: data/20250822_2122/historic/historic_PEGA.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for CNX
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for UPST
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for BTU
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for SMTC
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ENOV: data/20250822_2122/historic/historic_ENOV.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for MOMO: data/20250822_2122/historic/historic_MOMO.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for GBX: data/20250822_2122/historic/historic_GBX.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for ALNY: data/20250822_2122/historic/historic_ALNY.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+No historic file found for NOTV: data/20250822_2122/historic/historic_NOTV.csv
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Error filtering 3m expiry for ticker: unsupported operand type(s) for -: 'numpy.ndarray' and 'Timestamp'
+Column Realised_Vol_Close_100 not found in historic file for POST
+Generated ranking file for yfinance: data/20250829_2118/ranking/ranking_yfinance.csv with 370 tickers
+No timestamp provided to Force_Calculate_Ranking.py
