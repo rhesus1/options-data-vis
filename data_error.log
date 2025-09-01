@@ -2554,3 +2554,314 @@ Smoothed IV for MSTR: 2248 rows
 Generated 0 skew metrics and 1865 slope metrics for MSTR
 Insufficient valid IV data for MSTR: calls=0, puts=0
 Error processing MSTR file data/20250827_2136/cleaned_yfinance/cleaned_yfinance_MSTR.csv: cannot set a frame with no defined index and a scalar
+Created directories: data/20250827_2136/cleaned_yfinance, data/20250827_2136/raw_yfinance, data/20250827_2136/processed_yfinance, data/20250827_2136/skew_metrics_yfinance, data/20250827_2136/slope_metrics_yfinance
+Read 1 tickers from tickers.txt: ['MSTR']
+Loaded ^TNX from data/20250827_2136/historic/historic_^TNX.csv: r=0.0423
+Processing calculations for MSTR...
+Processing MSTR: 2248 rows in cleaned data, 5354 rows in raw data
+Loaded realized volatility for MSTR: 0.6925
+Realised Volatility for MSTR: 100-day: 69.25% if not None else 'N/A'
+IV solver failed for MSTR250829C00310000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00310000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00315000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00395000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00385000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905C00240000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00425000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905C00260000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00387500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00387500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00270000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00235000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00415000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00415000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00392500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00392500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00455000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00435000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00390000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00390000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905C00245000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00412500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00412500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00440000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00440000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00111000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00111000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00111000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00415000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00395000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00445000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00225000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00397500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00397500: f(a) and f(b) must have different signs
+Price (80.0) below relaxed intrinsic (188.74362796769685) for MSTR260618C00098000
+Price (84.25) below relaxed intrinsic (188.74362796769685) for MSTR260618C00098000
+Price (82.125) below relaxed intrinsic (188.74362796769685) for MSTR260618C00098000
+IV solver failed for MSTR250919P00490000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251017C00180000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00235000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00380000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00123000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00185000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00430000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00280000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00205000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250912P00430000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00450000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00367500: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00445000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00470000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00121000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00121000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00121000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00190000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00195000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00116000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00420000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00420000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00380000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00380000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00485000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00230000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00108000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00108000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00108000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00245000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00475000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00405000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00150000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00425000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00410000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00410000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00170000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00250000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00101000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00101000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00101000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251017C00160000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250912P00400000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00117000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00117000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00117000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00390000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00420000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00420000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00165000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00155000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00370000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00160000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00114000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00114000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00460000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00465000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00146000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00146000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618C00146000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00150000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00145000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00130000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00109000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00109000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00140000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00450000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00124000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00124000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00124000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00480000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00110000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905C00150000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P00780000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P00780000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P00780000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00111000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00111000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00111000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00115000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00120000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00105000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00430000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00230000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00230000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00375000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00121000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00121000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00121000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00100000: f(a) and f(b) must have different signs
+IV solver failed for MSTR270115P01040000: f(a) and f(b) must have different signs
+IV solver failed for MSTR270115P01040000: f(a) and f(b) must have different signs
+IV solver failed for MSTR270115P01040000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00400000: f(a) and f(b) must have different signs
+IV solver failed for MSTR270115P00590000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250912P00440000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00106000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00106000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P00610000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P00610000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P00610000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251017C00150000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251017P00600000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251017P00640000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00630000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00630000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00630000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00135000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00135000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00680000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00680000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00680000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00650000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00650000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00650000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00710000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00710000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00710000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00136000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00136000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00136000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00405000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00405000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00119000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00119000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00119000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00430000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00690000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00690000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00690000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00650000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00650000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00650000: f(a) and f(b) must have different signs
+Price (189.85) below relaxed intrinsic (213.77901721143726) for MSTR250919P00610000
+Price (191.8) below relaxed intrinsic (213.77901721143726) for MSTR250919P00610000
+Price (190.825) below relaxed intrinsic (213.77901721143726) for MSTR250919P00610000
+IV solver failed for MSTR270115P00690000: f(a) and f(b) must have different signs
+IV solver failed for MSTR270115P00690000: f(a) and f(b) must have different signs
+IV solver failed for MSTR270115P00690000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00620000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00620000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00620000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00510000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00510000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00510000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00610000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00610000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00610000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00139000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00139000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00139000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00660000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00660000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00660000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00186000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00186000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00186000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00540000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00540000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919P00540000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250919C00175000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00134000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00134000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00134000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250905P00410000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00117000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00117000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219C00117000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00620000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00620000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00620000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00112000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00112000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00112000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00132000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00132000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00132000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00840000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00840000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00840000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00154000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00154000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00154000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00730000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00730000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00730000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00970000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00970000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P00970000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00400000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829P00400000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01010000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01010000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01010000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01030000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01030000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01030000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01040000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01040000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01040000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01060000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01060000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01060000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01020000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01020000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260618P01020000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P01060000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P01060000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P01060000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00156000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00156000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116C00156000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00720000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00720000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00720000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00910000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00910000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00910000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00930000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00930000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00930000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00930000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00930000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00930000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P01080000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P01080000: f(a) and f(b) must have different signs
+IV solver failed for MSTR261218P01080000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00820000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00820000: f(a) and f(b) must have different signs
+IV solver failed for MSTR260116P00820000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00970000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00970000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00970000: f(a) and f(b) must have different signs
+IV solver failed for MSTR250829C00200000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00980000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00980000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00980000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00950000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00950000: f(a) and f(b) must have different signs
+IV solver failed for MSTR251219P00950000: f(a) and f(b) must have different signs
+IV_mid stats for MSTR: valid=0, nan=2248, min=nan, max=nan
+Columns after calculate_iv_mid for MSTR: ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Input_Implied_Volatility', 'Expiry_dt', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta', 'Implied Volatility']
+Post-IV calculation columns for MSTR: ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Input_Implied_Volatility', 'Expiry_dt', 'Years_to_Expiry', 'Forward', 'LogMoneyness', 'IV_bid', 'IV_ask', 'IV_mid', 'IV_spread', 'Delta', 'Implied Volatility']
+Insufficient data (83) or all NaN IV_mid for expiry 2025-08-29 00:00:00 in MSTR
+Insufficient data (106) or all NaN IV_mid for expiry 2025-09-05 00:00:00 in MSTR
+Insufficient data (70) or all NaN IV_mid for expiry 2025-09-12 00:00:00 in MSTR
+Insufficient data (151) or all NaN IV_mid for expiry 2025-09-19 00:00:00 in MSTR
+Insufficient data (56) or all NaN IV_mid for expiry 2025-09-26 00:00:00 in MSTR
+Insufficient data (19) or all NaN IV_mid for expiry 2025-10-03 00:00:00 in MSTR
+Insufficient data (135) or all NaN IV_mid for expiry 2025-10-17 00:00:00 in MSTR
+Insufficient data (62) or all NaN IV_mid for expiry 2025-11-21 00:00:00 in MSTR
+Insufficient data (246) or all NaN IV_mid for expiry 2025-12-19 00:00:00 in MSTR
+Insufficient data (277) or all NaN IV_mid for expiry 2026-01-16 00:00:00 in MSTR
+Insufficient data (63) or all NaN IV_mid for expiry 2026-02-20 00:00:00 in MSTR
+Insufficient data (108) or all NaN IV_mid for expiry 2026-03-20 00:00:00 in MSTR
+Insufficient data (23) or all NaN IV_mid for expiry 2026-04-17 00:00:00 in MSTR
+Insufficient data (260) or all NaN IV_mid for expiry 2026-06-18 00:00:00 in MSTR
+Insufficient data (55) or all NaN IV_mid for expiry 2026-09-18 00:00:00 in MSTR
+Insufficient data (117) or all NaN IV_mid for expiry 2026-12-18 00:00:00 in MSTR
+Insufficient data (180) or all NaN IV_mid for expiry 2027-01-15 00:00:00 in MSTR
+Insufficient data (97) or all NaN IV_mid for expiry 2027-06-17 00:00:00 in MSTR
+Insufficient data (18) or all NaN IV_mid for expiry 2027-09-17 00:00:00 in MSTR
+Insufficient data (122) or all NaN IV_mid for expiry 2027-12-17 00:00:00 in MSTR
+Smoothed IV for MSTR: 2248 rows
+Generated 0 skew metrics and 1865 slope metrics for MSTR
+Insufficient valid IV data for MSTR: calls=0, puts=0
+Error processing MSTR file data/20250827_2136/cleaned_yfinance/cleaned_yfinance_MSTR.csv: cannot set a frame with no defined index and a scalar
