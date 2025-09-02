@@ -1,9 +1,5 @@
 name: Force Calculate Ranking
 on:
-  workflow_run:
-    workflows: ["Force Calculate Vols"]
-    types:
-      - completed
   workflow_dispatch:
     inputs:
       date:
