@@ -87,27 +87,27 @@
             margin-top: 15px;
             background-color: #25253D;
         }
-        .ranking-table {
+        .ranking-table, .stock-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
             background-color: #25253D;
-            font-size: 12px; /* Adjust font size if needed */
-            overflow-x: auto; /* Ensure horizontal scrolling */
-            white-space: nowrap; /* Prevent text wrapping */
+            font-size: 14px;
+            overflow-x: auto;
+            white-space: nowrap;
         }
-        .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td {
+        .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
             border: 1px solid #26A69A;
             padding: 8px;
             text-align: left;
             color: #FFFFFF;
         }
-        .stats-table th, .summary-table th, .ranking-table th, .raw-data-table th, .contracts-table th {
+        .stats-table th, .summary-table th, .ranking-table th, .raw-data-table th, .contracts-table th, .stock-table th {
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
         }
-        .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover {
+        .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover, .stock-table th:hover {
             background-color: #4B4B6F;
         }
         canvas {
@@ -300,6 +300,7 @@
         <a href="#overview">Overview</a>
         <a href="#volatility">Volatility</a>
         <a href="#ranking">Ranking</a>
+        <a href="#stock">Stock</a>
         <a href="#data-table">Data Table</a>
     </div>
     <div class="main-content">
@@ -422,6 +423,11 @@
                 </div>
             </div>
         </div>
+        <div id="stock" class="chart-container" style="display: none;">
+            <h2>Stock Metrics</h2>
+            <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
+            <table id="stock-table" class="stock-table" style="display: none;"></table>
+        </div>
         <div id="data-table" class="chart-container" style="display: none;">
             <h2>Data Table</h2>
             <table id="raw-data-table" class="raw-data-table"></table>
@@ -438,6 +444,7 @@
         let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
+        let stockTableVisible = false;
         let lastLoadDataTimestamp = null;
         let loadDataTimeout = null;
         let lastTicker = null;
@@ -1023,20 +1030,8 @@
                 const columns = [
                     'Rank',
                     'Ticker',
-                    'Latest Open',
                     'Latest Close',
-                    'Latest High',
-                    'Latest Low',
-                    'Open 1d (%)',
-                    'Open 1w (%)',
-                    'Close 1d (%)',
-                    'Close 1w (%)',
-                    'High 1d (%)',
-                    'High 1w (%)',
-                    'Low 1d (%)',
-                    'Low 1w (%)',
                     'Realised Volatility 30d (%)',
-                    'Realised Volatility 60d (%)',
                     'Realised Volatility 100d (%)',
                     'Realised Volatility 100d 1d (%)',
                     'Realised Volatility 100d 1w (%)',
@@ -1123,6 +1118,96 @@
                 console.error('Error updating ranking table:', error);
                 const table = document.getElementById('ranking-table');
                 table.innerHTML = '<tr><td colspan="42">Error loading ranking table</td></tr>';
+            }
+        }
+
+        function toggleStockTable() {
+            try {
+                stockTableVisible = !stockTableVisible;
+                const table = document.getElementById('stock-table');
+                table.style.display = stockTableVisible ? 'table' : 'none';
+                document.querySelector('#stock .toggle-button').textContent = stockTableVisible ? 'Hide Data' : 'Show Data';
+                if (stockTableVisible) updateStockTable();
+                console.log(`Stock table visibility set to: ${stockTableVisible}`);
+            } catch (error) {
+                console.error('Error in toggleStockTable:', error);
+            }
+        }
+
+        function updateStockTable() {
+            try {
+                const table = document.getElementById('stock-table');
+                table.innerHTML = '';
+                if (!rankingData.length) {
+                    const row = table.insertRow();
+                    const cell = row.insertCell();
+                    cell.textContent = 'No stock data available';
+                    cell.colSpan = 13;
+                    cell.style.color = '#FFFFFF';
+                    console.warn('No stock data for stock table');
+                    return;
+                }
+                const columns = [
+                    'Ticker',
+                    'Latest Open',
+                    'Latest Close',
+                    'Latest High',
+                    'Latest Low',
+                    'Open 1d (%)',
+                    'Open 1w (%)',
+                    'Close 1d (%)',
+                    'Close 1w (%)',
+                    'High 1d (%)',
+                    'High 1w (%)',
+                    'Low 1d (%)',
+                    'Low 1w (%)'
+                ];
+                const sortedData = [...rankingData].sort((a, b) => {
+                    const aValue = Number.isFinite(a['Latest Close']) ? parseFloat(a['Latest Close']) : -Infinity;
+                    const bValue = Number.isFinite(b['Latest Close']) ? parseFloat(b['Latest Close']) : -Infinity;
+                    return bValue - aValue;
+                });
+                const thead = document.createElement('thead');
+                const headerRow = thead.insertRow();
+                columns.forEach((text, index) => {
+                    const th = document.createElement('th');
+                    th.textContent = text;
+                    th.dataset.column = text;
+                    th.dataset.order = 'desc';
+                    th.style.color = '#FFFFFF';
+                    th.addEventListener('click', () => sortTable('stock-table', index));
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                sortedData.forEach(item => {
+                    const row = tbody.insertRow();
+                    columns.forEach(col => {
+                        const cell = row.insertCell();
+                        let value = item[col];
+                        if (Number.isFinite(value)) {
+                            value = value.toFixed(2);
+                        } else {
+                            value = value === 'N/A' || value == null ? 'N/A' : value;
+                        }
+                        cell.textContent = value;
+                        cell.style.color = '#FFFFFF';
+                        const isPercentChange = [
+                            'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
+                            'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)'
+                        ].includes(col);
+                        if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
+                            const val = parseFloat(item[col]);
+                            cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
+                        }
+                    });
+                });
+                table.appendChild(tbody);
+                console.log('Stock table updated successfully');
+            } catch (error) {
+                console.error('Error updating stock table:', error);
+                const table = document.getElementById('stock-table');
+                table.innerHTML = '<tr><td colspan="13">Error loading stock table</td></tr>';
             }
         }
 
@@ -2263,7 +2348,7 @@
         function updateSection(sectionId) {
             try {
                 console.log('Updating section:', sectionId);
-                const sections = ['overview', 'volatility', 'ranking', 'data-table'];
+                const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table'];
                 sections.forEach(id => {
                     const element = document.getElementById(id);
                     if (id === sectionId) {
