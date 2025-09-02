@@ -1,22 +1,3 @@
-Event,Start_Date,End_Date,Impact,Description,Ticker
-2015–16 Chinese Stock Market Crash,2015-06-12,2016-01-01,dip,"Chinese stock market experienced a sharp decline, leading to global selloffs.",ALL
-2015–2016 Stock Market Selloff,2015-08-18,2015-08-24,dip,"Global markets lost trillions due to concerns over China's economy and falling oil prices.",ALL
-Brexit Referendum Shock,2016-06-23,2016-06-24,dip,"UK's vote to leave the EU caused immediate market turmoil and currency fluctuations.",ALL
-Post-Brexit Recovery,2016-06-25,2017-01-01,peak,"Markets rebounded as central banks intervened and uncertainty eased.",ALL
-2018 US-China Trade War Escalation,2018-07-01,2018-12-24,dip,"Tariff announcements led to increased volatility and a year-end market correction.",ALL
-2018 Cryptocurrency Crash,2018-09-20,2018-12-24,dip,"Bitcoin and other cryptos plummeted, spilling over to tech stocks.",ALL
-Post-Trade War Phase 1 Agreement,2019-12-13,2020-01-15,peak,"US-China Phase 1 deal boosted investor confidence and market highs.",ALL
-2020 COVID-19 Stock Market Crash,2020-02-24,2020-03-23,dip,"Global pandemic fears caused the fastest bear market in history.",ALL
-Post-COVID Recovery Bull Market,2020-03-24,2021-01-01,peak,"Stimulus packages and vaccine hopes drove a rapid rebound.",ALL
-2021 Meme Stock Frenzy,2021-01-01,2021-02-01,peak,"Retail investors drove massive gains in stocks like GameStop and AMC.",ALL
-2022 Stock Market Decline,2022-01-03,2022-10-01,dip,"Inflation, Fed rate hikes, and geopolitical tensions led to a bear market.",ALL
-2022 Russian Invasion of Ukraine Impact,2022-02-16,2022-03-24,dip,"Invasion caused energy price spikes and global market volatility.",ALL
-2023 Regional Banking Crisis,2023-03-08,2023-03-15,dip,"Collapse of SVB and other banks triggered fears of financial contagion.",ALL
-2023-2024 AI Boom,2023-01-01,2024-12-31,peak,"Surge in AI-related stocks like NVIDIA drove tech sector to new highs.",ALL
-2024 Yen Carry Trade Unwind,2024-08-05,2024-08-05,dip,"Japan's rate hike caused global selloff, worst since 1987 for some indices.",ALL
-2024 China Stock Market Dip,2024-02-02,2024-02-02,dip,"Sluggish recovery and real estate issues weighed on Chinese markets.",ALL
-Post-2024 US Election Rally,2024-11-06,2024-12-31,peak,"Trump's victory sparked gains in banks, crypto, and small caps.",ALL
-2025 US Tariff Escalation,2025-01-01,2025-04-30,dip,"Trump's second-term tariffs rose to 27% on average, increasing costs and volatility amid trade tensions with China and others.",ALL
-2025 Tariff-Induced Market Crash,2025-04-03,2025-04-07,dip,"Trump's new tariffs and China's retaliation led to a sharp global decline.",ALL
-2025 Semiconductor Tariff Threats,2025-08-01,2025-08-31,dip,"Announcements of potential 300% tariffs on semiconductors caused volatility in tech stocks like NVDA.",ALL
-2025 India Tariff Impact Volatility,2025-08-18,2025-08-18,dip,"Escalating tariffs on Indian exports led to concerns over global supply chains and market dips.",ALL
+version https://git-lfs.github.com/spec/v1
+oid sha256:7a4b923f615d942074a7faa774d880878baaf0b5cc79b85b9d318c48a98ac1a7
+size 2981
