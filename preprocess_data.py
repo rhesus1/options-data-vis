@@ -11,7 +11,7 @@ def load_data(timestamp, source, base_path="data"):
     prefix = "_yfinance" if source == "yfinance" else ""
     try:
         # Load data files
-        company_names = pd.read_csv(f"{base_path}/company_names.txt", sep="\t")
+        company_names = pd.read_csv("company_names.txt", sep="\t")
         ranking = pd.read_csv(f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv")
         historic = pd.read_csv(f"{base_path}/{timestamp}/historic/historic_*.csv")  # Note: Adjust for specific ticker if needed
         events = pd.read_csv(f"{base_path}/Events.csv") if os.path.exists(f"{base_path}/Events.csv") else pd.DataFrame()
