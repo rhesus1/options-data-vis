@@ -1,0 +1,406 @@
+Ticker	Company Name
+AAL	American Airlines Group, Inc.
+ABBV	AbbVie Inc.
+ABNB	Airbnb, Inc.
+ABR	Arbor Realty Trust, Inc.
+ACCD	Accel Entertainment, Inc.
+AEIS	Advanced Energy Industries, Inc.
+AFRM	Affirm Holdings, Inc.
+AG	First Majestic Silver Corp.
+AKAM	Akamai Technologies, Inc.
+ALNY	Alnylam Pharmaceuticals, Inc.
+ALRM	Alarm.com Holdings, Inc.
+ALTM	Altimmune, Inc.
+ALTR	Altair Engineering Inc.
+AMD	Advanced Micro Devices, Inc.
+AMPH	Amphastar Pharmaceuticals, Inc.
+AMZN	Amazon.com, Inc.
+AORT	Artivion, Inc.
+APLS	Apellis Pharmaceuticals, Inc.
+AR	Antero Resources Corporation
+ARAY	Accuray Incorporated
+ARCH	Arch Resources, Inc.
+ARRY	Array Technologies, Inc.
+ASND	Ascendis Pharma A/S
+ASRT	Assertio Holdings, Inc.
+ATEC	Alphatec Holdings, Inc.
+ATI	ATI Inc.
+ATSG	Air Transport Services Group, Inc.
+AVDL	Avadel Pharmaceuticals plc
+AVGO	Broadcom Inc.
+AWK	American Water Works Company, Inc.
+AXON	Axon Enterprise, Inc.
+AY	Atlantica Sustainable Infrastructure plc
+BA	Boeing Company (The)
+BABA	Alibaba Group Holding Limited
+BAND	Bandwidth Inc.
+BB	BlackBerry Limited
+BBAI	BigBear.ai Holdings, Inc.
+BBIO	BridgeBio Pharma, Inc.
+BE	Bloom Energy Corporation
+BEST	BEST Inc.
+BFH	Bread Financial Holdings, Inc.
+BHR	Braemar Hotels & Resorts
+BILI	Bilibili Inc.
+BILL	BILL Holdings, Inc.
+BKD	Brookdale Senior Living Inc.
+BKNG	Booking Holdings Inc.
+BL	BlackLine, Inc.
+BLMN	Bloomin' Brands, Inc.
+BMRN	BioMarin Pharmaceutical Inc.
+BMY	Bristol-Myers Squibb Company
+BOX	Box, Inc.
+BSY	Bentley Systems, Incorporated
+BTSG	BrightSpring Health Services, Inc.
+BTU	Peabody Energy Corporation
+BURL	Burlington Stores, Inc.
+BXMT	Blackstone Mortgage Trust, Inc.
+BYND	Beyond Meat, Inc.
+CABO	Cable One, Inc.
+CAKE	Cheesecake Factory Incorporated (The)
+CAMP	CalAmp Corp.
+CAMT	Camtek Ltd.
+CBRL	Cracker Barrel Old Country Store, Inc.
+CCL	Carnival Corporation & plc
+CDLX	Cardlytics, Inc.
+CDMO	Avid Bioservices, Inc.
+CDP	CPI Aerostructures, Inc.
+CENX	Century Aluminum Company
+CERE	Cerevel Therapeutics Holdings, Inc.
+CFLT	Confluent, Inc.
+CHEF	Chefs' Warehouse, Inc. (The)
+CHGG	Chegg, Inc.
+CHRS	Coherus BioSciences, Inc.
+CHTR	Charter Communications, Inc.
+CMI	Cummins Inc.
+CMPO	CompoSecure, Inc.
+CMRC	Costar Technologies Inc.
+CMS	CMS Energy Corporation
+CNK	Cinemark Holdings, Inc.
+CNMD	CONMED Corporation
+CNP	CenterPoint Energy, Inc.
+CNX	CNX Resources Corporation
+COIN	Coinbase Global, Inc.
+COLL	Collegium Pharmaceutical, Inc.
+CRNC	Cerence Inc.
+CSGS	CSG Systems International, Inc.
+CSIQ	Canadian Solar Inc.
+CTO	CTO Realty Growth, Inc.
+CUTR	Cutera, Inc.
+CVX	Chevron Corporation
+CYBR	CyberArk Software Ltd.
+CYRX	Cryoport, Inc.
+CYTK	Cytokinetics, Incorporated
+DAY	Dayforce, Inc.
+DBRG	DigitalBridge Group, Inc.
+DBX	Dropbox, Inc.
+DDD	3D Systems Corporation
+DDOG	Datadog, Inc.
+DIS	Walt Disney Company (The)
+DKNG	DraftKings Inc.
+DM	Desktop Metal, Inc.
+DNMR	Danimer Scientific, Inc.
+DOCN	DigitalOcean Holdings, Inc.
+DUK	Duke Energy Corporation
+DVAX	Dynavax Technologies Corporation
+DXCM	DexCom, Inc.
+EB	Eventbrite, Inc.
+ECPG	Encore Capital Group, Inc.
+EEFT	Euronet Worldwide, Inc.
+EGHT	8x8, Inc.
+EGIO	Edgio, Inc.
+ENOV	Enovis Corporation
+ENPH	Enphase Energy, Inc.
+ENV	Envestnet, Inc.
+ENVX	Enovix Corporation
+EQT	EQT Corporation
+EQX	Equinox Gold Corp.
+ETSY	Etsy, Inc.
+EVBG	Everbridge, Inc.
+EVH	Evotec SE
+EVRG	Evergy, Inc.
+EXAS	Exact Sciences Corporation
+EXPE	Expedia Group, Inc.
+EYE	National Vision Holdings, Inc.
+EZPW	EZCORP, Inc.
+F	Ford Motor Company
+FARO	FARO Technologies, Inc.
+FE	FirstEnergy Corp.
+FIVN	Five9, Inc.
+FLR	Fluor Corporation
+FOUR	Shift4 Payments, Inc.
+FRPT	FarPointe Data, Inc.
+FRT	Federal Realty Investment Trust
+FSLY	Fastly, Inc.
+FSRN	Fusion Pharmaceuticals Inc.
+FTCHF	Focused Technology Holdings Corp.
+FUBO	fuboTV Inc.
+FVRR	Fiverr International Ltd.
+FWONK	Formula One Group
+GBX	Greenbrier Companies, Inc. (The)
+GCI	Gannett Co., Inc.
+GDS	GDS Holdings Limited
+GEO	GEO Group, Inc. (The)
+GES	Guess?, Inc.
+GH	Guardant Health, Inc.
+GKOS	Glaukos Corporation
+GMED	Globus Medical, Inc.
+GOSS	Gossamer Bio, Inc.
+GPN	Global Payments Inc.
+GPRE	Green Plains, Inc.
+GPRO	GoPro, Inc.
+GRPN	Groupon, Inc.
+GTLS	Chart Industries, Inc.
+GVA	Granite Construction Incorporated
+GWRE	Guidewire Software, Inc.
+HAE	Haemonetics Corporation
+HALO	Halozyme Therapeutics, Inc.
+HASI	Hannon Armstrong Sustainable Infrastructure Capital, Inc.
+HCAT	Health Catalyst, Inc.
+HCI	HCI Group, Inc.
+HLF	Herbalife Ltd.
+HLIT	Harmonic Inc.
+HLX	Helix Energy Solutions Group, Inc.
+HOPE	Hope Bancorp, Inc.
+HOUS	Anywhere Real Estate Inc.
+HRTG	Heritage Insurance Holdings, Inc.
+HTHT	H World Group Limited
+HUBS	HubSpot, Inc.
+IART	Integra LifeSciences Holdings Corporation
+IBM	International Business Machines Corporation
+IDCC	InterDigital, Inc.
+IIIV	i3 Verticals, Inc.
+IMAX	IMAX Corporation
+IMCR	Immunocore Holdings plc
+INDI	indie Semiconductor, Inc.
+INFN	Infinera Corporation
+INN	Summit Hotel Properties, Inc.
+INSG	Inseego Corp.
+INSM	Insmed Incorporated
+INVA	Innovava, Inc.
+IONS	Ionis Pharmaceuticals, Inc.
+IQ	iQIYI, Inc.
+IRTC	iRhythm Technologies, Inc.
+IRWD	Ironwood Pharmaceuticals, Inc.
+ITGR	Integer Holdings Corporation
+ITRI	Itron, Inc.
+JAMF	Jamf Holding Corp.
+JAZZ	Jazz Pharmaceuticals plc
+JBLU	JetBlue Airways Corporation
+JBT	John Bean Technologies Corporation
+JD	JD.com, Inc.
+JOYY	JOYY Inc.
+JPM	JPMorgan Chase & Co.
+KHC	Kraft Heinz Company (The)
+KOS	Kosmos Energy Ltd.
+KPTI	Karyopharm Therapeutics Inc.
+KRG	Knightscope, Inc.
+LAB	Standard BioTools Inc.
+LAC	Lithium Americas Corp.
+LAZR	Luminar Technologies, Inc.
+LCID	Lucid Group, Inc.
+LCII	LCI Industries
+LI	Li-Cycle Holdings Corp.
+LITE	Lumentum Holdings Inc.
+LIVN	LivaNova PLC
+LNT	Alliant Energy Corporation
+LNTH	Lantheus Holdings, Inc.
+LPSN	LivePerson, Inc.
+LRN	Stride, Inc.
+LSXMA	Liberty Media Corporation
+LUV	Southwest Airlines Co.
+LYFT	Lyft, Inc.
+LYV	Live Nation Entertainment, Inc.
+MARA	Marathon Digital Holdings, Inc.
+MAXN	Maxeon Solar Technologies, Ltd.
+MCHP	Microchip Technology Incorporated
+MCS	Marcus Corporation (The)
+MDB	MongoDB, Inc.
+MDRX	Veradigm Inc.
+MGNI	Magnite, Inc.
+MGPI	MGP Ingredients, Inc.
+MIDD	Middleby Corporation
+MIRM	Mirum Pharmaceuticals, Inc.
+MITK	MITEK Systems, Inc.
+MITT	AG Mortgage Investment Trust, Inc.
+MKSI	MKS Instruments, Inc.
+MLAB	Mesa Laboratories, Inc.
+MMM	3M Company
+MMSI	Merit Medical Systems, Inc.
+MMYT	MakeMyTrip Limited
+MNKD	MannKind Corporation
+MODG	Topgolf Callaway Brands Corp.
+MODN	Model N, Inc.
+MOMO	Hello Group Inc.
+MP	MP Materials Corp.
+MRK	Merck & Co., Inc.
+MSFT	Microsoft Corporation
+MSTR	MicroStrategy Incorporated
+MTCH	Match Group, Inc.
+MTH	Meritage Homes Corporation
+MTN	Vail Resorts, Inc.
+MTSI	MACOM Technology Solutions Holdings, Inc.
+NBR	Nabors Industries Ltd.
+NCLH	Norwegian Cruise Line Holdings Ltd.
+NEE	NextEra Energy, Inc.
+NEO	NeoGames S.A.
+NET	Cloudflare, Inc.
+NICE	NICE Ltd.
+NIO	NIO Inc.
+NKE	NIKE, Inc.
+NKLA	Nikola Corporation
+NMFC	New Mountain Finance Corporation
+NOG	Northern Oil and Gas, Inc.
+NOTV	Inotiv, Inc.
+NOVA	Sunnova Energy International Inc.
+NRG	NRG Energy, Inc.
+NSIT	Insight Enterprises, Inc.
+NSTG	NanoString Technologies, Inc.
+NTNX	Nutanix, Inc.
+NTRA	Natera, Inc.
+NVAX	Novavax, Inc.
+NVCR	NovoCure Limited
+NVMI	Nova Ltd.
+NVRO	Nevro Corp.
+NVST	Envista Holdings Corporation
+OKTA	Okta, Inc.
+OMCL	Omnicell, Inc.
+OMER	Omeros Corporation
+ON	ON Semiconductor Corporation
+OPEN	Opendoor Technologies Inc.
+OPK	OPKO Health, Inc.
+ORA	Ormat Technologies, Inc.
+PANW	Palo Alto Networks, Inc.
+PAR	PAR Technology Corporation
+PATK	Patriot Battery Metals Inc.
+PCG	PG&E Corporation
+PCRX	Pacira BioSciences, Inc.
+PCT	PureCycle Technologies, Inc.
+PD	PagerDuty, Inc.
+PDD	PDD Holdings Inc.
+PEB	Peabody Energy Corporation
+PEGA	Pegasystems, Inc.
+PENN	Penn Entertainment, Inc.
+PEP	PepsiCo, Inc.
+PETQ	PetIQ, Inc.
+PI	Impinj, Inc.
+PLUG	Plug Power Inc.
+PMT	PennyMac Mortgage Investment Trust
+PODD	Insulet Corporation
+POST	Post Holdings, Inc.
+PPL	PPL Corporation
+PR	Permian Resources Corporation
+PRCH	Porch Group, Inc.
+PRFT	Perficient, Inc.
+PRGS	Progress Software Corporation
+PRO	PROS Holdings, Inc.
+PSEC	Prospect Capital Corporation
+PSN	Parsons Corporation
+PTCT	PTC Therapeutics, Inc.
+PTON	Peloton Interactive, Inc.
+QD	Qudian Inc.
+QTWO	Q2 Holdings, Inc.
+RCL	Royal Caribbean Cruises Ltd.
+RDFN	Redfin Corporation
+REAL	The RealReal, Inc.
+REXR	Rexford Industrial Realty, Inc.
+RGEN	Repligen Corporation
+RH	RH
+RIG	Transocean Ltd.
+RIVN	Rivian Automotive, Inc.
+RKLB	Rocket Lab Corporation
+RNG	RingCentral, Inc.
+RPAY	Repay Holdings Corporation
+RPD	Rapid7, Inc.
+RTX	RTX Corporation
+RUN	Sunrun Inc.
+RVNC	Revance Therapeutics, Inc.
+RWT	Redwood Trust, Inc.
+SABR	Sabre Corporation
+SATS	EchoStar Corporation
+SAVE	Spirit Airlines, Inc.
+SE	Sea Limited
+SEDG	SolarEdge Technologies, Inc.
+SENS	Senseonics Holdings, Inc.
+SGH	SMART Global Holdings, Inc.
+SHAK	Shake Shack Inc.
+SHEL	Shell plc
+SHOP	Shopify Inc.
+SIRI	Sirius XM Holdings Inc.
+SKIN	The Beauty Health Company
+SLB	Schlumberger Limited
+SLNA	Selina Hospitality PLC
+SMCI	Super Micro Computer, Inc.
+SMTC	Semtech Corporation
+SNAP	Snap Inc.
+SO	Southern Company (The)
+SOFI	SoFi Technologies, Inc.
+SPB	Spectrum Brands, Inc.
+SPCE	Virgin Galactic Holdings, Inc.
+SPHR	Sphere Entertainment Co.
+SPOT	Spotify Technology S.A.
+SPR	Spirit AeroSystems Holdings, Inc.
+SRPT	Sarepta Therapeutics, Inc.
+SSRM	SSR Mining Inc.
+STWD	Starwood Property Trust, Inc.
+STX	Seagate Technology Holdings plc
+TCOM	Trip.com Group Limited
+TDOC	Teladoc Health, Inc.
+TEVA	Teva Pharmaceutical Industries Limited
+TGT	Target Corporation
+TMDX	TransMedics Group, Inc.
+TNDM	Tandem Diabetes Care, Inc.
+TPIC	TPI Composites, Inc.
+TREE	LendingTree, Inc.
+TRIP	TripAdvisor, Inc.
+TSLA	Tesla, Inc.
+TTEK	Tetra Tech, Inc.
+TTGT	TechTarget, Inc.
+TTWO	Take-Two Interactive Software, Inc.
+TVTX	Travere Therapeutics, Inc.
+TWO	Two Harbors Investment Corp.
+TWOU	2U, Inc.
+TYL	Tyler Technologies, Inc.
+U	Unity Software Inc.
+UBER	Uber Technologies, Inc.
+UNIT	Uniti Group Inc.
+UPHL	Unknown (possibly a placeholder or delisted; no active match as of 2025)
+UPST	Upstart Holdings, Inc.
+UPWK	Upwork Inc.
+V	Visa Inc.
+VAC	Marriott Vacations Worldwide Corporation
+VATE	INNOVATE Corp.
+VECO	Veeco Instruments Inc.
+VERI	Veritone, Inc.
+VERX	Vertex, Inc.
+VIAV	Viavi Solutions Inc.
+VNET	VNET Group, Inc.
+VREX	Varex Imaging Corporation
+VRM	Vroom, Inc.
+VRNS	Varonis Systems, Inc.
+VRNT	Verint Systems Inc.
+VSH	Vishay Intertechnology, Inc.
+VTNR	Vertex Energy, Inc.
+VTR	Ventas, Inc.
+W	Wayfair Inc.
+WB	Weibo Corporation
+WDC	Western Digital Corporation
+WEC	WEC Energy Group, Inc.
+WELL	Welltower Inc.
+WGO	Winnebago Industries, Inc.
+WIX	Wix.com Ltd.
+WK	Workiva Inc.
+WKC	Wolters Kluwer N.V.
+WOLF	Wolfspeed, Inc.
+WT	WisdomTree, Inc.
+X	United States Steel Corporation
+XERS	Xeris Biopharma Holdings, Inc.
+XIFR	Unknown (possibly XPLR Infrastructure, LP or similar; limited data as of 2025)
+XMTR	Xometry, Inc.
+XOM	Exxon Mobil Corporation
+XRX	Xerox Holdings Corporation
+XYZ	Block, Inc. (formerly Square; ticker often stylized, but XYZ may be a placeholder)
+Z	Zillow Group, Inc.
+ZD	Ziff Davis, Inc.
+ZS	Zscaler, Inc.
+ZTO	ZTO Express (Cayman) Inc.
