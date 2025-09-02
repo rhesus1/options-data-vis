@@ -1,0 +1,53 @@
+name: Force Preprocess Data
+on:
+  workflow_run:
+    workflows: ["Force Calculate Ranking"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date timestamp to process (e.g., 20250812_2111)'
+        required: true
+        type: string
+jobs:
+  preprocess-data:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas numpy scipy yfinance
+    - name: Create data directory
+      run: mkdir -p data
+    - name: Run force preprocess data script
+      run: python force_preprocess_data.py ${{ inputs.date }}
+    - name: Commit and push updated data
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data
+        git commit -m "Force update precomputed tables for ${{ inputs.date }}" || echo "No changes to commit"
+        git push
+    - name: Send email with precomputed tables
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "Forced Precomputed Tables"
+        to: reesjmorgan@gmail.com
+        from: Morgan Rees <reesjmorgan@gmail.com>
+        body: |
+          Attached is the forced precomputed ranking table for yfinance data.
+          Timestamp: ${{ inputs.date }}
+        attachments: |
+          data/${{ inputs.date }}/tables/ranking/ranking_table_yfinance.csv
+        secure: true
