@@ -584,7 +584,7 @@
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
                 if (lastLoadDataTimestamp === timestamp && lastTicker === selectedTicker) {
-                    console.log(`Skipping redundant loadData for timestamp: ${timestamp}, ticker: ${selectedTicker}`);
+                    console.log(`Skipping redundant loadData for ticker: ${selectedTicker}, timestamp: ${timestamp}`);
                     return Promise.resolve();
                 }
                 lastLoadDataTimestamp = timestamp;
@@ -641,6 +641,7 @@
                     { url: `data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, array: skewData },
                     { url: `data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, array: slopeData },
                     { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, array: cleanedData },
+                    { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
                     { url: `data/Events.csv`, array: eventsData }
                 ];
         
@@ -1036,10 +1037,17 @@
                     'Volume 1d (%)', 'Volume 1w (%)', 'Open Interest', 'OI 1d (%)',
                     'OI 1w (%)', 'ATM 12m/3m Ratio'
                 ];
+                const displayNameMap = {
+                    'Realised Volatility 100d (%)': 'RVol 100d (%)',
+                    'Weighted IV (%)': 'WIVol (%)',
+                    'Weighted IV 1d (%)': 'WIVol 1d (%)',
+                    'Weighted IV 1w (%)': 'WIVol 1w (%)',
+                    'ATM 12m/3m Ratio': 'ATM 12m/3m Ratio' // No change needed, included for completeness
+                };
                 metrics.forEach(metric => {
                     const tr = tbody.insertRow();
                     const metricCell = tr.insertCell();
-                    metricCell.textContent = metric;
+                    metricCell.textContent = displayNameMap[metric] || metric.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol');
                     metricCell.style.textAlign = 'left';
                     metricCell.style.color = '#FFFFFF';
                     const valueCell = tr.insertCell();
@@ -1065,7 +1073,7 @@
                         valueCell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
                     }
                     if (row[`${metric}_Color`]) {
-                        valueCell.style.color = row[`${metric}_Color`]; // Apply text color instead of background
+                        valueCell.style.color = row[`${metric}_Color`];
                     }
                 });
                 table.appendChild(tbody);
@@ -1100,10 +1108,31 @@
                     'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
                     'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
                 ];
+                const displayNameMap = {
+                    'Realised Volatility 30d (%)': 'RVol 30d (%)',
+                    'Realised Volatility 100d (%)': 'RVol 100d (%)',
+                    'Realised Volatility 100d 1d (%)': 'RVol 100d 1d (%)',
+                    'Realised Volatility 100d 1w (%)': 'RVol 100d 1w (%)',
+                    'Min Realised Volatility 100d (1y)': 'Min RVol 100d (1y)',
+                    'Max Realised Volatility 100d (1y)': 'Max RVol 100d (1y)',
+                    'Mean Realised Volatility 100d (1y)': 'Mean RVol 100d (1y)',
+                    'Realised Volatility 180d (%)': 'RVol 180d (%)',
+                    'Realised Volatility 252d (%)': 'RVol 252d (%)',
+                    'Weighted IV (%)': 'WIVol (%)',
+                    'Weighted IV 1d (%)': 'WIVol 1d (%)',
+                    'Weighted IV 1w (%)': 'WIVol 1w (%)',
+                    'Weighted IV 3m (%)': 'WIVol 3m (%)',
+                    'Weighted IV 3m 1d (%)': 'WIVol 3m 1d (%)',
+                    'Weighted IV 3m 1w (%)': 'WIVol 3m 1w (%)',
+                    'ATM IV 3m (%)': 'ATM IVol 3m (%)',
+                    'ATM IV 3m 1d (%)': 'ATM IVol 3m 1d (%)',
+                    'ATM IV 3m 1w (%)': 'ATM IVol 3m 1w (%)',
+                    'Rvol100d - Weighted IV': 'RVol100d - WIVol'
+                };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
-                    th.textContent = col;
-                    th.dataset.column = col;
+                    th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol');
+                    th.dataset.column = col; // Keep original column name for sorting
                     th.dataset.order = 'desc';
                     th.style.color = '#FFFFFF';
                     th.addEventListener('click', () => sortTable('ranking-table', index));
@@ -1130,7 +1159,7 @@
                         cell.textContent = value;
                         cell.style.color = '#FFFFFF';
                         if (item[`${col}_Color`]) {
-                            cell.style.color = item[`${col}_Color`]; // Apply text color instead of background
+                            cell.style.color = item[`${col}_Color`];
                         }
                         const isPercentChange = [
                             'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
@@ -1169,10 +1198,13 @@
                     'Latest Low', 'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
                     'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)'
                 ];
+                const displayNameMap = {
+                    // No columns in stock table contain "Realised Volatility", "Weighted IV", or "IV"
+                };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
-                    th.textContent = col;
-                    th.dataset.column = col;
+                    th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol');
+                    th.dataset.column = col; // Keep original column name for sorting
                     th.dataset.order = 'desc';
                     th.style.color = '#FFFFFF';
                     th.addEventListener('click', () => sortTable('stock-table', index));
@@ -1193,7 +1225,7 @@
                         cell.textContent = value;
                         cell.style.color = '#FFFFFF';
                         if (item[`${col}_Color`]) {
-                            cell.style.color = item[`${col}_Color`]; // Apply text color instead of background
+                            cell.style.color = item[`${col}_Color`];
                         }
                         const isPercentChange = [
                             'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
@@ -1215,7 +1247,7 @@
         
         function updateTopContractsTables() {
             try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
                 const volumeTable = document.getElementById('top-volume-table');
                 const openInterestTable = document.getElementById('top-open-interest-table');
                 volumeTable.innerHTML = '';
@@ -1224,6 +1256,19 @@
                     { table: volumeTable, data: topVolumeData.filter(row => row.Ticker === selectedTicker), id: 'top-volume-table' },
                     { table: openInterestTable, data: topOpenInterestData.filter(row => row.Ticker === selectedTicker), id: 'top-open-interest-table' }
                 ];
+                const formatDate = (dateStr) => {
+                    try {
+                        const date = new Date(dateStr);
+                        if (isNaN(date.getTime())) {
+                            console.warn(`Invalid date format for expiry: ${dateStr}`);
+                            return dateStr || 'N/A'; // Fallback to raw value if invalid
+                        }
+                        return date.toLocaleDateString('en-GB');
+                    } catch {
+                        console.warn(`Error parsing date: ${dateStr}`);
+                        return dateStr || 'N/A'; // Fallback to raw value
+                    }
+                };
                 tables.forEach(({ table, data, id }) => {
                     if (data.length === 0) {
                         table.innerHTML = `<tr><td colspan="7">No ${id.includes('volume') ? 'volume' : 'open interest'} data available for ${selectedTicker}</td></tr>`;
@@ -1256,7 +1301,7 @@
                                     value = value.toFixed(2);
                                 }
                             } else if (col === 'Expiry' && value) {
-                                value = new Date(value).toLocaleDateString('en-GB');
+                                value = formatDate(value); // Use robust date formatting
                             } else {
                                 value = value || 'N/A';
                             }
@@ -1276,30 +1321,33 @@
         
         function updateRawDataTable() {
             try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
                 const table = document.getElementById('raw-data-table');
                 table.innerHTML = '';
-                if (rawData.length === 0) {
+                const filteredData = rawData.filter(row => row.Ticker === selectedTicker);
+                if (filteredData.length === 0) {
                     const row = table.insertRow();
                     const cell = row.insertCell();
-                    cell.textContent = 'No raw data available';
+                    cell.textContent = `No raw data available for ${selectedTicker}`;
                     cell.colSpan = 10;
-                    console.warn('No raw data for raw data table');
+                    console.warn(`No raw data for ticker: ${selectedTicker}`);
                     return;
                 }
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
-                const columns = Object.keys(rawData[0]);
+                const columns = Object.keys(filteredData[0]);
                 columns.forEach((text, index) => {
                     const th = document.createElement('th');
                     th.textContent = text;
                     th.dataset.column = text;
                     th.dataset.order = 'desc';
+                    th.style.color = '#FFFFFF';
                     th.addEventListener('click', () => sortTable('raw-data-table', index));
                     headerRow.appendChild(th);
                 });
                 table.appendChild(thead);
                 const tbody = document.createElement('tbody');
-                rawData.forEach(item => {
+                filteredData.forEach(item => {
                     const row = tbody.insertRow();
                     columns.forEach(col => {
                         const cell = row.insertCell();
@@ -1310,13 +1358,22 @@
                             } else {
                                 value = value.toFixed(2);
                             }
+                        } else if (col === 'Expiry' && value) {
+                            try {
+                                const date = new Date(value);
+                                value = isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB');
+                            } catch {
+                                value = value || 'N/A';
+                            }
                         } else {
                             value = value || 'N/A';
                         }
                         cell.textContent = value;
+                        cell.style.color = '#FFFFFF';
                     });
                 });
                 table.appendChild(tbody);
+                console.log('Raw data table updated successfully for ticker:', selectedTicker);
             } catch (error) {
                 console.error('Error updating raw data table:', error);
                 document.getElementById('raw-data-table').innerHTML = '<tr><td colspan="10">Error loading raw data table</td></tr>';
