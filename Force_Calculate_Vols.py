@@ -7,7 +7,6 @@ import json
 from scipy.optimize import brentq
 from scipy.stats import norm
 from scipy.interpolate import CloughTocher2DInterpolator, LinearNDInterpolator, RBFInterpolator
-from scipy.optimize import minimize
 from scipy.interpolate import interp1d
 from joblib import Parallel, delayed
 import multiprocessing
@@ -17,35 +16,46 @@ import statsmodels.api as sm
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 def black_scholes_call(S, K, T, r, q, sigma):
-    if T <= 0 or sigma <= 0:
+    if not all([S > 0, K > 0, T > 0, sigma > 0]):
         return max(S - K, 0)
-    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    d2 = d1 - sigma * np.sqrt(T)
-    return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    try:
+        d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+        d2 = d1 - sigma * np.sqrt(T)
+        return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    except (ValueError, ZeroDivisionError):
+        return max(S - K, 0)
 
 def black_scholes_put(S, K, T, r, q, sigma):
-    if T <= 0 or sigma <= 0:
+    if not all([S > 0, K > 0, T > 0, sigma > 0]):
         return max(K - S, 0)
-    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    d2 = d1 - sigma * np.sqrt(T)
-    return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
+    try:
+        d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+        d2 = d1 - sigma * np.sqrt(T)
+        return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
+    except (ValueError, ZeroDivisionError):
+        return max(K - S, 0)
 
 def black_scholes_delta(S, K, T, r, q, sigma, option_type):
-    if T <= 0 or sigma <= 0:
+    if not all([S > 0, K > 0, T > 0, sigma > 0]):
         return 0.0
-    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    if option_type.lower() == 'call':
-        return norm.cdf(d1)
-    else:
-        return norm.cdf(d1) - 1
+    try:
+        d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+        if option_type.lower() == 'call':
+            return norm.cdf(d1)
+        else:
+            return norm.cdf(d1) - 1
+    except (ValueError, ZeroDivisionError):
+        return 0.0
 
 def implied_vol(price, S, K, T, r, q, option_type, contract_name=""):
-    if price <= 0 or T <= 0:
+    if not all([price > 0, S > 0, K > 0, T > 0]):
         return np.nan
     intrinsic = max(S - K, 0) if option_type.lower() == 'call' else max(K - S, 0)
     if price < intrinsic * np.exp(-r * T):
         return np.nan
     def objective(sigma):
+        if sigma <= 0:
+            return np.inf
         if option_type.lower() == 'call':
             return black_scholes_call(S, K, T, r, q, sigma) - price
         else:
@@ -63,7 +73,7 @@ def calc_Ivol_Rvol(df, rvol100d):
     return df
 
 def compute_ivs(row, S, r, q):
-    if pd.isna(row['Years_to_Expiry']):
+    if pd.isna(row['Years_to_Expiry']) or row['Years_to_Expiry'] <= 0:
         return np.nan, np.nan, np.nan, np.nan, np.nan
     T = max(row['Years_to_Expiry'], 0.0001)
     option_type = row['Type'].lower()
@@ -71,7 +81,7 @@ def compute_ivs(row, S, r, q):
     iv_bid = implied_vol(row['Bid'], S, row['Strike'], T, r, q, option_type, contract_name)
     iv_ask = implied_vol(row['Ask'], S, row['Strike'], T, r, q, option_type, contract_name)
     iv_mid = implied_vol(0.5*(row['Bid']+row['Ask']), S, row['Strike'], T, r, q, option_type, contract_name)
-    iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) else np.nan
+    iv_spread = iv_ask - iv_bid if not np.isnan(iv_bid) and not np.isnan(iv_ask) else np.nan
     delta = black_scholes_delta(S, row['Strike'], T, r, q, iv_mid, option_type)
     return iv_bid, iv_ask, iv_mid, iv_spread, delta
 
@@ -115,7 +125,10 @@ def calculate_iv_mid(df, ticker, r, timestamp):
         print(f"Warning: Invalid timestamp format {timestamp}. Using default risk-free rate and no date reference.")
         return df, None, None, None
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
-    q = 0.0  # Set dividend yield to 0 as requested
+    if S <= 0:
+        print(f"Warning: Invalid stock price {S} for {ticker}")
+        return df, None, None, None
+    q = 0.0
     df["Expiry_dt"] = pd.to_datetime(df["Expiry"])
     df['Years_to_Expiry'] = (df['Expiry_dt'] - timestamp_dt).dt.days / 365.25
     df['Forward'] = S * np.exp((r - q) * df['Years_to_Expiry'])
@@ -234,20 +247,26 @@ def compute_local_vol_from_iv_row(row, r, q, interp):
 def process_options(options_df, option_type, r, q):
     if options_df.empty:
         print(f"Warning: No {option_type} options data provided")
+        options_df['Smoothed_IV'] = np.nan
+        options_df['TotalVariance'] = np.nan
         return pd.DataFrame(), None, options_df
-    options_df = options_df[options_df['IV_mid'] > 0]
+    # Relaxed filtering to retain more data
     options_df = options_df[options_df['Years_to_Expiry'] > 0]
+    options_df = options_df[options_df['IV_mid'].notna() & (options_df['IV_mid'] >= 0)]
     if options_df.empty:
         print(f"Warning: No valid {option_type} options after filtering")
         options_df['Smoothed_IV'] = np.nan
+        options_df['TotalVariance'] = np.nan
         return pd.DataFrame(), None, options_df
     options_df = smooth_iv_per_expiry(options_df)
     if 'Smoothed_IV' not in options_df.columns:
         print(f"Warning: Smoothed_IV not created for {option_type} options")
         options_df['Smoothed_IV'] = options_df['IV_mid']
+    # Calculate TotalVariance for all valid rows
+    options_df['TotalVariance'] = options_df['Smoothed_IV']**2 * options_df['Years_to_Expiry']
+    options_df['TotalVariance'] = options_df['TotalVariance'].fillna(np.nan)
     smoothed_df = options_df.copy()
     smoothed_df = smoothed_df.sort_values(['Years_to_Expiry', 'LogMoneyness'])
-    smoothed_df['TotalVariance'] = smoothed_df['Smoothed_IV']**2 * smoothed_df['Years_to_Expiry']
     points = np.column_stack((smoothed_df['LogMoneyness'], smoothed_df['Years_to_Expiry']))
     values = smoothed_df['TotalVariance'].values
     if len(smoothed_df) < 3:
@@ -271,15 +290,19 @@ def process_options(options_df, option_type, r, q):
     return local_vol_df, interp, smoothed_df
 
 def calculate_local_vol_from_iv(df, S, r, q):
-    calls = df[df['Type'] == 'Call']
-    puts = df[df['Type'] == 'Put']
+    calls = df[df['Type'] == 'Call'].copy()
+    puts = df[df['Type'] == 'Put'].copy()
     call_local_df, call_interp, calls_smoothed = process_options(calls, 'Call', r, q)
     put_local_df, put_interp, puts_smoothed = process_options(puts, 'Put', r, q)
     smoothed_df = pd.concat([calls_smoothed, puts_smoothed]).sort_index()
     return call_local_df, put_local_df, call_interp, put_interp, smoothed_df
 
 def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
+    if not all([S > 0, T > 0, sigma > 0]):
+        return np.nan
     def delta_diff(K):
+        if K <= 0:
+            return np.inf
         delta = black_scholes_delta(S, K, T, r, q, sigma, option_type)
         return delta - target_delta if option_type.lower() == 'call' else delta - (-target_delta)
     try:
@@ -292,15 +315,18 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
     def get_iv(interp, y, T):
         if interp is None or T <= 0:
             return np.nan
-        w = interp(np.array([[y, T]]))[0]
-        if np.isnan(w) or w <= 0:
+        try:
+            w = interp(np.array([[y, T]]))[0]
+            if np.isnan(w) or w <= 0:
+                return np.nan
+            return np.sqrt(w / T)
+        except Exception:
             return np.nan
-        return np.sqrt(w / T)
     skew_data = []
     target_deltas = [0.25, 0.75]
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
-        if np.isnan(T):
+        if np.isnan(T) or T <= 0:
             continue
         atm_iv = get_iv(call_interp, 0.0, T)
         if np.isnan(atm_iv):
@@ -375,14 +401,14 @@ def process_ticker(ticker, df, full_df, r, timestamp):
     if ticker_df.empty:
         print(f"Warning: No data for ticker {ticker} in df")
         return None, None, None
-    # Load historic data to get Realised_Vol_Close_100 for the specific timestamp
+    # Load historic data to get Realised_Vol_Close_100
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     rvol100d = np.nan
     if os.path.exists(historic_file):
         try:
             historic_df = pd.read_csv(historic_file, parse_dates=['Date'])
             if not historic_df.empty and 'Realised_Vol_Close_100' in historic_df.columns:
-                rvol100d = historic_df['Realised_Vol_Close_100'].iloc[-1] / 100  # Convert from percentage to decimal
+                rvol100d = historic_df['Realised_Vol_Close_100'].iloc[-1] / 100
             else:
                 print(f"Warning: No valid Realised_Vol_Close_100 data for {ticker} in {historic_file}")
         except Exception as e:
@@ -390,10 +416,17 @@ def process_ticker(ticker, df, full_df, r, timestamp):
     else:
         print(f"No historic file found for {ticker} in data/{timestamp}/historic")
     ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r, timestamp)
+    if ticker_df.empty or S is None:
+        print(f"Warning: Failed to calculate IV_mid for {ticker}")
+        return None, None, None
     ticker_df = calc_Ivol_Rvol(ticker_df, rvol100d)
     ticker_df, skew_df, slope_df = calculate_metrics(ticker_df, ticker, r)
     call_local_df, put_local_df, call_interp, put_interp, smoothed_df = calculate_local_vol_from_iv(ticker_df, S, r, q)
-    ticker_df = smoothed_df
+    # Use smoothed_df as ticker_df and ensure TotalVariance is present
+    ticker_df = smoothed_df.copy()
+    if 'TotalVariance' not in ticker_df.columns:
+        ticker_df['TotalVariance'] = ticker_df['Smoothed_IV']**2 * ticker_df['Years_to_Expiry']
+        ticker_df['TotalVariance'] = ticker_df['TotalVariance'].fillna(np.nan)
     skew_metrics_df, slope_metrics_df = calculate_skew_metrics(ticker_df, call_interp, put_interp, S, r, q)
     skew_metrics_df['Ticker'] = ticker
     slope_metrics_df['Ticker'] = ticker
@@ -421,7 +454,9 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         "IV_spread", "Delta", "Ivol/Rvol100d Ratio", "Smoothed_IV", "TotalVariance",
         "Call Local Vol", "Put Local Vol", "Realised Vol 100d"
     ]
-    ticker_df = ticker_df[desired_columns]
+    # Select only available columns to avoid KeyError
+    available_columns = [col for col in desired_columns if col in ticker_df.columns]
+    ticker_df = ticker_df[available_columns]
     return ticker_df, skew_metrics_df, slope_metrics_df
 
 def main():
@@ -457,7 +492,7 @@ def main():
     os.makedirs(slope_dir, exist_ok=True)
     os.makedirs(historic_dir, exist_ok=True)
     os.makedirs(ranking_dir, exist_ok=True)
-    r = 0.05  # Default risk-free rate
+    r = 0.05
     for ticker in tickers:
         clean_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
         raw_file = os.path.join(raw_dir, f'raw_yfinance_{ticker}.csv')
@@ -470,14 +505,14 @@ def main():
         df_ticker = pd.read_csv(clean_file, parse_dates=['Expiry'])
         full_df_ticker = pd.read_csv(raw_file, parse_dates=['Expiry'])
         pdf, sdf, slope_df = process_ticker(ticker, df_ticker, full_df_ticker, r, timestamp)
-        if pdf is not None:
+        if pdf is not None and not pdf.empty:
             pdf.to_csv(os.path.join(processed_dir, f'processed_yfinance_{ticker}.csv'), index=False)
             pdf.to_json(os.path.join(processed_dir, f'processed_yfinance_{ticker}.json'), orient='records', date_format='iso')
             print(f"Processed data for {ticker} saved to {processed_dir}")
-        if sdf is not None:
+        if sdf is not None and not sdf.empty:
             sdf.to_csv(os.path.join(skew_dir, f'skew_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Skew metrics for {ticker} saved to {skew_dir}")
-        if slope_df is not None:
+        if slope_df is not None and not slope_df.empty:
             slope_df.to_csv(os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Slope metrics for {ticker} saved to {slope_dir}")
     dates_file = 'data/dates.json'
