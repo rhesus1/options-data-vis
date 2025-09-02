@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import os
 import glob
 from scipy.stats import norm
+pd.options.mode.chained_assignment = None
 
 def calculate_atm_iv(ticker_processed, current_price, current_dt):
     if ticker_processed.empty:
