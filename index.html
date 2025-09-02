@@ -1008,7 +1008,7 @@
         
         function updateSummaryTable() {
             try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
                 const table = document.getElementById('summary-table');
                 table.innerHTML = '';
                 const filteredData = summaryData.filter(row => row.Ticker === selectedTicker);
@@ -1065,7 +1065,7 @@
                         valueCell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
                     }
                     if (row[`${metric}_Color`]) {
-                        valueCell.style.backgroundColor = row[`${metric}_Color`];
+                        valueCell.style.color = row[`${metric}_Color`]; // Apply text color instead of background
                     }
                 });
                 table.appendChild(tbody);
@@ -1081,14 +1081,14 @@
                 const table = document.getElementById('ranking-table');
                 table.innerHTML = '';
                 if (rankingData.length === 0) {
-                    table.innerHTML = '<tr><td colspan="35">No ranking data available</td></tr>';
+                    table.innerHTML = '<tr><td colspan="30">No ranking data available</td></tr>';
                     console.warn('No ranking data for ranking table');
                     return;
                 }
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
                 const columns = [
-                    'Rank', 'Ticker', 'Company Name', 'Latest Close', 'Realised Volatility 30d (%)',
+                    'Rank', 'Ticker', 'Latest Close', 'Realised Volatility 30d (%)',
                     'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
                     'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (1y)',
                     'Max Realised Volatility 100d (1y)', 'Mean Realised Volatility 100d (1y)',
@@ -1098,8 +1098,7 @@
                     'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
                     'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Market Spread',
-                    '1y Spread', '3y Spread', '5y Spread'
+                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
                 ];
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1131,7 +1130,7 @@
                         cell.textContent = value;
                         cell.style.color = '#FFFFFF';
                         if (item[`${col}_Color`]) {
-                            cell.style.backgroundColor = item[`${col}_Color`];
+                            cell.style.color = item[`${col}_Color`]; // Apply text color instead of background
                         }
                         const isPercentChange = [
                             'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
@@ -1142,7 +1141,7 @@
                         ].includes(col);
                         if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
                             const val = parseFloat(item[col]);
-                            cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
+                            cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : cell.style.color;
                         }
                     });
                 });
@@ -1150,7 +1149,7 @@
                 console.log('Ranking table updated successfully');
             } catch (error) {
                 console.error('Error updating ranking table:', error);
-                document.getElementById('ranking-table').innerHTML = '<tr><td colspan="35">Error loading ranking data</td></tr>';
+                document.getElementById('ranking-table').innerHTML = '<tr><td colspan="30">Error loading ranking data</td></tr>';
             }
         }
         
@@ -1159,7 +1158,7 @@
                 const table = document.getElementById('stock-table');
                 table.innerHTML = '';
                 if (stockData.length === 0) {
-                    table.innerHTML = '<tr><td colspan="18">No stock data available</td></tr>';
+                    table.innerHTML = '<tr><td colspan="14">No stock data available</td></tr>';
                     console.warn('No stock data for stock table');
                     return;
                 }
@@ -1168,8 +1167,7 @@
                 const columns = [
                     'Ticker', 'Company Name', 'Latest Open', 'Latest Close', 'Latest High',
                     'Latest Low', 'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
-                    'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)', 'Market Spread',
-                    '1y Spread', '3y Spread', '5y Spread'
+                    'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)'
                 ];
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1195,7 +1193,7 @@
                         cell.textContent = value;
                         cell.style.color = '#FFFFFF';
                         if (item[`${col}_Color`]) {
-                            cell.style.backgroundColor = item[`${col}_Color`];
+                            cell.style.color = item[`${col}_Color`]; // Apply text color instead of background
                         }
                         const isPercentChange = [
                             'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
@@ -1203,7 +1201,7 @@
                         ].includes(col);
                         if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
                             const val = parseFloat(item[col]);
-                            cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
+                            cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : cell.style.color;
                         }
                     });
                 });
@@ -1211,7 +1209,7 @@
                 console.log('Stock table updated successfully');
             } catch (error) {
                 console.error('Error updating stock table:', error);
-                document.getElementById('stock-table').innerHTML = '<tr><td colspan="18">Error loading stock data</td></tr>';
+                document.getElementById('stock-table').innerHTML = '<tr><td colspan="14">Error loading stock data</td></tr>';
             }
         }
         
