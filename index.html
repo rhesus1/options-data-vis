@@ -2,171 +2,172 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Overview</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
+    <script src="script.js"></script>
 </head>
 <body>
     <div class="sidebar">
-        <img src="//img1.wsimg.com/isteam/ip/8d40fea0-d1d8-4792-8737-31ae661a5815/FAM%20logo%20white%20no%20background.png/:/rs=h:200,cg:true,m/qt=q:95"
-             srcset="//img1.wsimg.com/isteam/ip/8d40fea0-d1d8-4792-8737-31ae661a5815/FAM%20logo%20white%20no%20background.png/:/rs=w:449,h:200,cg:true,m/cr=w:449,h:200/qt=q:95, //img1.wsimg.com/isteam/ip/8d40fea0-d1d8-4792-8737-31ae661a5815/FAM%20logo%20white%20no%20background.png/:/rs=w:602,h:268,cg:true,m/cr=w:602,h:268/qt=q:95 2x"
-             alt="Fourier's mission is to deliver consistent returns with low drawdown"
-             class="sidebar-logo">
-        <div class="header">Stock Overview</div>
+        <img src="logo.png" alt="Logo" class="sidebar-logo">
         <div class="select-container">
-            <label for="source-select">Source: </label>
+            <label for="source-select">Source:</label>
             <select id="source-select">
-                <option value="nasdaq">Nasdaq</option>
+                <option value="Nasdaq">Nasdaq</option>
                 <option value="yfinance" selected>yfinance</option>
             </select>
         </div>
-        <select id="date-select"></select>
-        <select id="time-select"></select>
-        <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
-        <datalist id="ticker-datalist"></datalist>
-        <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
-        <a href="#overview">Overview</a>
-        <a href="#volatility">Volatility</a>
-        <a href="#ranking">Ranking</a>
-        <a href="#stock">Stock</a>
-        <a href="#data-table">Data Table</a>
+        <div class="select-container">
+            <label for="date-select">Date:</label>
+            <select id="date-select"></select>
+        </div>
+        <div class="select-container">
+            <label for="time-select">Time:</label>
+            <select id="time-select"></select>
+        </div>
+        <div class="select-container">
+            <label for="ticker-search">Ticker:</label>
+            <input type="text" id="ticker-search" placeholder="Enter ticker">
+        </div>
+        <a href="#" onclick="updateSection('overview')">Overview</a>
+        <a href="#" onclick="updateSection('volatility')">Volatility</a>
+        <a href="#" onclick="updateSection('ranking')">Ranking</a>
+        <a href="#" onclick="updateSection('stock')">Stock</a>
+        <a href="#" onclick="updateSection('raw-data')">Data Table</a>
     </div>
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">N/A</div>
-        <div id="overview" class="overview-grid">
+        <div class="overview-grid" id="overview">
             <div class="chart-container historic-container">
                 <h2>Historic Stock Price</h2>
                 <div class="select-container">
-                    <label for="history-select">Select History Length: </label>
-                    <button class="arrow-button" onclick="changeSelect('history-select', -1)">&#9664;</button>
+                    <button class="arrow-button" onclick="changeHistorySelect(-1)">◀</button>
                     <select id="history-select">
-                        <option value="1m">1-month</option>
-                        <option value="3m">3-month</option>
-                        <option value="6m">6-month</option>
-                        <option value="1y">1-year</option>
-                        <option value="5y">5-year</option>
-                        <option value="all" selected>All</option>
+                        <option value="1-month">1-month</option>
+                        <option value="3-month">3-month</option>
+                        <option value="6-month">6-month</option>
+                        <option value="1-year">1-year</option>
+                        <option value="5-year">5-year</option>
+                        <option value="all">All</option>
                     </select>
-                    <button class="arrow-button" onclick="changeSelect('history-select', 1)">&#9654;</button>
+                    <button class="arrow-button" onclick="changeHistorySelect(1)">▶</button>
                 </div>
                 <canvas id="historic-price-chart"></canvas>
                 <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
             </div>
             <div class="chart-container summary-container">
                 <h2>Summary</h2>
-                <table id="summary-table" class="summary-table"></table>
+                <table class="summary-table" id="summary-table"></table>
             </div>
             <div class="chart-container contracts-container">
                 <h2>Top 10 Volume Contracts</h2>
-                <table id="top-volume-table" class="contracts-table"></table>
+                <table class="contracts-table" id="top-volume-table"></table>
             </div>
             <div class="chart-container contracts-container">
                 <h2>Top 10 Open Interest Contracts</h2>
-                <table id="top-open-interest-table" class="contracts-table"></table>
+                <table class="contracts-table" id="top-open-interest-table"></table>
             </div>
         </div>
-        <div id="volatility" class="volatility-grid" style="display: none;">
+        <div class="volatility-grid" id="volatility" style="display: none;">
             <div class="chart-container">
-                <h3>Implied Volatility Smile</h3>
+                <h2>Implied Volatility Smile</h2>
                 <div class="select-container">
-                    <label for="expiry-select">Select Expiry: </label>
-                    <button class="arrow-button" onclick="changeSelect('expiry-select', -1)">&#9664;</button>
+                    <button class="arrow-button" onclick="changeExpirySelect(-1)">◀</button>
                     <select id="expiry-select"></select>
-                    <button class="arrow-button" onclick="changeSelect('expiry-select', 1)">&#9654;</button>
+                    <button class="arrow-button" onclick="changeExpirySelect(1)">▶</button>
                 </div>
                 <canvas id="moneyness-vs-iv-chart"></canvas>
-                <div id="moneyness-error" class="error-message" style="display: none;">No data available</div>
+                <div class="error-message" id="moneyness-vs-iv-error">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Implied Volatility Term Structure</h3>
+                <h2>Implied Volatility Term Structure</h2>
                 <div class="select-container">
-                    <label for="moneyness-select">Select Moneyness: </label>
-                    <button class="arrow-button" onclick="changeSelect('moneyness-select', -1)">&#9664;</button>
+                    <button class="arrow-button" onclick="changeMoneynessSelect(-1)">◀</button>
                     <select id="moneyness-select"></select>
-                    <button class="arrow-button" onclick="changeSelect('moneyness-select', 1)">&#9654;</button>
+                    <button class="arrow-button" onclick="changeMoneynessSelect(1)">▶</button>
                 </div>
                 <canvas id="expiry-vs-iv-chart"></canvas>
-                <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
+                <div class="error-message" id="expiry-vs-iv-error">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Yahoo Finance Implied Volatility Smile</h3>
+                <h2>Yahoo Finance Implied Volatility Smile</h2>
                 <div class="select-container">
-                    <label for="yf-expiry-select">Select Expiry: </label>
-                    <button class="arrow-button" onclick="changeSelect('yf-expiry-select', -1)">&#9664;</button>
+                    <button class="arrow-button" onclick="changeYFExpirySelect(-1)">◀</button>
                     <select id="yf-expiry-select"></select>
-                    <button class="arrow-button" onclick="changeSelect('yf-expiry-select', 1)">&#9654;</button>
+                    <button class="arrow-button" onclick="changeYFExpirySelect(1)">▶</button>
                 </div>
                 <canvas id="yf-iv-chart"></canvas>
-                <div id="yf-iv-error" class="error-message" style="display: none;">No data available</div>
+                <div class="error-message" id="yf-iv-error">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Volatility Skewness</h3>
+                <h2>Volatility Skewness</h2>
                 <canvas id="skew-vs-expiry-chart"></canvas>
-                <div id="skew-error" class="error-message" style="display: none;">No data available</div>
+                <div class="error-message" id="skew-vs-expiry-error">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Realised Volatility</h3>
+                <h2>Realised Volatility</h2>
                 <div class="select-container">
-                    <label for="realised-vol-history-select">Select History Length: </label>
-                    <button class="arrow-button" onclick="changeSelect('realised-vol-history-select', -1)">&#9664;</button>
+                    <button class="arrow-button" onclick="changeRealisedVolHistorySelect(-1)">◀</button>
                     <select id="realised-vol-history-select">
-                        <option value="1m">1-month</option>
-                        <option value="3m">3-month</option>
-                        <option value="6m">6-month</option>
-                        <option value="1y">1-year</option>
-                        <option value="5y">5-year</option>
-                        <option value="all" selected>All</option>
+                        <option value="1-month">1-month</option>
+                        <option value="3-month">3-month</option>
+                        <option value="6-month">6-month</option>
+                        <option value="1-year">1-year</option>
+                        <option value="5-year">5-year</option>
+                        <option value="all">All</option>
                     </select>
-                    <button class="arrow-button" onclick="changeSelect('realised-vol-history-select', 1)">&#9654;</button>
+                    <button class="arrow-button" onclick="changeRealisedVolHistorySelect(1)">▶</button>
                 </div>
                 <canvas id="realised-vol-chart"></canvas>
-                <div id="realised-vol-error" class="error-message" style="display: none;">No data available</div>
+                <div class="error-message" id="realised-vol-error">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Call Volatility Surface</h3>
+                <h2>Call Volatility Surface</h2>
                 <div class="slider-container">
                     <div class="slider-group">
-                        <label>Moneyness Range: <div id="moneyness-slider" class="pretty-slider"></div>
-                            <span id="moneyness-value" class="slider-value">0.6 - 2.5</span></label>
-                        <label>Expiry (T) Range: <div id="expiry-t-slider" class="pretty-slider"></div>
-                            <span id="expiry-t-value" class="slider-value">0.2 - 5.0</span></label>
+                        <label for="moneyness-slider">Moneyness Range:</label>
+                        <div id="moneyness-slider"></div>
+                        <span id="moneyness-value">0.6 - 2.5</span>
+                    </div>
+                    <div class="slider-group">
+                        <label for="expiry-t-slider">Expiry (T) Range:</label>
+                        <div id="expiry-t-slider"></div>
+                        <span id="expiry-t-value">0.2 - 5.0</span>
                     </div>
                 </div>
-                <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
-                <div id="surface-error" class="error-message" style="display: none;">No data available</div>
+                <div id="call-vol-surface"></div>
+                <div class="error-message" id="call-vol-surface-error">No data available</div>
             </div>
         </div>
-        <div id="ranking" class="chart-container" style="display: none;">
+        <div class="chart-container" id="ranking" style="display: none;">
             <h2>Ticker Ranking</h2>
-            <button class="toggle-button" onclick="toggleRankingTable()">Show Data</button>
-            <table id="ranking-table" class="ranking-table" style="display: none;"></table>
+            <button class="toggle-button" onclick="toggleTable('ranking-table')">Show Data</button>
             <div class="ranking-grid">
                 <div class="chart-container">
-                    <h3>Volume</h3>
+                    <h2>Volume</h2>
                     <canvas id="volume-chart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Open Interest</h3>
+                    <h2>Open Interest</h2>
                     <canvas id="open-interest-chart"></canvas>
                 </div>
             </div>
+            <table class="ranking-table" id="ranking-table" style="display: none;"></table>
         </div>
-        <div id="stock" class="chart-container" style="display: none;">
+        <div class="chart-container" id="stock" style="display: none;">
             <h2>Stock Metrics</h2>
-            <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
-            <table id="stock-table" class="stock-table" style="display: none;"></table>
+            <button class="toggle-button" onclick="toggleTable('stock-table')">Show Data</button>
+            <table class="stock-table" id="stock-table" style="display: none;"></table>
         </div>
-        <div id="data-table" class="chart-container" style="display: none;">
+        <div class="chart-container" id="raw-data" style="display: none;">
             <h2>Data Table</h2>
-            <table id="raw-data-table" class="raw-data-table"></table>
+            <table class="raw-data-table" id="raw-data-table"></table>
         </div>
     </div>
-    <script src="script.js"></script>
 </body>
 </html>
