@@ -6,12 +6,13 @@ import sys
 import json
 import glob
 from datetime import datetime
-from multiprocessing import Pool, cpu_count
-from functools import partial
+from multiprocessing import Pool
+import time
 from tqdm import tqdm
 
 def load_data(timestamp, source, base_path="data"):
     """Load raw data files for a given timestamp and source."""
+    start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names = None
     ranking = None
@@ -28,7 +29,6 @@ def load_data(timestamp, source, base_path="data"):
         ranking_path = f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv"
         if os.path.exists(ranking_path):
             ranking = pd.read_csv(ranking_path)
-            # Ensure numeric columns are float64
             numeric_cols = ['Latest Close', 'Realised Volatility 30d (%)', 'Realised Volatility 100d (%)',
                            'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
                            'Min Realised Volatility 100d (1y)', 'Max Realised Volatility 100d (1y)',
@@ -83,13 +83,15 @@ def load_data(timestamp, source, base_path="data"):
         else:
             print("Warning: Events.csv not found.")
 
+        print(f"Loaded all data in {time.time() - start_time:.2f} seconds")
         return company_names, ranking, historic, events
     except FileNotFoundError as e:
         print(f"Error loading data file: {e}")
         return None, None, None, None
 
 def load_ticker_data(ticker, timestamp, source, base_path="data"):
-    """Load ticker-specific data for parallel processing."""
+    """Load ticker-specific data."""
+    start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     processed = pd.DataFrame()
     cleaned = pd.DataFrame()
@@ -107,6 +109,7 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
         
+        print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds")
         return ticker, processed, cleaned, skew
     except Exception as e:
         print(f"Error loading data for ticker {ticker}: {e}")
@@ -157,15 +160,18 @@ def calculate_historical_spreads(historic_data, ticker):
         "5y Spread": avg_spread(five_year)
     }
 
-def interpolate_vol_surface(data, ticker, dataset_date, moneyness_min=0.6, moneyness_max=2.5, expiry_t_min=0.2, expiry_t_max=5.0, moneyness_step=0.05):
-    """Interpolate volatility surface with reduced grid density."""
+def interpolate_vol_surface(data, ticker, dataset_date, moneyness_min=0.6, moneyness_max=2.5, expiry_t_min=0.2, expiry_t_max=5.0, moneyness_step=0.05, max_expiries=50):
+    """Interpolate volatility surface with capped expiries."""
+    start_time = time.time()
     if data.empty or 'Ticker' not in data.columns or 'Smoothed_IV' not in data.columns:
+        print(f"No valid data for vol surface for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Expiry", "Moneyness", "Volatility", "Expiry_T"])
     
     filtered = data[(data["Ticker"] == ticker) & (data["Type"] == "Call") &
                     data["Moneyness"].notna() & data["Smoothed_IV"].notna()]
     
     if filtered.empty:
+        print(f"No call options for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Expiry", "Moneyness", "Volatility", "Expiry_T"])
     
     dataset_date = pd.to_datetime(dataset_date)
@@ -183,15 +189,18 @@ def interpolate_vol_surface(data, ticker, dataset_date, moneyness_min=0.6, money
     ]
     
     if filtered.empty:
+        print(f"No valid data after filtering for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Expiry", "Moneyness", "Volatility", "Expiry_T"])
     
     moneyness_values = np.arange(moneyness_min, moneyness_max + 0.01, moneyness_step)
-    expiry_values = sorted(filtered["Expiry"].unique())
-    expiry_times = sorted(filtered["Expiry_T"].unique())
+    expiry_values = sorted(filtered["Expiry"].unique())[:max_expiries]
+    expiry_times = sorted(filtered["Expiry_T"].unique())[:max_expiries]
     
     if len(expiry_times) == 0 or len(moneyness_values) == 0:
+        print(f"No valid expiries/moneyness for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Expiry", "Moneyness", "Volatility", "Expiry_T"])
     
+    filtered = filtered[filtered["Expiry"].isin(expiry_values)]
     grid_x, grid_y = np.meshgrid(expiry_times, moneyness_values)
     points = filtered[["Expiry_T", "Moneyness"]].values
     values = filtered["Smoothed_IV"].values * 100
@@ -209,11 +218,15 @@ def interpolate_vol_surface(data, ticker, dataset_date, moneyness_min=0.6, money
                 "Expiry_T": e_t
             })
     
-    return pd.DataFrame(surface_data).dropna()
+    result = pd.DataFrame(surface_data).dropna()
+    print(f"Interpolated vol surface for {ticker} in {time.time() - start_time:.2f} seconds")
+    return result
 
 def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
     """Generate ranking table with formatted values and colors."""
+    start_time = time.time()
     if ranking is None or ranking.empty:
+        print(f"No ranking data in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame()
     ranking = ranking.copy()
     if company_names is not None and not company_names.empty:
@@ -223,7 +236,6 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
     else:
         ranking["Company Name"] = "N/A"
     
-    # Initialize spread columns as float64 to avoid dtype warnings
     ranking["Market Spread"] = pd.NA
     ranking["1y Spread"] = pd.NA
     ranking["3y Spread"] = pd.NA
@@ -289,11 +301,14 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
             )
     
     color_columns = [f"{col}_Color" for col in columns if col not in ["Rank", "Ticker", "Company Name"]]
+    print(f"Generated ranking table in {time.time() - start_time:.2f} seconds")
     return ranking[columns + color_columns]
 
 def generate_stock_table(ranking, company_names, cleaned_data, historic_data):
     """Generate stock table with formatted values and colors."""
+    start_time = time.time()
     if ranking is None or ranking.empty:
+        print(f"No stock data in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame()
     stock_data = ranking.copy()
     if company_names is not None and not company_names.empty:
@@ -348,15 +363,19 @@ def generate_stock_table(ranking, company_names, cleaned_data, historic_data):
             )
     
     color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name"]]
+    print(f"Generated stock table in {time.time() - start_time:.2f} seconds")
     return stock_data[columns + color_columns]
 
 def generate_summary_table(ranking, skew_data, ticker):
     """Generate summary table for a ticker with formatted values and colors."""
+    start_time = time.time()
     if ranking is None or ranking.empty:
+        print(f"No summary data for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Metric", "Value", "Color"])
     
     filtered_ranking = ranking[ranking["Ticker"] == ticker]
     if filtered_ranking.empty:
+        print(f"No ranking data for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Metric", "Value", "Color"])
     
     metrics = [
@@ -404,11 +423,14 @@ def generate_summary_table(ranking, skew_data, ticker):
         atm_ratio = round(pd.to_numeric(atm_val, errors='coerce'), 4) if pd.notna(atm_val) else pd.NA
     summary_data.append({"Metric": "ATM 12m/3m Ratio", "Value": atm_ratio, "Color": "#FFFFFF"})
     
+    print(f"Generated summary table for {ticker} in {time.time() - start_time:.2f} seconds")
     return pd.DataFrame(summary_data)
 
 def generate_top_contracts_tables(data, ticker):
     """Generate top 10 volume and open interest contracts tables for a ticker."""
+    start_time = time.time()
     if data.empty or 'Ticker' not in data.columns:
+        print(f"No contracts data for {ticker} in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     
     filtered = data[data["Ticker"] == ticker].copy()
@@ -430,10 +452,12 @@ def generate_top_contracts_tables(data, ticker):
         df["Open Interest"] = np.where(df["Open Interest"].notna(), pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if x > 0 else "N/A"), "N/A")
         return df
     
+    print(f"Generated contracts tables for {ticker} in {time.time() - start_time:.2f} seconds")
     return format_table(top_volume), format_table(top_open_interest)
 
 def process_ticker(ticker, ranking, company_names, historic, timestamp, source, base_path="data"):
     """Process a single ticker and return its tables."""
+    start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     dataset_date = pd.to_datetime(timestamp[:8], format="%Y%m%d")
     
@@ -445,6 +469,7 @@ def process_ticker(ticker, ranking, company_names, historic, timestamp, source, 
     top_volume, top_open_interest = generate_top_contracts_tables(processed, ticker)
     vol_surface = interpolate_vol_surface(processed, ticker, dataset_date)
     
+    print(f"Processed ticker {ticker} in {time.time() - start_time:.2f} seconds")
     return {
         "ticker": ticker,
         "summary_table": summary_table,
@@ -455,22 +480,21 @@ def process_ticker(ticker, ranking, company_names, historic, timestamp, source, 
 
 def save_tables(timestamp, source, base_path="data"):
     """Generate and save all precomputed tables."""
+    start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names, ranking, historic, events = load_data(timestamp, source, base_path)
     if ranking is None or ranking.empty:
-        print("Failed to load required data files (ranking is missing or empty). Skipping table generation.")
+        print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
         return
     
-    # Pre-load all ticker-specific data
+    # Pre-load all ticker-specific data (sequentially to avoid memory issues)
     tickers = ranking["Ticker"].unique()
     ticker_data = {}
-    with Pool(processes=cpu_count()//2) as pool:
-        results = pool.starmap(load_ticker_data, [(ticker, timestamp, source, base_path) for ticker in tickers])
-    for ticker, processed, cleaned, skew in results:
-        ticker_data[ticker] = {"processed": processed, "cleaned": cleaned, "skew": skew}
+    for ticker in tqdm(tickers, desc="Loading ticker data"):
+        ticker_data[ticker] = load_ticker_data(ticker, timestamp, source, base_path)[1:]
     
     # Generate global tables
-    cleaned_concat = pd.concat([d["cleaned"] for d in ticker_data.values()]) if any(d["cleaned"].size for d in ticker_data.values()) else pd.DataFrame()
+    cleaned_concat = pd.concat([d[1] for d in ticker_data.values()]) if any(d[1].size for d in ticker_data.values()) else pd.DataFrame()
     ranking_table = generate_ranking_table(ranking, company_names, cleaned_concat, historic)
     stock_table = generate_stock_table(ranking, company_names, cleaned_concat, historic)
     
@@ -482,11 +506,13 @@ def save_tables(timestamp, source, base_path="data"):
     os.makedirs(f"{base_path}/{timestamp}/tables/vol_surface", exist_ok=True)
     
     # Save global tables
-    ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
-    stock_table.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table{prefix}.csv", index=False)
+    if not ranking_table.empty:
+        ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
+    if not stock_table.empty:
+        stock_table.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table{prefix}.csv", index=False)
     
     # Process ticker-specific tables in parallel
-    with Pool(processes=cpu_count()//2) as pool:
+    with Pool(processes=2) as pool:
         results = list(tqdm(pool.starmap(process_ticker, 
                                         [(ticker, ranking, company_names, historic, timestamp, source, base_path) 
                                          for ticker in tickers]), 
@@ -498,17 +524,22 @@ def save_tables(timestamp, source, base_path="data"):
         try:
             contracts_dir = f"{base_path}/{timestamp}/tables/contracts/{ticker}"
             os.makedirs(contracts_dir, exist_ok=True)
-            result["summary_table"].to_csv(f"{base_path}/{timestamp}/tables/summary/summary{prefix}_{ticker}.csv", index=False)
-            result["top_volume"].to_csv(f"{contracts_dir}/top_volume{prefix}_{ticker}.csv", index=False)
-            result["top_open_interest"].to_csv(f"{contracts_dir}/top_open_interest{prefix}_{ticker}.csv", index=False)
-            result["vol_surface"].to_csv(f"{base_path}/{timestamp}/tables/vol_surface/vol_surface{prefix}_{ticker}.csv", index=False)
-            print(f"Generated tables for ticker: {ticker}")
+            if not result["summary_table"].empty:
+                result["summary_table"].to_csv(f"{base_path}/{timestamp}/tables/summary/summary{prefix}_{ticker}.csv", index=False)
+            if not result["top_volume"].empty:
+                result["top_volume"].to_csv(f"{contracts_dir}/top_volume{prefix}_{ticker}.csv", index=False)
+            if not result["top_open_interest"].empty:
+                result["top_open_interest"].to_csv(f"{contracts_dir}/top_open_interest{prefix}_{ticker}.csv", index=False)
+            if not result["vol_surface"].empty:
+                result["vol_surface"].to_csv(f"{base_path}/{timestamp}/tables/vol_surface/vol_surface{prefix}_{ticker}.csv", index=False)
+            print(f"Saved tables for ticker: {ticker}")
         except Exception as e:
             print(f"Error saving tables for ticker {ticker}: {e}")
     
-    print(f"Precomputed tables generation completed for {timestamp}, source {source}")
+    print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
 
 def main():
+    start_time = time.time()
     base_path = 'data'
     dates_file = os.path.join(base_path, 'dates.json')
     try:
@@ -531,5 +562,7 @@ def main():
     sources = ['yfinance']
     for source in sources:
         save_tables(timestamp, source, base_path)
+    
+    print(f"Total execution time: {time.time() - start_time:.2f} seconds")
 
 main()
