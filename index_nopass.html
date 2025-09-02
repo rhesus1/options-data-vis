@@ -715,20 +715,26 @@
         function calculateMarketSpread(ticker) {
             try {
                 const selectedTicker = ticker.toUpperCase();
+                console.log(`Calculating market spread for ${selectedTicker}. CleanedData length: ${cleanedData.length}`);
+                if (cleanedData.length === 0) {
+                    console.warn(`CleanedData is empty for ${selectedTicker}`);
+                    return 'N/A';
+                }
                 // Filter cleanedData for the selected ticker and find stock-level bid/ask
                 const stockRows = cleanedData.filter(item => item.Ticker === selectedTicker && item['Bid Stock'] !== undefined && item['Ask Stock'] !== undefined);
-                
+                console.log(`Found ${stockRows.length} rows with Bid Stock and Ask Stock for ${selectedTicker}`);
                 if (stockRows.length === 0) {
-                    console.warn(`No stock bid/ask data found for ${selectedTicker} in cleanedData`);
+                    console.warn(`No stock bid/ask data found for ${selectedTicker} in cleanedData. Sample cleanedData[0]:`, cleanedData[0]);
                     return 'N/A';
                 }
                 
                 // Use the first row (assuming one stock price per ticker per timestamp)
                 const bid = parseFloat(stockRows[0]['Bid Stock']);
                 const ask = parseFloat(stockRows[0]['Ask Stock']);
+                console.log(`Bid for ${selectedTicker}: ${bid}, Ask: ${ask}`);
                 
                 const spread = Number.isFinite(ask) && Number.isFinite(bid) ? (ask - bid).toFixed(2) : 'N/A';
-                console.log(`Market spread for ${selectedTicker}: ${spread} (Bid: ${bid.toFixed(2)}, Ask: ${ask.toFixed(2)})`);
+                console.log(`Market spread for ${selectedTicker}: ${spread}`);
                 
                 return spread;
             } catch (error) {
@@ -740,26 +746,30 @@
         function calculateHistoricalSpreads(ticker) {
             try {
                 const selectedTicker = ticker.toUpperCase();
-                const filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item['Bid Stock'] !== undefined && item['Ask Stock'] !== undefined);
+                const filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item.High !== undefined && item.Low !== undefined);
                 if (!filteredHistoric.length) {
-                    console.warn(`No bid/ask data for ${selectedTicker} in historicData`);
+                    console.warn(`No OHLC data for ${selectedTicker} in historicData`);
                     return { '1y Spread': 'N/A', '3y Spread': 'N/A', '5y Spread': 'N/A' };
                 }
-                // Sort by date descending to get most recent first
-                filteredHistoric.sort((a, b) => new Date(b.Date) - new Date(a.Date));
-                const spreads = filteredHistoric.map(item => ({
-                    spread: Number.isFinite(item['Ask Stock']) && Number.isFinite(item['Bid Stock']) ? item['Ask Stock'] - item['Bid Stock'] : null
-                })).filter(item => item.spread !== null);
-                const oneYearSpreads = spreads.slice(0, 252).map(item => item.spread);
-                const threeYearSpreads = spreads.slice(0, 756).map(item => item.spread);
-                const fiveYearSpreads = spreads.slice(0, 1260).map(item => item.spread);
+                // Sort by date ascending to get chronological order
+                filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                const spreads = filteredHistoric.map(item => Number.isFinite(item.High) && Number.isFinite(item.Low) ? item.High - item.Low : null).filter(s => s !== null);
+                if (spreads.length === 0) {
+                    console.warn(`No valid spread data for ${selectedTicker} after filtering`);
+                    return { '1y Spread': 'N/A', '3y Spread': 'N/A', '5y Spread': 'N/A' };
+                }
+                // Use last N trading days (reverse to get most recent)
+                const recentSpreads = spreads.slice(-Math.min(spreads.length, 1260)); // Up to 5 years (1260 days)
+                const oneYearSpreads = recentSpreads.slice(-252); // 1 year = 252 trading days
+                const threeYearSpreads = recentSpreads.slice(-756); // 3 years = 756 days
+                const fiveYearSpreads = recentSpreads; // Up to 5 years = 1260 days
                 const avg = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 'N/A';
                 const result = {
                     '1y Spread': avg(oneYearSpreads),
                     '3y Spread': avg(threeYearSpreads),
                     '5y Spread': avg(fiveYearSpreads)
                 };
-                console.log(`Historical spreads for ${selectedTicker}:`, result);
+                console.log(`Historical spreads (OHLC proxy) for ${selectedTicker}:`, result, `(Available days: ${spreads.length})`);
                 return result;
             } catch (error) {
                 console.error('Error calculating historical spreads:', error);
@@ -1106,40 +1116,42 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No ranking data available';
-                    cell.colSpan = 42;
+                    cell.colSpan = 29; // Adjusted for remaining columns
                     cell.style.color = '#FFFFFF';
                     console.warn('No ranking data for ranking table');
                     return;
                 }
-                const columns = [
-                    'Rank',
-                    'Ticker',
-                    'Latest Close',
-                    'RVol 30d (%)',
-                    'RVol 100d (%)',
-                    'RVol 100d 1d (%)',
-                    'RVol 100d 1w (%)',
-                    'Min RVol 100d (1y)',
-                    'Max RVol 100d (1y)',
-                    'Mean RVol 100d (1y)',
-                    'Rvol 100d Percentile (%)',
-                    'Rvol 100d Z-Score Percentile (%)',
-                    'WIVol (%)',
-                    'WIVol 1d (%)',
-                    'WIVol 1w (%)',
-                    'WIVol 3m (%)',      // New column
-                    'WIVol 3m 1d (%)',   // New column
-                    'WIVol 3m 1w (%)',   // New column
-                    'ATM IVol 3m (%)',           // New column
-                    'ATM IVol 3m 1d (%)',        // New column
-                    'ATM IVol 3m 1w (%)',        // New column
-                    'Rvol 100d - WIVol',
-                    'Volume',
-                    'Volume 1d (%)',
-                    'Volume 1w (%)',
-                    'Open Interest',
-                    'OI 1d (%)',
-                    'OI 1w (%)'
+                const columnMapping = [
+                    { display: 'Rank', data: 'Rank' },
+                    { display: 'Ticker', data: 'Ticker' },
+                    { display: 'Latest Close', data: 'Latest Close' },
+                    { display: 'RVol 30d (%)', data: 'Realised Volatility 30d (%)' },
+                    { display: 'RVol 100d (%)', data: 'Realised Volatility 100d (%)' },
+                    { display: 'RVol 100d 1d (%)', data: 'Realised Volatility 100d 1d (%)' },
+                    { display: 'RVol 100d 1w (%)', data: 'Realised Volatility 100d 1w (%)' },
+                    { display: 'Min RVol 100d (1y)', data: 'Min Realised Volatility 100d (1y)' },
+                    { display: 'Max RVol 100d (1y)', data: 'Max Realised Volatility 100d (1y)' },
+                    { display: 'Mean RVol 100d (1y)', data: 'Mean Realised Volatility 100d (1y)' },
+                    { display: 'RVol 100d Percentile (%)', data: 'RVol 100d Percentile (%)' },
+                    { display: 'RVol 100d Z-Score Percentile (%)', data: 'RVol 100d Z-Score Percentile (%)' },
+                    { display: 'RVol 180d (%)', data: 'Realised Volatility 180d (%)' },
+                    { display: 'RVol 252d (%)', data: 'Realised Volatility 252d (%)' },
+                    { display: 'WIVol (%)', data: 'Weighted IV (%)' },
+                    { display: 'WIVol 1d (%)', data: 'Weighted IV 1d (%)' },
+                    { display: 'WIVol 1w (%)', data: 'Weighted IV 1w (%)' },
+                    { display: 'WIVol 3m (%)', data: 'Weighted IV 3m (%)' },
+                    { display: 'WIVol 3m 1d (%)', data: 'Weighted IV 3m 1d (%)' },
+                    { display: 'WIVol 3m 1w (%)', data: 'Weighted IV 3m 1w (%)' },
+                    { display: 'ATM IVol 3m (%)', data: 'ATM IV 3m (%)' },
+                    { display: 'ATM IVol 3m 1d (%)', data: 'ATM IV 3m 1d (%)' },
+                    { display: 'ATM IVol 3m 1w (%)', data: 'ATM IV 3m 1w (%)' },
+                    { display: 'RVol100d - WIVol', data: 'Rvol100d - Weighted IV' },
+                    { display: 'Volume', data: 'Volume' },
+                    { display: 'Volume 1d (%)', data: 'Volume 1d (%)' },
+                    { display: 'Volume 1w (%)', data: 'Volume 1w (%)' },
+                    { display: 'Open Interest', data: 'Open Interest' },
+                    { display: 'OI 1d (%)', data: 'OI 1d (%)' },
+                    { display: 'OI 1w (%)', data: 'OI 1w (%)' }
                 ];
                 const sortedData = [...rankingData].sort((a, b) => {
                     const aValue = Number.isFinite(a['Open Interest']) ? parseInt(a['Open Interest']) : -Infinity;
@@ -1151,10 +1163,10 @@
                 });
                 const thead = document.createElement('thead');
                 const headerRow = thead.insertRow();
-                columns.forEach((text, index) => {
+                columnMapping.forEach(({ display, data }, index) => {
                     const th = document.createElement('th');
-                    th.textContent = text;
-                    th.dataset.column = text;
+                    th.textContent = display;
+                    th.dataset.column = data; // Use original column name for sorting
                     th.dataset.order = 'desc';
                     th.style.color = '#FFFFFF';
                     th.addEventListener('click', () => sortTable('ranking-table', index));
@@ -1164,12 +1176,12 @@
                 const tbody = document.createElement('tbody');
                 sortedData.forEach(item => {
                     const row = tbody.insertRow();
-                    columns.forEach(col => {
+                    columnMapping.forEach(({ data }) => {
                         const cell = row.insertCell();
-                        let value = col === 'Rank' ? item.CalculatedRank : item[col];
-                        if (col === 'Rank') {
+                        let value = data === 'Rank' ? item.CalculatedRank : item[data];
+                        if (data === 'Rank') {
                             value = Number.isFinite(value) ? parseInt(value) : 'N/A';
-                        } else if (col === 'Volume' || col === 'Open Interest') {
+                        } else if (data === 'Volume' || data === 'Open Interest') {
                             value = Number.isFinite(value) ? parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A';
                         } else if (Number.isFinite(value)) {
                             value = value.toFixed(2);
@@ -1178,18 +1190,16 @@
                         }
                         cell.textContent = value;
                         cell.style.color = '#FFFFFF';
-                        // Apply color to specific percent change metrics
                         const isPercentChange = [
-                            'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
                             'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
                             'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
-                            'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)', // New percent change columns
-                            'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',          // New percent change columns
+                            'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
+                            'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                             'Rvol100d - Weighted IV',
                             'Volume 1d (%)', 'Volume 1w (%)', 'OI 1d (%)', 'OI 1w (%)'
-                        ].includes(col);
-                        if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
-                            const val = parseFloat(item[col]);
+                        ].includes(data);
+                        if (isPercentChange && Number.isFinite(parseFloat(item[data])) && item[data] !== 'N/A') {
+                            const val = parseFloat(item[data]);
                             cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
                         }
                     });
@@ -1199,7 +1209,7 @@
             } catch (error) {
                 console.error('Error updating ranking table:', error);
                 const table = document.getElementById('ranking-table');
-                table.innerHTML = '<tr><td colspan="42">Error loading ranking table</td></tr>';
+                table.innerHTML = '<tr><td colspan="29">Error loading ranking table</td></tr>';
             }
         }
 
@@ -1224,7 +1234,7 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No stock data available';
-                    cell.colSpan = 18; // Updated for 18 columns
+                    cell.colSpan = 18; // 18 columns including historical spreads
                     cell.style.color = '#FFFFFF';
                     console.warn('No stock data for stock table');
                     return;
@@ -1272,8 +1282,11 @@
                     columns.forEach(col => {
                         const cell = row.insertCell();
                         let value = item[col];
-                        if (col === 'Market Spread' || col === '1y Spread' || col === '3y Spread' || col === '5y Spread' || Number.isFinite(value)) {
+                        // Format spreads and numeric values to 2 decimals
+                        if (['Market Spread', '1y Spread', '3y Spread', '5y Spread'].includes(col) || (Number.isFinite(value) && col !== 'Company Name')) {
                             value = Number.isFinite(value) ? parseFloat(value).toFixed(2) : 'N/A';
+                        } else if (col === 'Company Name') {
+                            value = value || 'N/A';
                         } else {
                             value = value === 'N/A' || value == null ? 'N/A' : value;
                         }
@@ -1294,7 +1307,7 @@
             } catch (error) {
                 console.error('Error updating stock table:', error);
                 const table = document.getElementById('stock-table');
-                table.innerHTML = '<tr><td colspan="18">Error loading stock table</td></tr>'; // Updated for 18 columns
+                table.innerHTML = '<tr><td colspan="18">Error loading stock table</td></tr>';
             }
         }
 
