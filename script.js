@@ -22,12 +22,12 @@ function checkPassword() {
 }
 
 function interpolateGrid(points, values, gridX, gridY) {
-    // Simple bilinear interpolation for 2D grid
+    // Bilinear interpolation for 2D grid
     const result = [];
     for (let i = 0; i < gridY.length; i++) {
         const row = [];
         for (let j = 0; j < gridX.length; j++) {
-            // Find four nearest points
+            // Find four nearest points for bilinear interpolation
             let closest = points
                 .map((p, idx) => ({ x: p[0], y: p[1], value: values[idx] }))
                 .filter(p => p.x !== null && p.y !== null && !isNaN(p.value))
@@ -39,7 +39,12 @@ function interpolateGrid(points, values, gridX, gridY) {
                 .slice(0, 4);
             
             if (closest.length < 4) {
-                row.push(0); // Set missing points to zero
+                // If fewer than 4 points, use linear interpolation or nearest neighbor
+                if (closest.length === 0) {
+                    row.push(0); // Fallback to zero if no points
+                    continue;
+                }
+                row.push(closest[0].value); // Nearest neighbor
                 continue;
             }
 
@@ -49,26 +54,25 @@ function interpolateGrid(points, values, gridX, gridY) {
             const y1 = Math.min(p1.y, p3.y), y2 = Math.max(p1.y, p3.y);
             
             if (x1 === x2 || y1 === y2) {
-                row.push(0);
+                row.push(p1.value); // Fallback to nearest if points are aligned
                 continue;
             }
 
-            // Find values at corners
-            const f11 = closest.find(p => p.x === x1 && p.y === y1)?.value || 0;
-            const f12 = closest.find(p => p.x === x1 && p.y === y2)?.value || 0;
-            const f21 = closest.find(p => p.x === x2 && p.y === y1)?.value || 0;
-            const f22 = closest.find(p => p.x === x2 && p.y === y2)?.value || 0;
+            const f11 = closest.find(p => p.x === x1 && p.y === y1)?.value || p1.value;
+            const f12 = closest.find(p => p.x === x1 && p.y === y2)?.value || p1.value;
+            const f21 = closest.find(p => p.x === x2 && p.y === y1)?.value || p1.value;
+            const f22 = closest.find(p => p.x === x2 && p.y === y2)?.value || p1.value;
 
-            // Bilinear interpolation formula
             const fx1 = f11 + (gridX[j] - x1) * (f21 - f11) / (x2 - x1);
             const fx2 = f12 + (gridX[j] - x1) * (f22 - f12) / (x2 - x1);
             const value = fx1 + (gridY[i] - y1) * (fx2 - fx1) / (y2 - y1);
-            row.push(isNaN(value) ? 0 : value);
+            row.push(isNaN(value) ? p1.value : value); // Ensure no NaN
         }
         result.push(row);
     }
     return result;
 }
+
 
 function updateCallVolSurface() {
     const ticker = document.getElementById('ticker-search').value.toUpperCase();
@@ -112,7 +116,7 @@ function updateCallVolSurface() {
 
     const moneynessValues = Array.from({length: Math.floor((moneynessMax - moneynessMin) / 0.05) + 1}, (_, i) => moneynessMin + i * 0.05);
     const expiryValues = [...new Set(filteredData.map(row => row.Expiry).filter(e => e))].sort();
-    const expiryTimes = [...new Set(filteredData.map(row => row.Expiry_T).filter(t => t !== null))].sort();
+    const expiryTimes = [...new Set(filteredData.map(row => row.Expiry_T).filter(t => t !== null))].sort().slice(0, 50); // Cap at 50 expiries
 
     if (expiryTimes.length === 0 || moneynessValues.length === 0) {
         document.getElementById('call-vol-surface').innerHTML = '';
@@ -251,19 +255,20 @@ function updateSummaryTable() {
 
 function updateContractsTable() {
     try {
+        const ticker = document.getElementById('ticker-search').value.toUpperCase();
         const volumeTable = document.getElementById('top-volume-table');
         const openInterestTable = document.getElementById('top-open-interest-table');
         volumeTable.innerHTML = '';
         openInterestTable.innerHTML = '';
 
         const tables = [
-            {table: volumeTable, data: currentData.topVolume, id: 'top-volume-table'},
-            {table: openInterestTable, data: currentData.topOpenInterest, id: 'top-open-interest-table'}
+            {table: volumeTable, data: currentData.topVolume.filter(row => row.Ticker === ticker), id: 'top-volume-table'},
+            {table: openInterestTable, data: currentData.topOpenInterest.filter(row => row.Ticker === ticker), id: 'top-open-interest-table'}
         ];
 
         tables.forEach(({table, data, id}) => {
             if (data.length === 0) {
-                table.innerHTML = `<tr><td colspan="7">No ${id.includes('volume') ? 'volume' : 'open interest'} data available</td></tr>`;
+                table.innerHTML = `<tr><td colspan="7">No ${id.includes('volume') ? 'volume' : 'open interest'} data available for ${ticker}</td></tr>`;
                 return;
             }
 
