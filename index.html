@@ -81,11 +81,20 @@
             width: 100%;
             box-sizing: border-box; /* Include padding in width */
         }
-        .stats-table, .summary-table, .ranking-table, .raw-data-table, .contracts-table {
+        .stats-table, .summary-table, .raw-data-table, .contracts-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
             background-color: #25253D;
+        }
+        .ranking-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 15px;
+            background-color: #25253D;
+            font-size: 12px; /* Adjust font size if needed */
+            overflow-x: auto; /* Ensure horizontal scrolling */
+            white-space: nowrap; /* Prevent text wrapping */
         }
         .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td {
             border: 1px solid #26A69A;
@@ -1006,7 +1015,7 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No ranking data available';
-                    cell.colSpan = 33;
+                    cell.colSpan = 42;
                     cell.style.color = '#FFFFFF';
                     console.warn('No ranking data for ranking table');
                     return;
@@ -1014,9 +1023,12 @@
                 const columns = [
                     'Rank',
                     'Ticker',
+                    'Latest Open',
                     'Latest Close',
                     'Latest High',
                     'Latest Low',
+                    'Open 1d (%)',
+                    'Open 1w (%)',
                     'Close 1d (%)',
                     'Close 1w (%)',
                     'High 1d (%)',
@@ -1038,6 +1050,12 @@
                     'Weighted IV (%)',
                     'Weighted IV 1d (%)',
                     'Weighted IV 1w (%)',
+                    'Weighted IV 3m (%)',      // New column
+                    'Weighted IV 3m 1d (%)',   // New column
+                    'Weighted IV 3m 1w (%)',   // New column
+                    'ATM IV 3m (%)',           // New column
+                    'ATM IV 3m 1d (%)',        // New column
+                    'ATM IV 3m 1w (%)',        // New column
                     'Rvol100d - Weighted IV',
                     'Volume',
                     'Volume 1d (%)',
@@ -1085,9 +1103,12 @@
                         cell.style.color = '#FFFFFF';
                         // Apply color to specific percent change metrics
                         const isPercentChange = [
-                            'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
+                            'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)', 'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
                             'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
-                            'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Rvol100d - Weighted IV',
+                            'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
+                            'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)', // New percent change columns
+                            'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',          // New percent change columns
+                            'Rvol100d - Weighted IV',
                             'Volume 1d (%)', 'Volume 1w (%)', 'OI 1d (%)', 'OI 1w (%)'
                         ].includes(col);
                         if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
