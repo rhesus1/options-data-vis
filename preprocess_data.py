@@ -374,14 +374,28 @@ def generate_summary_table(ranking, skew_data, tickers):
     return result
 
 def generate_top_contracts_tables(processed_data, tickers):
-    """Generate aggregated top 10 volume and open interest tables across all tickers."""
+    """Generate aggregated top 10 volume and open interest tables for each ticker in a single file."""
     start_time = time.time()
     if processed_data.empty or 'Ticker' not in processed_data.columns:
         print(f"No contracts data in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     
-    top_volume = processed_data[processed_data["Volume"].notna()].sort_values("Volume", ascending=False).head(10) if not processed_data.empty else pd.DataFrame()
-    top_open_interest = processed_data[processed_data["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10) if not processed_data.empty else pd.DataFrame()
+    top_volume_list = []
+    top_open_interest_list = []
+    
+    for ticker in tickers:
+        filtered = processed_data[processed_data["Ticker"] == ticker]
+        if filtered.empty:
+            continue
+        top_volume = filtered[filtered["Volume"].notna()].sort_values("Volume", ascending=False).head(10)
+        top_open_interest = filtered[filtered["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
+        if not top_volume.empty:
+            top_volume_list.append(top_volume)
+        if not top_open_interest.empty:
+            top_open_interest_list.append(top_open_interest)
+    
+    top_volume_table = pd.concat(top_volume_list, ignore_index=True) if top_volume_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+    top_open_interest_table = pd.concat(top_open_interest_list, ignore_index=True) if top_open_interest_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     
     def format_table(df):
         if df.empty:
@@ -401,9 +415,12 @@ def generate_top_contracts_tables(processed_data, tickers):
                                      "N/A")
         return df
     
+    top_volume_table = format_table(top_volume_table)
+    top_open_interest_table = format_table(top_open_interest_table)
+    
     print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds")
-    return format_table(top_volume), format_table(top_open_interest)
-
+    return top_volume_table, top_open_interest_table
+    
 def save_tables(timestamp, source, base_path="data"):
     """Generate and save all precomputed tables."""
     start_time = time.time()
