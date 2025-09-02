@@ -1525,9 +1525,18 @@
                     console.warn('No filtered data for surface');
                     return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
                 }
-                const moneynessValues = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 100) * 0.01))]
-                    .filter(val => !isNaN(val) && val >= moneynessMin && val <= moneynessMax)
-                    .sort((a, b) => a - b);
+                const uniqueRoundedMoneyness = [...new Set(tFilteredData.map(item => Math.round(item.Moneyness * 100) * 0.01))]
+                    .filter(val => !isNaN(val)).sort((a, b) => a - b);
+                let moneynessValues = uniqueRoundedMoneyness;
+                if (moneynessValues.length > 0) {
+                    let minM = moneynessValues[0];
+                    let maxM = moneynessValues[moneynessValues.length - 1];
+                    let grid = [];
+                    for (let m = minM; m <= maxM + 0.0001; m += 0.01) {
+                        grid.push(Math.round(m * 100) / 100);
+                    }
+                    moneynessValues = grid;
+                }
                 const expiryValues = [...new Set(tFilteredData.map(item => normalizeDate(item.Expiry)))]
                     .filter(val => {
                         const t = calculateTimeToExpiry(val, datasetDate);
@@ -1553,8 +1562,8 @@
                         zData[moneynessIndex][expiryIndex] = item[zKey] * 100;
                     }
                 });
-                interpolateAlongExpiry(zData, expiryTimes);
                 interpolateAlongMoneyness(zData, moneynessValues);
+                interpolateAlongExpiry(zData, expiryTimes);
                 const zValues = zData.flat().filter(v => Number.isFinite(v));
                 const minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
                 const maxZ = zValues.length > 0 ? Math.max(...zValues) : 0;
