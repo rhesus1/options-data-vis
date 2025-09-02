@@ -275,8 +275,8 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
     for col in columns:
         if col in ["Volume", "Open Interest"]:
             ranking[col] = np.where(
-                ranking[col].notna() & (pd.to_numeric(ranking[col], errors='coerce') > 0),
-                pd.to_numeric(ranking[col], errors='coerce').map(lambda x: f"{int(x):,}"),
+                ranking[col].notna() & (pd.to_numeric(ranking[col], errors='coerce') > 0) & (pd.to_numeric(ranking[col], errors='coerce').notna()),
+                pd.to_numeric(ranking[col], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) else "N/A"),
                 "N/A"
             )
         elif col not in ["Rank", "Ticker", "Company Name"]:
@@ -448,8 +448,12 @@ def generate_top_contracts_tables(data, ticker):
         df["Type"] = df["Type"].fillna("N/A")
         df["Bid"] = np.where(df["Bid"].notna(), pd.to_numeric(df["Bid"], errors='coerce').round(2), pd.NA)
         df["Ask"] = np.where(df["Ask"].notna(), pd.to_numeric(df["Ask"], errors='coerce').round(2), pd.NA)
-        df["Volume"] = np.where(df["Volume"].notna(), pd.to_numeric(df["Volume"], errors='coerce').map(lambda x: f"{int(x):,}" if x > 0 else "N/A"), "N/A")
-        df["Open Interest"] = np.where(df["Open Interest"].notna(), pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if x > 0 else "N/A"), "N/A")
+        df["Volume"] = np.where(df["Volume"].notna() & pd.to_numeric(df["Volume"], errors='coerce').notna(), 
+                               pd.to_numeric(df["Volume"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"), 
+                               "N/A")
+        df["Open Interest"] = np.where(df["Open Interest"].notna() & pd.to_numeric(df["Open Interest"], errors='coerce').notna(), 
+                                     pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"), 
+                                     "N/A")
         return df
     
     print(f"Generated contracts tables for {ticker} in {time.time() - start_time:.2f} seconds")
