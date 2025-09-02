@@ -1264,6 +1264,8 @@ function updateCharts() {
         updateRealisedVolChart();
         updateCallVolSurface();
         updateSummaryTable();
+        updateRankingTable();
+        updateStockTable();
         updateTopContractsTables();
         updateVolumeChart();
         updateOpenInterestChart();
