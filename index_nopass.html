@@ -441,6 +441,7 @@
         let eventsData = [];
         let rawData = [];
         let rankingData = [];
+        let companyNames = [];
         let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
@@ -586,6 +587,7 @@
                 historicData = [];
                 eventsData = [];
                 rankingData = [];
+                companyNames = [];
         
                 const checkFileExists = async (url) => {
                     try {
@@ -596,6 +598,15 @@
                     }
                 };
         
+                // Load company names
+                const companyNamesExists = await checkFileExists(`data/company_names.csv`);
+                if (companyNamesExists) {
+                    await fetchWithErrorHandling(`data/company_names.csv?v=${Date.now()}`, companyNames);
+                    console.log('Company names loaded, size:', companyNames.length, 'sample:', companyNames.slice(0, 5));
+                } else {
+                    console.warn('Company names file not found: data/company_names.csv');
+                }
+        
                 // Load ranking data first to populate ticker list
                 const rankingExists = await checkFileExists(`data/${timestamp}/ranking/ranking${prefix}.csv`);
                 if (!rankingExists) {
@@ -604,6 +615,12 @@
                 const rankingResponse = await fetch(`data/${timestamp}/ranking/ranking${prefix}.csv?v=${Date.now()}`);
                 rankingData = parseCSV(await rankingResponse.text());
                 console.log('Ranking data loaded, size:', rankingData.length, 'sample:', rankingData.slice(0, 5));
+        
+                // Merge company names into rankingData
+                rankingData.forEach(item => {
+                    const company = companyNames.find(c => c.Ticker === item.Ticker);
+                    item['Company Name'] = company ? company['Company Name'] : 'N/A';
+                });
         
                 // Populate ticker datalist
                 const tickerDatalist = document.getElementById('ticker-datalist');
@@ -653,6 +670,13 @@
                     eventsExists ? fetchWithErrorHandling(`data/Events.csv`, eventsData) : Promise.resolve()
                 ]);
         
+                // Calculate Market Spread for the selected ticker
+                const marketSpread = calculateMarketSpread(selectedTicker);
+                const rankingItem = rankingData.find(item => item.Ticker === selectedTicker);
+                if (rankingItem) {
+                    rankingItem['Market Spread'] = marketSpread;
+                }
+        
                 console.log('Data load complete:', {
                     data: data.slice(0, 5),
                     historicData: historicData.slice(0, 5),
@@ -660,7 +684,8 @@
                     slopeData: slopeData.slice(0, 5),
                     rawData: rawData.slice(0, 5),
                     eventsData: eventsData.slice(0, 5),
-                    rankingData: rankingData.slice(0, 5)
+                    rankingData: rankingData.slice(0, 5),
+                    companyNames: companyNames.slice(0, 5)
                 });
         
                 document.getElementById('historic-error').style.display = 'none';
@@ -677,9 +702,35 @@
                 historicData = [];
                 eventsData = [];
                 rankingData = [];
+                companyNames = [];
                 document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
                 document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
+            }
+        }
+
+        function calculateMarketSpread(ticker) {
+            try {
+                const selectedTicker = ticker.toUpperCase();
+                // Filter data for the selected ticker and find stock-level bid/ask
+                const stockRows = data.filter(item => item.Ticker === selectedTicker && item['Bid'] !== undefined && item['Ask'] !== undefined);
+                
+                if (stockRows.length === 0) {
+                    console.warn(`No stock bid/ask data found for ${selectedTicker}`);
+                    return 'N/A';
+                }
+                
+                // Average the bid and ask across rows if multiple exist
+                const avgBid = stockRows.reduce((sum, item) => sum + parseFloat(item['Bid'] || 0), 0) / stockRows.length;
+                const avgAsk = stockRows.reduce((sum, item) => sum + parseFloat(item['Ask'] || 0), 0) / stockRows.length;
+                
+                const spread = Number.isFinite(avgAsk) && Number.isFinite(avgBid) ? (avgAsk - avgBid).toFixed(2) : 'N/A';
+                console.log(`Market spread for ${selectedTicker}: ${spread} (Bid: ${avgBid.toFixed(2)}, Ask: ${avgAsk.toFixed(2)})`);
+                
+                return spread;
+            } catch (error) {
+                console.error('Error calculating market spread:', error);
+                return 'N/A';
             }
         }
 
@@ -1031,27 +1082,25 @@
                     'Rank',
                     'Ticker',
                     'Latest Close',
-                    'Realised Volatility 30d (%)',
-                    'Realised Volatility 100d (%)',
-                    'Realised Volatility 100d 1d (%)',
-                    'Realised Volatility 100d 1w (%)',
-                    'Min Realised Volatility 100d (1y)',
-                    'Max Realised Volatility 100d (1y)',
-                    'Mean Realised Volatility 100d (1y)',
+                    'RVol 30d (%)',
+                    'RVol 100d (%)',
+                    'RVol 100d 1d (%)',
+                    'RVol 100d 1w (%)',
+                    'Min RVol 100d (1y)',
+                    'Max RVol 100d (1y)',
+                    'Mean RVol 100d (1y)',
                     'Rvol 100d Percentile (%)',
                     'Rvol 100d Z-Score Percentile (%)',
-                    'Realised Volatility 180d (%)',
-                    'Realised Volatility 252d (%)',
-                    'Weighted IV (%)',
-                    'Weighted IV 1d (%)',
-                    'Weighted IV 1w (%)',
-                    'Weighted IV 3m (%)',      // New column
-                    'Weighted IV 3m 1d (%)',   // New column
-                    'Weighted IV 3m 1w (%)',   // New column
-                    'ATM IV 3m (%)',           // New column
-                    'ATM IV 3m 1d (%)',        // New column
-                    'ATM IV 3m 1w (%)',        // New column
-                    'Rvol100d - Weighted IV',
+                    'WIVol (%)',
+                    'WIVol 1d (%)',
+                    'WIVol 1w (%)',
+                    'WIVol 3m (%)',      // New column
+                    'WIVol 3m 1d (%)',   // New column
+                    'WIVol 3m 1w (%)',   // New column
+                    'ATM IVol 3m (%)',           // New column
+                    'ATM IVol 3m 1d (%)',        // New column
+                    'ATM IVol 3m 1w (%)',        // New column
+                    'Rvol 100d - WIVol',
                     'Volume',
                     'Volume 1d (%)',
                     'Volume 1w (%)',
@@ -1142,13 +1191,14 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No stock data available';
-                    cell.colSpan = 13;
+                    cell.colSpan = 15; // Updated for 15 columns
                     cell.style.color = '#FFFFFF';
                     console.warn('No stock data for stock table');
                     return;
                 }
                 const columns = [
                     'Ticker',
+                    'Company Name',
                     'Latest Open',
                     'Latest Close',
                     'Latest High',
@@ -1160,7 +1210,8 @@
                     'High 1d (%)',
                     'High 1w (%)',
                     'Low 1d (%)',
-                    'Low 1w (%)'
+                    'Low 1w (%)',
+                    'Market Spread'
                 ];
                 const sortedData = [...rankingData].sort((a, b) => {
                     const aValue = Number.isFinite(a['Latest Close']) ? parseFloat(a['Latest Close']) : -Infinity;
@@ -1185,8 +1236,8 @@
                     columns.forEach(col => {
                         const cell = row.insertCell();
                         let value = item[col];
-                        if (Number.isFinite(value)) {
-                            value = value.toFixed(2);
+                        if (col === 'Market Spread' || Number.isFinite(value)) {
+                            value = Number.isFinite(value) ? parseFloat(value).toFixed(2) : 'N/A';
                         } else {
                             value = value === 'N/A' || value == null ? 'N/A' : value;
                         }
@@ -1207,7 +1258,7 @@
             } catch (error) {
                 console.error('Error updating stock table:', error);
                 const table = document.getElementById('stock-table');
-                table.innerHTML = '<tr><td colspan="13">Error loading stock table</td></tr>';
+                table.innerHTML = '<tr><td colspan="15">Error loading stock table</td></tr>'; // Updated for 15 columns
             }
         }
 
