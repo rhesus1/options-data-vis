@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
+from datetime import datetime
 import glob
 import os
+import json
 
 def clean_data(file_path):
     df = pd.read_csv(file_path, parse_dates=['Expiry'])
@@ -30,76 +32,54 @@ def clean_data(file_path):
             group = group.sort_values(by='Open Interest').iloc[threshold_index:]
         
         # 5. Calculate ln(1 + open interest) / SM%, where SM% = 100 * (ask - bid) / mid, mid = (bid + ask)/2
-        # First, filter to avoid division by zero (mid > 0)
         group = group[(group['Bid'] + group['Ask']) > 0]
-        
         mid = (group['Bid'] + group['Ask']) / 2
         spread = group['Ask'] - group['Bid']
         sm_percent = 100 * (spread / mid)
-        # Avoid division by zero in sm_percent, though already filtered mid > 0; if sm_percent == 0, weight would be inf, but handle if needed
         group['weight'] = np.log(1 + group['Open Interest']) / sm_percent
-        
-        # Remove rows where sm_percent == 0 to avoid inf
         group = group[np.isfinite(group['weight'])]
-        
-        # Remove the bottom 25% based on weight (sorted ascending)
         if not group.empty:
             n = len(group)
             threshold_index = int(n * 0.25)
             group = group.sort_values(by='weight').iloc[threshold_index:]
-        
-        # Drop the temporary weight column
         group = group.drop(columns=['weight'])
-        
         cleaned_groups.append(group)
     
     if cleaned_groups:
         df = pd.concat(cleaned_groups)
     else:
-        df = pd.DataFrame()  # Empty if no groups
-    
+        df = pd.DataFrame()
     return df
 
 def main():
-    # Find the latest raw files
-    raw_files = glob.glob('data/raw_[0-9]*.csv')
-    raw_yfinance_files = glob.glob('data/raw_yfinance_*.csv')
-    if not raw_files and not raw_yfinance_files:
-        print("No raw data files found")
+    dates_file = 'data/dates.json'
+    if not os.path.exists(dates_file):
+        print("No dates.json found")
         return
-    
-    # Process Nasdaq raw data
-    if raw_files:
-        latest_raw = max(raw_files, key=os.path.getctime)
-        timestamp = os.path.basename(latest_raw).split('raw_')[1].split('.csv')[0]
-        
-        print(f"Processing Nasdaq raw data: {latest_raw}")
-        cleaned_nasdaq_df = clean_data(latest_raw)
-        
-        if not cleaned_nasdaq_df.empty:
-            clean_filename = f'data/cleaned_{timestamp}.csv'
-            cleaned_nasdaq_df.to_csv(clean_filename, index=False)
-            print(f"Cleaned Nasdaq data saved to {clean_filename}")
-        else:
-            print(f"No valid Nasdaq data after cleaning for {latest_raw}")
-    else:
-        print("No Nasdaq raw data files found")
+    with open(dates_file, 'r') as f:
+        dates = json.load(f)
+    if not dates:
+        print("Empty dates.json")
+        return
+    timestamp = max(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     
     # Process yfinance raw data
-    if raw_yfinance_files:
-        latest_yfinance_raw = max(raw_yfinance_files, key=os.path.getctime)
-        timestamp = os.path.basename(latest_yfinance_raw).split('raw_yfinance_')[1].split('.csv')[0]
-        
-        print(f"Processing yfinance raw data: {latest_yfinance_raw}")
-        cleaned_yfinance_df = clean_data(latest_yfinance_raw)
-        
-        if not cleaned_yfinance_df.empty:
-            clean_yfinance_filename = f'data/cleaned_yfinance_{timestamp}.csv'
-            cleaned_yfinance_df.to_csv(clean_yfinance_filename, index=False)
-            print(f"Cleaned yfinance data saved to {clean_yfinance_filename}")
-        else:
-            print(f"No valid yfinance data after cleaning for {latest_yfinance_raw}")
+    raw_yfinance_dir = f'data/{timestamp}/raw_yfinance'
+    if os.path.exists(raw_yfinance_dir):
+        raw_yfinance_files = glob.glob(f'{raw_yfinance_dir}/raw_yfinance_*.csv')
+        cleaned_yfinance_dir = f'data/{timestamp}/cleaned_yfinance'
+        os.makedirs(cleaned_yfinance_dir, exist_ok=True)
+        for raw_file in raw_yfinance_files:
+            ticker = os.path.basename(raw_file).split('raw_yfinance_')[1].split('.csv')[0]
+            print(f"Processing yfinance raw data: {raw_file}")
+            cleaned_df = clean_data(raw_file)
+            if not cleaned_df.empty:
+                clean_filename = f'{cleaned_yfinance_dir}/cleaned_yfinance_{ticker}.csv'
+                cleaned_df.to_csv(clean_filename, index=False)
+                print(f"Cleaned yfinance data for {ticker} saved to {clean_filename}")
+            else:
+                print(f"No valid yfinance data after cleaning for {raw_file}")
     else:
-        print("No yfinance raw data files found")
+        print("No yfinance raw directory found")
 
 main()

@@ -1,0 +1,4 @@
+Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,IV_put_25_delta,IV_put_75_delta,IV_call_25_delta,IV_call_75_delta,Strike_call_25_delta,Strike_call_75_delta,Strike_put_25_delta,Strike_put_75_delta,ATM_12m_3m_Ratio,ATM_IV_3m,ATM_IV_12m,Ticker
+2025-09-19,,,,,,,,,,,,,0.5529175260628739,4.967148692441837,2.74642356661138,AMG
+2025-12-19,,,,,,,,,,,,,0.5529175260628739,4.967148692441837,2.74642356661138,AMG
+2026-03-20,,,,,,,,,,,,,0.5529175260628739,4.967148692441837,2.74642356661138,AMG
