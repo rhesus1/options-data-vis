@@ -157,6 +157,12 @@ async function loadData(timestamp) {
     const source = document.getElementById('source-select').value;
     const ticker = document.getElementById('ticker-search').value.toUpperCase();
     const prefix = source === 'yfinance' ? '_yfinance' : '';
+    if (!ticker) {
+        console.warn('No ticker selected, skipping ticker-specific data loading');
+        currentData.processed = [];
+        currentData.historic = [];
+        return;
+    }
     try {
         const files = [
             {url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, key: 'ranking'},
@@ -196,6 +202,15 @@ async function loadData(timestamp) {
         document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
         document.getElementById('historic-error').style.display = 'block';
     }
+}
+
+async function getLatestValidTimestamp(dates) {
+    const timestamps = dates.sort((a, b) => b.localeCompare(a));
+    for (const ts of timestamps) {
+        if (await validateTimestamp(ts)) return ts;
+    }
+    console.warn('No valid timestamps found, using fallback');
+    return '20250828_2118'; // Use a known valid timestamp
 }
 
 function updateSummaryTable() {
