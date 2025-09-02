@@ -436,6 +436,7 @@
     <script>
         let data = [];
         let historicData = [];
+        let cleanedData = [];
         let skewData = [];
         let slopeData = [];
         let eventsData = [];
@@ -565,7 +566,6 @@
         async function loadData(timestamp) {
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
-                // Only skip if both timestamp and ticker are unchanged
                 if (lastLoadDataTimestamp === timestamp && lastTicker === selectedTicker) {
                     console.log(`Skipping redundant loadData for timestamp: ${timestamp}, ticker: ${selectedTicker}`);
                     return Promise.resolve();
@@ -588,6 +588,7 @@
                 eventsData = [];
                 rankingData = [];
                 companyNames = [];
+                cleanedData = [];
         
                 const checkFileExists = async (url) => {
                     try {
@@ -598,16 +599,16 @@
                     }
                 };
         
-                // Load company names
-                const companyNamesExists = await checkFileExists(`data/company_names.csv`);
+                // Load company names from main directory (tab-separated)
+                const companyNamesExists = await checkFileExists(`./company_names.txt`);
                 if (companyNamesExists) {
-                    await fetchWithErrorHandling(`data/company_names.csv?v=${Date.now()}`, companyNames);
+                    await fetchWithErrorHandling(`./company_names.txt`, companyNames, '\t');
                     console.log('Company names loaded, size:', companyNames.length, 'sample:', companyNames.slice(0, 5));
                 } else {
-                    console.warn('Company names file not found: data/company_names.csv');
+                    console.warn('Company names file not found: ./company_names.txt');
                 }
         
-                // Load ranking data first to populate ticker list
+                // Load ranking data
                 const rankingExists = await checkFileExists(`data/${timestamp}/ranking/ranking${prefix}.csv`);
                 if (!rankingExists) {
                     throw new Error(`Ranking file not found: data/${timestamp}/ranking/ranking${prefix}.csv`);
@@ -616,10 +617,40 @@
                 rankingData = parseCSV(await rankingResponse.text());
                 console.log('Ranking data loaded, size:', rankingData.length, 'sample:', rankingData.slice(0, 5));
         
-                // Merge company names into rankingData
+                // Load remaining data files
+                const [processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists, cleanedExists] = await Promise.all([
+                    checkFileExists(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`),
+                    checkFileExists(`data/${timestamp}/historic/historic_${selectedTicker}.csv`),
+                    checkFileExists(`data/Events.csv`),
+                    checkFileExists(`data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`)
+                ]);
+                console.log('File existence check:', { processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists, cleanedExists });
+        
+                await Promise.all([
+                    processedExists ? fetchWithErrorHandling(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, data) : Promise.resolve(),
+                    rawExists ? fetchWithErrorHandling(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, rawData) : Promise.resolve(),
+                    skewExists ? fetchWithErrorHandling(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, skewData) : Promise.resolve(),
+                    slopeExists ? fetchWithErrorHandling(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, slopeData) : Promise.resolve(),
+                    historicExists ? fetchWithErrorHandling(`data/${timestamp}/historic/historic_${selectedTicker}.csv`, historicData).then(() => {
+                        document.getElementById('historic-error').style.display = historicData.length ? 'none' : 'block';
+                        if (!historicData.length) document.getElementById('historic-error').textContent = 'No historic data available';
+                    }) : Promise.resolve(),
+                    eventsExists ? fetchWithErrorHandling(`data/Events.csv`, eventsData) : Promise.resolve(),
+                    cleanedExists ? fetchWithErrorHandling(`data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, cleanedData) : Promise.resolve()
+                ]);
+        
+                // Merge company names and calculate spreads for all tickers
                 rankingData.forEach(item => {
                     const company = companyNames.find(c => c.Ticker === item.Ticker);
                     item['Company Name'] = company ? company['Company Name'] : 'N/A';
+                    item['Market Spread'] = calculateMarketSpread(item.Ticker);
+                    const spreads = calculateHistoricalSpreads(item.Ticker);
+                    item['1y Spread'] = spreads['1y Spread'];
+                    item['3y Spread'] = spreads['3y Spread'];
+                    item['5y Spread'] = spreads['5y Spread'];
                 });
         
                 // Populate ticker datalist
@@ -647,36 +678,6 @@
                     document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
                 }
         
-                // Load remaining data files
-                const [processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists] = await Promise.all([
-                    checkFileExists(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`),
-                    checkFileExists(`data/${timestamp}/historic/historic_${selectedTicker}.csv`),
-                    checkFileExists(`data/Events.csv`)
-                ]);
-                console.log('File existence check:', { processedExists, rawExists, skewExists, slopeExists, historicExists, eventsExists });
-        
-                await Promise.all([
-                    processedExists ? fetchWithErrorHandling(`data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, data) : Promise.resolve(),
-                    rawExists ? fetchWithErrorHandling(`data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, rawData) : Promise.resolve(),
-                    skewExists ? fetchWithErrorHandling(`data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, skewData) : Promise.resolve(),
-                    slopeExists ? fetchWithErrorHandling(`data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, slopeData) : Promise.resolve(),
-                    historicExists ? fetchWithErrorHandling(`data/${timestamp}/historic/historic_${selectedTicker}.csv`, historicData).then(() => {
-                        document.getElementById('historic-error').style.display = historicData.length ? 'none' : 'block';
-                        if (!historicData.length) document.getElementById('historic-error').textContent = 'No historic data available';
-                    }) : Promise.resolve(),
-                    eventsExists ? fetchWithErrorHandling(`data/Events.csv`, eventsData) : Promise.resolve()
-                ]);
-        
-                // Calculate Market Spread for the selected ticker
-                const marketSpread = calculateMarketSpread(selectedTicker);
-                const rankingItem = rankingData.find(item => item.Ticker === selectedTicker);
-                if (rankingItem) {
-                    rankingItem['Market Spread'] = marketSpread;
-                }
-        
                 console.log('Data load complete:', {
                     data: data.slice(0, 5),
                     historicData: historicData.slice(0, 5),
@@ -685,7 +686,8 @@
                     rawData: rawData.slice(0, 5),
                     eventsData: eventsData.slice(0, 5),
                     rankingData: rankingData.slice(0, 5),
-                    companyNames: companyNames.slice(0, 5)
+                    companyNames: companyNames.slice(0, 5),
+                    cleanedData: cleanedData.slice(0, 5)
                 });
         
                 document.getElementById('historic-error').style.display = 'none';
@@ -703,34 +705,65 @@
                 eventsData = [];
                 rankingData = [];
                 companyNames = [];
+                cleanedData = [];
                 document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
                 document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
             }
         }
-
+        
         function calculateMarketSpread(ticker) {
             try {
                 const selectedTicker = ticker.toUpperCase();
-                // Filter data for the selected ticker and find stock-level bid/ask
-                const stockRows = data.filter(item => item.Ticker === selectedTicker && item['Bid'] !== undefined && item['Ask'] !== undefined);
+                // Filter cleanedData for the selected ticker and find stock-level bid/ask
+                const stockRows = cleanedData.filter(item => item.Ticker === selectedTicker && item['Bid Stock'] !== undefined && item['Ask Stock'] !== undefined);
                 
                 if (stockRows.length === 0) {
-                    console.warn(`No stock bid/ask data found for ${selectedTicker}`);
+                    console.warn(`No stock bid/ask data found for ${selectedTicker} in cleanedData`);
                     return 'N/A';
                 }
                 
-                // Average the bid and ask across rows if multiple exist
-                const avgBid = stockRows.reduce((sum, item) => sum + parseFloat(item['Bid'] || 0), 0) / stockRows.length;
-                const avgAsk = stockRows.reduce((sum, item) => sum + parseFloat(item['Ask'] || 0), 0) / stockRows.length;
+                // Use the first row (assuming one stock price per ticker per timestamp)
+                const bid = parseFloat(stockRows[0]['Bid Stock']);
+                const ask = parseFloat(stockRows[0]['Ask Stock']);
                 
-                const spread = Number.isFinite(avgAsk) && Number.isFinite(avgBid) ? (avgAsk - avgBid).toFixed(2) : 'N/A';
-                console.log(`Market spread for ${selectedTicker}: ${spread} (Bid: ${avgBid.toFixed(2)}, Ask: ${avgAsk.toFixed(2)})`);
+                const spread = Number.isFinite(ask) && Number.isFinite(bid) ? (ask - bid).toFixed(2) : 'N/A';
+                console.log(`Market spread for ${selectedTicker}: ${spread} (Bid: ${bid.toFixed(2)}, Ask: ${ask.toFixed(2)})`);
                 
                 return spread;
             } catch (error) {
                 console.error('Error calculating market spread:', error);
                 return 'N/A';
+            }
+        }
+
+        function calculateHistoricalSpreads(ticker) {
+            try {
+                const selectedTicker = ticker.toUpperCase();
+                const filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item['Bid Stock'] !== undefined && item['Ask Stock'] !== undefined);
+                if (!filteredHistoric.length) {
+                    console.warn(`No bid/ask data for ${selectedTicker} in historicData`);
+                    return { '1y Spread': 'N/A', '3y Spread': 'N/A', '5y Spread': 'N/A' };
+                }
+                // Sort by date descending to get most recent first
+                filteredHistoric.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                const spreads = filteredHistoric.map(item => ({
+                    spread: Number.isFinite(item['Ask Stock']) && Number.isFinite(item['Bid Stock']) ? item['Ask Stock'] - item['Bid Stock'] : null
+                })).filter(item => item.spread !== null);
+                const oneYearSpreads = spreads.slice(0, 252).map(item => item.spread);
+                const threeYearSpreads = spreads.slice(0, 756).map(item => item.spread);
+                const fiveYearSpreads = spreads.slice(0, 1260).map(item => item.spread);
+                const avg = arr => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 'N/A';
+                const result = {
+                    '1y Spread': avg(oneYearSpreads),
+                    '3y Spread': avg(threeYearSpreads),
+                    '5y Spread': avg(fiveYearSpreads)
+                };
+                console.log(`Historical spreads for ${selectedTicker}:`, result);
+                return result;
+            } catch (error) {
+                console.error('Error calculating historical spreads:', error);
+                return { '1y Spread': 'N/A', '3y Spread': 'N/A', '5y Spread': 'N/A' };
             }
         }
 
@@ -1191,7 +1224,7 @@
                     const row = table.insertRow();
                     const cell = row.insertCell();
                     cell.textContent = 'No stock data available';
-                    cell.colSpan = 15; // Updated for 15 columns
+                    cell.colSpan = 18; // Updated for 18 columns
                     cell.style.color = '#FFFFFF';
                     console.warn('No stock data for stock table');
                     return;
@@ -1211,7 +1244,10 @@
                     'High 1w (%)',
                     'Low 1d (%)',
                     'Low 1w (%)',
-                    'Market Spread'
+                    'Market Spread',
+                    '1y Spread',
+                    '3y Spread',
+                    '5y Spread'
                 ];
                 const sortedData = [...rankingData].sort((a, b) => {
                     const aValue = Number.isFinite(a['Latest Close']) ? parseFloat(a['Latest Close']) : -Infinity;
@@ -1236,7 +1272,7 @@
                     columns.forEach(col => {
                         const cell = row.insertCell();
                         let value = item[col];
-                        if (col === 'Market Spread' || Number.isFinite(value)) {
+                        if (col === 'Market Spread' || col === '1y Spread' || col === '3y Spread' || col === '5y Spread' || Number.isFinite(value)) {
                             value = Number.isFinite(value) ? parseFloat(value).toFixed(2) : 'N/A';
                         } else {
                             value = value === 'N/A' || value == null ? 'N/A' : value;
@@ -1258,7 +1294,7 @@
             } catch (error) {
                 console.error('Error updating stock table:', error);
                 const table = document.getElementById('stock-table');
-                table.innerHTML = '<tr><td colspan="15">Error loading stock table</td></tr>'; // Updated for 15 columns
+                table.innerHTML = '<tr><td colspan="18">Error loading stock table</td></tr>'; // Updated for 18 columns
             }
         }
 
