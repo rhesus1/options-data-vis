@@ -86,6 +86,39 @@ def get_option_totals(ts, prefix):
     
     return pd.DataFrame(totals)
 
+def load_processed_data(ts, prefix):
+            processed_dir = f'data/{ts}/processed{prefix}'
+            if not os.path.exists(processed_dir):
+                print(f"Processed directory {processed_dir} not found")
+                return pd.DataFrame()
+            processed_files = glob.glob(f'{processed_dir}/processed{prefix}_*.csv')
+            dfs = []
+            for file in processed_files:
+                try:
+                    df = pd.read_csv(file)
+                    dfs.append(df)
+                except Exception as e:
+                    print(f"Error reading {file}: {e}")
+            if not dfs:
+                print(f"No processed data files found in {processed_dir}")
+                return pd.DataFrame()
+            return pd.concat(dfs, ignore_index=True)
+       
+        df_processed = load_processed_data(timestamp, prefix)
+        if df_processed.empty:
+            print(f"No processed data found for {timestamp}")
+            continue
+       
+        processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
+        processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
+       
+        prev_day_historic = load_historic_data(prev_day_ts) if prev_day_ts else pd.DataFrame()
+        prev_week_historic = load_historic_data(prev_week_ts) if prev_week_ts else pd.DataFrame()
+       
+        latest_historic = df_historic.loc[df_historic.groupby('Ticker')['Date'].idxmax()] if not df_historic.empty else pd.DataFrame()
+        prev_day_historic_latest = prev_day_historic.loc[prev_day_historic.groupby('Ticker')['Date'].idxmax()] if not prev_day_historic.empty else pd.DataFrame()
+        prev_week_historic_latest = prev_week_historic.loc[prev_week_historic.groupby('Ticker')['Date'].idxmax()] if not prev_week_historic.empty else pd.DataFrame()
+
 def load_historic_data(ts):
     historic_dir = f'data/{ts}/historic'
     if not os.path.exists(historic_dir):
