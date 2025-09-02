@@ -582,7 +582,7 @@
 
         async function loadData(timestamp) {
             try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'MSTR';
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
                 if (lastLoadDataTimestamp === timestamp && lastTicker === selectedTicker) {
                     console.log(`Skipping redundant loadData for timestamp: ${timestamp}, ticker: ${selectedTicker}`);
                     return Promise.resolve();
@@ -631,26 +631,26 @@
         
                 // Load table-specific data files
                 const files = [
-                    { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, key: 'rankingData' },
-                    { url: `data/${timestamp}/tables/stock/stock_table${prefix}.csv`, key: 'stockData' },
-                    { url: `data/${timestamp}/tables/summary/summary_table${prefix}.csv`, key: 'summaryData' },
-                    { url: `data/${timestamp}/tables/contracts/top_volume_table${prefix}.csv`, key: 'topVolumeData' },
-                    { url: `data/${timestamp}/tables/contracts/top_open_interest_table${prefix}.csv`, key: 'topOpenInterestData' },
-                    { url: `data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, key: 'data' },
-                    { url: `data/${timestamp}/historic/historic_${selectedTicker}.csv`, key: 'historicData' },
-                    { url: `data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, key: 'skewData' },
-                    { url: `data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, key: 'slopeData' },
-                    { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, key: 'cleanedData' },
-                    { url: `data/Events.csv`, key: 'eventsData' }
+                    { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, array: rankingData },
+                    { url: `data/${timestamp}/tables/stock/stock_table${prefix}.csv`, array: stockData },
+                    { url: `data/${timestamp}/tables/summary/summary_table${prefix}.csv`, array: summaryData },
+                    { url: `data/${timestamp}/tables/contracts/top_volume_table${prefix}.csv`, array: topVolumeData },
+                    { url: `data/${timestamp}/tables/contracts/top_open_interest_table${prefix}.csv`, array: topOpenInterestData },
+                    { url: `data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, array: data },
+                    { url: `data/${timestamp}/historic/historic_${selectedTicker}.csv`, array: historicData },
+                    { url: `data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, array: skewData },
+                    { url: `data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, array: slopeData },
+                    { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, array: cleanedData },
+                    { url: `data/Events.csv`, array: eventsData }
                 ];
         
                 const promises = files.map(file =>
                     checkFileExists(file.url).then(exists => {
                         if (exists) {
-                            return fetchWithErrorHandling(file.url, window[file.key]);
+                            return fetchWithErrorHandling(file.url, file.array);
                         }
                         console.warn(`File not found: ${file.url}`);
-                        window[file.key].splice(0, window[file.key].length);
+                        file.array.length = 0; // Clear array safely
                         return Promise.resolve();
                     })
                 );
@@ -670,7 +670,7 @@
                 // Validate selected ticker
                 if (!uniqueTickers.includes(selectedTicker)) {
                     console.warn(`Selected ticker ${selectedTicker} not in ranking data, defaulting`);
-                    const defaultTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0] || '';
+                    const defaultTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
                     document.getElementById('ticker-search').value = defaultTicker;
                     document.getElementById('ticker-display').textContent = `${defaultTicker || 'N/A'}`;
                     if (!defaultTicker) {
@@ -794,7 +794,7 @@
                     tickerDatalist.appendChild(option);
                 });
                 if (uniqueTickers.length > 0 && !tickerSearch.value) {
-                    const defaultTicker = uniqueTickers.includes('MSTR') ? 'MSTR' : uniqueTickers[0];
+                    const defaultTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0];
                     tickerSearch.value = defaultTicker;
                     document.getElementById('ticker-display').textContent = `${defaultTicker}`;
                 } else if (!uniqueTickers.length) {
