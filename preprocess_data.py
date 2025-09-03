@@ -5,6 +5,7 @@ import sys
 import json
 from datetime import datetime
 import time
+import pyxlsb
 from tqdm import tqdm
 
 def load_data(timestamp, source, base_path="data"):
