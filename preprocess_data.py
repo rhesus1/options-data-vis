@@ -63,26 +63,30 @@ def load_data(timestamp, source, base_path="data"):
                                 df[col] = pd.to_numeric(df[col], errors='coerce')
                         # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
                         if 'Realised_Vol_Close_100' in df.columns:
+                            # Ensure the column is a Pandas Series
+                            vol_series = df['Realised_Vol_Close_100'].copy()
                             # Vol of Vol: Standard deviation of 100-day realised volatility over a 252-day window
-                            df['Vol_of_Vol_100d'] = df['Realised_Vol_Close_100'].rolling(window=252, min_periods=100).std()
+                            df['Vol_of_Vol_100d'] = vol_series.rolling(window=252, min_periods=100).std().round(2)
                             # Percentile of Vol of Vol
-                            df['Vol_of_Vol_100d_Percentile'] = df['Vol_of_Vol_100d'].rolling(window=252, min_periods=100).apply(
-                                lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x) >= 100 else np.nan, raw=True
-                            )
+                            df['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=252, min_periods=100).apply(
+                                lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
+                            ).round(2)
                             # Kurtosis of 100-day Realised Volatility
-                            df['Kurtosis_100d'] = df['Realised_Vol_Close_100'].rolling(window=252, min_periods=100).apply(
-                                lambda x: kurtosis(x, nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=True
-                            )
-                            # Round the new columns
-                            df['Vol_of_Vol_100d'] = df['Vol_of_Vol_100d'].round(2)
-                            df['Vol_of_Vol_100d_Percentile'] = df['Vol_of_Vol_100d_Percentile'].round(2)
-                            df['Kurtosis_100d'] = df['Kurtosis_100d'].round(2)
+                            df['Kurtosis_100d'] = vol_series.rolling(window=252, min_periods=100).apply(
+                                lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
+                            ).round(2)
                         dfs.append(df)
                     except Exception as e:
                         print(f"Warning: Error loading historic file {file}: {e}")
                 if dfs:
                     historic = pd.concat(dfs, ignore_index=True)
                     historic = historic.drop_duplicates(subset=['Ticker', 'Date'], keep='last')
+                    # Save updated historic files
+                    for ticker in historic['Ticker'].unique():
+                        ticker_df = historic[historic['Ticker'] == ticker]
+                        output_file = f"{historic_dir}/historic_{ticker}.csv"
+                        ticker_df.to_csv(output_file, index=False)
+                        print(f"Saved updated historic file for {ticker}: {output_file}")
                 print(f"Loaded historic data for {len(historic_files)} tickers.")
             else:
                 print(f"Warning: No historic_*.csv files found in {historic_dir}")
