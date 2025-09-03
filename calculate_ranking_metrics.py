@@ -343,8 +343,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             if year_historic['Close'].isna().any():
                                 print(f"calculate_ranking_metrics: {year_historic['Close'].isna().sum()} NaN values in Close for ticker {ticker}")
                                 year_historic = year_historic.dropna(subset=['Close'])
-                            log_returns = np.log(year_historic['Close'] / year_historic['Close'].shift(1))
-                            log_returns = log_returns.dropna()
+                            log_returns = np.log(year_historic['Close'] / year_historic['Close'].shift(1)).dropna()
                             print(f"calculate_ranking_metrics: Log returns length = {len(log_returns)} for ticker {ticker}")
                             if len(log_returns) < window:
                                 print(f"calculate_ranking_metrics: Insufficient log returns ({len(log_returns)} < {window}) for ticker {ticker}")
@@ -375,16 +374,15 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol if rvol_type == '100' else 'N/A'
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol if rvol_type == '100' else 'N/A'
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol if rvol_type == '100' else 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Percentile (%)', 'N/A')
-                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Z-Score Percentile (%)', 'N/A')
+                        rank_dict['Rvol 100d Percentile (%)'] = percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Percentile (%)', percentile)
+                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Z-Score Percentile (%)', z_score_percentile)
                     else:
                         rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
                         rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = 'N/A'
-                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = 'N/A'
+                        # Do not overwrite percentiles for other rvol_types
             
                 if not ticker_processed.empty:
                     weighted_iv = ticker_processed['IV_mid'].mean() if 'IV_mid' in ticker_processed.columns and not ticker_processed['IV_mid'].isna().all() else np.nan
