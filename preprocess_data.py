@@ -3,11 +3,9 @@ import numpy as np
 import os
 import sys
 import json
-import glob
 from datetime import datetime
 import time
 from tqdm import tqdm
-from scipy.stats import kurtosis
 
 def load_data(timestamp, source, base_path="data"):
     """Load raw data files for a given timestamp and source."""
@@ -15,8 +13,7 @@ def load_data(timestamp, source, base_path="data"):
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names = None
     ranking = None
-    historic = pd.DataFrame()
-    events = pd.DataFrame()
+    barclays = None
     try:
         # Load company names
         if os.path.exists("company_names.txt"):
@@ -46,104 +43,46 @@ def load_data(timestamp, source, base_path="data"):
             print(f"Loaded ranking file in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             raise FileNotFoundError(f"Ranking file not found: {ranking_path}")
-        # Load historic data
-        historic_dir = f"{base_path}/{timestamp}/historic"
-        if os.path.exists(historic_dir):
-            historic_files = glob.glob(f"{historic_dir}/historic_*.csv")
-            print(f"Found {len(historic_files)} historic files in {historic_dir}", flush=True)
-            if historic_files:
-                dfs = []
-                for file in historic_files:
-                    file_start_time = time.time()
-                    try:
-                        print(f"Processing historic file: {file}...", flush=True)
-                        df = pd.read_csv(file)
-                        if 'Ticker' not in df.columns:
-                            ticker = os.path.basename(file).split('historic_')[1].split('.csv')[0].upper()
-                            df['Ticker'] = ticker
-                        if 'Date' in df.columns:
-                            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-                        numeric_cols = ['High', 'Low', 'Close', 'Realised_Vol_Close_30', 'Realised_Vol_Close_60',
-                                       'Realised_Vol_Close_100', 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']
-                        for col in numeric_cols:
-                            if col in df.columns:
-                                df[col] = pd.to_numeric(df[col], errors='coerce')
-                        # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
-                        if 'Realised_Vol_Close_100' in df.columns:
-                            print(f"Calculating Vol of Vol, Percentile, and Kurtosis for {file}...", flush=True)
-                            vol_series = df['Realised_Vol_Close_100'].copy()
-                            # Vol of Vol: Standard deviation of 100-day realised volatility over a 252-day window
-                            df['Vol_of_Vol_100d'] = vol_series.rolling(window=252, min_periods=100).std().round(2)
-                            # Percentile of Vol of Vol
-                            df['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=252, min_periods=100).apply(
-                                lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
-                            ).round(2)
-                            # Kurtosis of 100-day Realised Volatility
-                            df['Kurtosis_100d'] = vol_series.rolling(window=252, min_periods=100).apply(
-                                lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
-                            ).round(2)
-                        dfs.append(df)
-                        print(f"Processed {file} in {time.time() - file_start_time:.2f} seconds", flush=True)
-                    except Exception as e:
-                        print(f"Warning: Error processing historic file {file}: {e}", flush=True)
-                if dfs:
-                    print("Concatenating historic DataFrames...", flush=True)
-                    historic = pd.concat(dfs, ignore_index=True)
-                    historic = historic.drop_duplicates(subset=['Ticker', 'Date'], keep='last')
-                    print(f"Concatenated historic data for {len(historic['Ticker'].unique())} tickers in {time.time() - start_time:.2f} seconds", flush=True)
-                    # Save updated historic files
-                    print("Saving updated historic files...", flush=True)
-                    save_start_time = time.time()
-                    for ticker in historic['Ticker'].unique():
-                        ticker_df = historic[historic['Ticker'] == ticker]
-                        output_file = f"{historic_dir}/historic_{ticker}.csv"
-                        ticker_df.to_csv(output_file, index=False)
-                        print(f"Saved updated historic file for {ticker}: {output_file}", flush=True)
-                    print(f"Saved all historic files in {time.time() - save_start_time:.2f} seconds", flush=True)
-                print(f"Loaded historic data for {len(historic_files)} tickers in {time.time() - start_time:.2f} seconds", flush=True)
+        # Load Barclays data
+        barclays_path = f"{base_path}/BASE3-Credit & Equity Volatility Term Structures.xlsb"
+        if os.path.exists(barclays_path):
+            print(f"Loading Barclays data: {barclays_path}...", flush=True)
+            barclays = pd.read_excel(barclays_path, engine='pyxlsb')
+            required_cols = ['Ticker', 'Company Name', 'Debt Class', 'Spread 1Y', 'Spread 3Y', 'Spread 5Y']
+            if all(col in barclays.columns for col in required_cols):
+                barclays = barclays[required_cols]
+                for col in ['Spread 1Y', 'Spread 3Y', 'Spread 5Y']:
+                    barclays[col] = pd.to_numeric(barclays[col], errors='coerce')
             else:
-                print(f"Warning: No historic_*.csv files found in {historic_dir}", flush=True)
+                print(f"Warning: Barclays data missing required columns: {required_cols}", flush=True)
+                barclays = None
+            print(f"Loaded Barclays data in {time.time() - start_time:.2f} seconds", flush=True)
         else:
-            print(f"Warning: Historic directory {historic_dir} not found.", flush=True)
-        # Load events
-        events_path = f"{base_path}/Events.csv"
-        if os.path.exists(events_path):
-            print(f"Loading events file: {events_path}...", flush=True)
-            events = pd.read_csv(events_path)
-            print(f"Loaded events file in {time.time() - start_time:.2f} seconds", flush=True)
-        else:
-            print("Warning: Events.csv not found.", flush=True)
+            print(f"Warning: Barclays data file not found: {barclays_path}", flush=True)
         print(f"Loaded all data in {time.time() - start_time:.2f} seconds", flush=True)
-        return company_names, ranking, historic, events
+        return company_names, ranking, barclays
     except FileNotFoundError as e:
         print(f"Error loading data file: {e}", flush=True)
-        return None, None, None, None
-        
+        return None, None, None
+
 def load_ticker_data(ticker, timestamp, source, base_path="data"):
     """Load ticker-specific data."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     processed = pd.DataFrame()
-    cleaned = pd.DataFrame()
     skew = pd.DataFrame()
     try:
         processed_path = f"{base_path}/{timestamp}/processed{prefix}/processed{prefix}_{ticker}.csv"
         if os.path.exists(processed_path):
             processed = pd.read_csv(processed_path)
-       
-        cleaned_path = f"{base_path}/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv"
-        if os.path.exists(cleaned_path):
-            cleaned = pd.read_csv(cleaned_path)
-       
         skew_path = f"{base_path}/{timestamp}/skew_metrics{prefix}/skew_metrics{prefix}_{ticker}.csv"
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
-       
         print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds")
-        return ticker, processed, cleaned, skew
+        return ticker, processed, skew
     except Exception as e:
         print(f"Error loading data for ticker {ticker}: {e}")
-        return ticker, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return ticker, pd.DataFrame(), pd.DataFrame()
 
 def generate_ranking_table(ranking, company_names):
     """Generate ranking table with formatted values and colors."""
@@ -158,7 +97,6 @@ def generate_ranking_table(ranking, company_names):
         ).fillna("N/A")
     else:
         ranking["Company Name"] = "N/A"
-   
     columns = [
         "Rank", "Ticker", "Company Name", "Latest Close", "Realised Volatility 30d (%)",
         "Realised Volatility 100d (%)", "Realised Volatility 100d 1d (%)",
@@ -172,15 +110,12 @@ def generate_ranking_table(ranking, company_names):
         "Rvol100d - Weighted IV", "Volume", "Volume 1d (%)", "Volume 1w (%)",
         "Open Interest", "OI 1d (%)", "OI 1w (%)"
     ]
-   
     for col in columns:
         if col not in ranking.columns:
             ranking[col] = pd.NA if col not in ["Rank", "Ticker", "Company Name"] else "N/A"
-   
     ranking['Open Interest Numeric'] = pd.to_numeric(ranking['Open Interest'], errors='coerce').fillna(0)
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
-   
     for col in columns:
         if col in ["Volume", "Open Interest"]:
             ranking[col] = np.where(
@@ -194,7 +129,6 @@ def generate_ranking_table(ranking, company_names):
                 pd.to_numeric(ranking[col], errors='coerce').round(2),
                 pd.NA
             )
-       
         color_col = f"{col}_Color"
         ranking[color_col] = "#FFFFFF"
         if col in ["Realised Volatility 100d 1d (%)", "Realised Volatility 100d 1w (%)",
@@ -208,14 +142,13 @@ def generate_ranking_table(ranking, company_names):
                          np.where(pd.to_numeric(ranking[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
                 "#FFFFFF"
             )
-   
     color_columns = [f"{col}_Color" for col in columns if col not in ["Rank", "Ticker", "Company Name"]]
     ranking_no_colors = ranking[columns]
     print(f"Generated ranking table in {time.time() - start_time:.2f} seconds")
     return ranking[columns + color_columns], ranking_no_colors
 
-def generate_stock_table(ranking, company_names):
-    """Generate stock table with formatted values and colors."""
+def generate_stock_table(ranking, company_names, barclays):
+    """Generate stock table with formatted values, colors, and Barclays data."""
     start_time = time.time()
     if ranking is None or ranking.empty:
         print(f"No stock data in {time.time() - start_time:.2f} seconds")
@@ -227,38 +160,42 @@ def generate_stock_table(ranking, company_names):
         ).fillna("N/A")
     else:
         stock_data["Company Name"] = "N/A"
-   
+    # Merge Barclays data
+    if barclays is not None and not barclays.empty:
+        stock_data = stock_data.merge(
+            barclays[['Ticker', 'Debt Class', 'Spread 1Y', 'Spread 3Y', 'Spread 5Y']],
+            on='Ticker',
+            how='left'
+        )
     columns = [
         "Ticker", "Company Name", "Latest Open", "Latest Close", "Latest High",
         "Latest Low", "Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
-        "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)"
+        "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)",
+        "Debt Class", "Spread 1Y", "Spread 3Y", "Spread 5Y"
     ]
-   
     for col in columns:
         if col not in stock_data.columns:
-            stock_data[col] = pd.NA if col not in ["Ticker", "Company Name"] else "N/A"
-   
+            stock_data[col] = pd.NA if col not in ["Ticker", "Company Name", "Debt Class"] else "N/A"
     stock_data = stock_data.sort_values("Latest Close", ascending=False, key=lambda x: pd.to_numeric(x, errors='coerce'))
     for col in columns:
-        if col not in ["Ticker", "Company Name"]:
+        if col not in ["Ticker", "Company Name", "Debt Class"]:
             stock_data[col] = np.where(
                 stock_data[col].notna() & (pd.to_numeric(stock_data[col], errors='coerce') == pd.to_numeric(stock_data[col], errors='coerce')),
                 pd.to_numeric(stock_data[col], errors='coerce').round(2),
                 pd.NA
             )
-       
         color_col = f"{col}_Color"
         stock_data[color_col] = "#FFFFFF"
         if col in ["Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
-                   "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)"]:
+                   "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)",
+                   "Spread 1Y", "Spread 3Y", "Spread 5Y"]:
             stock_data[color_col] = np.where(
                 pd.to_numeric(stock_data[col], errors='coerce').notna(),
                 np.where(pd.to_numeric(stock_data[col], errors='coerce') < 0, "#F87171",
                          np.where(pd.to_numeric(stock_data[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
                 "#FFFFFF"
             )
-   
-    color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name"]]
+    color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name", "Debt Class"]]
     stock_data_no_colors = stock_data[columns]
     print(f"Generated stock table in {time.time() - start_time:.2f} seconds")
     return stock_data[columns + color_columns], stock_data_no_colors
@@ -269,13 +206,11 @@ def generate_summary_table(ranking, skew_data, tickers):
     if ranking is None or ranking.empty:
         print(f"No summary data in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(), pd.DataFrame()
-   
     total_tickers = len(tickers)
     volume_rank = ranking['Volume'].rank(ascending=False, na_option="bottom").astype(int)
     open_interest_rank = ranking['Open Interest'].rank(ascending=False, na_option="bottom").astype(int)
     rank_map = {ticker: {'Volume Rank': f"{int(v)} of {total_tickers}", 'Open Interest Rank': f"{int(o)} of {total_tickers}"}
                 for ticker, v, o in zip(ranking['Ticker'], volume_rank, open_interest_rank)}
-    
     metrics = [
         {"name": "Latest Close ($)", "key": "Latest Close"},
         {"name": "Open ($)", "key": "Latest Open"},
@@ -297,7 +232,6 @@ def generate_summary_table(ranking, skew_data, tickers):
         {"name": "Volume Rank", "key": "Volume Rank"},
         {"name": "Open Interest Rank", "key": "Open Interest Rank"}
     ]
-    
     summary_data = []
     for ticker in tickers:
         filtered_ranking = ranking[ranking["Ticker"] == ticker]
@@ -316,14 +250,12 @@ def generate_summary_table(ranking, skew_data, tickers):
                     num_val = pd.to_numeric(value, errors='coerce')
                     value = round(num_val, 2) if pd.notna(num_val) else pd.NA
             row[metric["name"]] = value
-       
         # Add ATM ratio from skew data
         atm_ratio = pd.NA
         if not skew_data.empty and skew_data["Ticker"].isin([ticker]).any():
             atm_val = skew_data[skew_data["Ticker"] == ticker]["ATM_12m_3m_Ratio"].iloc[0]
             atm_ratio = round(pd.to_numeric(atm_val, errors='coerce'), 4) if pd.notna(atm_val) else pd.NA
         row["ATM 12m/3m Ratio"] = atm_ratio
-       
         # Add colors for percentage columns
         for metric in metrics:
             color_key = f"{metric['name']}_Color"
@@ -334,9 +266,7 @@ def generate_summary_table(ranking, skew_data, tickers):
                 num_val = pd.to_numeric(row[metric["name"]], errors='coerce')
                 if pd.notna(num_val):
                     row[color_key] = "#F87171" if num_val < 0 else "#10B981" if num_val > 0 else "#FFFFFF"
-       
         summary_data.append(row)
-    
     columns = ["Ticker"] + [metric["name"] for metric in metrics]
     color_columns = [f"{metric['name']}_Color" for metric in metrics if metric["key"] in ["Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
                                                                                       "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
@@ -352,10 +282,8 @@ def generate_top_contracts_tables(processed_data, tickers):
     if processed_data.empty or 'Ticker' not in processed_data.columns:
         print(f"No contracts data in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-   
     top_volume_list = []
     top_open_interest_list = []
-   
     for ticker in tickers:
         filtered = processed_data[processed_data["Ticker"] == ticker]
         if filtered.empty:
@@ -366,10 +294,8 @@ def generate_top_contracts_tables(processed_data, tickers):
             top_volume_list.append(top_volume)
         if not top_open_interest.empty:
             top_open_interest_list.append(top_open_interest)
-   
     top_volume_table = pd.concat(top_volume_list, ignore_index=True) if top_volume_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     top_open_interest_table = pd.concat(top_open_interest_list, ignore_index=True) if top_open_interest_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-   
     def format_table(df):
         if df.empty:
             return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
@@ -387,10 +313,8 @@ def generate_top_contracts_tables(processed_data, tickers):
                                      pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
                                      "N/A")
         return df
-   
     top_volume_table = format_table(top_volume_table)
     top_open_interest_table = format_table(top_open_interest_table)
-   
     print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds")
     return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
@@ -398,37 +322,30 @@ def save_tables(timestamp, source, base_path="data"):
     """Generate and save all precomputed tables."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
-    company_names, ranking, historic, events = load_data(timestamp, source, base_path)
+    company_names, ranking, barclays = load_data(timestamp, source, base_path)
     if ranking is None or ranking.empty:
         print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
         return
-   
     # Load all ticker-specific data
     tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
-    cleaned_data = pd.DataFrame()
     skew_data = pd.DataFrame()
     for ticker in tqdm(tickers, desc="Loading ticker data"):
-        _, processed, cleaned, skew = load_ticker_data(ticker, timestamp, source, base_path)
+        _, processed, skew = load_ticker_data(ticker, timestamp, source, base_path)
         if not processed.empty:
             processed_data = pd.concat([processed_data, processed], ignore_index=True)
-        if not cleaned.empty:
-            cleaned_data = pd.concat([cleaned_data, cleaned], ignore_index=True)
         if not skew.empty:
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
-   
     # Generate tables
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
-    stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names)
+    stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
     top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers)
-   
     # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/summary", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/contracts", exist_ok=True)
-   
     # Save tables
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
@@ -445,7 +362,6 @@ def save_tables(timestamp, source, base_path="data"):
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
         top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table_no_colors{prefix}.csv", index=False)
-   
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
 
 def main():
@@ -458,7 +374,6 @@ def main():
     except Exception as e:
         print(f"Error loading dates.json: {e}")
         return
-   
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
@@ -468,11 +383,9 @@ def main():
     else:
         timestamp = timestamps[-1]
         print(f"No timestamp provided, using latest: {timestamp}")
-   
     sources = ['yfinance']
     for source in sources:
         save_tables(timestamp, source, base_path)
-   
     print(f"Total execution time: {time.time() - start_time:.2f} seconds")
 
 main()
