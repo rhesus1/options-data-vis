@@ -920,6 +920,7 @@
                 }
                 console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
         
+                const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
                 const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
                     .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
                 expirySelect.innerHTML = '';
@@ -936,12 +937,24 @@
                         expirySelect.appendChild(option);
                         yfExpirySelect.appendChild(option.cloneNode(true));
                     });
+                    // Select expiry closest to 3 months (90 days)
+                    const targetDays = 90; // 3 months
+                    let closestExpiry = uniqueExpiries[0];
+                    let minDiff = Infinity;
+                    uniqueExpiries.forEach(expiry => {
+                        const expiryDate = new Date(expiry);
+                        const diffDays = Math.abs((expiryDate - datasetDate) / (1000 * 60 * 60 * 24));
+                        if (diffDays < minDiff) {
+                            minDiff = diffDays;
+                            closestExpiry = expiry;
+                        }
+                    });
                     if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
                         expirySelect.value = prevExpiry;
                         yfExpirySelect.value = prevExpiry;
-                    } else if (uniqueExpiries.length > 0) {
-                        expirySelect.value = uniqueExpiries[0];
-                        yfExpirySelect.value = uniqueExpiries[0];
+                    } else if (closestExpiry) {
+                        expirySelect.value = closestExpiry;
+                        yfExpirySelect.value = closestExpiry;
                     } else {
                         expirySelect.value = '';
                         yfExpirySelect.value = '';
