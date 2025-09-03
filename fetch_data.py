@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 import os
 import json
+from scipy.stats import kurtosis
 
 def fetch_option_data_yfinance(ticker):
     print(f"Fetching option data for {ticker} from yfinance...")
@@ -64,12 +65,25 @@ def fetch_historic_data(ticker):
     hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
+    # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
+    vol_series = hist['Realised_Vol_Close_100'].copy()
+    hist['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std().round(2)
+    hist['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
+        lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
+    ).round(2)
+    hist['Kurtosis_100d'] = vol_series.rolling(window=100, min_periods=100).apply(
+        lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
+    ).round(2)
     hist = hist.dropna()
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
-    return hist[['Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
-                 'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
-                 'Realised_Vol_Close_180', 'Realised_Vol_Close_252']]
+    columns = [
+        'Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
+        'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
+        'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
+        'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile', 'Kurtosis_100d'
+    ]
+    return hist[columns]
 
 def main():
     with open('tickers.txt', 'r') as file:
