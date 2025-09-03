@@ -45,5 +45,7 @@ jobs:
           Attached is the forced precomputed ranking table for yfinance data.
           Timestamp: ${{ inputs.date }}
         attachments: |
-          data/${{ inputs.date }}/tables/ranking/ranking_table_yfinance.csv
+          data/${{ inputs.date }}/tables/ranking/ranking_table.csv
+          data/${{ inputs.date }}/tables/stock/stock_table.csv
+          data/${{ inputs.date }}/tables/summary/summary_table.csv
         secure: true
