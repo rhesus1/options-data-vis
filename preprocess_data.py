@@ -203,8 +203,7 @@ def generate_stock_table(ranking, company_names):
         return pd.DataFrame(), pd.DataFrame()
     stock_data = ranking.copy()
     if company_names is not None and not company_names.empty:
-        stock_data["Company Name"] = stock Ascendancy
-stock_data["Ticker"].map(
+        stock_data["Company Name"] = stock_data["Ticker"].map(
             company_names.set_index("Ticker")["Company Name"].to_dict()
         ).fillna("N/A")
     else:
