@@ -188,8 +188,7 @@ def generate_stock_table(ranking, company_names, barclays):
         color_col = f"{col}_Color"
         stock_data[color_col] = "#FFFFFF"
         if col in ["Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
-                   "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)",
-                   "Spread 1Y", "Spread 3Y", "Spread 5Y"]:
+                   "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)"]:
             stock_data[color_col] = np.where(
                 pd.to_numeric(stock_data[col], errors='coerce').notna(),
                 np.where(pd.to_numeric(stock_data[col], errors='coerce') < 0, "#F87171",
