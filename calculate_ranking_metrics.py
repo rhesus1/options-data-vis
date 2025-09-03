@@ -253,14 +253,14 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             return date_data[col].iloc[0] if not date_data.empty and col in date_data.columns else 'N/A'
      
         def calculate_rvol(ticker_data, end_date, window):
-            ticker_data = ticker_data[ticker_data['Date'].dt.date <= end_date.date()].sort_values('Date')
+            ticker_data = ticker_data[ticker_data['Date'].dt.date <= end_date].sort_values('Date')
             if len(ticker_data) < window:
                 return 'N/A'
             log_returns = np.log(ticker_data['Close'] / ticker_data['Close'].shift(1)).dropna()
             if len(log_returns) < window:
                 return 'N/A'
             return np.std(log_returns[-window:]) * np.sqrt(252) * 100  # Annualized volatility in percentage
-     
+        
         tickers = list(set(df_processed['Ticker'].unique()) | set(df_historic['Ticker'].unique()) | set(current_option['Ticker'].unique()))
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
