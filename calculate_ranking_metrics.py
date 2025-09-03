@@ -10,41 +10,47 @@ pd.options.mode.chained_assignment = None
 
 def calculate_atm_iv(ticker_processed, current_price, current_dt):
     if ticker_processed.empty:
-        print(f"calculate_atm_iv: Empty ticker_processed DataFrame")
+        print(f"calculate_atm_iv: Empty ticker_processed DataFrame for {ticker_processed.get('Ticker', 'unknown')}")
         return np.nan
  
     required_cols = ['Expiry', 'IV_mid', 'Moneyness']
     missing_cols = [col for col in required_cols if col not in ticker_processed.columns]
     if missing_cols:
-        print(f"calculate_atm_iv: Missing columns {missing_cols}")
+        print(f"calculate_atm_iv: Missing columns {missing_cols} for {ticker_processed.get('Ticker', 'unknown')}")
         return np.nan
     try:
         ticker_processed['Expiry_dt'] = pd.to_datetime(ticker_processed['Expiry'], errors='coerce')
         if ticker_processed['Expiry_dt'].isna().all():
-            print(f"calculate_atm_iv: Invalid Expiry dates")
+            print(f"calculate_atm_iv: Invalid Expiry dates for {ticker_processed.get('Ticker', 'unknown')}")
             return np.nan
      
         ticker_processed['Days_to_Expiry'] = (ticker_processed['Expiry_dt'] - current_dt).dt.days
-        three_month_data = ticker_processed[(ticker_processed['Days_to_Expiry'] >= 80) &
-                                          (ticker_processed['Days_to_Expiry'] <= 100)]
+        three_month_data = ticker_processed[(ticker_processed['Days_to_Expiry'] >= 70) &
+                                          (ticker_processed['Days_to_Expiry'] <= 110)]
      
         if three_month_data.empty:
-            print(f"calculate_atm_iv: No options with 80-100 days to expiry")
-            three_month_data = ticker_processed[(ticker_processed['Days_to_Expiry'] >= 75) &
-                                              (ticker_processed['Days_to_Expiry'] <= 105)]
+            print(f"calculate_atm_iv: No options with 70-110 days to expiry for {ticker_processed.get('Ticker', 'unknown')}")
+            three_month_data = ticker_processed[(ticker_processed['Days_to_Expiry'] >= 60) &
+                                              (ticker_processed['Days_to_Expiry'] <= 120)]
             if three_month_data.empty:
-                print(f"calculate_atm_iv: Fallback range 75-105 days also empty")
+                print(f"calculate_atm_iv: Fallback range 60-120 days also empty for {ticker_processed.get('Ticker', 'unknown')}")
                 return np.nan
      
-        atm_options = three_month_data.iloc[(three_month_data['Moneyness'] - 1.0).abs().argsort()]
+        # Filter for moneyness between 0.9 and 1.1
+        atm_options = three_month_data[(three_month_data['Moneyness'] >= 0.9) & (three_month_data['Moneyness'] <= 1.1)]
+        if atm_options.empty:
+            print(f"calculate_atm_iv: No options with moneyness 0.9-1.1 for {ticker_processed.get('Ticker', 'unknown')}")
+            return np.nan
+        atm_options = atm_options.iloc[(atm_options['Moneyness'] - 1.0).abs().argsort()]
         if atm_options['IV_mid'].isna().all():
-            print(f"calculate_atm_iv: All IV_mid values are NaN")
+            print(f"calculate_atm_iv: All IV_mid values are NaN for {ticker_processed.get('Ticker', 'unknown')}")
             return np.nan
      
         atm_iv = atm_options['IV_mid'].iloc[0]
+        print(f"calculate_atm_iv: ATM IV = {atm_iv} for {ticker_processed.get('Ticker', 'unknown')}")
         return atm_iv
     except Exception as e:
-        print(f"calculate_atm_iv: Error processing data: {e}")
+        print(f"calculate_atm_iv: Error processing data for {ticker_processed.get('Ticker', 'unknown')}: {e}")
         return np.nan
 
 def get_option_totals(ts, prefix):
@@ -246,20 +252,30 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         def get_prev_value(ticker, target_date, col, historic_data):
             ticker_data = historic_data[historic_data['Ticker'] == ticker]
             if ticker_data.empty:
+                print(f"get_prev_value: No data for ticker {ticker}")
                 return 'N/A'
             # Handle both datetime.datetime and datetime.date for target_date
             target_date_only = target_date.date() if isinstance(target_date, datetime) else target_date
-            date_data = ticker_data[ticker_data['Date'].dt.date == target_date_only]
-            return date_data[col].iloc[0] if not date_data.empty and col in date_data.columns else 'N/A'
+            # Sort by date and find the closest date <= target_date
+            ticker_data = ticker_data[ticker_data['Date'].dt.date <= target_date_only].sort_values('Date')
+            if ticker_data.empty:
+                print(f"get_prev_value: No data for ticker {ticker} on or before {target_date_only}")
+                return 'N/A'
+            # Take the most recent date
+            date_data = ticker_data.iloc[-1:]
+            print(f"get_prev_value: Using date {date_data['Date'].iloc[0]} for target {target_date_only}, ticker {ticker}")
+            return date_data[col].iloc[0] if col in date_data.columns and not date_data[col].isna().all() else 'N/A'
     
         def calculate_rvol(ticker_data, end_date, window):
             # Handle both datetime.datetime and datetime.date for end_date
             end_date_only = end_date.date() if isinstance(end_date, datetime) else end_date
             ticker_data = ticker_data[ticker_data['Date'].dt.date <= end_date_only].sort_values('Date')
             if len(ticker_data) < window:
+                print(f"calculate_rvol: Insufficient data ({len(ticker_data)} rows < {window}) for date {end_date_only}")
                 return 'N/A'
             log_returns = np.log(ticker_data['Close'] / ticker_data['Close'].shift(1)).dropna()
             if len(log_returns) < window:
+                print(f"calculate_rvol: Insufficient log returns ({len(log_returns)} < {window}) for date {end_date_only}")
                 return 'N/A'
             return np.std(log_returns[-window:]) * np.sqrt(252) * 100  # Annualized volatility in percentage
        
@@ -321,21 +337,26 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         
                         year_historic = ticker_historic_full[(ticker_historic_full['Date'].dt.date >= past_year_start.date())]
                         if not year_historic.empty:
-                            vols = []
-                            for date in year_historic['Date'].dt.date:
-                                vol = calculate_rvol(ticker_historic_full, date, window)
-                                if vol != 'N/A':
-                                    vols.append(vol)
-                            vols = pd.Series(vols)
-                            if not vols.empty:
-                                min_vol = vols.min()
-                                max_vol = vols.max()
-                                mean_vol = vols.mean()
-                                percentile = (vols < current_vol).sum() / len(vols) * 100 if not pd.isna(current_vol) else 'N/A'
-                                z_score_percentile = norm.cdf((current_vol - vols.mean()) / vols.std()) * 100 if vols.std() != 0 and not pd.isna(current_vol) else 'N/A'
-                            else:
+                            # Precompute log returns for efficiency
+                            year_historic = year_historic.sort_values('Date')
+                            log_returns = np.log(year_historic['Close'] / year_historic['Close'].shift(1)).dropna()
+                            if len(log_returns) < window:
+                                print(f"calculate_ranking_metrics: Insufficient log returns ({len(log_returns)} < {window}) for ticker {ticker} in past year")
                                 min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
+                            else:
+                                vols = log_returns.rolling(window=window, min_periods=window).std() * np.sqrt(252) * 100
+                                vols = vols.dropna()
+                                if not vols.empty:
+                                    min_vol = vols.min()
+                                    max_vol = vols.max()
+                                    mean_vol = vols.mean()
+                                    percentile = (vols < current_vol).sum() / len(vols) * 100 if not pd.isna(current_vol) else 'N/A'
+                                    z_score_percentile = norm.cdf((current_vol - vols.mean()) / vols.std()) * 100 if vols.std() != 0 and not pd.isna(current_vol) else 'N/A'
+                                else:
+                                    print(f"calculate_ranking_metrics: No valid RVol values for ticker {ticker} in past year")
+                                    min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
                         else:
+                            print(f"calculate_ranking_metrics: No historic data for ticker {ticker} in past year")
                             min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
                         rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol if rvol_type == '100' else 'N/A'
                         rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol if rvol_type == '100' else 'N/A'
@@ -355,8 +376,15 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                     weighted_iv = ticker_processed['IV_mid'].mean() if 'IV_mid' in ticker_processed.columns and not ticker_processed['IV_mid'].isna().all() else np.nan
                     rank_dict['Weighted IV (%)'] = weighted_iv * 100 if not np.isnan(weighted_iv) else 'N/A'
                 
-                    three_month_data = ticker_processed[(ticker_processed['Years_to_Expiry'] >= 80/365.25) & (ticker_processed['Years_to_Expiry'] <= 100/365.25)]
-                    weighted_iv_3m = three_month_data['IV_mid'].mean() if not three_month_data.empty and 'IV_mid' in three_month_data.columns and not three_month_data['IV_mid'].isna().all() else np.nan
+                    three_month_data = ticker_processed[(ticker_processed['Years_to_Expiry'] >= 70/365.25) & (ticker_processed['Years_to_Expiry'] <= 110/365.25)]
+                    if three_month_data.empty:
+                        print(f"calculate_ranking_metrics: No options in 70-110 day range for ticker {ticker}")
+                        weighted_iv_3m = np.nan
+                    elif 'IV_mid' not in three_month_data.columns or three_month_data['IV_mid'].isna().all():
+                        print(f"calculate_ranking_metrics: IV_mid missing or all NaN for ticker {ticker}")
+                        weighted_iv_3m = np.nan
+                    else:
+                        weighted_iv_3m = three_month_data['IV_mid'].mean()
                     rank_dict['Weighted IV 3m (%)'] = weighted_iv_3m * 100 if not np.isnan(weighted_iv_3m) else 'N/A'
                 
                     prev_day_ticker_processed = processed_prev_day[processed_prev_day['Ticker'] == ticker]
