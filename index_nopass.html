@@ -1268,9 +1268,9 @@
                     'Spread 1Y', 'Spread 3Y', 'Spread 5Y'
                 ];
                 const displayNameMap = {
-                    'Spread 1Y': 'Spread\n1Y (%)',
-                    'Spread 3Y': 'Spread\n3Y (%)',
-                    'Spread 5Y': 'Spread\n5Y (%)'
+                    'Spread 1Y': 'Spread\n1Y',
+                    'Spread 3Y': 'Spread\n3Y',
+                    'Spread 5Y': 'Spread\n5Y'
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1300,8 +1300,7 @@
                         }
                         const isPercentChange = [
                             'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
-                            'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
-                            'Spread 1Y', 'Spread 3Y', 'Spread 5Y'
+                            'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)'
                         ].includes(col);
                         if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
                             const val = parseFloat(item[col]);
