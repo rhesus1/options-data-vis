@@ -1255,7 +1255,7 @@
                 const table = document.getElementById('stock-table');
                 table.innerHTML = '';
                 if (stockData.length === 0) {
-                    table.innerHTML = '<tr><td colspan="14">No stock data available</td></tr>';
+                    table.innerHTML = '<tr><td colspan="18">No stock data available</td></tr>';
                     console.warn('No stock data for stock table');
                     return;
                 }
@@ -1264,10 +1264,13 @@
                 const columns = [
                     'Ticker', 'Company Name', 'Latest Open', 'Latest Close', 'Latest High',
                     'Latest Low', 'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
-                    'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)'
+                    'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
+                    'Debt Class', 'Spread 1Y', 'Spread 3Y', 'Spread 5Y'
                 ];
                 const displayNameMap = {
-                    // No columns in stock table contain "Realised Volatility", "Weighted IV", or "IV"
+                    'Spread 1Y': 'Spread\n1Y (%)',
+                    'Spread 3Y': 'Spread\n3Y (%)',
+                    'Spread 5Y': 'Spread\n5Y (%)'
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1297,7 +1300,8 @@
                         }
                         const isPercentChange = [
                             'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
-                            'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)'
+                            'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
+                            'Spread 1Y', 'Spread 3Y', 'Spread 5Y'
                         ].includes(col);
                         if (isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A') {
                             const val = parseFloat(item[col]);
@@ -1309,7 +1313,7 @@
                 console.log('Stock table updated successfully');
             } catch (error) {
                 console.error('Error updating stock table:', error);
-                document.getElementById('stock-table').innerHTML = '<tr><td colspan="14">Error loading stock data</td></tr>';
+                document.getElementById('stock-table').innerHTML = '<tr><td colspan="18">Error loading stock data</td></tr>';
             }
         }
         
