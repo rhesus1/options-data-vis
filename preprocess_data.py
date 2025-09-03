@@ -20,12 +20,15 @@ def load_data(timestamp, source, base_path="data"):
     try:
         # Load company names
         if os.path.exists("company_names.txt"):
+            print("Loading company_names.txt...", flush=True)
             company_names = pd.read_csv("company_names.txt", sep="\t")
+            print(f"Loaded company_names.txt in {time.time() - start_time:.2f} seconds", flush=True)
         else:
-            print("Warning: company_names.txt not found.")
+            print("Warning: company_names.txt not found.", flush=True)
         # Load ranking
         ranking_path = f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv"
         if os.path.exists(ranking_path):
+            print(f"Loading ranking file: {ranking_path}...", flush=True)
             ranking = pd.read_csv(ranking_path)
             numeric_cols = ['Latest Close', 'Realised Volatility 30d (%)', 'Realised Volatility 100d (%)',
                            'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
@@ -40,16 +43,20 @@ def load_data(timestamp, source, base_path="data"):
             for col in numeric_cols:
                 if col in ranking.columns:
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
+            print(f"Loaded ranking file in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             raise FileNotFoundError(f"Ranking file not found: {ranking_path}")
         # Load historic data
         historic_dir = f"{base_path}/{timestamp}/historic"
         if os.path.exists(historic_dir):
             historic_files = glob.glob(f"{historic_dir}/historic_*.csv")
+            print(f"Found {len(historic_files)} historic files in {historic_dir}", flush=True)
             if historic_files:
                 dfs = []
                 for file in historic_files:
+                    file_start_time = time.time()
                     try:
+                        print(f"Processing historic file: {file}...", flush=True)
                         df = pd.read_csv(file)
                         if 'Ticker' not in df.columns:
                             ticker = os.path.basename(file).split('historic_')[1].split('.csv')[0].upper()
@@ -63,7 +70,7 @@ def load_data(timestamp, source, base_path="data"):
                                 df[col] = pd.to_numeric(df[col], errors='coerce')
                         # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
                         if 'Realised_Vol_Close_100' in df.columns:
-                            # Ensure the column is a Pandas Series
+                            print(f"Calculating Vol of Vol, Percentile, and Kurtosis for {file}...", flush=True)
                             vol_series = df['Realised_Vol_Close_100'].copy()
                             # Vol of Vol: Standard deviation of 100-day realised volatility over a 252-day window
                             df['Vol_of_Vol_100d'] = vol_series.rolling(window=252, min_periods=100).std().round(2)
@@ -76,34 +83,42 @@ def load_data(timestamp, source, base_path="data"):
                                 lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
                             ).round(2)
                         dfs.append(df)
+                        print(f"Processed {file} in {time.time() - file_start_time:.2f} seconds", flush=True)
                     except Exception as e:
-                        print(f"Warning: Error loading historic file {file}: {e}")
+                        print(f"Warning: Error processing historic file {file}: {e}", flush=True)
                 if dfs:
+                    print("Concatenating historic DataFrames...", flush=True)
                     historic = pd.concat(dfs, ignore_index=True)
                     historic = historic.drop_duplicates(subset=['Ticker', 'Date'], keep='last')
+                    print(f"Concatenated historic data for {len(historic['Ticker'].unique())} tickers in {time.time() - start_time:.2f} seconds", flush=True)
                     # Save updated historic files
+                    print("Saving updated historic files...", flush=True)
+                    save_start_time = time.time()
                     for ticker in historic['Ticker'].unique():
                         ticker_df = historic[historic['Ticker'] == ticker]
                         output_file = f"{historic_dir}/historic_{ticker}.csv"
                         ticker_df.to_csv(output_file, index=False)
-                        print(f"Saved updated historic file for {ticker}: {output_file}")
-                print(f"Loaded historic data for {len(historic_files)} tickers.")
+                        print(f"Saved updated historic file for {ticker}: {output_file}", flush=True)
+                    print(f"Saved all historic files in {time.time() - save_start_time:.2f} seconds", flush=True)
+                print(f"Loaded historic data for {len(historic_files)} tickers in {time.time() - start_time:.2f} seconds", flush=True)
             else:
-                print(f"Warning: No historic_*.csv files found in {historic_dir}")
+                print(f"Warning: No historic_*.csv files found in {historic_dir}", flush=True)
         else:
-            print(f"Warning: Historic directory {historic_dir} not found.")
+            print(f"Warning: Historic directory {historic_dir} not found.", flush=True)
         # Load events
         events_path = f"{base_path}/Events.csv"
         if os.path.exists(events_path):
+            print(f"Loading events file: {events_path}...", flush=True)
             events = pd.read_csv(events_path)
+            print(f"Loaded events file in {time.time() - start_time:.2f} seconds", flush=True)
         else:
-            print("Warning: Events.csv not found.")
-        print(f"Loaded all data in {time.time() - start_time:.2f} seconds")
+            print("Warning: Events.csv not found.", flush=True)
+        print(f"Loaded all data in {time.time() - start_time:.2f} seconds", flush=True)
         return company_names, ranking, historic, events
     except FileNotFoundError as e:
-        print(f"Error loading data file: {e}")
+        print(f"Error loading data file: {e}", flush=True)
         return None, None, None, None
-
+        
 def load_ticker_data(ticker, timestamp, source, base_path="data"):
     """Load ticker-specific data."""
     start_time = time.time()
