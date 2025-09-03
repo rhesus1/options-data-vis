@@ -1255,7 +1255,7 @@
                 const table = document.getElementById('stock-table');
                 table.innerHTML = '';
                 if (stockData.length === 0) {
-                    table.innerHTML = '<tr><td colspan="18">No stock data available</td></tr>';
+                    table.innerHTML = '<tr><td colspan="17">No stock data available</td></tr>';
                     console.warn('No stock data for stock table');
                     return;
                 }
@@ -1265,7 +1265,7 @@
                     'Ticker', 'Company Name', 'Latest Open', 'Latest Close', 'Latest High',
                     'Latest Low', 'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
                     'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
-                    'Debt Class', 'Spread 1Y', 'Spread 3Y', 'Spread 5Y'
+                    'Spread 1Y', 'Spread 3Y', 'Spread 5Y'
                 ];
                 const displayNameMap = {
                     'Spread 1Y': 'Spread\n1Y (%)',
@@ -1313,7 +1313,7 @@
                 console.log('Stock table updated successfully');
             } catch (error) {
                 console.error('Error updating stock table:', error);
-                document.getElementById('stock-table').innerHTML = '<tr><td colspan="18">Error loading stock data</td></tr>';
+                document.getElementById('stock-table').innerHTML = '<tr><td colspan="17">Error loading stock data</td></tr>';
             }
         }
         
