@@ -1,9 +1,5 @@
 name: Force Preprocess Data
 on:
-  workflow_run:
-    workflows: ["Force Calculate Ranking"]
-    types:
-      - completed
   workflow_dispatch:
     inputs:
       date:
