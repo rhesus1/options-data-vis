@@ -337,23 +337,37 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         
                         year_historic = ticker_historic_full[(ticker_historic_full['Date'].dt.date >= past_year_start.date())]
                         if not year_historic.empty:
-                            # Precompute log returns for efficiency
+                            # Ensure Close is numeric and drop NaN
                             year_historic = year_historic.sort_values('Date')
-                            log_returns = np.log(year_historic['Close'] / year_historic['Close'].shift(1)).dropna()
+                            year_historic['Close'] = pd.to_numeric(year_historic['Close'], errors='coerce')
+                            if year_historic['Close'].isna().any():
+                                print(f"calculate_ranking_metrics: {year_historic['Close'].isna().sum()} NaN values in Close for ticker {ticker}")
+                                year_historic = year_historic.dropna(subset=['Close'])
+                            log_returns = np.log(year_historic['Close'] / year_historic['Close'].shift(1))
+                            log_returns = log_returns.dropna()
+                            print(f"calculate_ranking_metrics: Log returns length = {len(log_returns)} for ticker {ticker}")
                             if len(log_returns) < window:
-                                print(f"calculate_ranking_metrics: Insufficient log returns ({len(log_returns)} < {window}) for ticker {ticker} in past year")
+                                print(f"calculate_ranking_metrics: Insufficient log returns ({len(log_returns)} < {window}) for ticker {ticker}")
                                 min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
                             else:
+                                # Ensure current_vol is numeric
+                                if pd.isna(current_vol) or current_vol == 'N/A':
+                                    print(f"calculate_ranking_metrics: Invalid current_vol ({current_vol}) for ticker {ticker}, recomputing")
+                                    current_vol = calculate_rvol(ticker_historic_full, current_dt, window)
+                                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = current_vol if current_vol != 'N/A' else np.nan
                                 vols = log_returns.rolling(window=window, min_periods=window).std() * np.sqrt(252) * 100
                                 vols = vols.dropna()
-                                if not vols.empty:
+                                print(f"calculate_ranking_metrics: Vols length = {len(vols)} for ticker {ticker}, current_vol = {current_vol}")
+                                if not vols.empty and not pd.isna(current_vol) and current_vol != 'N/A':
                                     min_vol = vols.min()
                                     max_vol = vols.max()
                                     mean_vol = vols.mean()
-                                    percentile = (vols < current_vol).sum() / len(vols) * 100 if not pd.isna(current_vol) else 'N/A'
-                                    z_score_percentile = norm.cdf((current_vol - vols.mean()) / vols.std()) * 100 if vols.std() != 0 and not pd.isna(current_vol) else 'N/A'
+                                    percentile = (vols < current_vol).sum() / len(vols) * 100
+                                    z_score = (current_vol - vols.mean()) / vols.std() if vols.std() != 0 else 0
+                                    z_score_percentile = norm.cdf(z_score) * 100
+                                    print(f"calculate_ranking_metrics: Percentile = {percentile}, Z-Score Percentile = {z_score_percentile} for ticker {ticker}")
                                 else:
-                                    print(f"calculate_ranking_metrics: No valid RVol values for ticker {ticker} in past year")
+                                    print(f"calculate_ranking_metrics: No valid RVol values or invalid current_vol ({current_vol}) for ticker {ticker}")
                                     min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
                         else:
                             print(f"calculate_ranking_metrics: No historic data for ticker {ticker} in past year")
