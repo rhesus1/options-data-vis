@@ -96,13 +96,26 @@
             overflow-x: auto;
             white-space: nowrap;
         }
-        .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table th, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
+        .ranking-table th {
+            border: 1px solid #26A69A;
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: normal; /* Allow text to wrap */
+            word-wrap: break-word; /* Ensure long words break */
+            padding: 8px 4px; /* Reduce horizontal padding to save space */
+            text-align: left; /* Keep text alignment */
+            color: #FFFFFF;
+            line-height: 1.2; /* Adjust line height for readability */
+            min-width: 60px; /* Set a minimum width to prevent overly narrow columns */
+        }
+        .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
             border: 1px solid #26A69A;
             padding: 8px;
             text-align: left;
             color: #FFFFFF;
         }
-        .stats-table th, .summary-table th, .ranking-table th, .raw-data-table th, .contracts-table th, .stock-table th {
+        .stats-table th, .summary-table th, .raw-data-table th, .contracts-table th, .stock-table th {
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
@@ -1149,29 +1162,31 @@
                     'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
                 ];
                 const displayNameMap = {
-                    'Realised Volatility 30d (%)': 'RVol 30d (%)',
-                    'Realised Volatility 100d (%)': 'RVol 100d (%)',
-                    'Realised Volatility 100d 1d (%)': 'RVol 100d 1d (%)',
-                    'Realised Volatility 100d 1w (%)': 'RVol 100d 1w (%)',
-                    'Min Realised Volatility 100d (1y)': 'Min RVol 100d (1y)',
-                    'Max Realised Volatility 100d (1y)': 'Max RVol 100d (1y)',
-                    'Mean Realised Volatility 100d (1y)': 'Mean RVol 100d (1y)',
-                    'Realised Volatility 180d (%)': 'RVol 180d (%)',
-                    'Realised Volatility 252d (%)': 'RVol 252d (%)',
-                    'Weighted IV (%)': 'WIVol (%)',
-                    'Weighted IV 1d (%)': 'WIVol 1d (%)',
-                    'Weighted IV 1w (%)': 'WIVol 1w (%)',
-                    'Weighted IV 3m (%)': 'WIVol 3m (%)',
-                    'Weighted IV 3m 1d (%)': 'WIVol 3m 1d (%)',
-                    'Weighted IV 3m 1w (%)': 'WIVol 3m 1w (%)',
-                    'ATM IV 3m (%)': 'ATM IVol 3m (%)',
-                    'ATM IV 3m 1d (%)': 'ATM IVol 3m 1d (%)',
-                    'ATM IV 3m 1w (%)': 'ATM IVol 3m 1w (%)',
-                    'Rvol100d - Weighted IV': 'RVol100d - WIVol'
+                    'Realised Volatility 30d (%)': 'RVol\n30d (%)',
+                    'Realised Volatility 100d (%)': 'RVol\n100d (%)',
+                    'Realised Volatility 100d 1d (%)': 'RVol\n100d 1d (%)',
+                    'Realised Volatility 100d 1w (%)': 'RVol\n100d 1w (%)',
+                    'Min Realised Volatility 100d (1y)': 'Min RVol\n100d (1y)',
+                    'Max Realised Volatility 100d (1y)': 'Max RVol\n100d (1y)',
+                    'Mean Realised Volatility 100d (1y)': 'Mean RVol\n100d (1y)',
+                    'Rvol 100d Percentile (%)': 'RVol 100d\nPercentile (%)',
+                    'Rvol 100d Z-Score Percentile (%)': 'RVol 100d\nZ-Score\nPercentile (%)',
+                    'Realised Volatility 180d (%)': 'RVol\n180d (%)',
+                    'Realised Volatility 252d (%)': 'RVol\n252d (%)',
+                    'Weighted IV (%)': 'WIVol\n(%)',
+                    'Weighted IV 1d (%)': 'WIVol\n1d (%)',
+                    'Weighted IV 1w (%)': 'WIVol\n1w (%)',
+                    'Weighted IV 3m (%)': 'WIVol\n3m (%)',
+                    'Weighted IV 3m 1d (%)': 'WIVol\n3m 1d (%)',
+                    'Weighted IV 3m 1w (%)': 'WIVol\n3m 1w (%)',
+                    'ATM IV 3m (%)': 'ATM IVol\n3m (%)',
+                    'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
+                    'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
+                    'Rvol100d - Weighted IV': 'RVol100d -\nWIVol'
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
-                    th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol');
+                    th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol').replace(/ /g, '\n');
                     th.dataset.column = col; // Keep original column name for sorting
                     th.dataset.order = 'desc';
                     th.style.color = '#FFFFFF';
