@@ -425,6 +425,26 @@
                 <canvas id="kurtosis-chart"></canvas>
                 <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
             </div>
+            <div class="chart-container">
+                <h3>Volatility of Volatility (100-day)</h3>
+                <div class="select-container">
+                    <label for="vol-of-vol-history-select">Select History Length: </label>
+                    <button class="arrow-button" onclick="changeSelect('vol-of-vol-history-select', -1)">&#9664;</button>
+                    <select id="vol-of-vol-history-select">
+                        <option value="1m">1-month</option>
+                        <option value="3m">3-month</option>
+                        <option value="6m">6-month</option>
+                        <option value="1y">1-year</option>
+                        <option value="5y">5-year</option>
+                        <option value="all" selected>All</option>
+                    </select>
+                    <button class="arrow-button" onclick="changeSelect('vol-of-vol-history-select', 1)">&#9654;</button>
+                </div>
+                <canvas id="vol-of-vol-chart"></canvas>
+                <div id="vol-of-vol-error" class="error-message" style="display: none;">No volatility of volatility data available</div>
+            </div>
+
+            
         </div>
         <div id="ranking" class="chart-container" style="display: none;">
             <h2>Ticker Ranking</h2>
@@ -465,7 +485,7 @@
         let topVolumeData = [];
         let topOpenInterestData = [];
         let stockData = [];
-        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart, kurtosisChart;
+        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart, kurtosisChart, volOfVolChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
         let stockTableVisible = false;
@@ -1846,6 +1866,95 @@
                 document.getElementById('kurtosis-error').style.display = 'block';
             }
         }
+
+        function updateVolOfVolChart() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+                const historyLength = document.getElementById('vol-of-vol-history-select').value;
+                const errorDiv = document.getElementById('vol-of-vol-error');
+                errorDiv.style.display = 'none';
+                let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item.Date && Number.isFinite(item.Vol_of_Vol_100d) && Number.isFinite(item.Vol_of_Vol_100d_Percentile));
+                if (!filteredHistoric.length) {
+                    console.warn('No data for Volatility of Volatility chart:', { ticker: selectedTicker });
+                    if (volOfVolChart) volOfVolChart.destroy();
+                    errorDiv.textContent = 'No volatility of volatility data available';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                const fromDate = calculateDateRange(historyLength);
+                if (fromDate) {
+                    filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
+                }
+                const dates = filteredHistoric.map(item => new Date(item.Date));
+                const volOfVol = filteredHistoric.map(item => parseFloat(item.Vol_of_Vol_100d)).filter(v => v !== null);
+                const percentile = filteredHistoric.map(item => parseFloat(item.Vol_of_Vol_100d_Percentile)).filter(v => v !== null);
+                const datasets = [
+                    {
+                        label: 'Vol of Vol 100d (%)',
+                        data: volOfVol.map((v, i) => ({ x: dates[i], y: v })),
+                        borderColor: '#FFA500',
+                        backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                        pointRadius: 1,
+                        fill: true,
+                        showLine: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Vol of Vol 100d Percentile (%)',
+                        data: percentile.map((v, i) => ({ x: dates[i], y: v })),
+                        borderColor: '#26A69A',
+                        backgroundColor: 'rgba(38, 166, 154, 0.2)',
+                        pointRadius: 1,
+                        fill: true,
+                        showLine: true,
+                        yAxisID: 'y1'
+                    }
+                ];
+                if (volOfVolChart) volOfVolChart.destroy();
+                const canvas = document.getElementById('vol-of-vol-chart');
+                if (!canvas.getContext('2d')) {
+                    throw new Error('Canvas context not available for vol-of-vol-chart');
+                }
+                volOfVolChart = new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: '#FFFFFF' } }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: { unit: 'month' },
+                                title: { display: true, text: 'Date', color: '#FFFFFF' },
+                                grid: { display: false },
+                                ticks: { color: '#FFFFFF' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Vol of Vol (%)', color: '#FFA500' },
+                                beginAtZero: false,
+                                grid: { display: false },
+                                ticks: { color: '#FFA500' }
+                            },
+                            y1: {
+                                title: { display: true, text: 'Percentile (%)', color: '#26A69A' },
+                                position: 'right',
+                                beginAtZero: false,
+                                grid: { display: false },
+                                ticks: { color: '#26A69A' }
+                            }
+                        },
+                        backgroundColor: '#1A1A2E'
+                    }
+                });
+                createStatsTable(volOfVolChart, 'vol-of-vol-chart');
+            } catch (error) {
+                console.error('Error updating Volatility of Volatility chart:', error);
+                document.getElementById('vol-of-vol-error').textContent = `Error rendering chart: ${error.message}`;
+                document.getElementById('vol-of-vol-error').style.display = 'block';
+            }
+        }
         
         function prepareSurfaceData(filteredData, zKey) {
             try {
@@ -2564,6 +2673,7 @@
                 updateRealisedVolChart();
                 updateCallVolSurface();
                 updateKurtosisChart();
+                updateVolOfVolChart();
                 updateSummaryTable();
                 updateTopContractsTables();
                 updateVolumeChart();
@@ -2588,6 +2698,7 @@
                     { canvasId: 'skew-vs-expiry-chart', selectId: null },
                     { canvasId: 'realised-vol-chart', selectId: 'realised-vol-history-select' },
                     { canvasId: 'kurtosis-chart', selectId: 'kurtosis-history-select' },
+                    { canvasId: 'vol-of-vol-chart', selectId: 'vol-of-vol-history-select' },
                     { canvasId: 'volume-chart', selectId: 'ticker-search' },
                     { canvasId: 'open-interest-chart', selectId: 'ticker-search' },
                     { canvasId: 'historic-price-chart', selectId: 'history-select' }
