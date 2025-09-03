@@ -2411,6 +2411,8 @@
                 updateOpenInterestChart();
                 updateHistoricChart();
                 updateRawDataTable();
+                updateRankingTable();
+                updateStockTable();
             } catch (error) {
                 console.error('Error updating charts:', error);
                 document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
