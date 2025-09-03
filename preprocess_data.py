@@ -7,6 +7,7 @@ import glob
 from datetime import datetime
 import time
 from tqdm import tqdm
+from scipy.stats import kurtosis
 
 def load_data(timestamp, source, base_path="data"):
     """Load raw data files for a given timestamp and source."""
@@ -60,6 +61,22 @@ def load_data(timestamp, source, base_path="data"):
                         for col in numeric_cols:
                             if col in df.columns:
                                 df[col] = pd.to_numeric(df[col], errors='coerce')
+                        # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
+                        if 'Realised_Vol_Close_100' in df.columns:
+                            # Vol of Vol: Standard deviation of 100-day realised volatility over a 252-day window
+                            df['Vol_of_Vol_100d'] = df['Realised_Vol_Close_100'].rolling(window=252, min_periods=100).std()
+                            # Percentile of Vol of Vol
+                            df['Vol_of_Vol_100d_Percentile'] = df['Vol_of_Vol_100d'].rolling(window=252, min_periods=100).apply(
+                                lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x) >= 100 else np.nan, raw=True
+                            )
+                            # Kurtosis of 100-day Realised Volatility
+                            df['Kurtosis_100d'] = df['Realised_Vol_Close_100'].rolling(window=252, min_periods=100).apply(
+                                lambda x: kurtosis(x, nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=True
+                            )
+                            # Round the new columns
+                            df['Vol_of_Vol_100d'] = df['Vol_of_Vol_100d'].round(2)
+                            df['Vol_of_Vol_100d_Percentile'] = df['Vol_of_Vol_100d_Percentile'].round(2)
+                            df['Kurtosis_100d'] = df['Kurtosis_100d'].round(2)
                         dfs.append(df)
                     except Exception as e:
                         print(f"Warning: Error loading historic file {file}: {e}")
@@ -141,7 +158,7 @@ def generate_ranking_table(ranking, company_names):
         if col not in ranking.columns:
             ranking[col] = pd.NA if col not in ["Rank", "Ticker", "Company Name"] else "N/A"
    
-    ranking['Open Interest Numeric'] = pd.to_numeric(ranking['Open Interest'], errors='coerce').fillna(0)
+    ranking['Open Interest Numeric esencial para evitar errores en la clasificación
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
    
@@ -359,7 +376,7 @@ def generate_top_contracts_tables(processed_data, tickers):
     return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
 def save_tables(timestamp, source, base_path="data"):
-    """Generate and save all pre computed tables."""
+    """Generate and save all precomputed tables."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names, ranking, historic, events = load_data(timestamp, source, base_path)
