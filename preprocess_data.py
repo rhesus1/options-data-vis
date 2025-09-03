@@ -22,7 +22,6 @@ def load_data(timestamp, source, base_path="data"):
             company_names = pd.read_csv("company_names.txt", sep="\t")
         else:
             print("Warning: company_names.txt not found.")
-
         # Load ranking
         ranking_path = f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv"
         if os.path.exists(ranking_path):
@@ -42,7 +41,6 @@ def load_data(timestamp, source, base_path="data"):
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
         else:
             raise FileNotFoundError(f"Ranking file not found: {ranking_path}")
-
         # Load historic data
         historic_dir = f"{base_path}/{timestamp}/historic"
         if os.path.exists(historic_dir):
@@ -73,14 +71,12 @@ def load_data(timestamp, source, base_path="data"):
                 print(f"Warning: No historic_*.csv files found in {historic_dir}")
         else:
             print(f"Warning: Historic directory {historic_dir} not found.")
-
         # Load events
         events_path = f"{base_path}/Events.csv"
         if os.path.exists(events_path):
             events = pd.read_csv(events_path)
         else:
             print("Warning: Events.csv not found.")
-
         print(f"Loaded all data in {time.time() - start_time:.2f} seconds")
         return company_names, ranking, historic, events
     except FileNotFoundError as e:
@@ -98,72 +94,27 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
         processed_path = f"{base_path}/{timestamp}/processed{prefix}/processed{prefix}_{ticker}.csv"
         if os.path.exists(processed_path):
             processed = pd.read_csv(processed_path)
-        
+       
         cleaned_path = f"{base_path}/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv"
         if os.path.exists(cleaned_path):
             cleaned = pd.read_csv(cleaned_path)
-        
+       
         skew_path = f"{base_path}/{timestamp}/skew_metrics{prefix}/skew_metrics{prefix}_{ticker}.csv"
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
-        
+       
         print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds")
         return ticker, processed, cleaned, skew
     except Exception as e:
         print(f"Error loading data for ticker {ticker}: {e}")
         return ticker, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-def calculate_market_spread(cleaned_data, ticker):
-    """Calculate market spread for a ticker."""
-    if cleaned_data.empty or 'Ticker' not in cleaned_data.columns:
-        return pd.NA
-    stock_rows = cleaned_data[(cleaned_data["Ticker"] == ticker) &
-                             cleaned_data["Bid Stock"].notna() &
-                             cleaned_data["Ask Stock"].notna()]
-    if stock_rows.empty:
-        return pd.NA
-    bid = stock_rows.iloc[0]["Bid Stock"]
-    ask = stock_rows.iloc[0]["Ask Stock"]
-    return round(ask - bid, 2) if pd.notna(bid) and pd.notna(ask) else pd.NA
-
-def calculate_historical_spreads(historic_data, ticker):
-    """Calculate historical spreads (High - Low) for 1y, 3y, 5y periods."""
-    if historic_data.empty or 'Ticker' not in historic_data.columns:
-        return {"1y Spread": pd.NA, "3y Spread": pd.NA, "5y Spread": pd.NA}
-    
-    filtered = historic_data[(historic_data["Ticker"] == ticker) &
-                            historic_data["High"].notna() &
-                            historic_data["Low"].notna()]
-    if filtered.empty:
-        return {"1y Spread": pd.NA, "3y Spread": pd.NA, "5y Spread": pd.NA}
-    
-    filtered = filtered.sort_values("Date")
-    spreads = filtered["High"] - filtered["Low"]
-    spreads = spreads[spreads.notna()]
-    
-    if spreads.empty:
-        return {"1y Spread": pd.NA, "3y Spread": pd.NA, "5y Spread": pd.NA}
-    
-    recent_spreads = spreads[-1260:]
-    one_year = recent_spreads[-252:]
-    three_year = recent_spreads[-756:]
-    five_year = spreads
-    
-    def avg_spread(arr):
-        return round(arr.mean(), 2) if not arr.empty else pd.NA
-    
-    return {
-        "1y Spread": avg_spread(one_year),
-        "3y Spread": avg_spread(three_year),
-        "5y Spread": avg_spread(five_year)
-    }
-
-def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
+def generate_ranking_table(ranking, company_names):
     """Generate ranking table with formatted values and colors."""
     start_time = time.time()
     if ranking is None or ranking.empty:
         print(f"No ranking data in {time.time() - start_time:.2f} seconds")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
     ranking = ranking.copy()
     if company_names is not None and not company_names.empty:
         ranking["Company Name"] = ranking["Ticker"].map(
@@ -171,20 +122,7 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
         ).fillna("N/A")
     else:
         ranking["Company Name"] = "N/A"
-    
-    ranking["Market Spread"] = pd.NA
-    ranking["1y Spread"] = pd.NA
-    ranking["3y Spread"] = pd.NA
-    ranking["5y Spread"] = pd.NA
-    
-    for ticker in ranking["Ticker"].unique():
-        if not cleaned_data.empty:
-            ranking.loc[ranking["Ticker"] == ticker, "Market Spread"] = calculate_market_spread(cleaned_data, ticker)
-        if not historic_data.empty:
-            spreads = calculate_historical_spreads(historic_data, ticker)
-            for key, value in spreads.items():
-                ranking.loc[ranking["Ticker"] == ticker, key] = value
-    
+   
     columns = [
         "Rank", "Ticker", "Company Name", "Latest Close", "Realised Volatility 30d (%)",
         "Realised Volatility 100d (%)", "Realised Volatility 100d 1d (%)",
@@ -196,18 +134,17 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
         "Weighted IV 3m (%)", "Weighted IV 3m 1d (%)", "Weighted IV 3m 1w (%)",
         "ATM IV 3m (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
         "Rvol100d - Weighted IV", "Volume", "Volume 1d (%)", "Volume 1w (%)",
-        "Open Interest", "OI 1d (%)", "OI 1w (%)", "Market Spread", "1y Spread",
-        "3y Spread", "5y Spread"
+        "Open Interest", "OI 1d (%)", "OI 1w (%)"
     ]
-    
+   
     for col in columns:
         if col not in ranking.columns:
             ranking[col] = pd.NA if col not in ["Rank", "Ticker", "Company Name"] else "N/A"
-    
+   
     ranking['Open Interest Numeric'] = pd.to_numeric(ranking['Open Interest'], errors='coerce').fillna(0)
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
-    
+   
     for col in columns:
         if col in ["Volume", "Open Interest"]:
             ranking[col] = np.where(
@@ -221,7 +158,7 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
                 pd.to_numeric(ranking[col], errors='coerce').round(2),
                 pd.NA
             )
-        
+       
         color_col = f"{col}_Color"
         ranking[color_col] = "#FFFFFF"
         if col in ["Realised Volatility 100d 1d (%)", "Realised Volatility 100d 1w (%)",
@@ -235,17 +172,18 @@ def generate_ranking_table(ranking, company_names, cleaned_data, historic_data):
                          np.where(pd.to_numeric(ranking[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
                 "#FFFFFF"
             )
-    
+   
     color_columns = [f"{col}_Color" for col in columns if col not in ["Rank", "Ticker", "Company Name"]]
+    ranking_no_colors = ranking[columns]
     print(f"Generated ranking table in {time.time() - start_time:.2f} seconds")
-    return ranking[columns + color_columns]
+    return ranking[columns + color_columns], ranking_no_colors
 
-def generate_stock_table(ranking, company_names, cleaned_data, historic_data):
+def generate_stock_table(ranking, company_names):
     """Generate stock table with formatted values and colors."""
     start_time = time.time()
     if ranking is None or ranking.empty:
         print(f"No stock data in {time.time() - start_time:.2f} seconds")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
     stock_data = ranking.copy()
     if company_names is not None and not company_names.empty:
         stock_data["Company Name"] = stock_data["Ticker"].map(
@@ -253,31 +191,17 @@ def generate_stock_table(ranking, company_names, cleaned_data, historic_data):
         ).fillna("N/A")
     else:
         stock_data["Company Name"] = "N/A"
-    
-    stock_data["Market Spread"] = pd.NA
-    stock_data["1y Spread"] = pd.NA
-    stock_data["3y Spread"] = pd.NA
-    stock_data["5y Spread"] = pd.NA
-    
-    for ticker in stock_data["Ticker"].unique():
-        if not cleaned_data.empty:
-            stock_data.loc[stock_data["Ticker"] == ticker, "Market Spread"] = calculate_market_spread(cleaned_data, ticker)
-        if not historic_data.empty:
-            spreads = calculate_historical_spreads(historic_data, ticker)
-            for key, value in spreads.items():
-                stock_data.loc[stock_data["Ticker"] == ticker, key] = value
-    
+   
     columns = [
         "Ticker", "Company Name", "Latest Open", "Latest Close", "Latest High",
         "Latest Low", "Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
-        "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)", "Market Spread",
-        "1y Spread", "3y Spread", "5y Spread"
+        "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)"
     ]
-    
+   
     for col in columns:
         if col not in stock_data.columns:
             stock_data[col] = pd.NA if col not in ["Ticker", "Company Name"] else "N/A"
-    
+   
     stock_data = stock_data.sort_values("Latest Close", ascending=False, key=lambda x: pd.to_numeric(x, errors='coerce'))
     for col in columns:
         if col not in ["Ticker", "Company Name"]:
@@ -286,7 +210,7 @@ def generate_stock_table(ranking, company_names, cleaned_data, historic_data):
                 pd.to_numeric(stock_data[col], errors='coerce').round(2),
                 pd.NA
             )
-        
+       
         color_col = f"{col}_Color"
         stock_data[color_col] = "#FFFFFF"
         if col in ["Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
@@ -297,17 +221,24 @@ def generate_stock_table(ranking, company_names, cleaned_data, historic_data):
                          np.where(pd.to_numeric(stock_data[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
                 "#FFFFFF"
             )
-    
+   
     color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name"]]
+    stock_data_no_colors = stock_data[columns]
     print(f"Generated stock table in {time.time() - start_time:.2f} seconds")
-    return stock_data[columns + color_columns]
+    return stock_data[columns + color_columns], stock_data_no_colors
 
 def generate_summary_table(ranking, skew_data, tickers):
     """Generate aggregated summary table for all tickers."""
     start_time = time.time()
     if ranking is None or ranking.empty:
         print(f"No summary data in {time.time() - start_time:.2f} seconds")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
+   
+    total_tickers = len(tickers)
+    volume_rank = ranking['Volume'].rank(ascending=False, na_option="bottom").astype(int)
+    open_interest_rank = ranking['Open Interest'].rank(ascending=False, na_option="bottom").astype(int)
+    rank_map = {ticker: {'Volume Rank': f"{int(v)} of {total_tickers}", 'Open Interest Rank': f"{int(o)} of {total_tickers}"}
+                for ticker, v, o in zip(ranking['Ticker'], volume_rank, open_interest_rank)}
     
     metrics = [
         {"name": "Latest Close ($)", "key": "Latest Close"},
@@ -326,9 +257,11 @@ def generate_summary_table(ranking, skew_data, tickers):
         {"name": "Open Interest", "key": "Open Interest"},
         {"name": "OI 1d (%)", "key": "OI 1d (%)"},
         {"name": "OI 1w (%)", "key": "OI 1w (%)"},
-        {"name": "ATM 12m/3m Ratio", "key": "ATM_12m_3m_Ratio"}
+        {"name": "ATM 12m/3m Ratio", "key": "ATM_12m_3m_Ratio"},
+        {"name": "Volume Rank", "key": "Volume Rank"},
+        {"name": "Open Interest Rank", "key": "Open Interest Rank"}
     ]
-    
+   
     summary_data = []
     for ticker in tickers:
         filtered_ranking = ranking[ranking["Ticker"] == ticker]
@@ -336,22 +269,25 @@ def generate_summary_table(ranking, skew_data, tickers):
             continue
         row = {"Ticker": ticker}
         for metric in metrics:
-            value = filtered_ranking[metric["key"]].iloc[0] if metric["key"] in filtered_ranking.columns and not filtered_ranking[metric["key"]].empty else pd.NA
-            if metric["key"] in ["Volume", "Open Interest"]:
-                num_val = pd.to_numeric(value, errors='coerce')
-                value = f"{int(num_val):,}" if pd.notna(num_val) and num_val > 0 else "N/A"
+            if metric["key"] in ["Volume Rank", "Open Interest Rank"]:
+                value = rank_map.get(ticker, {}).get(metric["key"], "N/A")
             else:
-                num_val = pd.to_numeric(value, errors='coerce')
-                value = round(num_val, 2) if pd.notna(num_val) else pd.NA
+                value = filtered_ranking[metric["key"]].iloc[0] if metric["key"] in filtered_ranking.columns and not filtered_ranking[metric["key"]].empty else pd.NA
+                if metric["key"] in ["Volume", "Open Interest"]:
+                    num_val = pd.to_numeric(value, errors='coerce')
+                    value = f"{int(num_val):,}" if pd.notna(num_val) and num_val > 0 else "N/A"
+                else:
+                    num_val = pd.to_numeric(value, errors='coerce')
+                    value = round(num_val, 2) if pd.notna(num_val) else pd.NA
             row[metric["name"]] = value
-        
+       
         # Add ATM ratio from skew data
         atm_ratio = pd.NA
         if not skew_data.empty and skew_data["Ticker"].isin([ticker]).any():
             atm_val = skew_data[skew_data["Ticker"] == ticker]["ATM_12m_3m_Ratio"].iloc[0]
             atm_ratio = round(pd.to_numeric(atm_val, errors='coerce'), 4) if pd.notna(atm_val) else pd.NA
         row["ATM 12m/3m Ratio"] = atm_ratio
-        
+       
         # Add colors for percentage columns
         for metric in metrics:
             color_key = f"{metric['name']}_Color"
@@ -362,27 +298,28 @@ def generate_summary_table(ranking, skew_data, tickers):
                 num_val = pd.to_numeric(row[metric["name"]], errors='coerce')
                 if pd.notna(num_val):
                     row[color_key] = "#F87171" if num_val < 0 else "#10B981" if num_val > 0 else "#FFFFFF"
-        
+       
         summary_data.append(row)
-    
+   
     columns = ["Ticker"] + [metric["name"] for metric in metrics]
     color_columns = [f"{metric['name']}_Color" for metric in metrics if metric["key"] in ["Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
                                                                                       "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
                                                                                       "OI 1d (%)", "OI 1w (%)"]]
     result = pd.DataFrame(summary_data, columns=columns + color_columns)
+    result_no_colors = pd.DataFrame(summary_data, columns=columns)
     print(f"Generated summary table in {time.time() - start_time:.2f} seconds")
-    return result
+    return result, result_no_colors
 
 def generate_top_contracts_tables(processed_data, tickers):
     """Generate aggregated top 10 volume and open interest tables for each ticker in a single file."""
     start_time = time.time()
     if processed_data.empty or 'Ticker' not in processed_data.columns:
         print(f"No contracts data in {time.time() - start_time:.2f} seconds")
-        return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-    
+        return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+   
     top_volume_list = []
     top_open_interest_list = []
-    
+   
     for ticker in tickers:
         filtered = processed_data[processed_data["Ticker"] == ticker]
         if filtered.empty:
@@ -393,10 +330,10 @@ def generate_top_contracts_tables(processed_data, tickers):
             top_volume_list.append(top_volume)
         if not top_open_interest.empty:
             top_open_interest_list.append(top_open_interest)
-    
+   
     top_volume_table = pd.concat(top_volume_list, ignore_index=True) if top_volume_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     top_open_interest_table = pd.concat(top_open_interest_list, ignore_index=True) if top_open_interest_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-    
+   
     def format_table(df):
         if df.empty:
             return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
@@ -414,22 +351,22 @@ def generate_top_contracts_tables(processed_data, tickers):
                                      pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
                                      "N/A")
         return df
-    
+   
     top_volume_table = format_table(top_volume_table)
     top_open_interest_table = format_table(top_open_interest_table)
-    
+   
     print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds")
-    return top_volume_table, top_open_interest_table
-    
+    return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
+
 def save_tables(timestamp, source, base_path="data"):
-    """Generate and save all precomputed tables."""
+    """Generate and save all pre computed tables."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names, ranking, historic, events = load_data(timestamp, source, base_path)
     if ranking is None or ranking.empty:
         print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
         return
-    
+   
     # Load all ticker-specific data
     tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
@@ -443,31 +380,36 @@ def save_tables(timestamp, source, base_path="data"):
             cleaned_data = pd.concat([cleaned_data, cleaned], ignore_index=True)
         if not skew.empty:
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
-    
+   
     # Generate tables
-    ranking_table = generate_ranking_table(ranking, company_names, cleaned_data, historic)
-    stock_table = generate_stock_table(ranking, company_names, cleaned_data, historic)
-    summary_table = generate_summary_table(ranking, skew_data, tickers)
-    top_volume, top_open_interest = generate_top_contracts_tables(processed_data, tickers)
-    
+    ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
+    stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names)
+    summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
+    top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers)
+   
     # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/summary", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/contracts", exist_ok=True)
-    
+   
     # Save tables
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
+        ranking_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table_no_colors{prefix}.csv", index=False)
     if not stock_table.empty:
         stock_table.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table{prefix}.csv", index=False)
+        stock_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table_no_colors{prefix}.csv", index=False)
     if not summary_table.empty:
         summary_table.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table{prefix}.csv", index=False)
+        summary_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table_no_colors{prefix}.csv", index=False)
     if not top_volume.empty:
         top_volume.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table{prefix}.csv", index=False)
+        top_volume_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table_no_colors{prefix}.csv", index=False)
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
-    
+        top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table_no_colors{prefix}.csv", index=False)
+   
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
 
 def main():
@@ -480,7 +422,7 @@ def main():
     except Exception as e:
         print(f"Error loading dates.json: {e}")
         return
-    
+   
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
@@ -490,11 +432,11 @@ def main():
     else:
         timestamp = timestamps[-1]
         print(f"No timestamp provided, using latest: {timestamp}")
-    
+   
     sources = ['yfinance']
     for source in sources:
         save_tables(timestamp, source, base_path)
-    
+   
     print(f"Total execution time: {time.time() - start_time:.2f} seconds")
 
 main()
