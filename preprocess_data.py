@@ -350,19 +350,19 @@ def save_tables(timestamp, source, base_path="data"):
     # Save tables
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
-        ranking_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table_no_colors{prefix}.csv", index=False)
+        ranking_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table.csv", index=False)
     if not stock_table.empty:
         stock_table.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table{prefix}.csv", index=False)
-        stock_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table_no_colors{prefix}.csv", index=False)
+        stock_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table.csv", index=False)
     if not summary_table.empty:
         summary_table.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table{prefix}.csv", index=False)
-        summary_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table_no_colors{prefix}.csv", index=False)
+        summary_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table.csv", index=False)
     if not top_volume.empty:
         top_volume.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table{prefix}.csv", index=False)
-        top_volume_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table_no_colors{prefix}.csv", index=False)
+        top_volume_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table.csv", index=False)
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
-        top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table_no_colors{prefix}.csv", index=False)
+        top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table.csv", index=False)
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
 
 def main():
