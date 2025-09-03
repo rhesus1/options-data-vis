@@ -209,19 +209,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         prev_day_dt = current_dt - timedelta(days=1) if current_dt.weekday() != 0 else current_dt - timedelta(days=3)
         prev_week_dt = current_dt - timedelta(days=7)
     
-        # Load data
-        current_option = get_option_totals(timestamp, prefix)
-        prev_day_option = get_option_totals(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
-        prev_week_option = get_option_totals(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
-        df_historic = load_historic_data(timestamp)
-        df_processed = load_processed_data(timestamp, prefix)
-        if df_historic.empty:
-            print(f"No historic data found for {timestamp}")
-        if df_processed.empty:
-            print(f"No processed data found for {timestamp}")
-            continue
-    
-        # Load previous day/week processed data (still needed for IV calculations)
+        # Define previous day/week timestamps
         prev_day_ts = None
         current_index = timestamps.index(timestamp)
         for ts in timestamps[:current_index][::-1]:
@@ -236,6 +224,19 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 prev_week_ts = ts
                 break
     
+        # Load data
+        current_option = get_option_totals(timestamp, prefix)
+        prev_day_option = get_option_totals(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
+        prev_week_option = get_option_totals(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
+        df_historic = load_historic_data(timestamp)
+        df_processed = load_processed_data(timestamp, prefix)
+        if df_historic.empty:
+            print(f"No historic data found for {timestamp}")
+        if df_processed.empty:
+            print(f"No processed data found for {timestamp}")
+            continue
+    
+        # Load previous day/week processed data (for IV calculations)
         processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
         processed_prev_week = load_processed_data(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker'])
     
