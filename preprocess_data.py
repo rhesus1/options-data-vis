@@ -158,7 +158,7 @@ def generate_ranking_table(ranking, company_names):
         if col not in ranking.columns:
             ranking[col] = pd.NA if col not in ["Rank", "Ticker", "Company Name"] else "N/A"
    
-    ranking['Open Interest Numeric esencial para evitar errores en la clasificación
+    ranking['Open Interest Numeric'] = pd.to_numeric(ranking['Open Interest'], errors='coerce').fillna(0)
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
    
@@ -203,7 +203,8 @@ def generate_stock_table(ranking, company_names):
         return pd.DataFrame(), pd.DataFrame()
     stock_data = ranking.copy()
     if company_names is not None and not company_names.empty:
-        stock_data["Company Name"] = stock_data["Ticker"].map(
+        stock_data["Company Name"] = stock Ascendancy
+stock_data["Ticker"].map(
             company_names.set_index("Ticker")["Company Name"].to_dict()
         ).fillna("N/A")
     else:
@@ -278,7 +279,7 @@ def generate_summary_table(ranking, skew_data, tickers):
         {"name": "Volume Rank", "key": "Volume Rank"},
         {"name": "Open Interest Rank", "key": "Open Interest Rank"}
     ]
-   
+    
     summary_data = []
     for ticker in tickers:
         filtered_ranking = ranking[ranking["Ticker"] == ticker]
@@ -317,7 +318,7 @@ def generate_summary_table(ranking, skew_data, tickers):
                     row[color_key] = "#F87171" if num_val < 0 else "#10B981" if num_val > 0 else "#FFFFFF"
        
         summary_data.append(row)
-   
+    
     columns = ["Ticker"] + [metric["name"] for metric in metrics]
     color_columns = [f"{metric['name']}_Color" for metric in metrics if metric["key"] in ["Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
                                                                                       "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
