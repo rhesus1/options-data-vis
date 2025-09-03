@@ -211,6 +211,8 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
     
         # Load data
         current_option = get_option_totals(timestamp, prefix)
+        prev_day_option = get_option_totals(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
+        prev_week_option = get_option_totals(prev_week_ts, prefix) if prev_week_ts else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
         df_historic = load_historic_data(timestamp)
         df_processed = load_processed_data(timestamp, prefix)
         if df_historic.empty:
@@ -245,13 +247,13 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             if ticker_data.empty:
                 return 'N/A'
             # Handle both datetime.datetime and datetime.date for target_date
-            target_date_only = target_date.date() if isinstance(target_date, datetime.datetime) else target_date
+            target_date_only = target_date.date() if isinstance(target_date, datetime) else target_date
             date_data = ticker_data[ticker_data['Date'].dt.date == target_date_only]
             return date_data[col].iloc[0] if not date_data.empty and col in date_data.columns else 'N/A'
     
         def calculate_rvol(ticker_data, end_date, window):
             # Handle both datetime.datetime and datetime.date for end_date
-            end_date_only = end_date.date() if isinstance(end_date, datetime.datetime) else end_date
+            end_date_only = end_date.date() if isinstance(end_date, datetime) else end_date
             ticker_data = ticker_data[ticker_data['Date'].dt.date <= end_date_only].sort_values('Date')
             if len(ticker_data) < window:
                 return 'N/A'
@@ -383,8 +385,8 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                     if not ticker_option.empty:
                         rank_dict['Volume'] = ticker_option['Vol'].iloc[0]
                         rank_dict['Open Interest'] = ticker_option['OI'].iloc[0]
-                        prev_day_option_ticker = current_option[current_option['Ticker'] == ticker]
-                        prev_week_option_ticker = current_option[current_option['Ticker'] == ticker]
+                        prev_day_option_ticker = prev_day_option[prev_day_option['Ticker'] == ticker]
+                        prev_week_option_ticker = prev_week_option[prev_week_option['Ticker'] == ticker]
                         prev_day_volume = prev_day_option_ticker['Vol'].iloc[0] if not prev_day_option_ticker.empty else 'N/A'
                         prev_week_volume = prev_week_option_ticker['Vol'].iloc[0] if not prev_week_option_ticker.empty else 'N/A'
                         prev_day_oi = prev_day_option_ticker['OI'].iloc[0] if not prev_day_option_ticker.empty else 'N/A'
@@ -492,7 +494,7 @@ def main():
         calculate_ranking_metrics(timestamp, sources)
     else:
         sources = ['yfinance']
-        timestamp = timestamps[-1] # Use the latest timestamp if none provided
+        timestamp = timestamps[-1]  # Use the latest timestamp if none provided
         print(f"No timestamp provided, using latest: {timestamp}")
         calculate_ranking_metrics(timestamp, sources)
 
