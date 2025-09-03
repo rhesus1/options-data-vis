@@ -407,6 +407,24 @@
                 <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
             </div>
+            <div class="chart-container">
+                <h3>Kurtosis of 100-day Realised Volatility</h3>
+                <div class="select-container">
+                    <label for="kurtosis-history-select">Select History Length: </label>
+                    <button class="arrow-button" onclick="changeSelect('kurtosis-history-select', -1)">&#9664;</button>
+                    <select id="kurtosis-history-select">
+                        <option value="1m">1-month</option>
+                        <option value="3m">3-month</option>
+                        <option value="6m">6-month</option>
+                        <option value="1y">1-year</option>
+                        <option value="5y">5-year</option>
+                        <option value="all" selected>All</option>
+                    </select>
+                    <button class="arrow-button" onclick="changeSelect('kurtosis-history-select', 1)">&#9654;</button>
+                </div>
+                <canvas id="kurtosis-chart"></canvas>
+                <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
+            </div>
         </div>
         <div id="ranking" class="chart-container" style="display: none;">
             <h2>Ticker Ranking</h2>
@@ -447,7 +465,7 @@
         let topVolumeData = [];
         let topOpenInterestData = [];
         let stockData = [];
-        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart;
+        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart, kurtosisChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
         let stockTableVisible = false;
@@ -1035,14 +1053,16 @@
                     'Close 1d (%)', 'Close 1w (%)', 'Realised Volatility 100d (%)',
                     'Weighted IV (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
                     'Volume 1d (%)', 'Volume 1w (%)', 'Open Interest', 'OI 1d (%)',
-                    'OI 1w (%)', 'ATM 12m/3m Ratio'
+                    'OI 1w (%)', 'ATM 12m/3m Ratio', 'Volume Rank', 'Open Interest Rank'
                 ];
                 const displayNameMap = {
                     'Realised Volatility 100d (%)': 'RVol 100d (%)',
                     'Weighted IV (%)': 'WIVol (%)',
                     'Weighted IV 1d (%)': 'WIVol 1d (%)',
                     'Weighted IV 1w (%)': 'WIVol 1w (%)',
-                    'ATM 12m/3m Ratio': 'ATM 12m/3m Ratio' // No change needed, included for completeness
+                    'ATM 12m/3m Ratio': 'ATM 12m/3m Ratio',
+                    'Volume Rank': 'Volume Rank',
+                    'Open Interest Rank': 'Open Interest Rank'
                 };
                 metrics.forEach(metric => {
                     const tr = tbody.insertRow();
@@ -1709,6 +1729,123 @@
                 document.getElementById('realised-vol-error').style.display = 'block';
             }
         }
+
+        function updateKurtosisChart() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
+                const historyLength = document.getElementById('kurtosis-history-select').value;
+                const errorDiv = document.getElementById('kurtosis-error');
+                errorDiv.style.display = 'none';
+                let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item.Date && Number.isFinite(item.Kurtosis_100d));
+                if (!filteredHistoric.length) {
+                    console.warn('No data for Kurtosis chart:', { ticker: selectedTicker });
+                    if (kurtosisChart) kurtosisChart.destroy();
+                    errorDiv.textContent = 'No kurtosis data available';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                const fromDate = calculateDateRange(historyLength);
+                if (fromDate) {
+                    filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
+                }
+                const dates = filteredHistoric.map(item => new Date(item.Date));
+                const kurtosis = filteredHistoric.map(item => parseFloat(item.Kurtosis_100d)).filter(v => v !== null);
+                const datasets = [
+                    {
+                        label: 'Kurtosis of 100-day Realised Vol',
+                        data: kurtosis.map((v, i) => ({ x: dates[i], y: v })),
+                        borderColor: '#FFA500',
+                        backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                        pointRadius: 1,
+                        fill: true,
+                        showLine: true,
+                        yAxisID: 'y'
+                    }
+                ];
+                const annotations = {
+                    leptokurtic: {
+                        type: 'line',
+                        yMin: 3,
+                        yMax: 3,
+                        borderColor: '#FF0000',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        label: {
+                            content: 'Mesokurtic (Normal, ~3)',
+                            position: 'end',
+                            backgroundColor: 'rgba(255, 0, 0, 0.7)',
+                            color: '#FFFFFF',
+                            font: { size: 12 }
+                        }
+                    },
+                    leptokurticLabel: {
+                        type: 'box',
+                        yMin: 3,
+                        yMax: Math.max(...kurtosis, 3) + 0.5,
+                        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                        borderColor: 'rgba(255, 0, 0, 0.3)',
+                        borderWidth: 1,
+                        label: {
+                            content: 'Leptokurtic (>3)',
+                            position: 'center',
+                            color: '#FF0000',
+                            font: { size: 12 }
+                        }
+                    },
+                    platykurticLabel: {
+                        type: 'box',
+                        yMin: Math.min(...kurtosis, 3) - 0.5,
+                        yMax: 3,
+                        backgroundColor: 'rgba(0, 128, 0, 0.1)',
+                        borderColor: 'rgba(0, 128, 0, 0.3)',
+                        borderWidth: 1,
+                        label: {
+                            content: 'Platykurtic (<3)',
+                            position: 'center',
+                            color: '#008000',
+                            font: { size: 12 }
+                        }
+                    }
+                };
+                if (kurtosisChart) kurtosisChart.destroy();
+                const canvas = document.getElementById('kurtosis-chart');
+                if (!canvas.getContext('2d')) {
+                    throw new Error('Canvas context not available for kurtosis-chart');
+                }
+                kurtosisChart = new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: '#FFFFFF' } },
+                            annotation: { annotations }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: { unit: 'month' },
+                                title: { display: true, text: 'Date', color: '#FFFFFF' },
+                                grid: { display: false },
+                                ticks: { color: '#FFFFFF' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Kurtosis', color: '#FFFFFF' },
+                                beginAtZero: false,
+                                grid: { display: false },
+                                ticks: { color: '#FFFFFF' }
+                            }
+                        },
+                        backgroundColor: '#1A1A2E'
+                    }
+                });
+                createStatsTable(kurtosisChart, 'kurtosis-chart');
+            } catch (error) {
+                console.error('Error updating Kurtosis chart:', error);
+                document.getElementById('kurtosis-error').textContent = `Error rendering chart: ${error.message}`;
+                document.getElementById('kurtosis-error').style.display = 'block';
+            }
+        }
         
         function prepareSurfaceData(filteredData, zKey) {
             try {
@@ -2097,6 +2234,10 @@
                     filteredHistoric = filteredHistoric.filter(item => new Date(item.Date) >= fromDate);
                 }
                 const dates = filteredHistoric.map(item => new Date(item.Date));
+                const vol100 = filteredHistoric.map(item => {
+                    const col = ['Realised_Vol_Close_100', 'Realized_Vol_Close_100'].find(c => item.hasOwnProperty(c)) || 'Realised_Vol_Close_100';
+                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
+                }).filter(v => v !== null);
                 const datasets = [
                     {
                         label: 'Stock Price',
@@ -2107,6 +2248,16 @@
                         fill: false,
                         showLine: true,
                         yAxisID: 'y'
+                    },
+                    {
+                        label: '100-day Realised Vol (%)',
+                        data: vol100.map((v, i) => ({ x: dates[i], y: v })),
+                        borderColor: '#FF0000',
+                        backgroundColor: 'rgba(255, 0, 0, 0.2)',
+                        pointRadius: 1,
+                        fill: false,
+                        showLine: true,
+                        yAxisID: 'y1'
                     }
                 ];
                 const annotations = eventsData
@@ -2164,6 +2315,13 @@
                                 beginAtZero: false,
                                 grid: { display: false },
                                 ticks: { color: '#FFFFFF' }
+                            },
+                            y1: {
+                                title: { display: true, text: 'Realised Volatility (%)', color: '#FF0000' },
+                                position: 'right',
+                                beginAtZero: false,
+                                grid: { display: false },
+                                ticks: { color: '#FF0000' }
                             }
                         },
                         backgroundColor: '#1A1A2E'
@@ -2405,6 +2563,7 @@
                 updateSkewVsExpiry();
                 updateRealisedVolChart();
                 updateCallVolSurface();
+                updateKurtosisChart();
                 updateSummaryTable();
                 updateTopContractsTables();
                 updateVolumeChart();
@@ -2428,6 +2587,7 @@
                     { canvasId: 'yf-iv-chart', selectId: 'yf-expiry-select' },
                     { canvasId: 'skew-vs-expiry-chart', selectId: null },
                     { canvasId: 'realised-vol-chart', selectId: 'realised-vol-history-select' },
+                    { canvasId: 'kurtosis-chart', selectId: 'kurtosis-history-select' },
                     { canvasId: 'volume-chart', selectId: 'ticker-search' },
                     { canvasId: 'open-interest-chart', selectId: 'ticker-search' },
                     { canvasId: 'historic-price-chart', selectId: 'history-select' }
