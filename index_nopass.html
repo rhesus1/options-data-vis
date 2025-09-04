@@ -293,18 +293,8 @@
 </head>
 <body>
     <div class="sidebar">
-        <img src="//img1.wsimg.com/isteam/ip/8d40fea0-d1d8-4792-8737-31ae661a5815/FAM%20logo%20white%20no%20background.png/:/rs=h:200,cg:true,m/qt=q:95"
-             srcset="//img1.wsimg.com/isteam/ip/8d40fea0-d1d8-4792-8737-31ae661a5815/FAM%20logo%20white%20no%20background.png/:/rs=w:449,h:200,cg:true,m/cr=w:449,h:200/qt=q:95, //img1.wsimg.com/isteam/ip/8d40fea0-d1d8-4792-8737-31ae661a5815/FAM%20logo%20white%20no%20background.png/:/rs=w:602,h:268,cg:true,m/cr=w:602,h:268/qt=q:95 2x"
-             alt="Fourier's mission is to deliver consistent returns with low drawdown"
-             class="sidebar-logo">
+        <img src="logo.webp" alt="Fourier Asset Management" class="sidebar-logo">
         <div class="header">Options Analysis</div>
-        <div class="select-container">
-            <label for="source-select">Source: </label>
-            <select id="source-select">
-                <option value="nasdaq">Nasdaq</option>
-                <option value="yfinance" selected>yfinance</option>
-            </select>
-        </div>
         <select id="date-select"></select>
         <select id="time-select"></select>
         <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
@@ -643,10 +633,8 @@
                 clearTimeout(loadDataTimeout);
                 document.getElementById('historic-error').textContent = 'Loading data...';
                 document.getElementById('historic-error').style.display = 'block';
-                const source = document.getElementById('source-select').value;
-                const prefix = source === 'yfinance' ? '_yfinance' : '';
-                console.log(`Loading data for timestamp: ${timestamp}, source: ${source}, ticker: ${selectedTicker}`);
-        
+                const prefix = '_yfinance';
+                console.log(`Loading data for timestamp: ${timestamp}, source: yfinance, ticker: ${selectedTicker}`);        
                 // Clear existing data
                 data = [];
                 rawData = [];
@@ -2774,12 +2762,6 @@
                     console.log('Realised Volatility history length changed to:', document.getElementById('realised-vol-history-select').value);
                     updateRealisedVolChart();
                 });
-                document.getElementById('source-select').addEventListener('change', () => {
-                    console.log('Data source changed to:', document.getElementById('source-select').value);
-                    const dateSelect = document.getElementById('date-select');
-                    const timeSelect = document.getElementById('time-select');
-                    loadData(dateSelect.value + '_' + timeSelect.value);
-                });
             } catch (error) {
                 console.error('Error adding keyboard navigation:', error);
                 document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
@@ -2852,10 +2834,8 @@
                 const dateSelect = document.getElementById('date-select');
                 const timeSelect = document.getElementById('time-select');
                 const tickerSearch = document.getElementById('ticker-search');
-                const sourceSelect = document.getElementById('source-select');
                 const validateTimestamp = async (timestamp) => {
-                    const source = sourceSelect.value;
-                    const prefix = source === 'yfinance' ? '_yfinance' : '';
+                    const prefix = '_yfinance';
                     try {
                         const response = await fetch(`data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
                         return response.ok ? timestamp : null;
@@ -2949,22 +2929,6 @@
                                 document.getElementById('historic-error').style.display = 'block';
                             }
                         }, 500));
-                        sourceSelect.addEventListener('change', async () => {
-                            console.log('Source changed to:', sourceSelect.value);
-                            const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                            if (await validateTimestamp(timestamp)) {
-                                await loadData(timestamp);
-                                updateDropdowns();
-                                const currentSection = document.querySelector('.overview-container[style*="flex"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
-                                const sectionId = currentSection ? currentSection.id : 'overview';
-                                updateSection(sectionId);
-                                console.log('Updated section after source change:', sectionId);
-                            } else {
-                                console.warn('Invalid timestamp:', timestamp);
-                                document.getElementById('historic-error').textContent = 'Invalid data timestamp';
-                                document.getElementById('historic-error').style.display = 'block';
-                            }
-                        });
                         const links = document.querySelectorAll('.sidebar a');
                         links.forEach(link => {
                             link.addEventListener('click', async (e) => {
