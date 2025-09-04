@@ -319,9 +319,9 @@
                             <option value="3m">3-month</option>
                             <option value="6m">6-month</option>
                             <option value="1y">1-year</option>
-                            <option value="5y">2-year</option>
-                            <option value="5y">3-year</option>
-                            <option value="5y">4-year</option>
+                            <option value="2y">2-year</option>
+                            <option value="3y">3-year</option>
+                            <option value="4y">4-year</option>
                             <option value="5y">5-year</option>
                             <option value="all" selected>All</option>
                         </select>
@@ -392,9 +392,9 @@
                         <option value="3m">3-month</option>
                         <option value="6m">6-month</option>
                         <option value="1y">1-year</option>
-                        <option value="5y">2-year</option>
-                        <option value="5y">3-year</option>
-                        <option value="5y">4-year</option>
+                        <option value="2y">2-year</option>
+                        <option value="3y">3-year</option>
+                        <option value="4y">4-year</option>
                         <option value="5y">5-year</option>
                         <option value="all" selected>All</option>
                     </select>
@@ -426,9 +426,9 @@
                         <option value="3m">3-month</option>
                         <option value="6m">6-month</option>
                         <option value="1y">1-year</option>
-                        <option value="5y">2-year</option>
-                        <option value="5y">3-year</option>
-                        <option value="5y">4-year</option>
+                        <option value="2y">2-year</option>
+                        <option value="3y">3-year</option>
+                        <option value="4y">4-year</option>
                         <option value="5y">5-year</option>
                         <option value="all" selected>All</option>
                     </select>
@@ -447,6 +447,9 @@
                         <option value="3m">3-month</option>
                         <option value="6m">6-month</option>
                         <option value="1y">1-year</option>
+                        <option value="2y">2-year</option>
+                        <option value="3y">3-year</option>
+                        <option value="4y">4-year</option>
                         <option value="5y">5-year</option>
                         <option value="all" selected>All</option>
                     </select>
@@ -559,6 +562,9 @@
                     case '3m': fromDate.setMonth(now.getMonth() - 3); break;
                     case '6m': fromDate.setMonth(now.getMonth() - 6); break;
                     case '1y': fromDate.setFullYear(now.getFullYear() - 1); break;
+                    case '2y': fromDate.setFullYear(now.getFullYear() - 2); break;
+                    case '3y': fromDate.setFullYear(now.getFullYear() - 3); break;
+                    case '4y': fromDate.setFullYear(now.getFullYear() - 4); break;
                     case '5y': fromDate.setFullYear(now.getFullYear() - 5); break;
                     case 'all': default: return null;
                 }
@@ -864,30 +870,33 @@
         function updateDropdowns() {
             try {
                 const tickerSearch = document.getElementById('ticker-search');
+                if (!tickerSearch) throw new Error('Ticker search input not found');
                 const selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
-                const tickerData = data.filter(item => item.Ticker === selectedTicker);
+                const tickerData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness && item.Expiry);
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
         
                 const moneynessSelect = document.getElementById('moneyness-select');
                 const expirySelect = document.getElementById('expiry-select');
-                const yfExpirySelect = document.getElementById('yf-expiry-select');
+                if (!moneynessSelect || !expirySelect) {
+                    throw new Error('Moneyness or expiry select element not found');
+                }
         
                 if (!tickerData.length) {
                     console.warn('No data for dropdowns, ticker:', selectedTicker);
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
                     expirySelect.innerHTML = '<option value="">No expiries available</option>';
-                    yfExpirySelect.innerHTML = '<option value="">No expiries available</option>';
                     document.getElementById('historic-error').textContent = `No data available for ticker: ${selectedTicker}`;
                     document.getElementById('historic-error').style.display = 'block';
                     return;
                 }
         
-                const prevMoneyness = moneynessSelect.value;
-                const prevExpiry = expirySelect.value;
-                const prevYFExpiry = yfExpirySelect.value;
+                const prevMoneyness = moneynessSelect.value || '';
+                const prevExpiry = expirySelect.value || '';
         
-                const uniqueRoundedMoneyness = [...new Set(tickerData.map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
-                    .filter(val => !isNaN(val)).sort((a, b) => a - b);
+                const uniqueRoundedMoneyness = [...new Set(tickerData
+                    .filter(item => Number.isFinite(item.Moneyness))
+                    .map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
+                    .sort((a, b) => a - b);
                 moneynessSelect.innerHTML = '';
                 if (uniqueRoundedMoneyness.length === 0) {
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
@@ -918,13 +927,13 @@
                 console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
         
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-                const uniqueExpiries = [...new Set(tickerData.map(item => item.Expiry))]
-                    .filter(val => val && !isNaN(new Date(val).getTime())).sort((a, b) => new Date(a) - new Date(b));
+                const uniqueExpiries = [...new Set(tickerData
+                    .filter(item => item.Expiry && !isNaN(new Date(item.Expiry).getTime()))
+                    .map(item => item.Expiry))]
+                    .sort((a, b) => new Date(a) - new Date(b));
                 expirySelect.innerHTML = '';
-                yfExpirySelect.innerHTML = '';
                 if (uniqueExpiries.length === 0) {
                     expirySelect.innerHTML = '<option value="">No expiries available</option>';
-                    yfExpirySelect.innerHTML = '<option value="">No expiries available</option>';
                     console.warn('No valid expiries found for ticker:', selectedTicker);
                 } else {
                     uniqueExpiries.forEach(val => {
@@ -932,9 +941,7 @@
                         option.value = val;
                         option.text = new Date(val).toLocaleDateString('en-GB');
                         expirySelect.appendChild(option);
-                        yfExpirySelect.appendChild(option.cloneNode(true));
                     });
-                    // Select expiry closest to 3 months (90 days)
                     const targetDays = 90; // 3 months
                     let closestExpiry = uniqueExpiries[0];
                     let minDiff = Infinity;
@@ -948,16 +955,13 @@
                     });
                     if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
                         expirySelect.value = prevExpiry;
-                        yfExpirySelect.value = prevExpiry;
                     } else if (closestExpiry) {
                         expirySelect.value = closestExpiry;
-                        yfExpirySelect.value = closestExpiry;
                     } else {
                         expirySelect.value = '';
-                        yfExpirySelect.value = '';
                     }
                 }
-                console.log('Expiry dropdowns updated, selected:', expirySelect.value, 'YF Expiry:', yfExpirySelect.value);
+                console.log('Expiry dropdown updated, selected:', expirySelect.value);
             } catch (error) {
                 console.error('Error updating dropdowns:', error);
                 document.getElementById('historic-error').textContent = `Error updating dropdowns: ${error.message}`;
@@ -2697,7 +2701,6 @@
                 console.log('Updating all charts and tables');
                 updateMoneynessVsIV();
                 updateExpiryVsIV();
-                updateYFIVChart();
                 updateSkewVsExpiry();
                 updateRealisedVolChart();
                 updateCallVolSurface();
@@ -2723,7 +2726,6 @@
                 const chartConfigs = [
                     { canvasId: 'moneyness-vs-iv-chart', selectId: 'expiry-select' },
                     { canvasId: 'expiry-vs-iv-chart', selectId: 'moneyness-select' },
-                    { canvasId: 'yf-iv-chart', selectId: 'yf-expiry-select' },
                     { canvasId: 'skew-vs-expiry-chart', selectId: null },
                     { canvasId: 'realised-vol-chart', selectId: 'realised-vol-history-select' },
                     { canvasId: 'kurtosis-chart', selectId: 'kurtosis-history-select' },
@@ -2735,7 +2737,7 @@
                 chartConfigs.forEach(config => {
                     const canvas = document.getElementById(config.canvasId);
                     const select = config.selectId ? document.getElementById(config.selectId) : null;
-                    if (select) {
+                    if (canvas && select) {
                         canvas.addEventListener('keydown', (event) => {
                             if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
                                 event.preventDefault();
@@ -2749,29 +2751,33 @@
                     }
                 });
                 const expirySelect = document.getElementById('expiry-select');
-                const yfExpirySelect = document.getElementById('yf-expiry-select');
-                expirySelect.addEventListener('change', () => {
-                    console.log('Expiry select changed to:', expirySelect.value);
-                    yfExpirySelect.value = expirySelect.value;
-                    updateCharts();
-                });
-                yfExpirySelect.addEventListener('change', () => {
-                    console.log('YF Expiry select changed to:', yfExpirySelect.value);
-                    expirySelect.value = yfExpirySelect.value;
-                    updateCharts();
-                });
-                document.getElementById('moneyness-select').addEventListener('change', () => {
-                    console.log('Moneyness select changed to:', document.getElementById('moneyness-select').value);
-                    updateCharts();
-                });
-                document.getElementById('history-select').addEventListener('change', () => {
-                    console.log('History length changed to:', document.getElementById('history-select').value);
-                    updateHistoricChart();
-                });
-                document.getElementById('realised-vol-history-select').addEventListener('change', () => {
-                    console.log('Realised Volatility history length changed to:', document.getElementById('realised-vol-history-select').value);
-                    updateRealisedVolChart();
-                });
+                if (expirySelect) {
+                    expirySelect.addEventListener('change', () => {
+                        console.log('Expiry select changed to:', expirySelect.value);
+                        updateCharts();
+                    });
+                }
+                const moneynessSelect = document.getElementById('moneyness-select');
+                if (moneynessSelect) {
+                    moneynessSelect.addEventListener('change', () => {
+                        console.log('Moneyness select changed to:', moneynessSelect.value);
+                        updateCharts();
+                    });
+                }
+                const historySelect = document.getElementById('history-select');
+                if (historySelect) {
+                    historySelect.addEventListener('change', () => {
+                        console.log('History length changed to:', historySelect.value);
+                        updateHistoricChart();
+                    });
+                }
+                const realisedVolHistorySelect = document.getElementById('realised-vol-history-select');
+                if (realisedVolHistorySelect) {
+                    realisedVolHistorySelect.addEventListener('change', () => {
+                        console.log('Realised Volatility history length changed to:', realisedVolHistorySelect.value);
+                        updateRealisedVolChart();
+                    });
+                }
             } catch (error) {
                 console.error('Error adding keyboard navigation:', error);
                 document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
