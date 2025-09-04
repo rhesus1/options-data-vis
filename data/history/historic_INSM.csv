@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+INSM,2025-09-04,142.86000061035156,144.99000549316406,141.25,142.52999877929688,36.60169120536498,35.41624293022621,53.995075017023694,48.5740462912253,,8.12,40.0,-1.77

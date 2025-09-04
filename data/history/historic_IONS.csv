@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+IONS,2025-09-04,60.06999969482422,60.75,58.845001220703125,59.349998474121094,92.75508971038867,70.33992247530225,58.02140307631372,55.18855509602765,,3.1,97.0,8.14

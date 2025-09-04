@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+BURL,2025-09-04,293.25,301.8399963378906,293.82000732421875,301.3500061035156,30.699733447559975,29.265192443601173,36.55556751071695,42.083600838591465,,3.56,2.0,0.39

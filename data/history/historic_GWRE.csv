@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+GWRE,2025-09-04,217.72999572753906,219.0,212.4600067138672,216.99000549316406,21.121622473976554,20.016839866342675,32.36856816721356,36.69052772910535,,3.49,1.0,-0.58

@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+NTNX,2025-09-04,67.58000183105469,68.70999908447266,67.0,68.66999816894531,35.39126534528819,29.583864604519988,33.10848449263658,43.95361492807698,,4.62,1.0,2.28

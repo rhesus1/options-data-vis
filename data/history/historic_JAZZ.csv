@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+JAZZ,2025-09-04,132.00999450683594,133.0,127.5199966430664,128.02000427246094,33.26592138143289,29.20914340790975,34.72163055464912,36.29825446269578,,2.54,1.0,0.17

@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+CHTR,2025-09-04,261.7900085449219,267.5,255.3300018310547,259.510009765625,65.38878066299426,51.79937759930493,47.76604275962196,42.879944142520436,,5.69,72.0,-1.18

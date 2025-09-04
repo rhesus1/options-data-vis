@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+AMPH,2025-09-04,29.389999389648438,29.59000015258789,28.875,29.190000534057617,63.39529744748369,52.483764355995696,45.7957512998496,44.010423451270356,,3.67,82.0,0.59

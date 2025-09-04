@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+HASI,2025-09-04,28.0,28.030000686645508,27.559999465942383,28.030000686645508,33.97224599352662,36.74261387564638,36.158053039344104,36.09689422640912,,1.83,43.0,-0.72

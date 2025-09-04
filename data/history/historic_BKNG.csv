@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+BKNG,2025-09-04,5570.0,5598.5,5454.18017578125,5585.85986328125,18.500925895752808,19.437248100295395,21.07614468811202,28.629856674387895,,2.74,1.0,4.96

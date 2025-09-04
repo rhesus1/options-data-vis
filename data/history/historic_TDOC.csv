@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+TDOC,2025-09-04,7.690000057220459,7.7179999351501465,7.5,7.630000114440918,46.59417287203339,55.79605440953147,51.07619410951346,59.82842926908002,,5.28,1.0,-1.05

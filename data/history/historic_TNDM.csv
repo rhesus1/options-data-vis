@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+TNDM,2025-09-04,12.399999618530273,12.5,11.875,12.390000343322754,91.62042478837196,72.31344072719624,72.55362007371015,80.42024789604855,,10.23,23.0,-0.34

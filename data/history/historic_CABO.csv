@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+CABO,2025-09-04,156.6300048828125,160.57000732421875,154.8975067138672,160.5,68.38337290117397,65.12983750535794,108.83844302235207,88.92292635118504,,18.9,71.0,2.7

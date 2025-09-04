@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+CHEF,2025-09-04,63.91999816894531,65.44000244140625,63.91999816894531,65.25,36.770928758088196,36.77356566086942,34.62923967644575,36.436838702974335,,1.01,1.0,1.87

@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+DBRG,2025-09-04,11.359999656677246,11.34000015258789,11.125,11.279999732971191,29.541365200547848,27.52303139318424,45.79337584254905,56.137109341105415,,5.42,1.0,1.74

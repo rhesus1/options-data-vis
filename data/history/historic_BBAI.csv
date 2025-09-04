@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+BBAI,2025-09-04,4.909999847412109,4.980000019073486,4.75,4.929999828338623,76.47601146726134,107.96648127764654,108.6802391345583,136.5152869030508,,17.49,1.0,-1.3

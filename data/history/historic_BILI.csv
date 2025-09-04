@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+BILI,2025-09-04,22.399999618530273,22.65999984741211,22.31999969482422,22.5,42.952839772052215,47.892824075008924,45.531592166915786,57.06307279604449,,7.34,1.0,-0.57

@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+IDCC,2025-09-04,285.6300048828125,290.55499267578125,285.5,287.8800048828125,43.52040494560631,34.20711868377504,31.50921978182522,37.45965438509227,,4.08,19.0,-1.24

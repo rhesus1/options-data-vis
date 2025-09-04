@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+MGPI,2025-09-04,29.329999923706055,29.329999923706055,28.5,28.690000534057617,33.02278071203386,37.355463288303255,37.72826464325886,38.705984125321045,,0.96,1.0,0.16

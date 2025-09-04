@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+LRN,2025-09-04,160.0,164.49000549316406,159.85000610351562,162.24000549316406,49.20652514200871,37.93703052295459,39.850673408655005,37.06667487605497,,3.24,80.0,-1.14

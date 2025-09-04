@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+CYBR,2025-09-04,455.0,462.30999755859375,449.55999755859375,458.1000061035156,45.60837227611153,39.775786099629485,36.23010343835274,40.8617050686624,,1.54,1.0,10.73

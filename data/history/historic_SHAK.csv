@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+SHAK,2025-09-04,105.16999816894531,105.5,101.5,101.87000274658203,59.40185604955764,47.18235255653763,44.984253338403974,54.82240218538452,,4.11,1.0,2.22

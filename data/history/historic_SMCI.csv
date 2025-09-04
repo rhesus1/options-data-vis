@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+SMCI,2025-09-04,40.279998779296875,40.79999923706055,39.75,40.70000076293945,76.67452065249395,69.87388082618443,75.43825457542755,93.65277953643513,,12.71,1.0,-1.03

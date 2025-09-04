@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+EXPE,2025-09-04,213.27000427246094,217.0,212.5,216.52000427246094,31.899791150656302,29.926050918949482,32.23505122855733,45.68319731938161,,4.79,2.0,4.35

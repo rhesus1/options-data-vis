@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+BA,2025-09-04,233.00999450683594,233.09500122070312,229.2187042236328,230.75,26.25509789910604,27.985500882089635,27.855419193221287,38.941592844801654,,3.82,1.0,11.19

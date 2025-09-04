@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+ABBV,2025-09-04,212.25,214.19000244140625,211.66000366210938,213.0,15.443696753532743,19.162384740552813,24.18523349725229,26.201734306607165,,1.49,1.0,3.04

@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+JPM,2025-09-04,300.0,304.4200134277344,298.2799987792969,303.82000732421875,15.427566672804213,16.86825992626919,17.28318621682044,26.265894150020753,,2.88,1.0,8.86

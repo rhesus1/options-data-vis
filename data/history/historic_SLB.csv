@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+SLB,2025-09-04,35.0,36.02000045776367,34.54999923706055,36.0099983215332,29.405081679369655,32.40972942582312,30.396466047781693,39.11989420921026,,2.39,1.0,19.85

@@ -1,0 +1,2 @@
+Ticker,Date,Open,High,Low,Close,Realised_Vol_Close_30,Realised_Vol_Close_60,Realised_Vol_Close_100,Realised_Vol_Close_180,Realised_Vol_Close_252,Vol_of_Vol_100d,Vol_of_Vol_100d_Percentile,Kurtosis_100d
+EQT,2025-09-04,51.75,52.02000045776367,50.65999984741211,51.79999923706055,25.600450139499536,37.05970286458693,35.24372066649846,40.72199461280281,,2.25,1.0,2.88
