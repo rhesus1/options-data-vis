@@ -969,7 +969,7 @@
             }
         }
         
-        function updateSkewTable() {
+        function updateTable() {
             console.log('Skipping updateSkewTable as skew table is removed from Overview');
         }
         
@@ -1010,10 +1010,10 @@
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
-                    }/*,
+                    },
                     {
-                        label: 'Skew Call 25/75',
-                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_call_25_75'),
+                        label: 'Skew Mon 90 Moneyness Price Match',
+                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_90_Moneyness'),
                         borderColor: '#FF0000',
                         backgroundColor: 'rgba(255, 0, 0, 0.2)',
                         pointRadius: 3,
@@ -1024,8 +1024,8 @@
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Skew Put 25/75',
-                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_put_25_75'),
+                        label: 'Skew Vol 90 Moneyness Price Match',
+                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_90_Moneyness_Vol'),
                         borderColor: '#26A69A',
                         backgroundColor: 'rgba(38, 166, 154, 0.2)',
                         pointRadius: 3,
@@ -1034,7 +1034,55 @@
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
-                    }*/
+                    },
+                    {
+                        label: 'Skew Mon 80 Moneyness',
+                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_80_Moneyness'),
+                        borderColor: '#800080',
+                        backgroundColor: 'rgba(128, 0, 128, 0.2)',
+                        pointRadius: 3,
+                        pointStyle: 'circle',
+                        fill: true,
+                        showLine: true,
+                        borderDash: [],
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Skew Mon 70 Moneyness',
+                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_70_Moneyness'),
+                        borderColor: '#00FFFF',
+                        backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                        pointRadius: 3,
+                        pointStyle: 'circle',
+                        fill: true,
+                        showLine: true,
+                        borderDash: [],
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Skew Vol 80 Moneyness',
+                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_80_Moneyness_Vol'),
+                        borderColor: '#FF69B4',
+                        backgroundColor: 'rgba(255, 105, 180, 0.2)',
+                        pointRadius: 3,
+                        pointStyle: 'circle',
+                        fill: true,
+                        showLine: true,
+                        borderDash: [],
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Skew Vol 70 Moneyness',
+                        data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_70_Moneyness_Vol'),
+                        borderColor: '#4B0082',
+                        backgroundColor: 'rgba(75, 0, 130, 0.2)',
+                        pointRadius: 3,
+                        pointStyle: 'circle',
+                        fill: true,
+                        showLine: true,
+                        borderDash: [],
+                        yAxisID: 'y'
+                    }
                 ];
                 if (skewChart) skewChart.destroy();
                 const canvas = document.getElementById('skew-vs-expiry-chart');
@@ -1631,9 +1679,10 @@
                             },
                             y: {
                                 title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' },
-                                beginAtZero: true,
                                 grid: { display: false },
-                                ticks: { color: '#FFFFFF' }
+                                ticks: { color: '#FFFFFF' },
+                                min: Math.min(...datasets.flatMap(ds => ds.data.map(p => p.y))) * 0.9,
+                                max: Math.max(...datasets.flatMap(ds => ds.data.map(p => p.y))) * 1.1
                             }
                         },
                         backgroundColor: '#1A1A2E'
