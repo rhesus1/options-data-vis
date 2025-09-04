@@ -366,7 +366,7 @@
                 <canvas id="expiry-vs-iv-chart"></canvas>
                 <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
+           <!-- <div class="chart-container">
                 <h3>Yahoo Finance Implied Volatility Smile</h3>
                 <div class="select-container">
                     <label for="yf-expiry-select">Select Expiry: </label>
@@ -376,7 +376,7 @@
                 </div>
                 <canvas id="yf-iv-chart"></canvas>
                 <div id="yf-iv-error" class="error-message" style="display: none;">No data available</div>
-            </div>
+            </div>!-->
             <div class="chart-container">
                 <h3>Volatility Skewness</h3>
                 <canvas id="skew-vs-expiry-chart"></canvas>
@@ -497,7 +497,7 @@
         let topVolumeData = [];
         let topOpenInterestData = [];
         let stockData = [];
-        let moneynessChart, expiryChart, deltaChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart, kurtosisChart, volOfVolChart;
+        let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart, kurtosisChart, volOfVolChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
         let stockTableVisible = false;
@@ -864,7 +864,7 @@
         function updateDropdowns() {
             try {
                 const tickerSearch = document.getElementById('ticker-search');
-                const selectedTicker = tickerSearch.value.toUpperCase() || 'MSTR';
+                const selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
                 const tickerData = data.filter(item => item.Ticker === selectedTicker);
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
         
@@ -1550,9 +1550,10 @@
                             },
                             y: {
                                 title: { display: true, text: 'Volatility (%)', color: '#FFFFFF' },
-                                beginAtZero: true,
                                 grid: { display: false },
-                                ticks: { color: '#FFFFFF' }
+                                ticks: { color: '#FFFFFF' },
+                                min: Math.min(...datasets.flatMap(ds => ds.data.map(p => p.y))) * 0.9,
+                                max: Math.max(...datasets.flatMap(ds => ds.data.map(p => p.y))) * 1.1
                             }
                         },
                         backgroundColor: '#1A1A2E'
