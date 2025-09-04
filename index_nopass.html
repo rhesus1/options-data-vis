@@ -2839,9 +2839,8 @@
                 const dateSelect = document.getElementById('date-select');
                 const timeSelect = document.getElementById('time-select');
                 const tickerSearch = document.getElementById('ticker-search');
-                const sourceSelect = document.getElementById('yfinance');
                 const validateTimestamp = async (timestamp) => {
-                    const source = sourceSelect.value;
+                    const source = 'yfinance';
                     const prefix = source === 'yfinance' ? '_yfinance' : '';
                     try {
                         const response = await fetch(`data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
