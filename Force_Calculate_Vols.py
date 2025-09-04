@@ -313,12 +313,14 @@ def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
         
 def find_put_strike_for_price(call_price, S, T, r, q, put_df, exp, tolerance=0.01):
     def price_diff(K):
-        # Use average put IV from put_df as a guess, or default to 0.25
-        put_row = put_df[(put_df['Expiry'] == exp) & (put_df['Strike'] == put_df['Strike'].iloc[0])]
-        sigma_guess = put_row['IV_mid'].iloc[0] if not put_row.empty and not pd.isna(put_row['IV_mid'].iloc[0]) else 0.25
+        # Check if put_df is not empty and has matching expiry
+        put_row = put_df[(put_df['Expiry'] == exp)]
+        if not put_row.empty and not pd.isna(put_row['IV_mid'].iloc[0]):
+            sigma_guess = put_row['IV_mid'].iloc[0]
+        else:
+            sigma_guess = 0.25  # Default IV guess if no valid put data
         put_price = black_scholes_put(S, K, T, r, q, sigma_guess)
         return put_price - call_price
-
     try:
         put_strike = brentq(price_diff, S * 0.1, S * 2.0, xtol=0.01)
         sigma_guess = 0.25
