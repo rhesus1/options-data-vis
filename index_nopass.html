@@ -1150,7 +1150,7 @@
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Skew Mon 90 Moneyness Price Match',
+                        label: 'Skew 90% Mon PM',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_90_Moneyness'),
                         borderColor: '#FF0000',
                         backgroundColor: 'rgba(255, 0, 0, 0.2)',
@@ -1162,7 +1162,7 @@
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Skew Vol 90 Moneyness Price Match',
+                        label: 'Skew Vol 90%  PM',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_90_Moneyness_Vol'),
                         borderColor: '#26A69A',
                         backgroundColor: 'rgba(38, 166, 154, 0.2)',
@@ -1172,7 +1172,7 @@
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
-                    },
+                    }/*,
                     {
                         label: 'Skew Mon 80 Moneyness',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_80_Moneyness'),
@@ -1220,7 +1220,7 @@
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
-                    }
+                    }*/
                 ];
                 if (skewChart) skewChart.destroy();
                 const canvas = document.getElementById('skew-vs-expiry-chart');
