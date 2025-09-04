@@ -387,7 +387,7 @@ def save_tables(timestamp, source, base_path="data"):
     historical_df = pd.DataFrame(historical_data, columns=historical_columns)
     
     # Save to historical IVOL file
-    historical_file = f"{base_path}/history/history_{ticker}.csv"
+    historical_file = f"{base_path}/history/historic_{ticker}.csv"
     os.makedirs(base_path, exist_ok=True)
     if os.path.exists(historical_file):
         # Append to existing file without header
