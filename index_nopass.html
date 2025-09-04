@@ -24,7 +24,7 @@
         }
         .sidebar {
             width: 250px;
-            background: #25253D;
+            background: #208191;
             padding: 20px;
             border-right: 1px solid #26A69A;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
@@ -53,7 +53,7 @@
         .sidebar select, .sidebar input {
             width: 100%;
             padding: 8px;
-            background-color: #25253D;
+            background-color: #208191;
             color: #FFFFFF;
             border: 1px solid #26A69A;
             border-radius: 4px;
@@ -73,7 +73,7 @@
             max-width: 100%;
         }
         .chart-container {
-            background-color: #25253D;
+            background-color: #208191;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -85,13 +85,13 @@
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
-            background-color: #25253D;
+            background-color: #208191;
         }
         .ranking-table, .stock-table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
-            background-color: #25253D;
+            background-color: #208191;
             font-size: 14px;
             overflow-x: auto;
             white-space: nowrap;
@@ -126,12 +126,12 @@
         canvas {
             max-width: 100%;
             border-radius: 4px;
-            background-color: #25253D;
+            background-color: #208191;
         }
         .header {
             text-align: center;
             padding: 15px;
-            background-color: #25253D;
+            background-color: #208191;
             border-bottom: 1px solid #26A69A;
             font-size: 22px;
             font-weight: bold;
@@ -143,7 +143,7 @@
             margin-bottom: 15px;
             color: #FFFFFF;
             text-align: center;
-            background-color: #25253D;
+            background-color: #208191;
             padding: 10px;
             border-radius: 4px;
         }
@@ -154,7 +154,7 @@
             margin-bottom: 10px;
         }
         .arrow-button, .toggle-button {
-            background-color: #25253D;
+            background-color: #208191;
             color: #FFFFFF;
             border: 1px solid #26A69A;
             border-radius: 4px;
@@ -202,7 +202,7 @@
             border-collapse: collapse;
             width: 100%;
             margin-top: 15px;
-            background-color: #25253D;
+            background-color: #208191;
             font-size: 14px;
             overflow-x: auto;
             white-space: nowrap;
@@ -1009,7 +1009,7 @@
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
-                    },
+                    }/*,
                     {
                         label: 'Skew Call 25/75',
                         data: aggregateDataByX(filteredSkewData, 'Expiry', 'Skew_call_25_75'),
@@ -1033,7 +1033,7 @@
                         showLine: true,
                         borderDash: [],
                         yAxisID: 'y'
-                    }
+                    }*/
                 ];
                 if (skewChart) skewChart.destroy();
                 const canvas = document.getElementById('skew-vs-expiry-chart');
