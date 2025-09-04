@@ -558,6 +558,7 @@ def main():
             return
         latest_dir = max(data_dirs, key=os.path.getctime)
         timestamp = os.path.basename(latest_dir.rstrip('/'))
+
     clean_dir = f'data/{timestamp}/cleaned_yfinance'
     if not os.path.exists(clean_dir):
         print(f"No cleaned_yfinance directory for {timestamp}")
@@ -569,8 +570,10 @@ def main():
     if not os.path.exists('tickers.txt'):
         print("tickers.txt not found")
         return
+
     with open('tickers.txt', 'r') as f:
         tickers = [line.strip() for line in f if line.strip()]
+
     processed_dir = f'data/{timestamp}/processed_yfinance'
     skew_dir = f'data/{timestamp}/skew_metrics_yfinance'
     slope_dir = f'data/{timestamp}/slope_metrics_yfinance'
@@ -581,6 +584,7 @@ def main():
     os.makedirs(slope_dir, exist_ok=True)
     os.makedirs(historic_dir, exist_ok=True)
     os.makedirs(ranking_dir, exist_ok=True)
+
     r = 0.05
     for ticker in tickers:
         clean_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
@@ -591,8 +595,18 @@ def main():
         if not os.path.exists(raw_file):
             print(f"No raw file for {ticker} in {raw_dir}")
             continue
+
         df_ticker = pd.read_csv(clean_file, parse_dates=['Expiry'])
         full_df_ticker = pd.read_csv(raw_file, parse_dates=['Expiry'])
+        if df_ticker.empty:
+            print(f"Warning: Empty DataFrame for {ticker} in {clean_file}")
+            continue
+        required_columns = ['Bid', 'Ask', 'Strike', 'Expiry', 'Type', 'Bid Stock', 'Ask Stock']
+        missing_columns = [col for col in required_columns if col not in df_ticker.columns]
+        if missing_columns:
+            print(f"Error: Missing columns {missing_columns} in {clean_file} for {ticker}")
+            continue
+
         pdf, sdf, slope_df = process_ticker(ticker, df_ticker, full_df_ticker, r, timestamp)
         if pdf is not None and not pdf.empty:
             pdf.to_csv(os.path.join(processed_dir, f'processed_yfinance_{ticker}.csv'), index=False)
@@ -604,6 +618,7 @@ def main():
         if slope_df is not None and not slope_df.empty:
             slope_df.to_csv(os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv'), index=False)
             print(f"Slope metrics for {ticker} saved to {slope_dir}")
+
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
