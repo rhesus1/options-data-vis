@@ -453,16 +453,26 @@ def process_ticker(ticker, df, full_df, r, timestamp):
         print(f"Warning: No data for ticker {ticker} in df")
         return None, None, None
 
+    # Calculate IV_mid
+    ticker_df, S, r, q = calculate_iv_mid(ticker_df, ticker, r, timestamp)
+    if ticker_df.empty or S is None:
+        print(f"Warning: Failed to calculate IV_mid for {ticker}")
+        return None, None, None
+
     # Validate data sufficiency
     calls = ticker_df[ticker_df['Type'] == 'Call']
     puts = ticker_df[ticker_df['Type'] == 'Put']
     for exp in ticker_df['Expiry'].unique():
         exp_calls = calls[calls['Expiry'] == exp]
         exp_puts = puts[puts['Expiry'] == exp]
+        print(f"Debug: Expiry {exp} has {len(exp_calls)} calls and {len(exp_puts)} puts")
         if len(exp_calls) < 3 or len(exp_puts) < 3:
             print(f"Warning: Insufficient options for expiry {exp} (Calls: {len(exp_calls)}, Puts: {len(exp_puts)})")
-        if exp_calls['IV_mid'].isna().all() or exp_puts['IV_mid'].isna().all():
-            print(f"Warning: All IV_mid values are NaN for expiry {exp}")
+        if 'IV_mid' in exp_calls.columns and 'IV_mid' in exp_puts.columns:
+            if exp_calls['IV_mid'].isna().all() or exp_puts['IV_mid'].isna().all():
+                print(f"Warning: All IV_mid values are NaN for expiry {exp}")
+        else:
+            print(f"Warning: IV_mid column missing for expiry {exp} in calls or puts")
     
     # Load historic data
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
