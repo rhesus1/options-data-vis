@@ -398,7 +398,7 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
                 skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = np.nan
                 continue
             iv_skew_price_matched = call_iv / put_iv if put_iv > 0 else np.nan
-            mon_skew_price_matched = m / (put_strike / S))
+            mon_skew_price_matched = m / (put_strike / S)
             skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = mon_skew_price_matched 
             skew_moneyness[f'Skew_{int(m*100)}_Moneyness_Vol'] = iv_skew_price_matched
         
