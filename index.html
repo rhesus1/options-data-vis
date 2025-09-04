@@ -11,7 +11,6 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
-    ```css
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -105,7 +104,7 @@
         overflow-y: auto;
         background: #1A1A2E;
         margin-left: 10px; /* Fixed gap between sidebar and main content */
-        width: calc(100% - clamp(200px, 20vw, 250px)); /* Adjust width to account for sidebar, gap handled by margin */
+        width: calc(100% - clamp(200px, 20vw, 250px)); /* Adjust width to account for sidebar */
         box-sizing: border-box;
         transition: margin-left 0.3s ease, width 0.3s ease;
         overflow-x: auto; /* Enables horizontal scrolling for main content if needed */
@@ -230,25 +229,22 @@
     }
     .overview-grid {
         display: grid;
-        grid-template-areas:
-            "historic summary"
-            "contracts1 contracts2";
-        grid-template-columns: 70% 30%; /* Historic takes ~70%, Summary takes ~30% */
+        grid-template-columns: repeat(10, 1fr); /* 10 equal columns for precise control */
         grid-template-rows: auto auto; /* Two rows, auto-sized */
         gap: 20px; /* Increased gap for better spacing */
         max-width: 100%;
     }
     .overview-grid .historic-container {
-        grid-area: historic;
+        grid-column: span 7; /* Historic takes ~70% (7/10 columns) */
     }
     .overview-grid .summary-container {
-        grid-area: summary;
+        grid-column: span 3; /* Summary takes ~30% (3/10 columns) */
     }
     .overview-grid .contracts-container:nth-child(3) {
-        grid-area: contracts1;
+        grid-column: span 5; /* Top Volume takes 50% (5/10 columns) */
     }
     .overview-grid .contracts-container:nth-child(4) {
-        grid-area: contracts2;
+        grid-column: span 5; /* Open Interest takes 50% (5/10 columns) */
     }
     .volatility-grid {
         display: grid;
@@ -324,12 +320,12 @@
         }
         .overview-grid, .ranking-grid {
             grid-template-columns: 1fr; /* Single column for consistency on medium screens */
-            grid-template-areas:
-                "historic"
-                "summary"
-                "contracts1"
-                "contracts2"; /* Stack vertically on medium screens */
+            grid-template-rows: auto auto auto auto; /* Four rows for stacking */
         }
+        .overview-grid .historic-container { grid-column: span 1; }
+        .overview-grid .summary-container { grid-column: span 1; }
+        .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
+        .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
     }
     @media (max-width: 768px) {
         .sidebar {
@@ -352,12 +348,12 @@
         }
         .overview-grid, .volatility-grid, .ranking-grid {
             grid-template-columns: 1fr;
-            grid-template-areas:
-                "historic"
-                "summary"
-                "contracts1"
-                "contracts2"; /* Stack vertically on small screens */
+            grid-template-rows: auto auto auto auto; /* Stack vertically on small screens */
         }
+        .overview-grid .historic-container { grid-column: span 1; }
+        .overview-grid .summary-container { grid-column: span 1; }
+        .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
+        .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
         .chart-container {
             padding: 10px;
             margin-bottom: 10px;
