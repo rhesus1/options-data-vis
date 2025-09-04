@@ -319,13 +319,14 @@ def generate_top_contracts_tables(processed_data, tickers):
     return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
 def save_tables(timestamp, source, base_path="data"):
-    """Generate and save all precomputed tables."""
+    """Generate and save all precomputed tables, and append IVOLs to historical data."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names, ranking, barclays = load_data(timestamp, source, base_path)
     if ranking is None or ranking.empty:
         print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
         return
+
     # Load all ticker-specific data
     tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
@@ -336,16 +337,19 @@ def save_tables(timestamp, source, base_path="data"):
             processed_data = pd.concat([processed_data, processed], ignore_index=True)
         if not skew.empty:
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
+
     # Generate tables
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
     top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers)
+
     # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/summary", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/contracts", exist_ok=True)
+
     # Save tables
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
@@ -362,7 +366,40 @@ def save_tables(timestamp, source, base_path="data"):
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
         top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table.csv", index=False)
+
+    # Append IVOLs to historical data
+    ivol_columns = [
+        'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)'
+    ]
+    historical_columns = ['Timestamp', 'Ticker'] + ivol_columns
+    historical_data = []
+
+    for ticker in tickers:
+        ticker_data = ranking[ranking['Ticker'] == ticker]
+        if ticker_data.empty:
+            continue
+        row = {'Timestamp': timestamp, 'Ticker': ticker}
+        for col in ivol_columns:
+            value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].empty else pd.NA
+            row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else pd.NA
+        historical_data.append(row)
+
+    historical_df = pd.DataFrame(historical_data, columns=historical_columns)
+    
+    # Save to historical IVOL file
+    historical_file = f"{base_path}/history/history_{ticker}.csv"
+    os.makedirs(base_path, exist_ok=True)
+    if os.path.exists(historical_file):
+        # Append to existing file without header
+        historical_df.to_csv(historical_file, mode='a', header=False, index=False)
+    else:
+        # Create new file with header
+        historical_df.to_csv(historical_file, mode='w', header=True, index=False)
+
+    print(f"Appended IVOL data to {historical_file} in {time.time() - start_time:.2f} seconds")
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
+
+
 
 def main():
     start_time = time.time()
