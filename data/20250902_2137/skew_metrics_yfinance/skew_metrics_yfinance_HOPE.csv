@@ -1,3 +1,3 @@
-Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,IV_put_25_delta,IV_put_75_delta,IV_call_25_delta,IV_call_75_delta,Strike_call_25_delta,Strike_call_75_delta,Strike_put_25_delta,Strike_put_75_delta,ATM_12m_3m_Ratio,ATM_IV_3m,ATM_IV_12m,Ticker
-2025-09-19,,,0.9359178599651994,,,,1.4652995744837285,1.5656283923657717,14.45501198761451,9.38947840121004,9.38947840121004,14.45501198761451,,0.39052299617029346,,HOPE
-2025-12-19,,,0.8735122413423362,,,,0.2683885745223722,0.3072522190529768,12.618210677201654,10.204926803540728,10.204926803540728,12.618210677201654,,0.39052299617029346,,HOPE
+Expiry,Skew_25_delta,Skew_75_delta,Skew_90_Moneyness,Skew_80_Moneyness,Skew_70_Moneyness,Skew_90_Moneyness_Vol,Skew_80_Moneyness_Vol,Skew_70_Moneyness_Vol,ATM_12m_3m_Ratio,Ticker
+2025-09-19,,,,,,,,,,HOPE
+2025-12-19,,,,,,,,,,HOPE
