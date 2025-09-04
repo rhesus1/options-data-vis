@@ -20,11 +20,11 @@
             padding: 0;
             display: flex;
             min-height: 100vh;
-            font-size: clamp(12px, 3vw, 14px);
+            font-size: clamp(12px, 2.5vw, 14px);
             overflow-x: hidden;
         }
         .sidebar {
-            width: 250px;
+            width: clamp(200px, 20vw, 250px);
             background: #208191;
             padding: 15px;
             border-right: 1px solid #26A69A;
@@ -40,7 +40,6 @@
             transform: translateX(-100%);
         }
         .sidebar-toggle {
-            display: none;
             position: fixed;
             top: 10px;
             left: 10px;
@@ -51,6 +50,8 @@
             padding: 8px;
             cursor: pointer;
             z-index: 1001;
+            font-size: clamp(12px, 2.5vw, 14px);
+            display: none; /* Hidden by default, shown on smaller screens */
         }
         .sidebar-logo {
             display: block;
@@ -64,7 +65,7 @@
             text-decoration: none;
             display: block;
             padding: 10px;
-            font-size: clamp(14px, 2.5vw, 16px);
+            font-size: clamp(12px, 2.5vw, 14px);
             transition: color 0.3s ease, background-color 0.3s ease;
             border-radius: 4px;
         }
@@ -92,8 +93,8 @@
             padding: 15px;
             overflow-y: auto;
             background: #1A1A2E;
-            margin-left: 250px;
-            width: calc(100% - 250px);
+            margin-left: clamp(200px, 20vw, 250px);
+            width: calc(100% - clamp(200px, 20vw, 250px));
             box-sizing: border-box;
             transition: margin-left 0.3s ease, width 0.3s ease;
         }
@@ -115,30 +116,33 @@
             width: 100%;
             margin-top: 10px;
             background-color: #25253d;
-            font-size: clamp(10px, 2.5vw, 12px);
+            font-size: clamp(10px, calc(0.7rem + 0.5vw), 12px);
             overflow-x: auto;
             display: block;
+            table-layout: auto;
         }
         .ranking-table th, .stock-table th, .contracts-table th {
             border: 1px solid #26A69A;
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
-            white-space: normal;
-            word-wrap: break-word;
-            padding: 6px 4px;
+            white-space: nowrap;
+            padding: clamp(4px, 1vw, 6px) clamp(2px, 0.5vw, 4px);
             text-align: left;
             color: #FFFFFF;
             line-height: 1.2;
             min-width: 50px;
+            font-size: clamp(10px, calc(0.7rem + 0.5vw), 12px);
         }
         .stats-table th, .stats-table td, .summary-table th, .summary-table td,
         .ranking-table td, .raw-data-table th, .raw-data-table td,
         .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
             border: 1px solid #26A69A;
-            padding: 6px;
+            padding: clamp(4px, 1vw, 6px);
             text-align: left;
             color: #FFFFFF;
+            font-size: clamp(10px, calc(0.7rem + 0.5vw), 12px);
+            white-space: nowrap;
         }
         .stats-table th, .summary-table th, .raw-data-table th, .contracts-table th, .stock-table th {
             background-color: #373758;
@@ -150,7 +154,7 @@
         }
         canvas {
             width: 100% !important;
-            max-height: 400px;
+            max-height: clamp(250px, 40vh, 400px);
             border-radius: 4px;
             background-color: #25253d;
         }
@@ -159,13 +163,13 @@
             padding: 10px;
             background-color: #208191;
             border-bottom: 1px solid #26A69A;
-            font-size: clamp(18px, 4vw, 20px);
+            font-size: clamp(16px, 3vw, 18px);
             font-weight: bold;
             color: #FFFFFF;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
         .ticker-display {
-            font-size: clamp(16px, 4vw, 18px);
+            font-size: clamp(14px, 2.5vw, 16px);
             margin-bottom: 10px;
             color: #FFFFFF;
             text-align: center;
@@ -206,28 +210,24 @@
         }
         .overview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(clamp(250px, 30vw, 300px), 1fr));
             gap: 15px;
             max-width: 100%;
         }
-        .historic-container, .summary-container, .contracts-container {
-            grid-column: auto;
-            grid-row: auto;
-        }
         .volatility-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(clamp(250px, 30vw, 300px), 1fr));
             gap: 15px;
         }
         .ranking-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(clamp(250px, 30vw, 300px), 1fr));
             gap: 15px;
         }
         #call-vol-surface {
             width: 100% !important;
-            height: 400px !important;
-            min-height: 300px;
+            height: clamp(250px, 40vh, 400px) !important;
+            min-height: 250px;
         }
         .slider-container {
             margin-top: 10px;
@@ -283,7 +283,7 @@
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
-                width: 200px;
+                width: clamp(180px, 80vw, 200px);
             }
             .sidebar.visible {
                 transform: translateX(0);
@@ -307,19 +307,20 @@
                 margin-bottom: 10px;
             }
             canvas, #call-vol-surface {
-                max-height: 300px;
+                max-height: clamp(200px, 35vh, 300px);
             }
             .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
-                font-size: clamp(10px, 2vw, 11px);
+                font-size: clamp(9px, calc(0.6rem + 0.4vw), 11px);
             }
             .ranking-table th, .stock-table th, .contracts-table th {
-                padding: 4px 2px;
+                padding: clamp(3px, 0.8vw, 4px) clamp(2px, 0.4vw, 3px);
                 min-width: 40px;
+                font-size: clamp(9px, calc(0.6rem + 0.4vw), 11px);
             }
             .stats-table th, .stats-table td, .summary-table th, .summary-table td,
             .ranking-table td, .raw-data-table th, .raw-data-table td,
             .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
-                padding: 4px;
+                padding: clamp(3px, 0.8vw, 4px);
             }
         }
         @media (max-width: 480px) {
@@ -330,21 +331,27 @@
                 padding: 8px;
             }
             canvas, #call-vol-surface {
-                max-height: 250px;
+                max-height: clamp(180px, 30vh, 250px);
             }
             .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
-                font-size: clamp(9px, 1.8vw, 10px);
+                font-size: clamp(8px, calc(0.5rem + 0.3vw), 10px);
             }
-            .slider-group {
-                flex-direction: column;
-                align-items: stretch;
+            .ranking-table th, .stock-table th, .contracts-table th {
+                padding: clamp(2px, 0.6vw, 3px) clamp(1px, 0.3vw, 2px);
+                min-width: 30px;
+                font-size: clamp(8px, calc(0.5rem + 0.3vw), 10px);
+            }
+            .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+            .ranking-table td, .raw-data-table th, .raw-data-table td,
+            .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
+                padding: clamp(2px, 0.6vw, 3px);
             }
         }
     </style>
 </head>
 <body>
     <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
-    <div class="sidebar">
+    <div class="sidebar hidden">
         <img src="logo.webp" alt="Fourier Asset Management" class="sidebar-logo">
         <div class="header">Options Analysis</div>
         <select id="date-select"></select>
