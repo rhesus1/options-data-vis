@@ -183,11 +183,11 @@
             max-width: 100%;
         }
         .historic-container {
-            grid-column: 1 / 9;
+            grid-column: 1 / 7;
             grid-row: 1;
         }
         .summary-container {
-            grid-column: 9 / 11;
+            grid-column: 7 / 11;
             grid-row: 1;
         }
         .contracts-container:nth-child(3) {
@@ -298,13 +298,6 @@
              alt="Fourier's mission is to deliver consistent returns with low drawdown"
              class="sidebar-logo">
         <div class="header">Options Analysis</div>
-        <div class="select-container">
-            <label for="source-select">Source: </label>
-            <select id="source-select">
-                <option value="nasdaq">Nasdaq</option>
-                <option value="yfinance" selected>yfinance</option>
-            </select>
-        </div>
         <select id="date-select"></select>
         <select id="time-select"></select>
         <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
@@ -643,7 +636,7 @@
                 clearTimeout(loadDataTimeout);
                 document.getElementById('historic-error').textContent = 'Loading data...';
                 document.getElementById('historic-error').style.display = 'block';
-                const source = document.getElementById('source-select').value;
+                const source = 'yfinance';
                 const prefix = source === 'yfinance' ? '_yfinance' : '';
                 console.log(`Loading data for timestamp: ${timestamp}, source: ${source}, ticker: ${selectedTicker}`);
         
@@ -2774,12 +2767,6 @@
                     console.log('Realised Volatility history length changed to:', document.getElementById('realised-vol-history-select').value);
                     updateRealisedVolChart();
                 });
-                document.getElementById('source-select').addEventListener('change', () => {
-                    console.log('Data source changed to:', document.getElementById('source-select').value);
-                    const dateSelect = document.getElementById('date-select');
-                    const timeSelect = document.getElementById('time-select');
-                    loadData(dateSelect.value + '_' + timeSelect.value);
-                });
             } catch (error) {
                 console.error('Error adding keyboard navigation:', error);
                 document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
@@ -2852,7 +2839,7 @@
                 const dateSelect = document.getElementById('date-select');
                 const timeSelect = document.getElementById('time-select');
                 const tickerSearch = document.getElementById('ticker-search');
-                const sourceSelect = document.getElementById('source-select');
+                const sourceSelect = document.getElementById('yfinance');
                 const validateTimestamp = async (timestamp) => {
                     const source = sourceSelect.value;
                     const prefix = source === 'yfinance' ? '_yfinance' : '';
