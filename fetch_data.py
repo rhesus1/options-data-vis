@@ -54,7 +54,7 @@ def fetch_option_data_yfinance(ticker):
 
 def fetch_historic_data(ticker):
     print(f"Updating data for {ticker}...")
-    file_path = f'data/history/history_{ticker}.csv'
+    file_path = f'data/history/historic_{ticker}.csv'
     columns = [
         'Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
         'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
