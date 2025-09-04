@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>Options Analysis</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -18,16 +19,38 @@
             margin: 0;
             padding: 0;
             display: flex;
-            height: 100vh;
-            font-size: 14px;
+            min-height: 100vh;
+            font-size: clamp(12px, 3vw, 14px);
             overflow-x: hidden;
         }
         .sidebar {
             width: 250px;
             background: #208191;
-            padding: 20px;
+            padding: 15px;
             border-right: 1px solid #26A69A;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 1000;
+        }
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #208191;
+            color: #FFFFFF;
+            border: 1px solid #26A69A;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            z-index: 1001;
         }
         .sidebar-logo {
             display: block;
@@ -40,15 +63,14 @@
             color: #26A69A;
             text-decoration: none;
             display: block;
-            padding: 12px 15px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: clamp(14px, 2.5vw, 16px);
             transition: color 0.3s ease, background-color 0.3s ease;
             border-radius: 4px;
         }
         .sidebar a:hover {
             color: #FFFFFF;
             background-color: #4DB6AC;
-            text-decoration: none;
         }
         .sidebar select, .sidebar input {
             width: 100%;
@@ -57,8 +79,8 @@
             color: #FFFFFF;
             border: 1px solid #26A69A;
             border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 14px;
+            margin-bottom: 10px;
+            font-size: clamp(12px, 2.5vw, 14px);
             transition: border-color 0.3s ease;
         }
         .sidebar select:focus, .sidebar input:focus {
@@ -67,51 +89,54 @@
         }
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 15px;
             overflow-y: auto;
             background: #1A1A2E;
-            max-width: 100%;
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            box-sizing: border-box;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+        .main-content.full-width {
+            margin-left: 0;
+            width: 100%;
         }
         .chart-container {
             background-color: #25253d;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             width: 100%;
             box-sizing: border-box;
         }
-        .stats-table, .summary-table, .raw-data-table, .contracts-table {
+        .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
             border-collapse: collapse;
             width: 100%;
-            margin-top: 15px;
+            margin-top: 10px;
             background-color: #25253d;
-        }
-        .ranking-table, .stock-table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 15px;
-            background-color: #25253d;
-            font-size: 14px;
+            font-size: clamp(10px, 2.5vw, 12px);
             overflow-x: auto;
-            white-space: nowrap;
+            display: block;
         }
-        .ranking-table th {
+        .ranking-table th, .stock-table th, .contracts-table th {
             border: 1px solid #26A69A;
             background-color: #373758;
             font-weight: bold;
             cursor: pointer;
-            white-space: normal; /* Allow text to wrap */
-            word-wrap: break-word; /* Ensure long words break */
-            padding: 8px 4px; /* Reduce horizontal padding to save space */
-            text-align: left; /* Keep text alignment */
+            white-space: normal;
+            word-wrap: break-word;
+            padding: 6px 4px;
+            text-align: left;
             color: #FFFFFF;
-            line-height: 1.2; /* Adjust line height for readability */
-            min-width: 60px; /* Set a minimum width to prevent overly narrow columns */
+            line-height: 1.2;
+            min-width: 50px;
         }
-        .stats-table th, .stats-table td, .summary-table th, .summary-table td, .ranking-table td, .raw-data-table th, .raw-data-table td, .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
+        .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+        .ranking-table td, .raw-data-table th, .raw-data-table td,
+        .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
             border: 1px solid #26A69A;
-            padding: 8px;
+            padding: 6px;
             text-align: left;
             color: #FFFFFF;
         }
@@ -124,51 +149,55 @@
             background-color: #4B4B6F;
         }
         canvas {
-            max-width: 100%;
+            width: 100% !important;
+            max-height: 400px;
             border-radius: 4px;
             background-color: #25253d;
         }
         .header {
             text-align: center;
-            padding: 15px;
+            padding: 10px;
             background-color: #208191;
             border-bottom: 1px solid #26A69A;
-            font-size: 22px;
+            font-size: clamp(18px, 4vw, 20px);
             font-weight: bold;
             color: #FFFFFF;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
         .ticker-display {
-            font-size: 24px;
-            margin-bottom: 15px;
+            font-size: clamp(16px, 4vw, 18px);
+            margin-bottom: 10px;
             color: #FFFFFF;
             text-align: center;
             background-color: #208191;
-            padding: 10px;
+            padding: 8px;
             border-radius: 4px;
         }
         .select-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
         }
         .arrow-button, .toggle-button {
             background-color: #208191;
             color: #FFFFFF;
             border: 1px solid #26A69A;
             border-radius: 4px;
-            padding: 8px 12px;
+            padding: 6px 10px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            font-size: clamp(12px, 2.5vw, 14px);
         }
         .arrow-button:hover, .toggle-button:hover {
             background-color: #4DB6AC;
         }
         #historic-error {
             color: #F87171;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
+            font-size: clamp(12px, 2.5vw, 14px);
         }
         .line-swatch {
             display: inline-block;
@@ -177,82 +206,50 @@
         }
         .overview-grid {
             display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            grid-template-rows: auto auto;
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
             max-width: 100%;
         }
-        .historic-container {
-            grid-column: 1 / 7;
-            grid-row: 1;
-        }
-        .summary-container {
-            grid-column: 7 / 11;
-            grid-row: 1;
-        }
-        .contracts-container:nth-child(3) {
-            grid-column: 1 / 6;
-            grid-row: 2;
-        }
-        .contracts-container:nth-child(4) {
-            grid-column: 6 / 11;
-            grid-row: 2;
-        }
-        .contracts-table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 15px;
-            background-color: #25253d;
-            font-size: 14px;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-        .contracts-table th, .contracts-table td {
-            border: 1px solid #26A69A;
-            padding: 8px;
-            text-align: left;
-            color: #FFFFFF;
-        }
-        .contracts-table th {
-            background-color: #373758;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .contracts-table th:hover {
-            background-color: #4B4B6F;
+        .historic-container, .summary-container, .contracts-container {
+            grid-column: auto;
+            grid-row: auto;
         }
         .volatility-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
         }
-        .volatility-grid .chart-container {
-            margin-bottom: 0;
+        .ranking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
         }
         #call-vol-surface {
-            height: 100% !important;
             width: 100% !important;
-            min-height: 400px;
+            height: 400px !important;
+            min-height: 300px;
         }
         .slider-container {
             margin-top: 10px;
             display: flex;
-            flex-direction: row;
-            gap: 20px;
+            flex-direction: column;
+            gap: 10px;
             justify-content: center;
             align-items: center;
         }
         .slider-group {
             display: flex;
-            flex-direction: row;
-            gap: 15px;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+            width: 100%;
         }
         .noUi-target {
             background: linear-gradient(to right, #26A69A, #4DB6AC);
             border: none;
             border-radius: 5px;
             height: 8px;
+            width: 100%;
         }
         .noUi-connect {
             background: #26A69A;
@@ -267,31 +264,86 @@
             cursor: pointer;
         }
         .slider-value {
-            margin-left: 10px;
+            margin-top: 5px;
             color: #4DB6AC;
             font-weight: bold;
-            font-size: 14px;
+            font-size: clamp(12px, 2.5vw, 14px);
         }
         .error-message {
             color: #F87171;
             text-align: center;
-            padding: 10px;
+            padding: 8px;
+            font-size: clamp(12px, 2.5vw, 14px);
         }
-        .ranking-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-        .ranking-grid .chart-container {
-            margin-bottom: 0;
-        }
-        .chart-container h2 {
-            margin-bottom: 15px;
+        .chart-container h2, .chart-container h3 {
+            margin-bottom: 10px;
             text-align: center;
+            font-size: clamp(14px, 3vw, 16px);
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 200px;
+            }
+            .sidebar.visible {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: block;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .main-content.full-width {
+                margin-left: 0;
+                width: 100%;
+            }
+            .overview-grid, .volatility-grid, .ranking-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-container {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            canvas, #call-vol-surface {
+                max-height: 300px;
+            }
+            .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
+                font-size: clamp(10px, 2vw, 11px);
+            }
+            .ranking-table th, .stock-table th, .contracts-table th {
+                padding: 4px 2px;
+                min-width: 40px;
+            }
+            .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+            .ranking-table td, .raw-data-table th, .raw-data-table td,
+            .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
+                padding: 4px;
+            }
+        }
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+            }
+            .chart-container {
+                padding: 8px;
+            }
+            canvas, #call-vol-surface {
+                max-height: 250px;
+            }
+            .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
+                font-size: clamp(9px, 1.8vw, 10px);
+            }
+            .slider-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
 <body>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
     <div class="sidebar">
         <img src="logo.webp" alt="Fourier Asset Management" class="sidebar-logo">
         <div class="header">Options Analysis</div>
@@ -587,6 +639,14 @@
             } catch (error) {
                 console.error('Error in changeSelect:', error);
             }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('visible');
+            mainContent.classList.toggle('full-width');
         }
 
         function toggleStatsTables() {
