@@ -53,110 +53,37 @@ def fetch_option_data_yfinance(ticker):
     return yfinance_df
 
 def fetch_historic_data(ticker):
-    print(f"Updating data for {ticker}...")
-    file_path = f'data/history/historic_{ticker}.csv'
+    print(f"Fetching historic data for {ticker}...")
+    stock = yf.Ticker(ticker)
+    hist = stock.history(period='max')
+    if hist.empty:
+        return pd.DataFrame()
+    hist = hist[['Open', 'High', 'Low', 'Close']]
+    hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
+    hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
+    hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
+    hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
+    hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
+    hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
+    # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
+    vol_series = hist['Realised_Vol_Close_100'].copy()
+    hist['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std().round(2)
+    hist['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
+        lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
+    ).round(2)
+    hist['Kurtosis_100d'] = vol_series.rolling(window=100, min_periods=100).apply(
+        lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
+    ).round(2)
+    hist = hist.dropna()
+    hist['Date'] = hist.index.strftime('%Y-%m-%d')
+    hist['Ticker'] = ticker
     columns = [
         'Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
         'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
         'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
         'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile', 'Kurtosis_100d'
     ]
-
-    # Check if the CSV file exists
-    file_exists = os.path.isfile(file_path)
-
-    # Load historical data from CSV if it exists
-    if file_exists:
-        hist = pd.read_csv(file_path, parse_dates=['Date'], index_col='Date')
-    else:
-        # If no CSV exists, fetch enough historical data for calculations (e.g., 252 days)
-        print(f"No existing file found for {ticker}. Fetching initial historical data...")
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period='1y')  # Fetch 1 year to cover 252-day window
-        if hist.empty:
-            print(f"No data found for {ticker}")
-            return pd.DataFrame()
-        hist = hist[['Open', 'High', 'Low', 'Close']]
-
-    # Fetch today's data
-    stock = yf.Ticker(ticker)
-    today_data = stock.history(period='1d')
-    if today_data.empty:
-        print(f"No data available for {ticker} today")
-        return hist
-
-    # Prepare today's data
-    today_data = today_data[['Open', 'High', 'Low', 'Close']]
-    today_data['Date'] = today_data.index.strftime('%Y-%m-%d')
-    today_data['Ticker'] = ticker
-
-    # If CSV is empty or new, compute all metrics for historical data
-    if not file_exists or hist.empty:
-        hist = pd.concat([hist, today_data], axis=0)
-        hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
-        hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
-        vol_series = hist['Realised_Vol_Close_100'].copy()
-        hist['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std().round(2)
-        hist['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
-            lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
-        ).round(2)
-        hist['Kurtosis_100d'] = vol_series.rolling(window=100, min_periods=100).apply(
-            lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
-        ).round(2)
-    else:
-        # Use existing metrics from CSV and compute only for today
-        # Get the last day's Close for Log_Return_Close calculation
-        last_close = hist['Close'].iloc[-1] if not hist.empty else None
-        today_close = today_data['Close'].iloc[0]
-        today_data['Log_Return_Close'] = np.log(today_close / last_close) if last_close else np.nan
-
-        # Combine historical Log_Return_Close with today's for rolling calculations
-        log_returns = pd.concat([
-            hist['Log_Return_Close'][-251:],  # Get up to 252 days for longest window
-            pd.Series(today_data['Log_Return_Close'].iloc[0], index=today_data.index)
-        ])
-
-        # Calculate today's realized volatilities
-        today_data['Realised_Vol_Close_30'] = log_returns.rolling(window=30).std()[-1] * np.sqrt(252) * 100
-        today_data['Realised_Vol_Close_60'] = log_returns.rolling(window=60).std()[-1] * np.sqrt(252) * 100
-        today_data['Realised_Vol_Close_100'] = log_returns.rolling(window=100).std()[-1] * np.sqrt(252) * 100
-        today_data['Realised_Vol_Close_180'] = log_returns.rolling(window=180).std()[-1] * np.sqrt(252) * 100
-        today_data['Realised_Vol_Close_252'] = log_returns.rolling(window=252).std()[-1] * np.sqrt(252) * 100
-
-        # Calculate Vol of Vol, Percentile, and Kurtosis for 100-day Realised Volatility
-        vol_series = pd.concat([
-            hist['Realised_Vol_Close_100'][-99:],  # Get up to 99 days for 100-day window
-            pd.Series(today_data['Realised_Vol_Close_100'].iloc[0], index=today_data.index)
-        ])
-        today_data['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std()[-1].round(2)
-        today_data['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
-            lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
-        )[-1].round(2)
-        today_data['Kurtosis_100d'] = vol_series.rolling(window=100, min_periods=100).apply(
-            lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
-        )[-1].round(2)
-
-        # Combine historical and today's data
-        hist = pd.concat([hist, today_data[columns]], axis=0)
-
-    # Ensure columns are in the correct order
-    hist = hist[columns]
-
-    # Append today's row to the CSV
-    today_data = hist.tail(1)
-    today_data.to_csv(
-        file_path,
-        mode='a',
-        index=False,
-        header=not file_exists  # Write headers only if file doesn't exist
-    )
-
-    print(f"Appended today's data for {ticker} to {file_path}")
-    return hist
+    return hist[columns]
 
 def main():
     with open('tickers.txt', 'r') as file:
