@@ -54,16 +54,16 @@ def fetch_option_data_yfinance(ticker):
 
 def fetch_historic_data(ticker, historic_dir):
     print(f"Fetching historic data for {ticker}...")
-    
+   
     # Persistent history folder
     persistent_history_dir = 'data/history'
     os.makedirs(persistent_history_dir, exist_ok=True)
     persistent_hist_file = f'{persistent_history_dir}/historic_{ticker}.csv'
-    
+   
     # Load existing persistent history if available
     if os.path.exists(persistent_hist_file):
         hist = pd.read_csv(persistent_hist_file, parse_dates=['Date'])
-        hist['Date'] = pd.to_datetime(hist['Date'])  # Ensure Date is datetime
+        hist['Date'] = pd.to_datetime(hist['Date']) # Ensure Date is datetime
         if not hist.empty:
             last_date = hist['Date'].max().date()
             start_date = (datetime.combine(last_date, datetime.min.time()) + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -73,28 +73,36 @@ def fetch_historic_data(ticker, historic_dir):
     else:
         hist = pd.DataFrame()
         start_date = None
-    
+   
     stock = yf.Ticker(ticker)
-    
+   
     # Fetch new data (incremental if start_date exists)
     if start_date:
         new_hist = stock.history(start=start_date)
     else:
         new_hist = stock.history(period='max')
-    
+   
     if not new_hist.empty:
         new_hist = new_hist[['Open', 'High', 'Low', 'Close', 'Volume']]
-        
+       
         # Append new_hist to hist (conditionally set index only if hist has 'Date')
         if not hist.empty and 'Date' in hist.columns:
-            hist = pd.concat([hist.set_index('Date'), new_hist], ignore_index=False)
+            # Strip tz from existing hist index to ensure tz-naive
+            hist_index = pd.to_datetime(hist['Date']).dt.tz_localize(None)
+            hist = hist.set_index(pd.Index(hist_index, name='Date'))
+            
+            # Strip tz from new_hist index to ensure tz-naive
+            new_hist.index = pd.to_datetime(new_hist.index).tz_localize(None)
+            
+            hist = pd.concat([hist, new_hist], ignore_index=False)
             hist = hist[~hist.index.duplicated(keep='last')]
             hist = hist.sort_index()
-            hist = hist.reset_index()  # Reset to make Date a column again
+            hist = hist.reset_index() # Reset to make Date a column again
         else:
-            # First run or no existing hist: use new_hist directly (its index is already DatetimeIndex)
+            # First run or no existing hist: use new_hist directly (strip tz and reset)
+            new_hist.index = pd.to_datetime(new_hist.index).tz_localize(None)
             hist = new_hist.reset_index()
-        
+       
         # Recompute all derived columns on the full history (efficient in Pandas)
         hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
         hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
@@ -102,14 +110,14 @@ def fetch_historic_data(ticker, historic_dir):
         hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
         hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
         hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
-        
+       
         # Calculate Vol of Vol and Percentile for 100-day Realised Volatility
         vol_series = hist['Realised_Vol_Close_100'].copy()
         hist['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std().round(2)
         hist['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
             lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
-        
+       
         # Calculate Kurtosis for Close prices and Log Returns (100-day window)
         hist['Kurtosis_Close_100d'] = hist['Close'].rolling(window=100, min_periods=100).apply(
             lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
@@ -117,10 +125,10 @@ def fetch_historic_data(ticker, historic_dir):
         hist['Kurtosis_Returns_100d'] = hist['Log_Return_Close'].rolling(window=100, min_periods=100).apply(
             lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
-        
-        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')  # Format Date as string
+       
+        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d') # Format Date as string
         hist['Ticker'] = ticker
-        
+       
         columns = [
             'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
             'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
@@ -129,7 +137,7 @@ def fetch_historic_data(ticker, historic_dir):
             'Kurtosis_Close_100d', 'Kurtosis_Returns_100d'
         ]
         hist = hist[columns]
-        
+       
         # Save updated history back to persistent file (overwrite with full updated data)
         hist.to_csv(persistent_hist_file, index=False)
     elif hist.empty:
@@ -154,12 +162,12 @@ def fetch_historic_data(ticker, historic_dir):
             if col not in hist.columns:
                 hist[col] = np.nan
         hist = hist[columns]
-    
+   
     # Save snapshot to timestamped historic dir
     hist_filename = f'{historic_dir}/historic_{ticker}.csv'
     hist.to_csv(hist_filename, index=False)
     print(f"Historic data for {ticker} saved to {hist_filename} (rows: {len(hist)})")
-    
+   
     return hist
 
 def main():
@@ -178,7 +186,7 @@ def main():
             yfinance_filename = f'{raw_yfinance_dir}/raw_yfinance_{ticker}.csv'
             yfinance_df.to_csv(yfinance_filename, index=False)
             print(f"yfinance raw data for {ticker} saved to {yfinance_filename}")
-        df_hist = fetch_historic_data(ticker, historic_dir)  # Pass historic_dir
+        df_hist = fetch_historic_data(ticker, historic_dir) # Pass historic_dir
         time.sleep(1)
     # Update dates.json with the new timestamp
     dates_file = 'data/dates.json'
@@ -192,5 +200,4 @@ def main():
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
-
 main()
