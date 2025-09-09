@@ -58,7 +58,8 @@ def fetch_historic_data(ticker):
     hist = stock.history(period='max')
     if hist.empty:
         return pd.DataFrame()
-    hist = hist[['Open', 'High', 'Low', 'Close']]
+    # Include Volume in the selected columns
+    hist = hist[['Open', 'High', 'Low', 'Close', 'Volume']]
     hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
     hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
     hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
@@ -78,7 +79,7 @@ def fetch_historic_data(ticker):
     hist['Date'] = hist.index.strftime('%Y-%m-%d')
     hist['Ticker'] = ticker
     columns = [
-        'Ticker', 'Date', 'Open', 'High', 'Low', 'Close',
+        'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
         'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
         'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
         'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile', 'Kurtosis_100d'
