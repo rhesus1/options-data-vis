@@ -17,6 +17,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install yfinance pandas numpy scipy joblib statsmodels tqdm pyxlsb
+      continue-on-error: false
     - name: Create data directory
       run: mkdir -p data
     - name: Run fetch script
