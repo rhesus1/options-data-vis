@@ -224,4 +224,5 @@ def main():
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
+
 main()
