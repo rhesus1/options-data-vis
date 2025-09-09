@@ -96,9 +96,11 @@ def fetch_historic_data(ticker, historic_dir):
         if not hist.empty and 'Date' in hist.columns:
             # Ensure Date is datetime for hist
             hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
+            # Drop the Date column before setting index to avoid MultiIndex
+            hist_no_date = hist.drop(columns=['Date'])
             # Strip tz from existing hist index to ensure tz-naive
             hist_index = hist['Date'].dt.tz_localize(None)
-            hist = hist.set_index(pd.Index(hist_index, name='Date'))
+            hist = hist_no_date.set_index(pd.Index(hist_index, name='Date'))
             
             # Strip tz from new_hist index to ensure tz-naive
             new_hist.index = pd.to_datetime(new_hist.index).tz_localize(None)
