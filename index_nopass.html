@@ -413,6 +413,39 @@
             font-size: clamp(10px, 1.6vw, 12px);
         }
     }
+    .selected-ticker-row {
+        background-color: #4B4B6F !important; /* Subtle highlight for selected ticker row in ranking table */
+    }
+    .selected-ticker-row td {
+        background-color: #4B4B6F !important;
+    }
+    #selected-ticker-summary {
+        margin-bottom: 15px;
+    }
+    #selected-ticker-table {
+        margin-top: 10px;
+        background-color: #25253d;
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 100%;
+        font-size: clamp(9px, 1.8vw, 11px);
+        line-height: 1.3;
+    }
+    #selected-ticker-table th, #selected-ticker-table td {
+        border: 1px solid #26A69A;
+        padding: clamp(4px, 1vw, 6px);
+        text-align: left;
+        color: #FFFFFF;
+        font-size: clamp(9px, 1.8vw, 11px);
+        white-space: normal;
+    }
+    #selected-ticker-table th {
+        background-color: #373758;
+        font-weight: bold;
+    }
+    #selected-ticker-table th:hover {
+        background-color: #4B4B6F;
+    }
 </style>
 </head>
 <body>
@@ -459,6 +492,10 @@
                 </div>
             </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
+            <div id="selected-ticker-summary" class="chart-container">
+                <h3>Selected Ticker Ranking Summary</h3>
+                <table id="selected-ticker-table" class="ranking-table"></table>
+            </div>
             <div class="chart-container">
                 <h3>Implied Volatility Smile</h3>
                 <div class="select-container">
@@ -1232,6 +1269,7 @@
        
         function updateRankingTable() {
             try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
                 const table = document.getElementById('ranking-table');
                 table.innerHTML = '';
                 if (rankingData.length === 0) {
@@ -1280,7 +1318,7 @@
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
                     th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol').replace(/ /g, '\n');
-                    th.dataset.column = col; // Keep original column name for sorting
+                    th.dataset.column = col;
                     th.dataset.order = 'desc';
                     th.style.color = '#FFFFFF';
                     th.addEventListener('click', () => sortTable('ranking-table', index));
@@ -1290,6 +1328,9 @@
                 const tbody = document.createElement('tbody');
                 rankingData.forEach(item => {
                     const row = tbody.insertRow();
+                    if (item.Ticker === selectedTicker) {
+                        row.classList.add('selected-ticker-row'); // Highlight the selected ticker
+                    }
                     columns.forEach(col => {
                         const cell = row.insertCell();
                         let value = item[col];
@@ -1329,7 +1370,107 @@
                 document.getElementById('ranking-table').innerHTML = '<tr><td colspan="30">Error loading ranking data</td></tr>';
             }
         }
-       
+
+        function updateSelectedTickerSummary() {
+            try {
+                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
+                const table = document.getElementById('selected-ticker-table');
+                table.innerHTML = '';
+                const selectedRow = rankingData.find(item => item.Ticker === selectedTicker);
+                if (!selectedRow) {
+                    table.innerHTML = '<tr><td colspan="30">No ranking data for selected ticker</td></tr>';
+                    console.warn('No ranking data for selected ticker:', selectedTicker);
+                    return;
+                }
+                const thead = document.createElement('thead');
+                const headerRow = thead.insertRow();
+                const columns = [
+                    'Rank', 'Ticker', 'Latest Close', 'Realised Volatility 30d (%)',
+                    'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
+                    'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (1y)',
+                    'Max Realised Volatility 100d (1y)', 'Mean Realised Volatility 100d (1y)',
+                    'Rvol 100d Percentile (%)', 'Rvol 100d Z-Score Percentile (%)',
+                    'Realised Volatility 180d (%)', 'Realised Volatility 252d (%)',
+                    'Weighted IV (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
+                    'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
+                    'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
+                    'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
+                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
+                ];
+                const displayNameMap = {
+                    'Realised Volatility 30d (%)': 'RVol\n30d (%)',
+                    'Realised Volatility 100d (%)': 'RVol\n100d (%)',
+                    'Realised Volatility 100d 1d (%)': 'RVol\n100d 1d (%)',
+                    'Realised Volatility 100d 1w (%)': 'RVol\n100d 1w (%)',
+                    'Min Realised Volatility 100d (1y)': 'Min RVol\n100d (1y)',
+                    'Max Realised Volatility 100d (1y)': 'Max RVol\n100d (1y)',
+                    'Mean Realised Volatility 100d (1y)': 'Mean RVol\n100d (1y)',
+                    'Rvol 100d Percentile (%)': 'RVol 100d\nPercentile (%)',
+                    'Rvol 100d Z-Score Percentile (%)': 'RVol 100d\nZ-Score\nPercentile (%)',
+                    'Realised Volatility 180d (%)': 'RVol\n180d (%)',
+                    'Realised Volatility 252d (%)': 'RVol\n252d (%)',
+                    'Weighted IV (%)': 'WIVol\n(%)',
+                    'Weighted IV 1d (%)': 'WIVol\n1d (%)',
+                    'Weighted IV 1w (%)': 'WIVol\n1w (%)',
+                    'Weighted IV 3m (%)': 'WIVol\n3m (%)',
+                    'Weighted IV 3m 1d (%)': 'WIVol\n3m 1d (%)',
+                    'Weighted IV 3m 1w (%)': 'WIVol\n3m 1w (%)',
+                    'ATM IV 3m (%)': 'ATM IVol\n3m (%)',
+                    'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
+                    'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
+                    'Rvol100d - Weighted IV': 'RVol100d -\nWIVol'
+                };
+                columns.forEach((col, index) => {
+                    const th = document.createElement('th');
+                    th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol').replace(/ /g, '\n');
+                    th.dataset.column = col;
+                    th.dataset.order = 'desc';
+                    th.style.color = '#FFFFFF';
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                const row = tbody.insertRow();
+                row.classList.add('selected-ticker-row'); // Highlight the row
+                columns.forEach(col => {
+                    const cell = row.insertCell();
+                    let value = selectedRow[col];
+                    if (Number.isFinite(value)) {
+                        if (col === 'Volume' || col === 'Open Interest') {
+                            value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        } else if (col === 'Rank') {
+                            value = parseInt(value);
+                        } else {
+                            value = value.toFixed(2);
+                        }
+                    } else {
+                        value = value || 'N/A';
+                    }
+                    cell.textContent = value;
+                    cell.style.color = '#FFFFFF';
+                    if (selectedRow[`${col}_Color`]) {
+                        cell.style.color = selectedRow[`${col}_Color`];
+                    }
+                    const isPercentChange = [
+                        'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
+                        'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Weighted IV 3m 1d (%)',
+                        'Weighted IV 3m 1w (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
+                        'Rvol100d - Weighted IV', 'Volume 1d (%)', 'Volume 1w (%)',
+                        'OI 1d (%)', 'OI 1w (%)'
+                    ].includes(col);
+                    if (isPercentChange && Number.isFinite(parseFloat(selectedRow[col])) && selectedRow[col] !== 'N/A') {
+                        const val = parseFloat(selectedRow[col]);
+                        cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : cell.style.color;
+                    }
+                });
+                table.appendChild(tbody);
+                console.log('Selected ticker summary table updated for:', selectedTicker);
+            } catch (error) {
+                console.error('Error updating selected ticker summary table:', error);
+                document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="30">Error loading selected ticker data</td></tr>';
+            }
+        }
+        
         function updateStockTable() {
             try {
                 const table = document.getElementById('stock-table');
@@ -2664,12 +2805,19 @@
             try {
                 console.log('Updating section:', sectionId);
                 const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table'];
+                const selectedTickerSummary = document.getElementById('selected-ticker-summary');
                 sections.forEach(id => {
                     const element = document.getElementById(id);
                     if (id === sectionId) {
-                        element.style.display = id === 'overview' ? 'grid' : id === 'volatility' ? 'grid' : 'block';
+                        element.style.display = id === 'overview' || id === 'volatility' ? 'grid' : 'block';
+                        if (id === 'volatility' && selectedTickerSummary) {
+                            selectedTickerSummary.style.display = 'block';
+                        }
                     } else {
                         element.style.display = 'none';
+                        if (id === 'volatility' && selectedTickerSummary) {
+                            selectedTickerSummary.style.display = 'none';
+                        }
                     }
                 });
                 updateCharts();
@@ -2698,6 +2846,7 @@
                 updateRawDataTable();
                 updateRankingTable();
                 updateStockTable();
+                updateSelectedTickerSummary();
             } catch (error) {
                 console.error('Error updating charts:', error);
                 document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
