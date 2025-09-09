@@ -21,6 +21,7 @@ jobs:
       run: mkdir -p data
     - name: Run fetch script
       run: python fetch_data.py
+      continue-on-error: false
     - name: Commit and push raw data
       run: |
         git config --global user.name "GitHub Actions"
@@ -34,27 +35,44 @@ jobs:
         import json
         import os
         from datetime import datetime
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
-        print(f'Running clean_data.py with timestamp: {latest_date}')
-        os.system(f'ls -R data/{latest_date}/raw_yfinance* || echo \"No raw files found\"')
-        os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
+        try:
+            with open('data/dates.json', 'r') as f:
+                dates = json.load(f)
+            if not dates:
+                print('Error: dates.json is empty')
+                exit(1)
+            latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+            print(f'Running clean_data.py with timestamp: {latest_date}')
+            os.system(f'ls -R data/{latest_date}/raw_yfinance* || echo \"No raw files found\"')
+            os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
+        except FileNotFoundError:
+            print('Error: data/dates.json not found')
+            exit(1)
         "
+      continue-on-error: false
     - name: Run clean script
       run: python clean_data.py
+      continue-on-error: false
     - name: Log output files
       run: |
         python -c "
         import json
         import os
         from datetime import datetime
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
-        print('Cleaned files:')
-        os.system(f'ls -R data/{latest_date}/cleaned_yfinance* || echo \"No cleaned files found\"')
+        try:
+            with open('data/dates.json', 'r') as f:
+                dates = json.load(f)
+            if not dates:
+                print('Error: dates.json is empty')
+                exit(1)
+            latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+            print('Cleaned files:')
+            os.system(f'ls -R data/{latest_date}/cleaned_yfinance* || echo \"No cleaned files found\"')
+        except FileNotFoundError:
+            print('Error: data/dates.json not found')
+            exit(1)
         "
+      continue-on-error: false
     - name: Commit and push cleaned data
       run: |
         git config --global user.name "GitHub Actions"
@@ -64,6 +82,7 @@ jobs:
         git push
     - name: Run calculate script
       run: python calculate_data.py
+      continue-on-error: false
     - name: Commit and push processed data
       run: |
         git config --global user.name "GitHub Actions"
@@ -75,13 +94,25 @@ jobs:
       run: |
         python -c "
         import json
-        from datetime import datetime
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
         import os
-        os.system(f'python calculate_ranking_metrics.py {latest_date}') or exit(1)
+        from datetime import datetime
+        try:
+            with open('data/dates.json', 'r') as f:
+                dates = json.load(f)
+            if not dates:
+                print('Error: dates.json is empty')
+                exit(1)
+            latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+            print(f'Running calculate_ranking_metrics.py with timestamp: {latest_date}')
+            rc = os.system(f'python calculate_ranking_metrics.py {latest_date}')
+            if rc != 0:
+                print(f'Error: calculate_ranking_metrics.py failed for {latest_date}')
+                exit(1)
+        except FileNotFoundError:
+            print('Error: data/dates.json not found')
+            exit(1)
         "
+      continue-on-error: false
     - name: Commit and push ranking data
       run: |
         git config --global user.name "GitHub Actions"
@@ -99,6 +130,7 @@ jobs:
           echo "latest_date=" >> $GITHUB_OUTPUT
         fi
       shell: bash
+      continue-on-error: false
     - name: Send email with yfinance ranking metrics
       uses: dawidd6/action-send-mail@v3
       with:
@@ -107,6 +139,52 @@ jobs:
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "Options Ranking Metrics Data"
+        to: reesjmorgan@gmail.com
+        from: Morgan Rees <reesjmorgan@gmail.com>
+        body: |
+          Attached is the latest Options ranking metrics CSV file for yfinance data.
+          Timestamp: ${{ steps.set-latest-date.outputs.latest_date }}
+        attachments: |
+          data/${{ steps.set-latest-date.outputs.latest_date }}/ranking/ranking_yfinance.csv
+        secure: true
+    - name: Run preprocess data script
+      run: |
+        python -c "
+        import json
+        import os
+        from datetime import datetime
+        try:
+            with open('data/dates.json', 'r') as f:
+                dates = json.load(f)
+            if not dates:
+                print('Error: dates.json is empty')
+                exit(1)
+            latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+            print(f'Running preprocess_data.py with timestamp: {latest_date}')
+            rc = os.system(f'python preprocess_data.py {latest_date}')
+            if rc != 0:
+                print(f'Error: preprocess_data.py failed for {latest_date}')
+                exit(1)
+        except FileNotFoundError:
+            print('Error: data/dates.json not found')
+            exit(1)
+        "
+      continue-on-error: false
+    - name: Commit and push precomputed data
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data
+        git commit -m "Auto-update precomputed tables for ${{ steps.set-latest-date.outputs.latest_date }}" || echo "No changes to commit"
+        git push
+    - name: Send email with precomputed tables
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "Precomputed Tables"
         to: reesjmorgan@gmail.com
         from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
