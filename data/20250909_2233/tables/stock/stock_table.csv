@@ -1,0 +1,12 @@
+Ticker,Company Name,Latest Open,Latest Close,Latest High,Latest Low,Open 1d (%),Open 1w (%),Close 1d (%),Close 1w (%),High 1d (%),High 1w (%),Low 1d (%),Low 1w (%),Debt Class,Spread 1Y,Spread 3Y,Spread 5Y
+BURL,"Burlington Stores, Inc.",291.47,290.25,293.71,288.02,0.0,1.26,0.0,0.27,0.0,1.21,0.0,1.59,,,,
+MMM,3M Company,154.61,154.0,154.98,152.0,0.0,0.43,0.0,-0.18,0.0,0.32,0.0,0.2,SENIOR_NORE_14,13.71,40.99,50.84
+UBER,"Uber Technologies, Inc.",91.38,94.36,94.56,91.38,0.0,-0.95,0.0,1.67,0.0,1.09,0.0,-0.59,SENIOR_NORE_14,13.54,25.43,47.44
+SO,Southern Company (The),91.43,90.83,91.85,90.59,0.0,-0.88,0.0,-1.37,0.0,-1.05,0.0,-1.14,SENIOR_NORE_14,13.33,26.07,35.71
+NKE,"NIKE, Inc.",74.26,74.15,74.58,73.71,0.0,-1.82,0.0,-0.19,0.0,-1.93,0.0,-0.39,SENIOR_NORE_14,12.03,32.52,61.74
+ETSY,"Etsy, Inc.",54.25,58.2,58.33,54.15,0.0,3.86,0.0,12.57,0.0,11.68,0.0,5.88,,,,
+DNMR,"Danimer Scientific, Inc.",0.35,0.35,0.35,0.35,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,,,
+FARO,"FARO Technologies, Inc.",,,,,,,,,,,,,,,,
+UPHL,Unknown (possibly a placeholder or delisted; no active match as of 2025),,,,,,,,,,,,,,,,
+MDRX,Veradigm Inc.,,,,,,,,,,,,,,,,
+TPIC,"TPI Composites, Inc.",,,,,,,,,,,,,,,,
