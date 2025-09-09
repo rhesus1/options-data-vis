@@ -463,41 +463,26 @@
                 <h3>Implied Volatility Smile</h3>
                 <div class="select-container">
                     <label for="expiry-select">Select Expiry: </label>
-                    <button class="arrow-button" onclick="changeSelect('expiry-select', -1)">&#9664;</button>
                     <select id="expiry-select"></select>
-                    <button class="arrow-button" onclick="changeSelect('expiry-select', 1)">&#9654;</button>
                 </div>
                 <canvas id="moneyness-vs-iv-chart"></canvas>
                 <div id="moneyness-error" class="error-message" style="display: none;">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Implied Volatility Term Structure</h3>
-                <div class="select-container">
-                    <label for="moneyness-select">Select Moneyness: </label>
-                    <button class="arrow-button" onclick="changeSelect('moneyness-select', -1)">&#9664;</button>
-                    <select id="moneyness-select"></select>
-                    <button class="arrow-button" onclick="changeSelect('moneyness-select', 1)">&#9654;</button>
-                </div>
-                <div class="select-container">
-                    <label for="term-min-expiry">Min Expiry: </label>
-                    <input type="date" id="term-min-expiry">
-                    <label for="term-max-expiry">Max Expiry: </label>
-                    <input type="date" id="term-max-expiry">
-                </div>
-                <canvas id="expiry-vs-iv-chart"></canvas>
-                <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
+            <h3>Implied Volatility Term Structure</h3>
+            <div class="select-container">
+                <label for="moneyness-select">Select Moneyness: </label>
+                <select id="moneyness-select"></select>
             </div>
-           <!-- <div class="chart-container">
-                <h3>Yahoo Finance Implied Volatility Smile</h3>
-                <div class="select-container">
-                    <label for="yf-expiry-select">Select Expiry: </label>
-                    <button class="arrow-button" onclick="changeSelect('yf-expiry-select', -1)">&#9664;</button>
-                    <select id="yf-expiry-select"></select>
-                    <button class="arrow-button" onclick="changeSelect('yf-expiry-select', 1)">&#9654;</button>
-                </div>
-                <canvas id="yf-iv-chart"></canvas>
-                <div id="yf-iv-error" class="error-message" style="display: none;">No data available</div>
-            </div>!-->
+            <div class="select-container">
+                <label for="term-min-expiry">Min Expiry: </label>
+                <input type="date" id="term-min-expiry">
+                <label for="term-max-expiry">Max Expiry: </label>
+                <input type="date" id="term-max-expiry">
+            </div>
+            <canvas id="expiry-vs-iv-chart"></canvas>
+            <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
+        </div>
             <div class="chart-container">
                 <h3>Volatility Skewness</h3>
                 <div class="select-container">
@@ -510,30 +495,39 @@
                     <label for="skew-metric-select">Select Skew Metrics (Multi): </label>
                     <select id="skew-metric-select" multiple>
                         <option value="Skew_25_delta" selected>Skew 25 Delta</option>
-                        <option value="Skew_75_delta">Skew 75 Delta</option>
-                        <option value="Skew_call_25_75">Skew Call 25/75</option>
-                        <option value="Skew_put_25_75">Skew Put 25/75</option>
-                        <option value="Skew_60_Moneyness">Skew 60% Moneyness</option>
-                        <option value="Skew_80_Moneyness">Skew 80% Moneyness</option>
-                        <option value="Skew_120_Moneyness">Skew 120% Moneyness</option>
-                        <option value="Skew_140_Moneyness">Skew 140% Moneyness</option>
-                        <option value="ATM_12m_3m_Ratio">ATM 12m/3m Ratio</option>
+                        <option value="Skew_75_delta" selected>Skew 75 Delta</option>
+                        <option value="Skew_90_Moneyness" selected>Skew 90 Moneyness</option>
+                        <option value="Skew_80_Moneyness" selected>Skew 80 Moneyness</option>
+                        <option value="Skew_70_Moneyness" selected>Skew 70 Moneyness</option>
+                        <option value="Skew_90_Moneyness_Vol" selected>Skew 90 Moneyness Vol</option>
+                        <option value="Skew_80_Moneyness_Vol" selected>Skew 80 Moneyness Vol</option>
+                        <option value="Skew_70_Moneyness_Vol" selected>Skew 70 Moneyness Vol</option>
                     </select>
                 </div>
                 <canvas id="skew-vs-expiry-chart"></canvas>
                 <div id="skew-error" class="error-message" style="display: none;">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Realised Volatility</h3>
-                <div class="select-container">
-                    <label for="realised-start-date">Start Date: </label>
-                    <input type="date" id="realised-start-date">
-                    <label for="realised-end-date">End Date: </label>
-                    <input type="date" id="realised-end-date">
-                </div>
-                <canvas id="realised-vol-chart"></canvas>
-                <div id="realised-vol-error" class="error-message" style="display: none;">No data available</div>
+            <h3>Realised Volatility</h3>
+            <div class="select-container">
+                <label for="realised-start-date">Start Date: </label>
+                <input type="date" id="realised-start-date">
+                <label for="realised-end-date">End Date: </label>
+                <input type="date" id="realised-end-date">
             </div>
+            <div class="select-container">
+                <label for="realised-vol-metric-select">Select Volatility Metrics (Multi): </label>
+                <select id="realised-vol-metric-select" multiple>
+                    <option value="Realised_Vol_Close_30" selected>30-day Vol</option>
+                    <option value="Realised_Vol_Close_60" selected>60-day Vol</option>
+                    <option value="Realised_Vol_Close_100" selected>100-day Vol</option>
+                    <option value="Realised_Vol_Close_180" selected>180-day Vol</option>
+                    <option value="Realised_Vol_Close_252" selected>252-day Vol</option>
+                </select>
+            </div>
+            <canvas id="realised-vol-chart"></canvas>
+            <div id="realised-vol-error" class="error-message" style="display: none;">No data available</div>
+        </div>
             <div class="chart-container">
                 <h3>Call Volatility Surface</h3>
                 <div class="slider-container">
@@ -548,7 +542,7 @@
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
             </div>
             <div class="chart-container">
-                <h3>Kurtosis of 100-day Realised Volatility</h3>
+                <h3>Kurtosis</h3>
                 <div class="select-container">
                     <label for="kurtosis-start-date">Start Date: </label>
                     <input type="date" id="kurtosis-start-date">
@@ -566,7 +560,7 @@
                 <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
             </div>
             <div class="chart-container">
-                <h3>Volatility of Volatility (100-day)</h3>
+                <h3>Volatility of Vol (100-day)</h3>
                 <div class="select-container">
                     <label for="volofvol-start-date">Start Date: </label>
                     <input type="date" id="volofvol-start-date">
@@ -617,7 +611,8 @@
         let topVolumeData = [];
         let topOpenInterestData = [];
         let stockData = [];
-        let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, yfIVChart, kurtosisChart, volOfVolChart;
+        let uniqueExpiries = []; // Global to store unique expiries
+        let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, kurtosisChart, volOfVolChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
         let stockTableVisible = false;
@@ -899,7 +894,7 @@
                     return { '1y Spread': 'N/A', '3y Spread': 'N/A', '5y Spread': 'N/A' };
                 }
                 filteredHistoric.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                const spreads = filteredHistoric.map(item => Number.isFinite(item.High) && Number.isFinite(item.Low) ? item.High - item.Low : null).filter(s => s => s !== null);
+                const spreads = filteredHistoric.map(item => Number.isFinite(item.High) && Number.isFinite(item.Low) ? item.High - item.Low : null).filter(s => s !== null);
                 if (spreads.length === 0) {
                     console.warn(`No valid spread data for ${selectedTicker} after filtering`);
                     return { '1y Spread': 'N/A', '3y Spread': 'N/A', '5y Spread': 'N/A' };
@@ -959,13 +954,13 @@
                 const selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
                 const tickerData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness && item.Expiry);
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
-       
+        
                 const moneynessSelect = document.getElementById('moneyness-select');
                 const expirySelect = document.getElementById('expiry-select');
                 if (!moneynessSelect || !expirySelect) {
                     throw new Error('Moneyness or expiry select element not found');
                 }
-       
+        
                 if (!tickerData.length) {
                     console.warn('No data for dropdowns, ticker:', selectedTicker);
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
@@ -974,10 +969,10 @@
                     document.getElementById('historic-error').style.display = 'block';
                     return;
                 }
-       
+        
                 const prevMoneyness = moneynessSelect.value || '';
                 const prevExpiry = expirySelect.value || '';
-       
+        
                 const uniqueRoundedMoneyness = [...new Set(tickerData
                     .filter(item => Number.isFinite(item.Moneyness))
                     .map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
@@ -1010,9 +1005,9 @@
                     }
                 }
                 console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
-       
+        
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-                const uniqueExpiries = [...new Set(tickerData
+                uniqueExpiries = [...new Set(tickerData
                     .filter(item => item.Expiry && !isNaN(new Date(item.Expiry).getTime()))
                     .map(item => item.Expiry))]
                     .sort((a, b) => new Date(a) - new Date(b));
@@ -1027,7 +1022,6 @@
                         option.text = new Date(val).toLocaleDateString('en-GB');
                         expirySelect.appendChild(option);
                     });
-                    // Default to closest to 3 months (90 days)
                     const targetExpiry = new Date(datasetDate);
                     targetExpiry.setDate(targetExpiry.getDate() + 90);
                     let closestExpiry = uniqueExpiries[0];
@@ -1049,27 +1043,23 @@
                     }
                 }
                 console.log('Expiry dropdown updated, selected:', expirySelect.value);
-
-                // Set defaults for min/max expiry inputs (term and skew)
+        
                 if (uniqueExpiries.length > 0) {
                     const minExpDate = new Date(Math.min(...uniqueExpiries.map(e => new Date(e))));
                     const maxExpDate = new Date(Math.max(...uniqueExpiries.map(e => new Date(e))));
                     const minExpStr = minExpDate.toISOString().split('T')[0];
                     const maxExpStr = maxExpDate.toISOString().split('T')[0];
-
                     document.getElementById('term-min-expiry').value = minExpStr;
                     document.getElementById('term-max-expiry').value = maxExpStr;
                     document.getElementById('skew-min-expiry').value = minExpStr;
                     document.getElementById('skew-max-expiry').value = maxExpStr;
                 }
-
-                // Set defaults for history date inputs (all history charts)
+        
                 if (historicData.length > 0) {
                     const minHistDate = new Date(Math.min(...historicData.map(item => new Date(item.Date))));
                     const maxHistDate = new Date(Math.max(...historicData.map(item => new Date(item.Date))));
                     const minHistStr = minHistDate.toISOString().split('T')[0];
                     const maxHistStr = maxHistDate.toISOString().split('T')[0];
-
                     document.getElementById('historic-start-date').value = minHistStr;
                     document.getElementById('historic-end-date').value = maxHistStr;
                     document.getElementById('realised-start-date').value = minHistStr;
@@ -1084,10 +1074,6 @@
                 document.getElementById('historic-error').textContent = `Error updating dropdowns: ${error.message}`;
                 document.getElementById('historic-error').style.display = 'block';
             }
-        }
-       
-        function updateTable() {
-            console.log('Skipping updateSkewTable as skew table is removed from Overview');
         }
        
         function updateSkewVsExpiry() {
@@ -1114,9 +1100,9 @@
                 const skewSelect = document.getElementById('skew-metric-select');
                 const selectedMetrics = Array.from(skewSelect.selectedOptions).map(opt => opt.value);
                 if (selectedMetrics.length === 0) {
-                    selectedMetrics.push('Skew_25_delta');  // Default if none
+                    selectedMetrics.push('Skew_25_delta');
                 }
-                const colors = ['#FFA500', '#00FF00', '#FF0000', '#26A69A', '#800080', '#00FFFF', '#FF69B4', '#4B0082', '#FFD700'];
+                const colors = ['#FFA500', '#00FF00', '#FF0000', '#26A69A', '#800080', '#00FFFF', '#FF69B4', '#4B0082'];
                 const datasets = selectedMetrics.map((metric, idx) => ({
                     label: metric.replace(/_/g, ' '),
                     data: aggregateDataByX(filteredSkewData, 'Expiry', metric),
@@ -1754,6 +1740,8 @@
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
                 const startInput = document.getElementById('realised-start-date').value;
                 const endInput = document.getElementById('realised-end-date').value;
+                const volSelect = document.getElementById('realised-vol-metric-select');
+                const selectedVolMetrics = Array.from(volSelect.selectedOptions).map(opt => opt.value);
                 const errorDiv = document.getElementById('realised-vol-error');
                 errorDiv.style.display = 'none';
                 let filteredHistoric = historicData.filter(item => item.Ticker === selectedTicker && item.Date);
@@ -1773,87 +1761,47 @@
                     const itemDate = new Date(item.Date);
                     return itemDate >= startDate && itemDate <= endDate;
                 });
+                if (!filteredHistoric.length) {
+                    console.warn('No data after date filtering for Realised Volatility chart:', { ticker: selectedTicker });
+                    if (realisedVolChart) realisedVolChart.destroy();
+                    errorDiv.textContent = 'No data for selected date range';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
                 const dates = filteredHistoric.map(item => new Date(item.Date));
-                const volColumns = [
-                    'Realised_Vol_Close_30', 'Realized_Vol_Close_30',
-                    'Realised_Vol_Close_60', 'Realized_Vol_Close_60',
-                    'Realised_Vol_Close_100', 'Realized_Vol_Close_100',
-                    'Realised_Vol_Close_180', 'Realized_Vol_Close_180',
-                    'Realised_Vol_Close_252', 'Realized_Vol_Close_252'
+                // Define colors for each volatility metric
+                const colors = [
+                    { metric: 'Realised_Vol_Close_30', border: '#FFFF00', background: 'rgba(255, 255, 0, 0.2)' },
+                    { metric: 'Realised_Vol_Close_60', border: '#008000', background: 'rgba(0, 128, 0, 0.2)' },
+                    { metric: 'Realised_Vol_Close_100', border: '#FF0000', background: 'rgba(255, 0, 0, 0.2)' },
+                    { metric: 'Realised_Vol_Close_180', border: '#FFA500', background: 'rgba(255, 165, 0, 0.2)' },
+                    { metric: 'Realised_Vol_Close_252', border: '#26A69A', background: 'rgba(38, 166, 154, 0.2)' }
                 ];
-                const availableVolColumns = volColumns.filter(col => filteredHistoric[0].hasOwnProperty(col));
-                const vol30 = filteredHistoric.map(item => {
-                    const col = availableVolColumns.find(c => c.includes('30')) || 'Realised_Vol_Close_30';
-                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
-                }).filter(v => v !== null);
-                const vol60 = filteredHistoric.map(item => {
-                    const col = availableVolColumns.find(c => c.includes('60')) || 'Realised_Vol_Close_60';
-                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
-                }).filter(v => v !== null);
-                const vol90 = filteredHistoric.map(item => {
-                    const col = availableVolColumns.find(c => c.includes('100')) || 'Realised_Vol_Close_100';
-                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
-                }).filter(v => v !== null);
-                const vol180 = filteredHistoric.map(item => {
-                    const col = availableVolColumns.find(c => c.includes('180')) || 'Realised_Vol_Close_180';
-                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
-                }).filter(v => v !== null);
-                const vol360 = filteredHistoric.map(item => {
-                    const col = availableVolColumns.find(c => c.includes('252')) || 'Realised_Vol_Close_252';
-                    return Number.isFinite(item[col]) ? parseFloat(item[col]) : null;
-                }).filter(v => v !== null);
-                const datasets = [
-                    {
-                        label: '30-day Realised Vol (%)',
-                        data: vol30.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FFFF00',
-                        backgroundColor: 'rgba(255, 255, 0, 0.2)',
+                // Default to all metrics if none selected
+                if (selectedVolMetrics.length === 0) {
+                    selectedVolMetrics.push(...colors.map(c => c.metric));
+                }
+                const datasets = selectedVolMetrics.map(metric => {
+                    const color = colors.find(c => c.metric === metric) || { border: '#FFFFFF', background: 'rgba(255, 255, 255, 0.2)' };
+                    const data = filteredHistoric.map(item => Number.isFinite(item[metric]) ? parseFloat(item[metric]) : null).filter(v => v !== null);
+                    return {
+                        label: `${metric.replace('Realised_Vol_Close_', '')}-day Realised Vol (%)`,
+                        data: data.map((v, i) => ({ x: dates[i], y: v })),
+                        borderColor: color.border,
+                        backgroundColor: color.background,
                         pointRadius: 1,
                         fill: true,
                         showLine: true,
                         yAxisID: 'y'
-                    },
-                    {
-                        label: '60-day Realised Vol (%)',
-                        data: vol60.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#008000',
-                        backgroundColor: 'rgba(0, 128, 0, 0.2)',
-                        pointRadius: 1,
-                        fill: true,
-                        showLine: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: '100-day Realised Vol (%)',
-                        data: vol90.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FF0000',
-                        backgroundColor: 'rgba(255, 0, 0, 0.2)',
-                        pointRadius: 1,
-                        fill: true,
-                        showLine: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: '180-day Realised Vol (%)',
-                        data: vol180.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#FFA500',
-                        backgroundColor: 'rgba(255, 165, 0, 0.2)',
-                        pointRadius: 1,
-                        fill: true,
-                        showLine: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: '252-day Realised Vol (%)',
-                        data: vol360.map((v, i) => ({ x: dates[i], y: v })),
-                        borderColor: '#26A69A',
-                        backgroundColor: 'rgba(38, 166, 154, 0.2)',
-                        pointRadius: 1,
-                        fill: true,
-                        showLine: true,
-                        yAxisID: 'y'
-                    }
-                ];
+                    };
+                });
+                if (datasets.length === 0) {
+                    console.warn('No valid data for selected volatility metrics:', selectedVolMetrics);
+                    if (realisedVolChart) realisedVolChart.destroy();
+                    errorDiv.textContent = 'No data for selected volatility metrics';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
                 if (realisedVolChart) realisedVolChart.destroy();
                 const canvas = document.getElementById('realised-vol-chart');
                 if (!canvas.getContext('2d')) {
@@ -2380,88 +2328,7 @@
                 }
             }
         }
-       
-        function updateYFIVChart() {
-            try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
-                const selectedExpiry = document.getElementById('yf-expiry-select').value;
-                const filteredData = data.filter(item => item.Ticker === selectedTicker && item.Expiry === selectedExpiry);
-                const errorDiv = document.getElementById('yf-iv-error');
-                errorDiv.style.display = 'none';
-                if (!filteredData.length) {
-                    console.warn('No data for Yahoo Finance IV chart:', { ticker: selectedTicker, expiry: selectedExpiry });
-                    if (yfIVChart) yfIVChart.destroy();
-                    errorDiv.textContent = 'No data for selected ticker and expiry';
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-                const datasets = [
-                    {
-                        label: 'Calls Implied Volatility',
-                        data: aggregateDataByX(filteredData.filter(item => item.Type === 'Call'), 'Moneyness', 'Implied Volatility'),
-                        borderColor: '#FFFF00',
-                        backgroundColor: 'rgba(255, 255, 0, 0.2)',
-                        pointRadius: 3,
-                        pointStyle: 'circle',
-                        fill: true,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Puts Implied Volatility',
-                        data: aggregateDataByX(filteredData.filter(item => item.Type === 'Put'), 'Moneyness', 'Implied Volatility'),
-                        borderColor: '#26A69A',
-                        backgroundColor: 'rgba(38, 166, 154, 0.2)',
-                        pointRadius: 3,
-                        pointStyle: 'circle',
-                        fill: true,
-                        showLine: true,
-                        borderDash: [],
-                        yAxisID: 'y'
-                    }
-                ];
-                const moneynessValues = filteredData
-                    .filter(item => Number.isFinite(item.Moneyness))
-                    .map(item => item.Moneyness * 100);
-                const minMoneyness = moneynessValues.length > 0 ? Math.min(...moneynessValues) : 0;
-                const maxMoneyness = moneynessValues.length > 0 ? Math.max(...moneynessValues) : 200;
-                if (yfIVChart) yfIVChart.destroy();
-                const canvas = document.getElementById('yf-iv-chart');
-                if (!canvas.getContext('2d')) {
-                    throw new Error('Canvas context not available for yf-iv-chart');
-                }
-                yfIVChart = new Chart(canvas.getContext('2d'), {
-                    type: 'line',
-                    data: { datasets },
-                    options: {
-                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                title: { display: true, text: 'Moneyness (%)', color: '#FFFFFF' },
-                                min: minMoneyness,
-                                max: maxMoneyness,
-                                grid: { display: false },
-                                ticks: { color: '#FFFFFF' }
-                            },
-                            y: {
-                                title: { display: true, text: 'Implied Volatility (%)', color: '#FFFFFF' },
-                                beginAtZero: true,
-                                grid: { display: false },
-                                ticks: { color: '#FFFFFF' }
-                            }
-                        },
-                        backgroundColor: '#1A1A2E'
-                    }
-                });
-                createStatsTable(yfIVChart, 'yf-iv-chart');
-            } catch (error) {
-                console.error('Error updating Yahoo Finance IV chart:', error);
-                document.getElementById('yf-iv-error').textContent = `Error rendering chart: ${error.message}`;
-                document.getElementById('yf-iv-error').style.display = 'block';
-            }
-        }
+    
        
         function updateHistoricChart() {
             try {
@@ -2843,13 +2710,13 @@
                 const chartConfigs = [
                     { canvasId: 'moneyness-vs-iv-chart', selectId: 'expiry-select' },
                     { canvasId: 'expiry-vs-iv-chart', selectId: 'moneyness-select' },
-                    { canvasId: 'skew-vs-expiry-chart', selectId: null },
-                    { canvasId: 'realised-vol-chart', selectId: null },  // No select now
+                    { canvasId: 'skew-vs-expiry-chart', selectId: 'skew-metric-select' },
+                    { canvasId: 'realised-vol-chart', selectId: 'realised-vol-metric-select' },
                     { canvasId: 'kurtosis-chart', selectId: 'kurtosis-type-select' },
-                    { canvasId: 'vol-of-vol-chart', selectId: null },  // No select now
+                    { canvasId: 'vol-of-vol-chart', selectId: null },
                     { canvasId: 'volume-chart', selectId: 'ticker-search' },
                     { canvasId: 'open-interest-chart', selectId: 'ticker-search' },
-                    { canvasId: 'historic-price-chart', selectId: null }  // No select now
+                    { canvasId: 'historic-price-chart', selectId: null }
                 ];
                 chartConfigs.forEach(config => {
                     const canvas = document.getElementById(config.canvasId);
@@ -2881,11 +2748,11 @@
                         updateCharts();
                     });
                 }
-                // Add listeners for new date inputs
                 document.getElementById('historic-start-date').addEventListener('change', updateHistoricChart);
                 document.getElementById('historic-end-date').addEventListener('change', updateHistoricChart);
                 document.getElementById('realised-start-date').addEventListener('change', updateRealisedVolChart);
                 document.getElementById('realised-end-date').addEventListener('change', updateRealisedVolChart);
+                document.getElementById('realised-vol-metric-select').addEventListener('change', updateRealisedVolChart);
                 document.getElementById('kurtosis-start-date').addEventListener('change', updateKurtosisChart);
                 document.getElementById('kurtosis-end-date').addEventListener('change', updateKurtosisChart);
                 document.getElementById('volofvol-start-date').addEventListener('change', updateVolOfVolChart);
