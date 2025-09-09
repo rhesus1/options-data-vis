@@ -62,6 +62,7 @@ def fetch_historic_data(ticker, historic_dir):
     
     # Load existing persistent history if available
     hist = pd.DataFrame()
+    start_date = None
     if os.path.exists(persistent_hist_file):
         try:
             hist = pd.read_csv(persistent_hist_file)
@@ -77,7 +78,13 @@ def fetch_historic_data(ticker, historic_dir):
                     hist = hist.loc[:, ~hist.columns.duplicated()]
                 if not hist.empty:
                     last_date = hist['Date'].max().date()
-                    start_date = (datetime.combine(last_date, datetime.min.time()) + timedelta(days=1)).strftime('%Y-%m-%d')
+                    today = datetime.now().date()
+                    next_date = (datetime.combine(last_date, datetime.min.time()) + timedelta(days=1)).date()
+                    if next_date <= today:
+                        start_date = (datetime.combine(next_date, datetime.min.time())).strftime('%Y-%m-%d')
+                    else:
+                        print(f"Warning: Computed start_date {next_date} is after today; fetching full history.")
+                        start_date = None
                 else:
                     start_date = None
             else:
@@ -90,9 +97,36 @@ def fetch_historic_data(ticker, historic_dir):
     else:
         start_date = None
     
+    # Define columns here so always available
+    columns = [
+        'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
+        'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
+        'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
+        'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile',
+        'Kurtosis_Close_100d', 'Kurtosis_Returns_100d'
+    ]
+    
+    # Prepare hist with all columns if it exists
+    if not hist.empty and 'Date' in hist.columns:
+        hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
+        hist = hist.dropna(subset=['Date'])
+        hist['Date'] = hist['Date'].dt.tz_localize(None)
+        hist['Ticker'] = ticker
+        # Add missing columns with NaN
+        for col in columns:
+            if col not in hist.columns:
+                hist[col] = np.nan
+        hist = hist[columns]
+        # Sort by Date
+        hist = hist.sort_values('Date').reset_index(drop=True)
+    else:
+        hist = pd.DataFrame(columns=columns)
+        hist['Ticker'] = ticker
+    
     stock = yf.Ticker(ticker)
     
     # Fetch new data (incremental if start_date exists)
+    new_hist = pd.DataFrame()
     try:
         if start_date:
             new_hist = stock.history(start=start_date)
@@ -109,19 +143,16 @@ def fetch_historic_data(ticker, historic_dir):
         new_hist = new_hist.reset_index()
         new_hist = new_hist.rename(columns={'index': 'Date'})
         
-        # Combine with existing history
-        if not hist.empty and 'Date' in hist.columns:
-            # Ensure hist Date is datetime and timezone-naive
-            hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
-            hist = hist.dropna(subset=['Date'])
-            hist['Date'] = hist['Date'].dt.tz_localize(None)
+        # Combine with existing history if hist has data
+        if not hist.empty:
             # Concatenate and remove duplicates
             hist = pd.concat([hist, new_hist], ignore_index=True)
             hist = hist.drop_duplicates(subset=['Date'], keep='last')
-            hist = hist.sort_values('Date')
+            hist = hist.sort_values('Date').reset_index(drop=True)
         else:
             hist = new_hist
-    
+            hist['Ticker'] = ticker
+        
         # Recompute derived columns
         hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
         hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
@@ -145,15 +176,6 @@ def fetch_historic_data(ticker, historic_dir):
             lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
         
-        hist['Ticker'] = ticker
-        
-        columns = [
-            'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
-            'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
-            'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
-            'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile',
-            'Kurtosis_Close_100d', 'Kurtosis_Returns_100d'
-        ]
         hist = hist[columns]
         
         # Format Date as string for saving
@@ -168,15 +190,7 @@ def fetch_historic_data(ticker, historic_dir):
         if hist.empty:
             print(f"No historic data available for {ticker}")
             return pd.DataFrame()
-        # Use existing hist if no new data
-        hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
-        hist = hist.dropna(subset=['Date'])
-        hist['Date'] = hist['Date'].dt.tz_localize(None)
-        hist['Ticker'] = ticker
-        for col in columns:
-            if col not in hist.columns:
-                hist[col] = np.nan
-        hist = hist[columns]
+        # No new data, but use/save existing hist
         hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
         hist_filename = f'{historic_dir}/historic_{ticker}.csv'
         hist.to_csv(hist_filename, index=False)
