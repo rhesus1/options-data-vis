@@ -118,8 +118,6 @@ def load_historic_data(ts):
     for file in historic_files:
         try:
             df = pd.read_csv(file, parse_dates=['Date'])
-            # Filter to only rows with valid Date and Close (ignores appended IVOL rows)
-            df = df.dropna(subset=['Date', 'Close'])
             missing_cols = [col for col in required_columns if col not in df.columns]
             if missing_cols:
                 print(f"load_historic_data: Missing columns {missing_cols} in {file}")
