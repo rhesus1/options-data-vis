@@ -1,9 +1,9 @@
 name: Clean Options Data
 on:
-  workflow_run:
-    workflows: ["Fetch Options Data"]
-    types:
-      - completed
+  #workflow_run:
+  #  workflows: ["Fetch Options Data"]
+  #  types:
+  #    - completed
   workflow_dispatch:
 jobs:
   clean:
