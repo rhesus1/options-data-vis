@@ -120,7 +120,7 @@ def main():
             dates = json.load(f)
     else:
         dates = []
-    if timestamp not not in dates:
+    if timestamp not in dates:
         dates.append(timestamp)
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
