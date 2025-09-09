@@ -466,6 +466,10 @@
     </div>
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">N/A</div>
+            <div id="selected-ticker-summary" class="chart-container" style="display: none;">
+                <h3>Selected Ticker Ranking Summary</h3>
+                <table id="selected-ticker-table" class="ranking-table"></table>
+            </div>
             <div id="overview" class="overview-grid">
                 <div class="chart-container historic-container">
                     <h2>Historic Stock Price</h2>
@@ -492,10 +496,6 @@
                 </div>
             </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
-            <div id="selected-ticker-summary" class="chart-container">
-                <h3>Selected Ticker Ranking Summary</h3>
-                <table id="selected-ticker-table" class="ranking-table"></table>
-            </div>
             <div class="chart-container">
                 <h3>Implied Volatility Smile</h3>
                 <div class="select-container">
@@ -2810,16 +2810,13 @@
                     const element = document.getElementById(id);
                     if (id === sectionId) {
                         element.style.display = id === 'overview' || id === 'volatility' ? 'grid' : 'block';
-                        if (id === 'volatility' && selectedTickerSummary) {
-                            selectedTickerSummary.style.display = 'block';
-                        }
                     } else {
                         element.style.display = 'none';
-                        if (id === 'volatility' && selectedTickerSummary) {
-                            selectedTickerSummary.style.display = 'none';
-                        }
                     }
                 });
+                if (selectedTickerSummary) {
+                    selectedTickerSummary.style.display = sectionId === 'volatility' ? 'block' : 'none';
+                }
                 updateCharts();
             } catch (error) {
                 console.error('Error updating section:', error);
