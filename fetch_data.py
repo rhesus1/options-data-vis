@@ -85,10 +85,15 @@ def fetch_historic_data(ticker, historic_dir):
     if not new_hist.empty:
         new_hist = new_hist[['Open', 'High', 'Low', 'Close', 'Volume']]
         
-        # Append new_hist to hist
-        hist = pd.concat([hist.set_index('Date'), new_hist], ignore_index=False)
-        hist = hist[~hist.index.duplicated(keep='last')]
-        hist = hist.sort_index()
+        # Append new_hist to hist (conditionally set index only if hist has 'Date')
+        if not hist.empty and 'Date' in hist.columns:
+            hist = pd.concat([hist.set_index('Date'), new_hist], ignore_index=False)
+            hist = hist[~hist.index.duplicated(keep='last')]
+            hist = hist.sort_index()
+            hist = hist.reset_index()  # Reset to make Date a column again
+        else:
+            # First run or no existing hist: use new_hist directly (its index is already DatetimeIndex)
+            hist = new_hist.reset_index()
         
         # Recompute all derived columns on the full history (efficient in Pandas)
         hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
@@ -98,12 +103,14 @@ def fetch_historic_data(ticker, historic_dir):
         hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
         hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
         
+        # Calculate Vol of Vol and Percentile for 100-day Realised Volatility
         vol_series = hist['Realised_Vol_Close_100'].copy()
         hist['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std().round(2)
         hist['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
             lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
         
+        # Calculate Kurtosis for Close prices and Log Returns (100-day window)
         hist['Kurtosis_Close_100d'] = hist['Close'].rolling(window=100, min_periods=100).apply(
             lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
@@ -111,8 +118,7 @@ def fetch_historic_data(ticker, historic_dir):
             lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
         
-        hist = hist.reset_index()  # Reset index to make Date a column
-        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
+        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')  # Format Date as string
         hist['Ticker'] = ticker
         
         columns = [
@@ -129,9 +135,12 @@ def fetch_historic_data(ticker, historic_dir):
     elif hist.empty:
         return pd.DataFrame()
     else:
-        # No new data, but use existing hist
-        hist = hist.reset_index()
-        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
+        # No new data, but use existing hist (reformat if needed)
+        if 'Date' in hist.columns:
+            hist['Date'] = pd.to_datetime(hist['Date']).dt.strftime('%Y-%m-%d')
+        else:
+            # Fallback: if somehow no Date, but this shouldn't happen
+            print(f"Warning: No 'Date' column in existing hist for {ticker}")
         hist['Ticker'] = ticker
         columns = [
             'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
@@ -140,12 +149,16 @@ def fetch_historic_data(ticker, historic_dir):
             'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile',
             'Kurtosis_Close_100d', 'Kurtosis_Returns_100d'
         ]
+        # Ensure all columns exist (fill NaN if missing)
+        for col in columns:
+            if col not in hist.columns:
+                hist[col] = np.nan
         hist = hist[columns]
     
     # Save snapshot to timestamped historic dir
     hist_filename = f'{historic_dir}/historic_{ticker}.csv'
     hist.to_csv(hist_filename, index=False)
-    print(f"Historic data for {ticker} saved to {hist_filename}")
+    print(f"Historic data for {ticker} saved to {hist_filename} (rows: {len(hist)})")
     
     return hist
 
