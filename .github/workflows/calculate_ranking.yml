@@ -1,9 +1,9 @@
 name: Calculate Ranking Metrics
 on:
-  workflow_run:
-    workflows: ["Calculate Options Data"]
-    types:
-      - completed
+  #workflow_run:
+  #  workflows: ["Calculate Options Data"]
+  #  types:
+  #    - completed
   workflow_dispatch:
 jobs:
   calculate-ranking:
