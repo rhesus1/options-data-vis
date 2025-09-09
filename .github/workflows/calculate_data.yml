@@ -1,10 +1,10 @@
 # calculate_data.yml
 name: Calculate Options Data
 on:
-  workflow_run:
-    workflows: ["Clean Options Data"]
-    types:
-      - completed
+  #workflow_run:
+  #  workflows: ["Clean Options Data"]
+  #  types:
+  #    - completed
   workflow_dispatch: # Manual trigger option
 jobs:
   calculate:
