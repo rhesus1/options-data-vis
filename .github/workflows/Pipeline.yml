@@ -110,40 +110,6 @@ jobs:
         to: reesjmorgan@gmail.com
         from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
-          Attached is the latest Options ranking metrics CSV file for yfinance data.
-          Timestamp: ${{ steps.set-latest-date.outputs.latest_date }}
-        attachments: |
-          data/${{ steps.set-latest-date.outputs.latest_date }}/ranking/ranking_yfinance.csv
-        secure: true
-    - name: Run preprocess data script
-      run: |
-        python -c "
-        import json
-        from datetime import datetime
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
-        import os
-        os.system(f'python preprocess_data.py {latest_date}') or exit(1)
-        "
-    - name: Commit and push precomputed data
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git add data
-        git commit -m "Auto-update precomputed tables for ${{ steps.set-latest-date.outputs.latest_date }}" || echo "No changes to commit"
-        git push
-    - name: Send email with precomputed tables
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        username: ${{ secrets.EMAIL_USERNAME }}
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "Precomputed Tables"
-        to: reesjmorgan@gmail.com
-        from: Morgan Rees <reesjmorgan@gmail.com>
-        body: |
           Attached is the latest precomputed ranking table for yfinance data.
           Timestamp: ${{ steps.set-latest-date.outputs.latest_date }}
         attachments: |
