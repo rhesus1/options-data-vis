@@ -60,10 +60,17 @@ def fetch_historic_data(ticker, historic_dir):
     os.makedirs(persistent_history_dir, exist_ok=True)
     persistent_hist_file = f'{persistent_history_dir}/historic_{ticker}.csv'
    
-    # Load existing persistent history if available
+    # Load existing persistent history if available (without parse_dates to avoid misparsing)
     if os.path.exists(persistent_hist_file):
-        hist = pd.read_csv(persistent_hist_file, parse_dates=['Date'])
-        hist['Date'] = pd.to_datetime(hist['Date']) # Ensure Date is datetime
+        hist = pd.read_csv(persistent_hist_file)
+        # Manually convert Date to datetime with coercion for safety
+        if 'Date' in hist.columns:
+            hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
+        # Drop any duplicate Date columns if they exist (e.g., from previous misparse)
+        date_cols = [col for col in hist.columns if col == 'Date']
+        if len(date_cols) > 1:
+            print(f"Warning: Multiple 'Date' columns found for {ticker}, keeping the first.")
+            hist = hist.loc[:, ~hist.columns.duplicated()]
         if not hist.empty:
             last_date = hist['Date'].max().date()
             start_date = (datetime.combine(last_date, datetime.min.time()) + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -87,8 +94,10 @@ def fetch_historic_data(ticker, historic_dir):
        
         # Append new_hist to hist (conditionally set index only if hist has 'Date')
         if not hist.empty and 'Date' in hist.columns:
+            # Ensure Date is datetime for hist
+            hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
             # Strip tz from existing hist index to ensure tz-naive
-            hist_index = pd.to_datetime(hist['Date']).dt.tz_localize(None)
+            hist_index = hist['Date'].dt.tz_localize(None)
             hist = hist.set_index(pd.Index(hist_index, name='Date'))
             
             # Strip tz from new_hist index to ensure tz-naive
@@ -98,10 +107,13 @@ def fetch_historic_data(ticker, historic_dir):
             hist = hist[~hist.index.duplicated(keep='last')]
             hist = hist.sort_index()
             hist = hist.reset_index() # Reset to make Date a column again
+            # Ensure Date is still datetime after reset
+            hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
         else:
             # First run or no existing hist: use new_hist directly (strip tz and reset)
             new_hist.index = pd.to_datetime(new_hist.index).tz_localize(None)
             hist = new_hist.reset_index()
+            hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
        
         # Recompute all derived columns on the full history (efficient in Pandas)
         hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
@@ -126,7 +138,6 @@ def fetch_historic_data(ticker, historic_dir):
             lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
         ).round(2)
        
-        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d') # Format Date as string
         hist['Ticker'] = ticker
        
         columns = [
@@ -138,14 +149,17 @@ def fetch_historic_data(ticker, historic_dir):
         ]
         hist = hist[columns]
        
+        # Format Date as string only right before saving
+        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
+       
         # Save updated history back to persistent file (overwrite with full updated data)
         hist.to_csv(persistent_hist_file, index=False)
     elif hist.empty:
         return pd.DataFrame()
     else:
-        # No new data, but use existing hist (reformat if needed)
+        # No new data, but use existing hist (ensure Date is datetime first, then format for save)
         if 'Date' in hist.columns:
-            hist['Date'] = pd.to_datetime(hist['Date']).dt.strftime('%Y-%m-%d')
+            hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
         else:
             # Fallback: if somehow no Date, but this shouldn't happen
             print(f"Warning: No 'Date' column in existing hist for {ticker}")
@@ -162,6 +176,14 @@ def fetch_historic_data(ticker, historic_dir):
             if col not in hist.columns:
                 hist[col] = np.nan
         hist = hist[columns]
+        # Format Date as string only right before saving
+        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
+   
+    # Drop any duplicate Date columns if they exist (safety net)
+    date_cols = [col for col in hist.columns if col == 'Date']
+    if len(date_cols) > 1:
+        print(f"Warning: Multiple 'Date' columns found for {ticker} before snapshot save, keeping the first.")
+        hist = hist.loc[:, ~hist.columns.duplicated()]
    
     # Save snapshot to timestamped historic dir
     hist_filename = f'{historic_dir}/historic_{ticker}.csv'
