@@ -308,20 +308,23 @@ def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
     except ValueError:
         return np.nan
 
-# New helper function to find put strike with matching mid-price
-def find_put_strike_for_price(call_price, S, T, r, q, put_df, exp, tolerance=0.01):
+# Fixed:
+def find_put_strike_for_price(call_mid, S, T, r, q, put_df, exp, tolerance=0.01):
     def price_diff(K):
-        # Use average put IV from put_df as a guess, or default to 0.25
-        put_row = put_df[(put_df['Expiry'] == exp) & (put_df['Strike'] == put_df['Strike'].iloc[0])]
-        sigma_guess = put_row['IV_mid'].iloc[0] if not put_row.empty and not pd.isna(put_row['IV_mid'].iloc[0]) else 0.25
+        # Use first put IV from put_df as a guess, or default to 0.25 if empty or NaN
+        if put_df.empty:
+            sigma_guess = 0.25
+        else:
+            sigma_guess = put_df['IV_mid'].iloc[0]
+            if pd.isna(sigma_guess):
+                sigma_guess = 0.25
         put_price = black_scholes_put(S, K, T, r, q, sigma_guess)
-        return put_price - call_price
-
+        return put_price - call_mid  # Fixed typo: call_price -> call_mid
     try:
         put_strike = brentq(price_diff, S * 0.1, S * 2.0, xtol=0.01)
         sigma_guess = 0.25
         put_price = black_scholes_put(S, put_strike, T, r, q, sigma_guess)
-        if abs(put_price - call_price) <= tolerance:
+        if abs(put_price - call_mid) <= tolerance:
             return put_strike
         return np.nan
     except ValueError:
