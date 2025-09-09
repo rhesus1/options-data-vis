@@ -1,8 +1,8 @@
 name: Process Options Data Pipeline
 on:
   schedule:
-    - cron: '0 21 * * 1-5'  # Daily at 10:00 PM BST (9:00 PM UTC)
-  workflow_dispatch:  # Manual trigger option
+    - cron: '0 21 * * 1-5' # Daily at 10:00 PM BST (9:00 PM UTC)
+  workflow_dispatch: # Manual trigger option
 jobs:
   process-pipeline:
     runs-on: ubuntu-latest
@@ -33,9 +33,10 @@ jobs:
         python -c "
         import json
         import os
+        from datetime import datetime
         with open('data/dates.json', 'r') as f:
             dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
+        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
         print(f'Running clean_data.py with timestamp: {latest_date}')
         os.system(f'ls -R data/{latest_date}/raw_yfinance* || echo \"No raw files found\"')
         os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
@@ -47,9 +48,10 @@ jobs:
         python -c "
         import json
         import os
+        from datetime import datetime
         with open('data/dates.json', 'r') as f:
             dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
+        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
         print('Cleaned files:')
         os.system(f'ls -R data/{latest_date}/cleaned_yfinance* || echo \"No cleaned files found\"')
         "
@@ -73,11 +75,12 @@ jobs:
       run: |
         python -c "
         import json
-        import os
+        from datetime import datetime
         with open('data/dates.json', 'r') as f:
             dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        os.system(f'python calculate_ranking_metrics.py {latest_date}')
+        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+        import os
+        os.system(f'python calculate_ranking_metrics.py {latest_date}') or exit(1)
         "
     - name: Commit and push ranking data
       run: |
@@ -89,14 +92,13 @@ jobs:
     - name: Set latest_date output
       id: set-latest-date
       run: |
-        python -c "
-        import json
-        import os
-        with open('data/dates.json', 'r') as f:
-            dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        echo \"latest_date=$latest_date\" >> $GITHUB_OUTPUT
-        "
+        if [ -f data/dates.json ]; then
+          latest_date=$(python -c "import json; from datetime import datetime; print(max(json.load(open('data/dates.json')), key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M')))")
+          echo "latest_date=$latest_date" >> $GITHUB_OUTPUT
+        else
+          echo "latest_date=" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
     - name: Send email with yfinance ranking metrics
       uses: dawidd6/action-send-mail@v3
       with:
@@ -117,11 +119,12 @@ jobs:
       run: |
         python -c "
         import json
-        import os
+        from datetime import datetime
         with open('data/dates.json', 'r') as f:
             dates = json.load(f)
-        latest_date = max(dates, key=lambda x: x)
-        os.system(f'python preprocess_data.py {latest_date}')
+        latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+        import os
+        os.system(f'python preprocess_data.py {latest_date}') or exit(1)
         "
     - name: Commit and push precomputed data
       run: |
