@@ -1,9 +1,9 @@
 name: Preprocess Data
 on:
-  workflow_run:
-    workflows: ["Calculate Ranking Metrics"]
-    types:
-      - completed
+  #workflow_run:
+  #  workflows: ["Calculate Ranking Metrics"]
+  #  types:
+  #    - completed
   workflow_dispatch:
 jobs:
   preprocess-data:
