@@ -7,12 +7,12 @@ import os
 import glob
 from scipy.stats import norm
 pd.options.mode.chained_assignment = None
+pd.set_option('future.no_silent_downcasting', True)
 
 def calculate_atm_iv(ticker_processed, current_price, current_dt):
     if ticker_processed.empty:
         print(f"calculate_atm_iv: Empty ticker_processed DataFrame for {ticker_processed.get('Ticker', 'unknown')}")
         return np.nan
- 
     required_cols = ['Expiry', 'IV_mid', 'Moneyness']
     missing_cols = [col for col in required_cols if col not in ticker_processed.columns]
     if missing_cols:
@@ -23,11 +23,11 @@ def calculate_atm_iv(ticker_processed, current_price, current_dt):
         if ticker_processed['Expiry_dt'].isna().all():
             print(f"calculate_atm_iv: Invalid Expiry dates for {ticker_processed.get('Ticker', 'unknown')}")
             return np.nan
-     
+    
         ticker_processed['Days_to_Expiry'] = (ticker_processed['Expiry_dt'] - current_dt).dt.days
         three_month_data = ticker_processed[(ticker_processed['Days_to_Expiry'] >= 70) &
                                           (ticker_processed['Days_to_Expiry'] <= 110)]
-     
+    
         if three_month_data.empty:
             print(f"calculate_atm_iv: No options with 70-110 days to expiry for {ticker_processed.get('Ticker', 'unknown')}")
             three_month_data = ticker_processed[(ticker_processed['Days_to_Expiry'] >= 60) &
@@ -35,7 +35,7 @@ def calculate_atm_iv(ticker_processed, current_price, current_dt):
             if three_month_data.empty:
                 print(f"calculate_atm_iv: Fallback range 60-120 days also empty for {ticker_processed.get('Ticker', 'unknown')}")
                 return np.nan
-     
+    
         # Filter for moneyness between 0.9 and 1.1
         atm_options = three_month_data[(three_month_data['Moneyness'] >= 0.9) & (three_month_data['Moneyness'] <= 1.1)]
         if atm_options.empty:
@@ -45,30 +45,26 @@ def calculate_atm_iv(ticker_processed, current_price, current_dt):
         if atm_options['IV_mid'].isna().all():
             print(f"calculate_atm_iv: All IV_mid values are NaN for {ticker_processed.get('Ticker', 'unknown')}")
             return np.nan
-     
+    
         atm_iv = atm_options['IV_mid'].iloc[0]
         print(f"calculate_atm_iv: ATM IV = {atm_iv} for {ticker_processed.get('Ticker', 'unknown')}")
         return atm_iv
     except Exception as e:
         print(f"calculate_atm_iv: Error processing data for {ticker_processed.get('Ticker', 'unknown')}: {e}")
         return np.nan
-
 def get_option_totals(ts, prefix):
     if ts is None:
         print(f"get_option_totals: No timestamp provided")
         return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
- 
     raw_dir = f'data/{ts}/raw{prefix}'
     print(f"get_option_totals: Reading from {raw_dir} for timestamp {ts}")
     if not os.path.exists(raw_dir):
         print(f"get_option_totals: Raw directory {raw_dir} not found")
         return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
- 
     raw_files = glob.glob(f'{raw_dir}/raw{prefix}_*.csv')
     if not raw_files:
         print(f"get_option_totals: No raw files found in {raw_dir}")
         return pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
- 
     totals = []
     for file in raw_files:
         ticker = os.path.basename(file).split(f'raw{prefix}_')[1].split('.csv')[0]
@@ -80,41 +76,35 @@ def get_option_totals(ts, prefix):
                 print(f"get_option_totals: Missing columns {missing_cols} in {file}")
                 totals.append({'Ticker': ticker, 'OI': 0, 'Vol': 0})
                 continue
-         
+        
             df['Open Interest'] = pd.to_numeric(df['Open Interest'], errors='coerce').fillna(0)
             df['Volume'] = pd.to_numeric(df['Volume'], errors='coerce').fillna(0)
-         
+        
             oi_sum = df['Open Interest'].sum()
             vol_sum = df['Volume'].sum()
             totals.append({'Ticker': ticker, 'OI': oi_sum, 'Vol': vol_sum})
         except Exception as e:
             print(f"get_option_totals: Error reading {file}: {e}")
             totals.append({'Ticker': ticker, 'OI': 0, 'Vol': 0})
- 
     return pd.DataFrame(totals)
-
 def load_historic_data(ts):
     if ts is None:
         print(f"load_historic_data: No timestamp provided")
         return pd.DataFrame()
- 
     historic_dir = f'data/{ts}/historic'
     print(f"load_historic_data: Reading from {historic_dir} for timestamp {ts}")
     if not os.path.exists(historic_dir):
         print(f"load_historic_data: Historic directory {historic_dir} not found")
         return pd.DataFrame()
- 
     historic_files = glob.glob(f'{historic_dir}/historic_*.csv')
     if not historic_files:
         print(f"load_historic_data: No historic data files found in {historic_dir}")
         return pd.DataFrame()
- 
     dfs = []
     required_columns = ['Date', 'Ticker', 'Close', 'High', 'Low',
                        'Realised_Vol_Close_30', 'Realised_Vol_Close_60',
                        'Realised_Vol_Close_100', 'Realised_Vol_Close_180',
                        'Realised_Vol_Close_252']
- 
     for file in historic_files:
         try:
             df = pd.read_csv(file, parse_dates=['Date'])
@@ -127,42 +117,35 @@ def load_historic_data(ts):
                     elif col == 'Ticker':
                         ticker = os.path.basename(file).split('historic_')[1].split('.csv')[0]
                         df['Ticker'] = ticker
-         
+        
             numeric_cols = [col for col in required_columns if col != 'Date' and col != 'Ticker']
             for col in numeric_cols:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
-         
+        
             dfs.append(df)
         except Exception as e:
             print(f"load_historic_data: Error reading {file}: {e}")
- 
     if not dfs:
         print(f"load_historic_data: No valid historic data files found in {historic_dir}")
         return pd.DataFrame()
- 
     df_concat = pd.concat(dfs, ignore_index=True)
     df_concat = df_concat.drop_duplicates(subset=['Ticker', 'Date'], keep='last')
     return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
-
 def load_processed_data(ts, prefix):
     if ts is None:
         print(f"load_processed_data: No timestamp provided")
         return pd.DataFrame()
- 
     processed_dir = f'data/{ts}/processed{prefix}'
     print(f"load_processed_data: Reading from {processed_dir} for timestamp {ts}")
     if not os.path.exists(processed_dir):
         print(f"load_processed_data: Processed directory {processed_dir} not found")
         return pd.DataFrame()
- 
     processed_files = glob.glob(f'{processed_dir}/processed{prefix}_*.csv')
     if not processed_files:
         print(f"load_processed_data: No processed data files found in {processed_dir}")
         return pd.DataFrame()
- 
     dfs = []
     required_columns = ['Ticker', 'Expiry', 'IV_mid', 'Moneyness', 'Years_to_Expiry']
- 
     for file in processed_files:
         try:
             df = pd.read_csv(file)
@@ -175,24 +158,21 @@ def load_processed_data(ts, prefix):
                 for col in missing_cols:
                     if col != 'Ticker':
                         df[col] = np.nan
-         
+        
             numeric_cols = ['IV_mid', 'Moneyness', 'Years_to_Expiry']
             for col in numeric_cols:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
-         
+        
             dfs.append(df)
         except Exception as e:
             print(f"load_processed_data: Error reading {file}: {e}")
- 
     if not dfs:
         print(f"load_processed_data: No valid processed data files found in {processed_dir}")
         return pd.DataFrame()
- 
     df_concat = pd.concat(dfs, ignore_index=True)
     df_concat = df_concat.drop_duplicates(subset=['Ticker', 'Expiry'], keep='last')
     return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
-
 def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
     dates_file = os.path.join(data_dir, 'dates.json')
     try:
@@ -453,50 +433,49 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                             rank_dict['Rvol100d - Weighted IV'] = (current_vol - (weighted_iv * 100)) if current_vol != 'N/A' and not pd.isna(current_vol) and not np.isnan(weighted_iv) else 'N/A'
                         else:
                             rank_dict['Rvol100d - Weighted IV'] = rank_dict.get('Rvol100d - Weighted IV', 'N/A')
-                else:
-                    print(f"No historic data for ticker {ticker}, setting all price-related metrics to 'N/A'")
-                    rank_dict['Latest Open'] = 'N/A'
-                    rank_dict['Latest Close'] = 'N/A'
-                    rank_dict['Latest High'] = 'N/A'
-                    rank_dict['Latest Low'] = 'N/A'
-                    rank_dict['Open 1d (%)'] = 'N/A'
-                    rank_dict['Open 1w (%)'] = 'N/A'
-                    rank_dict['Close 1d (%)'] = 'N/A'
-                    rank_dict['Close 1w (%)'] = 'N/A'
-                    rank_dict['High 1d (%)'] = 'N/A'
-                    rank_dict['High 1w (%)'] = 'N/A'
-                    rank_dict['Low 1d (%)'] = 'N/A'
-                    rank_dict['Low 1w (%)'] = 'N/A'
-                    for rvol_type in rvol_types:
-                        rank_dict[f'Realised Volatility {rvol_type}d (%)'] = 'N/A'
-                        if rvol_type == '100':
-                            rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
-                            rank_dict['Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
-                            rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                            rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                            rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                            rank_dict['Rvol 100d Percentile (%)'] = 'N/A'
-                            rank_dict['Rvol 100d Z-Score Percentile (%)'] = 'N/A'
-                    rank_dict['ATM IV 3m (%)'] = 'N/A'
-                    rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
-                    rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
-                    rank_dict['Weighted IV (%)'] = 'N/A'
-                    rank_dict['Weighted IV 3m (%)'] = 'N/A'
-                    rank_dict['Weighted IV 3m 1d (%)'] = 'N/A'
-                    rank_dict['Weighted IV 3m 1w (%)'] = 'N/A'
-                    rank_dict['Weighted IV 1d (%)'] = 'N/A'
-                    rank_dict['Weighted IV 1w (%)'] = 'N/A'
-                    rank_dict['Rvol100d - Weighted IV'] = 'N/A'
-                    rank_dict['Volume'] = 'N/A'
-                    rank_dict['Open Interest'] = 'N/A'
-                    rank_dict['Volume 1d (%)'] = 'N/A'
-                    rank_dict['Volume 1w (%)'] = 'N/A'
-                    rank_dict['OI 1d (%)'] = 'N/A'
-                    rank_dict['OI 1w (%)'] = 'N/A'
-           
-                ranking.append(rank_dict)
-        
-        print(f"Added {len(ranking)} tickers after processing loop.")
+            else:
+                print(f"No historic data for ticker {ticker}, setting all price-related metrics to 'N/A'")
+                rank_dict['Latest Open'] = 'N/A'
+                rank_dict['Latest Close'] = 'N/A'
+                rank_dict['Latest High'] = 'N/A'
+                rank_dict['Latest Low'] = 'N/A'
+                rank_dict['Open 1d (%)'] = 'N/A'
+                rank_dict['Open 1w (%)'] = 'N/A'
+                rank_dict['Close 1d (%)'] = 'N/A'
+                rank_dict['Close 1w (%)'] = 'N/A'
+                rank_dict['High 1d (%)'] = 'N/A'
+                rank_dict['High 1w (%)'] = 'N/A'
+                rank_dict['Low 1d (%)'] = 'N/A'
+                rank_dict['Low 1w (%)'] = 'N/A'
+                for rvol_type in rvol_types:
+                    rank_dict[f'Realised Volatility {rvol_type}d (%)'] = 'N/A'
+                    if rvol_type == '100':
+                        rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
+                        rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict['Rvol 100d Percentile (%)'] = 'N/A'
+                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = 'N/A'
+                rank_dict['ATM IV 3m (%)'] = 'N/A'
+                rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
+                rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
+                rank_dict['Weighted IV (%)'] = 'N/A'
+                rank_dict['Weighted IV 3m (%)'] = 'N/A'
+                rank_dict['Weighted IV 3m 1d (%)'] = 'N/A'
+                rank_dict['Weighted IV 3m 1w (%)'] = 'N/A'
+                rank_dict['Weighted IV 1d (%)'] = 'N/A'
+                rank_dict['Weighted IV 1w (%)'] = 'N/A'
+                rank_dict['Rvol100d - Weighted IV'] = 'N/A'
+                rank_dict['Volume'] = 'N/A'
+                rank_dict['Open Interest'] = 'N/A'
+                rank_dict['Volume 1d (%)'] = 'N/A'
+                rank_dict['Volume 1w (%)'] = 'N/A'
+                rank_dict['OI 1d (%)'] = 'N/A'
+                rank_dict['OI 1w (%)'] = 'N/A'
+
+            ranking.append(rank_dict)  # De-indented to always append
+       
         column_order = [
             'Rank', 'Ticker', 'Latest Open', 'Latest Close', 'Latest High', 'Latest Low',
             'Open 1d (%)', 'Open 1w (%)', 'Close 1d (%)', 'Close 1w (%)',
@@ -514,23 +493,18 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
         ]
         df_ranking = pd.DataFrame(ranking)
-        print(f"Created DataFrame with {len(df_ranking)} rows before sorting.")
         df_ranking = df_ranking[column_order]
-
         # Replace 'N/A' with NaN for sorting, sort by percentile descending, reassign rank
         df_ranking.replace('N/A', np.nan, inplace=True)
         df_ranking.sort_values(by='Rvol 100d Percentile (%)', ascending=False, na_position='last', inplace=True)
         df_ranking['Rank'] = range(1, len(df_ranking) + 1)
         # Replace NaN back to 'N/A' for output
         df_ranking = df_ranking.fillna('N/A')
-        print(f"Final DataFrame has {len(df_ranking)} rows after sorting.")
-
         ranking_dir = f'data/{timestamp}/ranking'
         os.makedirs(ranking_dir, exist_ok=True)
         output_file = f'{ranking_dir}/ranking{prefix}.csv'
         df_ranking.to_csv(output_file, index=False)
         print(f"Ranking metrics saved to {output_file}")
-
 def main():
     data_dir = 'data'
     dates_file = os.path.join(data_dir, 'dates.json')
@@ -550,8 +524,7 @@ def main():
         calculate_ranking_metrics(timestamp, sources)
     else:
         sources = ['yfinance']
-        timestamp = timestamps[-1]  # Use the latest timestamp if none provided
+        timestamp = timestamps[-1] # Use the latest timestamp if none provided
         print(f"No timestamp provided, using latest: {timestamp}")
         calculate_ranking_metrics(timestamp, sources)
-
 main()
