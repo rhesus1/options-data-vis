@@ -51,4 +51,4 @@ def main():
     else:
         print(f"Timestamp directory {timestamp_historic_dir} does not exist")
 
-  main()
+main()
