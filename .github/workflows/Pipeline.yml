@@ -16,7 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yfinance pandas numpy scipy joblib statsmodels tqdm pyxlsb
+        pip install yfinance pandas numpy scipy joblib statsmodels tqdm pyxlsb selenium beautifulsoup4 webdriver-manager
       continue-on-error: false
     - name: Create data directory
       run: mkdir -p data
@@ -29,6 +29,39 @@ jobs:
         git config --global user.email "actions@github.com"
         git add data
         git commit -m "Auto-update raw data from scheduled fetch" || echo "No changes to commit"
+        git push
+    - name: Run Trading Economics scrape script
+      run: |
+        python -c "
+        import json
+        import os
+        from datetime import datetime
+        try:
+            with open('data/dates.json', 'r') as f:
+                dates = json.load(f)
+            if not dates:
+                print('Error: dates.json is empty')
+                exit(1)
+            latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+            print(f'Running scrape_trading_economics.py with timestamp: {latest_date}')
+            os.makedirs(f'data/{latest_date}/Trading_Economics', exist_ok=True)
+            rc = os.system(f'python scrape_trading_economics.py')
+            if rc != 0:
+                print(f'Error: scrape_trading_economics.py failed')
+                exit(1)
+            # Move CSVs to timestamped Trading_Economics directory
+            os.system(f'mv *.csv data/{latest_date}/Trading_Economics/ || echo \"No CSVs to move\"')
+        except FileNotFoundError:
+            print('Error: data/dates.json not found')
+            exit(1)
+        "
+      continue-on-error: false
+    - name: Commit and push Trading Economics data
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data
+        git commit -m "Auto-update Trading Economics data for ${{ steps.set-latest-date.outputs.latest_date }}" || echo "No changes to commit"
         git push
     - name: Log timestamp and input files
       run: |
@@ -46,6 +79,7 @@ jobs:
             print(f'Running clean_data.py with timestamp: {latest_date}')
             os.system(f'ls -R data/{latest_date}/raw_yfinance* || echo \"No raw files found\"')
             os.system(f'ls -R data/{latest_date}/historic* || echo \"No historic files found\"')
+            os.system(f'ls -R data/{latest_date}/Trading_Economics/* || echo \"No Trading Economics files found\"')
         except FileNotFoundError:
             print('Error: data/dates.json not found')
             exit(1)
@@ -132,21 +166,28 @@ jobs:
         fi
       shell: bash
       continue-on-error: false
-    - name: Send email with yfinance ranking metrics
+    - name: Send email with yfinance ranking metrics and Trading Economics data
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
         server_port: 465
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "Options Ranking Metrics Data"
+        subject: "Options Ranking Metrics and Trading Economics Data"
         to: reesjmorgan@gmail.com
         from: Morgan Rees <reesjmorgan@gmail.com>
         body: |
-          Attached is the latest Options ranking metrics CSV file for yfinance data.
+          Attached are the latest Options ranking metrics and Trading Economics data.
           Timestamp: ${{ steps.set-latest-date.outputs.latest_date }}
         attachments: |
           data/${{ steps.set-latest-date.outputs.latest_date }}/ranking/ranking_yfinance.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/bonds.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/commodities.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/stocks.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/shares_gainers.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/shares_losers.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/currencies.csv
+          data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/crypto.csv
         secure: true
     - name: Run preprocess data script
       run: |
