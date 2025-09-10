@@ -1273,7 +1273,7 @@
                 const table = document.getElementById('ranking-table');
                 table.innerHTML = '';
                 if (rankingData.length === 0) {
-                    table.innerHTML = '<tr><td colspan="31">No ranking data available</td></tr>'; // Updated colspan to 31
+                    table.innerHTML = '<tr><td colspan="31">No ranking data available</td></tr>';
                     console.warn('No ranking data for ranking table');
                     return;
                 }
@@ -1282,26 +1282,26 @@
                 const columns = [
                     'Rank', 'Ticker', 'Latest Close', 'Realised Volatility 30d (%)',
                     'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
-                    'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (1y)',
-                    'Max Realised Volatility 100d (1y)', 'Mean Realised Volatility 100d (1y)',
-                    'Rvol 100d Percentile (%)', 'Rvol 100d Z-Score Percentile (%)',
+                    'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (2y)',
+                    'Max Realised Volatility 100d (2y)', 'Mean Realised Volatility 100d (2y)',
+                    'Rvol 100d Percentile 2y (%)', 'Rvol 100d Z-Score Percentile 2y (%)',
                     'Realised Volatility 180d (%)', 'Realised Volatility 252d (%)',
                     'Weighted IV (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
                     'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
                     'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts' // Added new column
+                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts'
                 ];
                 const displayNameMap = {
                     'Realised Volatility 30d (%)': 'RVol\n30d (%)',
                     'Realised Volatility 100d (%)': 'RVol\n100d (%)',
                     'Realised Volatility 100d 1d (%)': 'RVol\n100d 1d (%)',
                     'Realised Volatility 100d 1w (%)': 'RVol\n100d 1w (%)',
-                    'Min Realised Volatility 100d (1y)': 'Min RVol\n100d (1y)',
-                    'Max Realised Volatility 100d (1y)': 'Max RVol\n100d (1y)',
-                    'Mean Realised Volatility 100d (1y)': 'Mean RVol\n100d (1y)',
-                    'Rvol 100d Percentile (%)': 'RVol 100d\nPercentile (%)',
-                    'Rvol 100d Z-Score Percentile (%)': 'RVol 100d\nZ-Score\nPercentile (%)',
+                    'Min Realised Volatility 100d (2y)': 'Min RVol\n100d (2y)',
+                    'Max Realised Volatility 100d (2y)': 'Max RVol\n100d (2y)',
+                    'Mean Realised Volatility 100d (2y)': 'Mean RVol\n100d (2y)',
+                    'Rvol 100d Percentile 2y (%)': 'RVol 100d\nPercentile 2y (%)',
+                    'Rvol 100d Z-Score Percentile 2y (%)': 'RVol 100d\nZ-Score\nPercentile 2y (%)',
                     'Realised Volatility 180d (%)': 'RVol\n180d (%)',
                     'Realised Volatility 252d (%)': 'RVol\n252d (%)',
                     'Weighted IV (%)': 'WIVol\n(%)',
@@ -1314,7 +1314,7 @@
                     'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
                     'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
                     'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
-                    'Num Contracts': 'Num\nContracts' // Added display name for new column
+                    'Num Contracts': 'Num\nContracts'
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1330,13 +1330,13 @@
                 rankingData.forEach(item => {
                     const row = tbody.insertRow();
                     if (item.Ticker === selectedTicker) {
-                        row.classList.add('selected-ticker-row'); // Highlight the selected ticker
+                        row.classList.add('selected-ticker-row');
                     }
                     columns.forEach(col => {
                         const cell = row.insertCell();
                         let value = item[col];
                         if (Number.isFinite(value)) {
-                            if (col === 'Volume' || col === 'Open Interest' || col === 'Num Contracts') { // Added Num Contracts to integer formatting
+                            if (col === 'Volume' || col === 'Open Interest' || col === 'Num Contracts') {
                                 value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                             } else if (col === 'Rank') {
                                 value = parseInt(value);
@@ -1368,7 +1368,7 @@
                 console.log('Ranking table updated successfully');
             } catch (error) {
                 console.error('Error updating ranking table:', error);
-                document.getElementById('ranking-table').innerHTML = '<tr><td colspan="31">Error loading ranking data</td></tr>'; // Updated colspan to 31
+                document.getElementById('ranking-table').innerHTML = '<tr><td colspan="31">Error loading ranking data</td></tr>';
             }
         }
 
@@ -1379,7 +1379,7 @@
                 table.innerHTML = '';
                 const selectedRow = rankingData.find(item => item.Ticker === selectedTicker);
                 if (!selectedRow) {
-                    table.innerHTML = '<tr><td colspan="31">No ranking data for selected ticker</td></tr>'; // Updated colspan to 31
+                    table.innerHTML = '<tr><td colspan="31">No ranking data for selected ticker</td></tr>';
                     console.warn('No ranking data for selected ticker:', selectedTicker);
                     return;
                 }
@@ -1388,26 +1388,26 @@
                 const columns = [
                     'Rank', 'Ticker', 'Latest Close', 'Realised Volatility 30d (%)',
                     'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
-                    'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (1y)',
-                    'Max Realised Volatility 100d (1y)', 'Mean Realised Volatility 100d (1y)',
-                    'Rvol 100d Percentile (%)', 'Rvol 100d Z-Score Percentile (%)',
+                    'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (2y)',
+                    'Max Realised Volatility 100d (2y)', 'Mean Realised Volatility 100d (2y)',
+                    'Rvol 100d Percentile 2y (%)', 'Rvol 100d Z-Score Percentile 2y (%)',
                     'Realised Volatility 180d (%)', 'Realised Volatility 252d (%)',
                     'Weighted IV (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
                     'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
                     'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts' // Added new column
+                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts'
                 ];
                 const displayNameMap = {
                     'Realised Volatility 30d (%)': 'RVol\n30d (%)',
                     'Realised Volatility 100d (%)': 'RVol\n100d (%)',
                     'Realised Volatility 100d 1d (%)': 'RVol\n100d 1d (%)',
                     'Realised Volatility 100d 1w (%)': 'RVol\n100d 1w (%)',
-                    'Min Realised Volatility 100d (1y)': 'Min RVol\n100d (1y)',
-                    'Max Realised Volatility 100d (1y)': 'Max RVol\n100d (1y)',
-                    'Mean Realised Volatility 100d (1y)': 'Mean RVol\n100d (1y)',
-                    'Rvol 100d Percentile (%)': 'RVol 100d\nPercentile (%)',
-                    'Rvol 100d Z-Score Percentile (%)': 'RVol 100d\nZ-Score\nPercentile (%)',
+                    'Min Realised Volatility 100d (2y)': 'Min RVol\n100d (2y)',
+                    'Max Realised Volatility 100d (2y)': 'Max RVol\n100d (2y)',
+                    'Mean Realised Volatility 100d (2y)': 'Mean RVol\n100d (2y)',
+                    'Rvol 100d Percentile 2y (%)': 'RVol 100d\nPercentile 2y (%)',
+                    'Rvol 100d Z-Score Percentile 2y (%)': 'RVol 100d\nZ-Score\nPercentile 2y (%)',
                     'Realised Volatility 180d (%)': 'RVol\n180d (%)',
                     'Realised Volatility 252d (%)': 'RVol\n252d (%)',
                     'Weighted IV (%)': 'WIVol\n(%)',
@@ -1420,7 +1420,7 @@
                     'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
                     'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
                     'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
-                    'Num Contracts': 'Num\nContracts' // Added display name for new column
+                    'Num Contracts': 'Num\nContracts'
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1433,12 +1433,12 @@
                 table.appendChild(thead);
                 const tbody = document.createElement('tbody');
                 const row = tbody.insertRow();
-                row.classList.add('selected-ticker-row'); // Highlight the row
+                row.classList.add('selected-ticker-row');
                 columns.forEach(col => {
                     const cell = row.insertCell();
                     let value = selectedRow[col];
                     if (Number.isFinite(value)) {
-                        if (col === 'Volume' || col === 'Open Interest' || col === 'Num Contracts') { // Added Num Contracts to integer formatting
+                        if (col === 'Volume' || col === 'Open Interest' || col === 'Num Contracts') {
                             value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                         } else if (col === 'Rank') {
                             value = parseInt(value);
@@ -1469,7 +1469,7 @@
                 console.log('Selected ticker summary table updated for:', selectedTicker);
             } catch (error) {
                 console.error('Error updating selected ticker summary table:', error);
-                document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="31">Error loading selected ticker data</td></tr>'; // Updated colspan to 31
+                document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="31">Error loading selected ticker data</td></tr>';
             }
         }
         
@@ -1688,7 +1688,7 @@
                     let bValue = b.children[columnIndex].textContent;
                     if (aValue === 'N/A') return 1;
                     if (bValue === 'N/A') return -1;
-                    if (column === 'Volume' || column === 'Open Interest' || column === 'Num Contracts') { // Added Num Contracts
+                    if (column === 'Volume' || column === 'Open Interest' || column === 'Num Contracts') {
                         aValue = parseInt(aValue.replace(/,/g, '')) || -Infinity;
                         bValue = parseInt(bValue.replace(/,/g, '')) || -Infinity;
                     } else if (column === 'Rank') {
