@@ -37,7 +37,8 @@ def load_data(timestamp, source, base_path="data"):
                            'Weighted IV 1w (%)', 'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)',
                            'Weighted IV 3m 1w (%)', 'ATM IV 3m (%)', 'ATM IV 3m 1d (%)',
                            'ATM IV 3m 1w (%)', 'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)',
-                           'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts']
+                           'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
+                           'Normalized 3m', 'Normalized 6m', 'Normalized 1y']
             for col in numeric_cols:
                 if col in ranking.columns:
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
@@ -200,6 +201,30 @@ def generate_stock_table(ranking, company_names, barclays):
     print(f"Generated stock table in {time.time() - start_time:.2f} seconds")
     return stock_data[columns + color_columns], stock_data_no_colors
 
+def generate_normalized_table(ranking):
+    """Generate normalized price table with formatted values."""
+    start_time = time.time()
+    if ranking is None or ranking.empty:
+        print(f"No normalized data in {time.time() - start_time:.2f} seconds")
+        return pd.DataFrame(), pd.DataFrame()
+    normalized_data = ranking.copy()
+    columns = ["Ticker", "Normalized 3m", "Normalized 6m", "Normalized 1y"]
+    for col in columns:
+        if col not in normalized_data.columns:
+            normalized_data[col] = pd.NA if col != "Ticker" else "N/A"
+    for col in columns[1:]:  # Skip Ticker
+        normalized_data[col] = np.where(
+            normalized_data[col].notna() & (pd.to_numeric(normalized_data[col], errors='coerce') == pd.to_numeric(normalized_data[col], errors='coerce')),
+            pd.to_numeric(normalized_data[col], errors='coerce').round(2),
+            pd.NA
+        )
+        color_col = f"{col}_Color"
+        normalized_data[color_col] = "#FFFFFF"
+    color_columns = [f"{col}_Color" for col in columns if col != "Ticker"]
+    normalized_data_no_colors = normalized_data[columns]
+    print(f"Generated normalized table in {time.time() - start_time:.2f} seconds")
+    return normalized_data[columns + color_columns], normalized_data_no_colors
+
 def generate_summary_table(ranking, skew_data, tickers):
     """Generate aggregated summary table for all tickers."""
     start_time = time.time()
@@ -319,7 +344,7 @@ def generate_top_contracts_tables(processed_data, tickers):
     return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
 def save_tables(timestamp, source, base_path="data"):
-    """Generate and save all precomputed tables, and append IVOLs to historical data."""
+    """Generate and save all precomputed tables, including normalized table, and append IVOLs to historical data."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names, ranking, barclays = load_data(timestamp, source, base_path)
@@ -339,11 +364,13 @@ def save_tables(timestamp, source, base_path="data"):
     # Generate tables
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
+    normalized_table, normalized_table_no_colors = generate_normalized_table(ranking)
     summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
     top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers)
     # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
+    os.makedirs(f"{base_path}/{timestamp}/tables/normalized", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/summary", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/contracts", exist_ok=True)
     # Save tables
@@ -353,6 +380,9 @@ def save_tables(timestamp, source, base_path="data"):
     if not stock_table.empty:
         stock_table.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table{prefix}.csv", index=False)
         stock_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table.csv", index=False)
+    if not normalized_table.empty:
+        normalized_table.to_csv(f"{base_path}/{timestamp}/tables/normalized/normalized_table{prefix}.csv", index=False)
+        normalized_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/normalized/normalized_table.csv", index=False)
     if not summary_table.empty:
         summary_table.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table{prefix}.csv", index=False)
         summary_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table.csv", index=False)
@@ -378,7 +408,7 @@ def save_tables(timestamp, source, base_path="data"):
             row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else pd.NA
         historical_data.append(row)
     historical_df = pd.DataFrame(historical_data, columns=historical_columns)
-   
+  
     # Save to historical IVOL file
     historical_file = f"{base_path}/history/historic_{ticker}.csv"
     os.makedirs(base_path, exist_ok=True)
