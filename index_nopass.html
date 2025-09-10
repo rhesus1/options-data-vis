@@ -11,569 +11,581 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #1A1A2E;
-        color: #FFFFFF;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        min-height: 100vh;
-        font-size: clamp(12px, 2vw, 14px); /* Tightened clamp range for more consistent body text scaling */
-    }
-    .sidebar {
-        width: clamp(200px, 20vw, 250px);
-        background: #208191;
-        padding: 15px;
-        border-right: 1px solid #26A69A;
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-        transition: transform 0.3s ease, width 0.3s ease;
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100%;
-        z-index: 1000;
-    }
-    .sidebar.hidden {
-        transform: translateX(-100%);
-        width: 0; /* Collapse width when hidden */
-        padding: 0; /* Remove padding when hidden */
-        overflow: hidden; /* Hide content when collapsed */
-    }
-    .sidebar-toggle {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        background-color: #208191;
-        color: #FFFFFF;
-        border: 1px solid #26A69A;
-        border-radius: 4px;
-        padding: 8px;
-        cursor: pointer;
-        z-index: 1001;
-        font-size: clamp(12px, 2vw, 14px);
-        display: block; /* Always visible, controlled by JS based on sidebar state */
-    }
-    .sidebar.hidden .sidebar-logo,
-    .sidebar.hidden .header,
-    .sidebar.hidden select,
-    .sidebar.hidden input,
-    .sidebar.hidden .toggle-button,
-    .sidebar.hidden a {
-        display: none; /* Hide all sidebar content when hidden */
-    }
-    .sidebar-logo {
-        display: block;
-        max-width: 100%;
-        height: auto;
-        margin: 0 auto 15px;
-        border-radius: 4px;
-    }
-    .sidebar a {
-        color: #26A69A;
-        text-decoration: none;
-        display: block;
-        padding: 10px;
-        font-size: clamp(12px, 2vw, 14px);
-        transition: color 0.3s ease, background-color 0.3s ease;
-        border-radius: 4px;
-    }
-    .sidebar a:hover {
-        color: #FFFFFF;
-        background-color: #4DB6AC;
-    }
-    .sidebar select, .sidebar input {
-        width: 100%;
-        padding: 8px;
-        background-color: #208191;
-        color: #FFFFFF;
-        border: 1px solid #26A69A;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        font-size: clamp(12px, 2vw, 14px);
-        transition: border-color 0.3s ease;
-    }
-    .sidebar select:focus, .sidebar input:focus {
-        border-color: #4DB6AC;
-        outline: none;
-    }
-    .main-content {
-        flex: 1;
-        padding: 15px;
-        overflow-y: auto;
-        background: #1A1A2E;
-        margin-left: 10px; /* Fixed gap between sidebar and main content */
-        width: calc(100% - clamp(200px, 20vw, 250px)); /* Adjust width to account for sidebar */
-        box-sizing: border-box;
-        transition: margin-left 0.3s ease, width 0.3s ease;
-        overflow-x: auto; /* Enables horizontal scrolling for main content if needed */
-    }
-    .main-content.full-width {
-        margin-left: 0;
-        width: 100%;
-    }
-    .chart-container {
-        background-color: #25253d;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        width: 100%;
-        max-width: 100%; /* Ensures containers don't exceed parent width */
-        box-sizing: border-box;
-        overflow-x: auto; /* Enables horizontal scrolling for wide content */
-        overflow-y: hidden; /* Prevents vertical overflow to avoid overlap */
-    }
-    .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 100%; /* Prevents tables from exceeding container width */
-        margin-top: 10px;
-        background-color: #25253d;
-        font-size: clamp(9px, 1.8vw, 11px); /* Smaller font-size clamp for better fit on small screens */
-        overflow-x: auto;
-        display: block;
-        table-layout: auto;
-        min-width: 100%; /* Ensures tables fill container but can scroll */
-        line-height: 1.3; /* Adjusted line-height to prevent text overlap */
-    }
-    .ranking-table th, .stock-table th, .contracts-table th {
-        border: 1px solid #26A69A;
-        background-color: #373758;
-        font-weight: bold;
-        cursor: pointer;
-        white-space: nowrap; /* Keep nowrap for headers on larger screens */
-        padding: clamp(4px, 1vw, 6px) clamp(2px, 0.5vw, 4px);
-        text-align: left;
-        color: #FFFFFF;
-        line-height: 1.3; /* Adjusted to prevent overlap */
-        min-width: 50px;
-        font-size: clamp(9px, 1.8vw, 11px);
-    }
-    .stats-table th, .stats-table td, .summary-table th, .summary-table td,
-    .ranking-table td, .raw-data-table th, .raw-data-table td,
-    .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
-        border: 1px solid #26A69A;
-        padding: clamp(4px, 1vw, 6px);
-        text-align: left;
-        color: #FFFFFF;
-        font-size: clamp(9px, 1.8vw, 11px);
-        white-space: normal; /* Allows wrapping to reduce table width */
-        line-height: 1.3; /* Prevents text overlap */
-    }
-    .stats-table th, .summary-table th, .raw-data-table th, .contracts-table th, .stock-table th {
-        background-color: #373758;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover, .stock-table th:hover {
-        background-color: #4B4B6F;
-    }
-    canvas {
-        width: 100% !important;
-        max-height: clamp(250px, 40vh, 350px); /* Tightened height range for consistency */
-        min-height: clamp(200px, 30vh, 300px); /* Ensures consistent minimum height */
-        border-radius: 4px;
-        background-color: #25253d;
-    }
-    .header {
-        text-align: center;
-        padding: 10px;
-        background-color: #208191;
-        border-bottom: 1px solid #26A69A;
-        font-size: clamp(14px, 2.5vw, 16px); /* Smaller clamp range for header text */
-        font-weight: bold;
-        color: #FFFFFF;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-    .ticker-display {
-        font-size: clamp(12px, 2vw, 14px); /* Adjusted for better scaling */
-        margin-bottom: 10px;
-        color: #FFFFFF;
-        text-align: center;
-        background-color: #208191;
-        padding: 8px;
-        border-radius: 4px;
-    }
-    .select-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        flex-wrap: wrap;
-    }
-    .arrow-button, .toggle-button {
-        background-color: #208191;
-        color: #FFFFFF;
-        border: 1px solid #26A69A;
-        border-radius: 4px;
-        padding: 6px 10px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-        font-size: clamp(12px, 2vw, 14px);
-    }
-    .arrow-button:hover, .toggle-button:hover {
-        background-color: #4DB6AC;
-    }
-    #historic-error {
-        color: #F87171;
-        padding: 8px;
-        text-align: center;
-        font-size: clamp(12px, 2vw, 14px);
-    }
-    .line-swatch {
-        display: inline-block;
-        vertical-align: middle;
-        margin-right: 5px;
-    }
-    .overview-grid {
-        display: grid;
-        grid-template-columns: repeat(10, 1fr); /* 10 equal columns for precise control */
-        grid-template-rows: auto auto; /* Two rows, auto-sized */
-        gap: 20px; /* Increased gap for better spacing */
-        max-width: 100%;
-    }
-    .overview-grid .historic-container {
-        grid-column: span 7; /* Historic takes ~70% (7/10 columns) */
-    }
-    .overview-grid .summary-container {
-        grid-column: span 3; /* Summary takes ~30% (3/10 columns) */
-    }
-    .overview-grid .contracts-container:nth-child(3) {
-        grid-column: span 5; /* Top Volume takes 50% (5/10 columns) */
-    }
-    .overview-grid .contracts-container:nth-child(4) {
-        grid-column: span 5; /* Open Interest takes 50% (5/10 columns) */
-    }
-    .volatility-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(clamp(350px, 35vw, 400px), 1fr)); /* Larger min-width for consistent plot sizes */
-        gap: 20px; /* Increased gap to prevent overlap */
-    }
-    .ranking-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(clamp(300px, 30vw, 350px), 1fr));
-        gap: 20px; /* Increased gap */
-    }
-    #call-vol-surface {
-        width: 100% !important;
-        max-height: clamp(250px, 40vh, 350px); /* Consistent with canvas */
-        min-height: clamp(200px, 30vh, 300px); /* Ensures uniform size */
-        min-width: 100%; /* Ensures it fills container */
-    }
-    .slider-container {
-        margin-top: 10px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        justify-content: center;
-        align-items: center;
-    }
-    .slider-group {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-        width: 100%;
-    }
-    .noUi-target {
-        background: linear-gradient(to right, #26A69A, #4DB6AC);
-        border: none;
-        border-radius: 5px;
-        height: 8px;
-        width: 100%;
-    }
-    .noUi-connect {
-        background: #26A69A;
-    }
-    .noUi-handle {
-        width: 15px;
-        height: 15px;
-        background: #FFFFFF;
-        border: 2px solid #26A69A;
-        border-radius: 50%;
-        box-shadow: 0 0 5px rgba(38, 166, 154, 0.5);
-        cursor: pointer;
-    }
-    .slider-value {
-        margin-top: 5px;
-        color: #4DB6AC;
-        font-weight: bold;
-        font-size: clamp(12px, 2vw, 14px);
-    }
-    .error-message {
-        color: #F87171;
-        text-align: center;
-        padding: 8px;
-        font-size: clamp(12px, 2vw, 14px);
-    }
-    .chart-container h2, .chart-container h3 {
-        margin-bottom: 10px;
-        text-align: center;
-        font-size: clamp(12px, 2vw, 14px); /* Smaller font-size for chart titles to fit better */
-        line-height: 1.3; /* Prevents overlap */
-    }
-    @media (max-width: 1024px) {
-        .volatility-grid {
-            grid-template-columns: 1fr; /* Single column to prevent squishing on medium screens */
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1A1A2E;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            min-height: 100vh;
+            font-size: clamp(12px, 2vw, 14px);
         }
-        .overview-grid, .ranking-grid {
-            grid-template-columns: 1fr; /* Single column for consistency on medium screens */
-            grid-template-rows: auto auto auto auto; /* Four rows for stacking */
-        }
-        .overview-grid .historic-container { grid-column: span 1; }
-        .overview-grid .summary-container { grid-column: span 1; }
-        .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
-        .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
-    }
-    @media (max-width: 768px) {
         .sidebar {
-            transform: translateX(-100%);
-            width: clamp(180px, 80vw, 200px);
+            width: clamp(200px, 20vw, 250px);
+            background: #208191;
+            padding: 15px;
+            border-right: 1px solid #26A69A;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, width 0.3s ease;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 1000;
         }
-        .sidebar.visible {
-            transform: translateX(0);
+        .sidebar.hidden {
+            transform: translateX(-100%);
+            width: 0;
+            padding: 0;
+            overflow: hidden;
         }
         .sidebar-toggle {
-            display: block; /* Ensure visible on small screens */
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #208191;
+            color: #FFFFFF;
+            border: 1px solid #26A69A;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: clamp(12px, 2vw, 14px);
+            display: block;
+        }
+        .sidebar.hidden .sidebar-logo,
+        .sidebar.hidden .header,
+        .sidebar.hidden select,
+        .sidebar.hidden input,
+        .sidebar.hidden .toggle-button,
+        .sidebar.hidden a {
+            display: none;
+        }
+        .sidebar-logo {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto 15px;
+            border-radius: 4px;
+        }
+        .sidebar a {
+            color: #26A69A;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            font-size: clamp(12px, 2vw, 14px);
+            transition: color 0.3s ease, background-color 0.3s ease;
+            border-radius: 4px;
+        }
+        .sidebar a:hover {
+            color: #FFFFFF;
+            background-color: #4DB6AC;
+        }
+        .sidebar select, .sidebar input {
+            width: 100%;
+            padding: 8px;
+            background-color: #208191;
+            color: #FFFFFF;
+            border: 1px solid #26A69A;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: clamp(12px, 2vw, 14px);
+            transition: border-color 0.3s ease;
+        }
+        .sidebar select:focus, .sidebar input:focus {
+            border-color: #4DB6AC;
+            outline: none;
         }
         .main-content {
-            margin-left: 0;
-            width: 100%;
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #1A1A2E;
+            margin-left: 10px;
+            width: calc(100% - clamp(200px, 20vw, 250px));
+            box-sizing: border-box;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+            overflow-x: auto;
         }
         .main-content.full-width {
             margin-left: 0;
             width: 100%;
         }
-        .overview-grid, .volatility-grid, .ranking-grid {
-            grid-template-columns: 1fr;
-            grid-template-rows: auto auto auto auto; /* Stack vertically on small screens */
-        }
-        .overview-grid .historic-container { grid-column: span 1; }
-        .overview-grid .summary-container { grid-column: span 1; }
-        .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
-        .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
         .chart-container {
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        canvas, #call-vol-surface {
-            max-height: clamp(200px, 35vh, 300px);
-            min-height: clamp(180px, 30vh, 250px); /* Consistent sizing on smaller screens */
+            background-color: #25253d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
         .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
-            font-size: clamp(8px, 1.6vw, 10px); /* Smaller text for better fit */
-            line-height: 1.2;
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 10px;
+            background-color: #25253d;
+            font-size: clamp(9px, 1.8vw, 11px);
+            overflow-x: auto;
+            display: block;
+            table-layout: auto;
+            min-width: 100%;
+            line-height: 1.3;
         }
         .ranking-table th, .stock-table th, .contracts-table th {
-            padding: clamp(3px, 0.8vw, 4px) clamp(2px, 0.4vw, 3px);
-            min-width: 40px;
-            font-size: clamp(8px, 1.6vw, 10px);
-            white-space: normal; /* Allow header wrapping to reduce width */
+            border: 1px solid #26A69A;
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            padding: clamp(4px, 1vw, 6px) clamp(2px, 0.5vw, 4px);
+            text-align: left;
+            color: #FFFFFF;
+            line-height: 1.3;
+            min-width: 50px;
+            font-size: clamp(9px, 1.8vw, 11px);
         }
         .stats-table th, .stats-table td, .summary-table th, .summary-table td,
         .ranking-table td, .raw-data-table th, .raw-data-table td,
         .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
-            padding: clamp(3px, 0.8vw, 4px);
+            border: 1px solid #26A69A;
+            padding: clamp(4px, 1vw, 6px);
+            text-align: left;
+            color: #FFFFFF;
+            font-size: clamp(9px, 1.8vw, 11px);
             white-space: normal;
+            line-height: 1.3;
         }
-        .chart-container h2, .chart-container h3 {
-            font-size: clamp(11px, 1.8vw, 13px); /* Smaller titles on small screens */
+        .stats-table th, .summary-table th, .raw-data-table th, .contracts-table th, .stock-table th {
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
         }
-    }
-    @media (max-width: 480px) {
-        .sidebar {
+        .stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover, .stock-table th:hover {
+            background-color: #4B4B6F;
+        }
+        canvas {
+            width: 100% !important;
+            max-height: clamp(250px, 40vh, 350px);
+            min-height: clamp(200px, 30vh, 300px);
+            border-radius: 4px;
+            background-color: #25253d;
+        }
+        .volatility-grid canvas {
+            width: 100% !important;
+            max-height: clamp(500px, 80vh, 700px); /* Doubled from 250px to 500px */
+            min-height: clamp(400px, 60vh, 600px); /* Doubled from 200px to 400px */
+            border-radius: 4px;
+            background-color: #25253d;
+        }
+        .header {
+            text-align: center;
+            padding: 10px;
+            background-color: #208191;
+            border-bottom: 1px solid #26A69A;
+            font-size: clamp(14px, 2.5vw, 16px);
+            font-weight: bold;
+            color: #FFFFFF;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        .ticker-display {
+            font-size: clamp(12px, 2vw, 14px);
+            margin-bottom: 10px;
+            color: #FFFFFF;
+            text-align: center;
+            background-color: #208191;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .select-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .arrow-button, .toggle-button {
+            background-color: #208191;
+            color: #FFFFFF;
+            border: 1px solid #26A69A;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: clamp(12px, 2vw, 14px);
+        }
+        .arrow-button:hover, .toggle-button:hover {
+            background-color: #4DB6AC;
+        }
+        #historic-error {
+            color: #F87171;
+            padding: 8px;
+            text-align: center;
+            font-size: clamp(12px, 2vw, 14px);
+        }
+        .line-swatch {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: auto auto;
+            gap: 20px;
+            max-width: 100%;
+        }
+        .overview-grid .historic-container {
+            grid-column: span 7;
+        }
+        .overview-grid .summary-container {
+            grid-column: span 3;
+        }
+        .overview-grid .contracts-container:nth-child(3) {
+            grid-column: span 5;
+        }
+        .overview-grid .contracts-container:nth-child(4) {
+            grid-column: span 5;
+        }
+        .volatility-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(700px, 70vw, 800px), 1fr)); /* Doubled from 350px to 700px */
+            gap: 20px;
+        }
+        .volatility-surface-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .ranking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(300px, 30vw, 350px), 1fr));
+            gap: 20px;
+        }
+        #call-vol-surface {
+            width: 100% !important;
+            max-height: clamp(250px, 40vh, 350px);
+            min-height: clamp(200px, 30vh, 300px);
+            min-width: 100%;
+        }
+        .slider-container {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
             width: 100%;
         }
-        .chart-container {
+        .noUi-target {
+            background: linear-gradient(to right, #26A69A, #4DB6AC);
+            border: none;
+            border-radius: 5px;
+            height: 8px;
+            width: 100%;
+        }
+        .noUi-connect {
+            background: #26A69A;
+        }
+        .noUi-handle {
+            width: 15px;
+            height: 15px;
+            background: #FFFFFF;
+            border: 2px solid #26A69A;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(38, 166, 154, 0.5);
+            cursor: pointer;
+        }
+        .slider-value {
+            margin-top: 5px;
+            color: #4DB6AC;
+            font-weight: bold;
+            font-size: clamp(12px, 2vw, 14px);
+        }
+        .error-message {
+            color: #F87171;
+            text-align: center;
             padding: 8px;
-        }
-        canvas, #call-vol-surface {
-            max-height: clamp(180px, 30vh, 250px);
-            min-height: clamp(160px, 25vh, 220px); /* Further reduced for very small screens */
-        }
-        .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
-            font-size: clamp(7px, 1.5vw, 9px); /* Even smaller text for tiny screens */
-            line-height: 1.2;
-        }
-        .ranking-table th, .stock-table th, .contracts-table th {
-            padding: clamp(2px, 0.6vw, 3px) clamp(1px, 0.3vw, 2px);
-            min-width: 30px;
-            font-size: clamp(7px, 1.5vw, 9px);
-            white-space: normal;
-        }
-        .stats-table th, .stats-table td, .summary-table th, .summary-table td,
-        .ranking-table td, .raw-data-table th, .raw-data-table td,
-        .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
-            padding: clamp(2px, 0.6vw, 3px);
-            white-space: normal;
+            font-size: clamp(12px, 2vw, 14px);
         }
         .chart-container h2, .chart-container h3 {
-            font-size: clamp(10px, 1.6vw, 12px);
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: clamp(12px, 2vw, 14px);
+            line-height: 1.3;
         }
-    }
-    .selected-ticker-row {
-        background-color: #4B4B6F !important; /* Subtle highlight for selected ticker row in ranking table */
-    }
-    .selected-ticker-row td {
-        background-color: #4B4B6F !important;
-    }
-    #selected-ticker-summary {
-        margin-bottom: 15px;
-    }
-    #selected-ticker-table {
-        margin-top: 10px;
-        background-color: #25253d;
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 100%;
-        font-size: clamp(9px, 1.8vw, 11px);
-        line-height: 1.3;
-    }
-    #selected-ticker-table th, #selected-ticker-table td {
-        border: 1px solid #26A69A;
-        padding: clamp(4px, 1vw, 6px);
-        text-align: left;
-        color: #FFFFFF;
-        font-size: clamp(9px, 1.8vw, 11px);
-        white-space: normal;
-    }
-    #selected-ticker-table th {
-        background-color: #373758;
-        font-weight: bold;
-    }
-    #selected-ticker-table th:hover {
-        background-color: #4B4B6F;
-    }
-    .normalized-table {
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 100%;
-        margin-top: 10px;
-        background-color: #25253d;
-        font-size: clamp(9px, 1.8vw, 11px);
-        overflow-x: auto;
-        display: block;
-        table-layout: auto;
-        min-width: 100%;
-        line-height: 1.3;
-    }
-    .normalized-table th, .normalized-table td {
-        border: 1px solid #26A69A;
-        padding: clamp(4px, 1vw, 6px);
-        text-align: left;
-        color: #FFFFFF;
-        font-size: clamp(9px, 1.8vw, 11px);
-        white-space: normal;
-    }
-    .normalized-table th {
-        background-color: #373758;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .normalized-table th:hover {
-        background-color: #4B4B6F;
-    }
-    @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+            .volatility-grid {
+                grid-template-columns: 1fr;
+            }
+            .volatility-surface-grid {
+                grid-template-columns: 1fr;
+            }
+            .overview-grid, .ranking-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+            .overview-grid .historic-container { grid-column: span 1; }
+            .overview-grid .summary-container { grid-column: span 1; }
+            .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
+            .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: clamp(180px, 80vw, 200px);
+            }
+            .sidebar.visible {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: block;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .main-content.full-width {
+                margin-left: 0;
+                width: 100%;
+            }
+            .overview-grid, .volatility-grid, .volatility-surface-grid, .ranking-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+            .overview-grid .historic-container { grid-column: span 1; }
+            .overview-grid .summary-container { grid-column: span 1; }
+            .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
+            .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
+            .chart-container {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            canvas, #call-vol-surface {
+                max-height: clamp(400px, 70vh, 600px); /* Doubled from 200px to 400px */
+                min-height: clamp(360px, 60vh, 500px); /* Doubled from 180px to 360px */
+            }
+            .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
+                font-size: clamp(8px, 1.6vw, 10px);
+                line-height: 1.2;
+            }
+            .ranking-table th, .stock-table th, .contracts-table th {
+                padding: clamp(3px, 0.8vw, 4px) clamp(2px, 0.4vw, 3px);
+                min-width: 40px;
+                font-size: clamp(8px, 1.6vw, 10px);
+                white-space: normal;
+            }
+            .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+            .ranking-table td, .raw-data-table th, .raw-data-table td,
+            .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
+                padding: clamp(3px, 0.8vw, 4px);
+                white-space: normal;
+            }
+            .chart-container h2, .chart-container h3 {
+                font-size: clamp(11px, 1.8vw, 13px);
+            }
+        }
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+            }
+            .chart-container {
+                padding: 8px;
+            }
+            canvas, #call-vol-surface {
+                max-height: clamp(360px, 60vh, 500px); /* Doubled from 180px to 360px */
+                min-height: clamp(320px, 50vh, 440px); /* Doubled from 160px to 320px */
+            }
+            .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table {
+                font-size: clamp(7px, 1.5vw, 9px);
+                line-height: 1.2;
+            }
+            .ranking-table th, .stock-table th, .contracts-table th {
+                padding: clamp(2px, 0.6vw, 3px) clamp(1px, 0.3vw, 2px);
+                min-width: 30px;
+                font-size: clamp(7px, 1.5vw, 9px);
+                white-space: normal;
+            }
+            .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+            .ranking-table td, .raw-data-table th, .raw-data-table td,
+            .contracts-table th, .contracts-table td, .stock-table th, .stock-table td {
+                padding: clamp(2px, 0.6vw, 3px);
+                white-space: normal;
+            }
+            .chart-container h2, .chart-container h3 {
+                font-size: clamp(10px, 1.6vw, 12px);
+            }
+        }
+        .selected-ticker-row {
+            background-color: #4B4B6F !important;
+        }
+        .selected-ticker-row td {
+            background-color: #4B4B6F !important;
+        }
+        #selected-ticker-table {
+            margin-top: 10px;
+            background-color: #25253d;
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 100%;
+            font-size: clamp(9px, 1.8vw, 11px);
+            line-height: 1.3;
+        }
+        #selected-ticker-table th, #selected-ticker-table td {
+            border: 1px solid #26A69A;
+            padding: clamp(4px, 1vw, 6px);
+            text-align: left;
+            color: #FFFFFF;
+            font-size: clamp(9px, 1.8vw, 11px);
+            white-space: normal;
+        }
+        #selected-ticker-table th {
+            background-color: #373758;
+            font-weight: bold;
+        }
+        #selected-ticker-table th:hover {
+            background-color: #4B4B6F;
+        }
         .normalized-table {
-            font-size: clamp(8px, 1.6vw, 10px);
-            line-height: 1.2;
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 10px;
+            background-color: #25253d;
+            font-size: clamp(9px, 1.8vw, 11px);
+            overflow-x: auto;
+            display: block;
+            table-layout: auto;
+            min-width: 100%;
+            line-height: 1.3;
         }
         .normalized-table th, .normalized-table td {
-            padding: clamp(3px, 0.8vw, 4px);
-            font-size: clamp(8px, 1.6vw, 10px);
+            border: 1px solid #26A69A;
+            padding: clamp(4px, 1vw, 6px);
+            text-align: left;
+            color: #FFFFFF;
+            font-size: clamp(9px, 1.8vw, 11px);
             white-space: normal;
         }
-    }
-    @media (max-width: 480px) {
-        .normalized-table {
-            font-size: clamp(7px, 1.5vw, 9px);
-            line-height: 1.2;
+        .normalized-table th {
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
         }
-        .normalized-table th, .normalized-table td {
-            padding: clamp(2px, 0.6vw, 3px);
-            font-size: clamp(7px, 1.5vw, 9px);
-            white-space: normal;
+        .normalized-table th:hover {
+            background-color: #4B4B6F;
         }
-    }
-    .sub-menu a.sub-tab {
-        font-size: clamp(10px, 1.8vw, 12px);
-        padding: 8px 10px;
-        margin-left: 10px;
-    }
-    .sub-menu a.sub-tab:hover {
-        background-color: #3A8A7E;
-    }
-    .trading-economics-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    .shares-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-    }
-    .shares-container {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-    .trading-economics-table {
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 100%;
-        margin-top: 10px;
-        background-color: #25253d;
-        font-size: clamp(9px, 1.8vw, 11px);
-        overflow-x: auto;
-        display: block;
-        table-layout: auto;
-        min-width: 100%;
-        line-height: 1.3;
-    }
-    .trading-economics-table th, .trading-economics-table td {
-        border: 1px solid #26A69A;
-        padding: clamp(4px, 1vw, 6px);
-        text-align: left;
-        color: #FFFFFF;
-        font-size: clamp(9px, 1.8vw, 11px);
-        white-space: nowrap;
-    }
-    .trading-economics-table th {
-        background-color: #373758;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .trading-economics-table th:hover {
-        background-color: #4B4B6F;
-    }
-    @media (max-width: 768px) {
-        .trading-economics-table {
-            font-size: clamp(8px, 1.6vw, 10px);
-            line-height: 1.2;
+        @media (max-width: 768px) {
+            .normalized-table {
+                font-size: clamp(8px, 1.6vw, 10px);
+                line-height: 1.2;
+            }
+            .normalized-table th, .normalized-table td {
+                padding: clamp(3px, 0.8vw, 4px);
+                font-size: clamp(8px, 1.6vw, 10px);
+                white-space: normal;
+            }
         }
-        .trading-economics-table th, .trading-economics-table td {
-            padding: clamp(3px, 0.8vw, 4px);
-            font-size: clamp(8px, 1.6vw, 10px);
-            white-space: normal;
+        @media (max-width: 480px) {
+            .normalized-table {
+                font-size: clamp(7px, 1.5vw, 9px);
+                line-height: 1.2;
+            }
+            .normalized-table th, .normalized-table td {
+                padding: clamp(2px, 0.6vw, 3px);
+                font-size: clamp(7px, 1.5vw, 9px);
+                white-space: normal;
+            }
+        }
+        .sub-menu a.sub-tab {
+            font-size: clamp(10px, 1.8vw, 12px);
+            padding: 8px 10px;
+            margin-left: 10px;
+        }
+        .sub-menu a.sub-tab:hover {
+            background-color: #3A8A7E;
+        }
+        .trading-economics-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .shares-grid {
+            display: grid;
+            grid-template-columns: 1fr;
         }
         .shares-container {
-            grid-template-columns: 1fr; /* Stack shares tables vertically on smaller screens */
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
         }
-    }
-    @media (max-width: 480px) {
         .trading-economics-table {
-            font-size: clamp(7px, 1.5vw, 9px);
-            line-height: 1.2;
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 10px;
+            background-color: #25253d;
+            font-size: clamp(9px, 1.8vw, 11px);
+            overflow-x: auto;
+            display: block;
+            table-layout: auto;
+            min-width: 100%;
+            line-height: 1.3;
         }
         .trading-economics-table th, .trading-economics-table td {
-            padding: clamp(2px, 0.6vw, 3px);
-            font-size: clamp(7px, 1.5vw, 9px);
-            white-space: normal;
+            border: 1px solid #26A69A;
+            padding: clamp(4px, 1vw, 6px);
+            text-align: left;
+            color: #FFFFFF;
+            font-size: clamp(9px, 1.8vw, 11px);
+            white-space: nowrap;
         }
-    }
-</style>
+        .trading-economics-table th {
+            background-color: #373758;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .trading-economics-table th:hover {
+            background-color: #4B4B6F;
+        }
+        @media (max-width: 768px) {
+            .trading-economics-table {
+                font-size: clamp(8px, 1.6vw, 10px);
+                line-height: 1.2;
+            }
+            .trading-economics-table th, .trading-economics-table td {
+                padding: clamp(3px, 0.8vw, 4px);
+                font-size: clamp(8px, 1.6vw, 10px);
+                white-space: normal;
+            }
+            .shares-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .trading-economics-table {
+                font-size: clamp(7px, 1.5vw, 9px);
+                line-height: 1.2;
+            }
+            .trading-economics-table th, .trading-economics-table td {
+                padding: clamp(2px, 0.6vw, 3px);
+                font-size: clamp(7px, 1.5vw, 9px);
+                white-space: normal;
+            }
+        }
+    </style>
 </head>
 <body>
     <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -587,6 +599,7 @@
         <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
         <a href="#overview">Overview</a>
         <a href="#volatility">Volatility</a>
+        <a href="#volatility-surface">Volatility Surface</a>
         <a href="#ranking">Ranking</a>
         <a href="#stock">Stock</a>
         <a href="#price-comparisons">Price Comparisons</a>
@@ -643,20 +656,20 @@
                 <div id="moneyness-error" class="error-message" style="display: none;">No data available</div>
             </div>
             <div class="chart-container">
-            <h3>Implied Volatility Term Structure</h3>
-            <div class="select-container">
-                <label for="moneyness-select">Select Moneyness: </label>
-                <select id="moneyness-select"></select>
+                <h3>Implied Volatility Term Structure</h3>
+                <div class="select-container">
+                    <label for="moneyness-select">Select Moneyness: </label>
+                    <select id="moneyness-select"></select>
+                </div>
+                <div class="select-container">
+                    <label for="term-min-expiry">Min Expiry: </label>
+                    <input type="date" id="term-min-expiry">
+                    <label for="term-max-expiry">Max Expiry: </label>
+                    <input type="date" id="term-max-expiry">
+                </div>
+                <canvas id="expiry-vs-iv-chart"></canvas>
+                <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="select-container">
-                <label for="term-min-expiry">Min Expiry: </label>
-                <input type="date" id="term-min-expiry">
-                <label for="term-max-expiry">Max Expiry: </label>
-                <input type="date" id="term-max-expiry">
-            </div>
-            <canvas id="expiry-vs-iv-chart"></canvas>
-            <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
-        </div>
             <div class="chart-container">
                 <h3>Volatility Skewness</h3>
                 <div class="select-container">
@@ -682,26 +695,39 @@
                 <div id="skew-error" class="error-message" style="display: none;">No data available</div>
             </div>
             <div class="chart-container">
-            <h3>Realised Volatility</h3>
-            <div class="select-container">
-                <label for="realised-start-date">Start Date: </label>
-                <input type="date" id="realised-start-date">
-                <label for="realised-end-date">End Date: </label>
-                <input type="date" id="realised-end-date">
+                <h3>Realised Volatility</h3>
+                <div class="select-container">
+                    <label for="realised-start-date">Start Date: </label>
+                    <input type="date" id="realised-start-date">
+                    <label for="realised-end-date">End Date: </label>
+                    <input type="date" id="realised-end-date">
+                </div>
+                <div class="select-container">
+                    <label for="realised-vol-metric-select">Select Volatility Metrics (Multi): </label>
+                    <select id="realised-vol-metric-select" multiple>
+                        <option value="Realised_Vol_Close_30" selected>30-day Vol</option>
+                        <option value="Realised_Vol_Close_60" selected>60-day Vol</option>
+                        <option value="Realised_Vol_Close_100" selected>100-day Vol</option>
+                        <option value="Realised_Vol_Close_180" selected>180-day Vol</option>
+                        <option value="Realised_Vol_Close_252" selected>252-day Vol</option>
+                    </select>
+                </div>
+                <canvas id="realised-vol-chart"></canvas>
+                <div id="realised-vol-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="select-container">
-                <label for="realised-vol-metric-select">Select Volatility Metrics (Multi): </label>
-                <select id="realised-vol-metric-select" multiple>
-                    <option value="Realised_Vol_Close_30" selected>30-day Vol</option>
-                    <option value="Realised_Vol_Close_60" selected>60-day Vol</option>
-                    <option value="Realised_Vol_Close_100" selected>100-day Vol</option>
-                    <option value="Realised_Vol_Close_180" selected>180-day Vol</option>
-                    <option value="Realised_Vol_Close_252" selected>252-day Vol</option>
-                </select>
+            <div class="chart-container">
+                <h3>Volatility of Vol (100-day)</h3>
+                <div class="select-container">
+                    <label for="volofvol-start-date">Start Date: </label>
+                    <input type="date" id="volofvol-start-date">
+                    <label for="volofvol-end-date">End Date: </label>
+                    <input type="date" id="volofvol-end-date">
+                </div>
+                <canvas id="vol-of-vol-chart"></canvas>
+                <div id="vol-of-vol-error" class="error-message" style="display: none;">No volatility of volatility data available</div>
             </div>
-            <canvas id="realised-vol-chart"></canvas>
-            <div id="realised-vol-error" class="error-message" style="display: none;">No data available</div>
         </div>
+        <div id="volatility-surface" class="volatility-surface-grid" style="display: none;">
             <div class="chart-container">
                 <h3>Call Volatility Surface</h3>
                 <div class="slider-container">
@@ -715,36 +741,6 @@
                 <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
-                <h3>Kurtosis</h3>
-                <div class="select-container">
-                    <label for="kurtosis-start-date">Start Date: </label>
-                    <input type="date" id="kurtosis-start-date">
-                    <label for="kurtosis-end-date">End Date: </label>
-                    <input type="date" id="kurtosis-end-date">
-                </div>
-                <div class="select-container">
-                    <label for="kurtosis-type-select">Select Kurtosis Type: </label>
-                    <select id="kurtosis-type-select">
-                        <option value="Kurtosis_Close_100d" selected>Close Prices</option>
-                        <option value="Kurtosis_Returns_100d">Log Returns</option>
-                    </select>
-                </div>
-                <canvas id="kurtosis-chart"></canvas>
-                <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
-            </div>
-            <div class="chart-container">
-                <h3>Volatility of Vol (100-day)</h3>
-                <div class="select-container">
-                    <label for="volofvol-start-date">Start Date: </label>
-                    <input type="date" id="volofvol-start-date">
-                    <label for="volofvol-end-date">End Date: </label>
-                    <input type="date" id="volofvol-end-date">
-                </div>
-                <canvas id="vol-of-vol-chart"></canvas>
-                <div id="vol-of-vol-error" class="error-message" style="display: none;">No volatility of volatility data available</div>
-            </div>
-           
         </div>
         <div id="ranking" class="chart-container" style="display: none;">
             <h2>Ticker Ranking</h2>
@@ -765,6 +761,24 @@
             <h2>Stock Metrics</h2>
             <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
             <table id="stock-table" class="stock-table" style="display: none;"></table>
+            <div class="chart-container">
+                <h3>Kurtosis</h3>
+                <div class="select-container">
+                    <label for="kurtosis-start-date">Start Date: </label>
+                    <input type="date" id="kurtosis-start-date">
+                    <label for="kurtosis-end-date">End Date: </label>
+                    <input type="date" id="kurtosis-end-date">
+                </div>
+                <div class="select-container">
+                    <label for="kurtosis-type-select">Select Kurtosis Type: </label>
+                    <select id="kurtosis-type-select">
+                        <option value="Kurtosis_Close_100d" selected>Close Prices</option>
+                        <option value="Kurtosis_Returns_100d">Log Returns</option>
+                    </select>
+                </div>
+                <canvas id="kurtosis-chart"></canvas>
+                <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
+            </div>
         </div>
         <div id="price-comparisons" class="chart-container" style="display: none;">
         <h2>Price Comparisons</h2>
@@ -3134,12 +3148,12 @@
         function updateSection(sectionId) {
             try {
                 console.log('Updating section:', sectionId);
-                const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table', 'price-comparisons', 'trading-economics'];
+                const sections = ['overview', 'volatility', 'volatility-surface', 'ranking', 'stock', 'data-table', 'price-comparisons', 'trading-economics'];
                 const selectedTickerSummary = document.getElementById('selected-ticker-summary');
                 sections.forEach(id => {
                     const element = document.getElementById(id);
                     if (id === sectionId) {
-                        element.style.display = id === 'overview' || id === 'volatility' || id === 'trading-economics' ? 'grid' : 'block';
+                        element.style.display = id === 'overview' || id === 'volatility' || id === 'volatility-surface' || id === 'trading-economics' ? 'grid' : 'block';
                     } else {
                         element.style.display = 'none';
                     }
@@ -3158,12 +3172,36 @@
                     });
                     updateTradingEconomicsTables();
                 } else {
-                    // Hide sub-menu when not in Trading Economics section
                     const subMenu = document.getElementById('trading-economics-sub-menu');
                     if (subMenu) subMenu.classList.remove('active');
                 }
         
-                updateCharts();
+                // Update relevant charts based on section
+                if (sectionId === 'overview') {
+                    updateSummaryTable();
+                    updateTopContractsTables();
+                    updateHistoricChart();
+                } else if (sectionId === 'volatility') {
+                    updateMoneynessVsIV();
+                    updateExpiryVsIV();
+                    updateSkewVsExpiry();
+                    updateRealisedVolChart();
+                    updateVolOfVolChart();
+                    updateSelectedTickerSummary();
+                } else if (sectionId === 'volatility-surface') {
+                    updateCallVolSurface();
+                } else if (sectionId === 'ranking') {
+                    updateVolumeChart();
+                    updateOpenInterestChart();
+                    updateRankingTable();
+                } else if (sectionId === 'stock') {
+                    updateStockTable();
+                    updateKurtosisChart();
+                } else if (sectionId === 'data-table') {
+                    updateRawDataTable();
+                } else if (sectionId === 'price-comparisons') {
+                    updateNormalizedTable();
+                }
             } catch (error) {
                 console.error('Error updating section:', error);
                 document.getElementById('historic-error').textContent = `Error navigating to section: ${error.message}`;
@@ -3259,8 +3297,6 @@
                 updateExpiryVsIV();
                 updateSkewVsExpiry();
                 updateRealisedVolChart();
-                updateCallVolSurface();
-                updateKurtosisChart();
                 updateVolOfVolChart();
                 updateSummaryTable();
                 updateTopContractsTables();
@@ -3272,6 +3308,8 @@
                 updateStockTable();
                 updateSelectedTickerSummary();
                 updateNormalizedTable();
+                updateKurtosisChart();
+                updateCallVolSurface();
             } catch (error) {
                 console.error('Error updating charts:', error);
                 document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
