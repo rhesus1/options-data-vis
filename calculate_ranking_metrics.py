@@ -268,7 +268,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         print(f"Found {len(tickers)} valid tickers to process from data files.")
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
-        past_year_start = current_dt - timedelta(days=365)
+        past_year_start = current_dt - timedelta(days=730)  # Changed to 2 years
   
         for idx, ticker in enumerate(tickers, 1):
             print(f"Processing ticker {ticker} (temp rank {idx})")
@@ -356,19 +356,19 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                                     print(f"calculate_ranking_metrics: No valid RVol values or invalid current_vol ({current_vol}) for ticker {ticker}")
                                     min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
                         else:
-                            print(f"calculate_ranking_metrics: No historic data for ticker {ticker} in past year")
+                            print(f"calculate_ranking_metrics: No historic data for ticker {ticker} in past 2 years")
                             min_vol = max_vol = mean_vol = percentile = z_score_percentile = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = min_vol if rvol_type == '100' else 'N/A'
-                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = max_vol if rvol_type == '100' else 'N/A'
-                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = mean_vol if rvol_type == '100' else 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Percentile (%)', percentile)
-                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = z_score_percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Z-Score Percentile (%)', z_score_percentile)
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (2y)'] = min_vol if rvol_type == '100' else 'N/A'
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (2y)'] = max_vol if rvol_type == '100' else 'N/A'
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (2y)'] = mean_vol if rvol_type == '100' else 'N/A'
+                        rank_dict['Rvol 100d Percentile 2y (%)'] = percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Percentile 2y (%)', percentile)
+                        rank_dict['Rvol 100d Z-Score Percentile 2y (%)'] = z_score_percentile if rvol_type == '100' else rank_dict.get('Rvol 100d Z-Score Percentile 2y (%)', z_score_percentile)
                     else:
                         rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
                         rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (2y)'] = 'N/A'
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (2y)'] = 'N/A'
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (2y)'] = 'N/A'
                         # Do not overwrite percentiles for other rvol_types
           
                 if not ticker_processed.empty:
@@ -459,11 +459,11 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                     if rvol_type == '100':
                         rank_dict[f'Realised Volatility {rvol_type}d 1d (%)'] = 'N/A'
                         rank_dict[f'Realised Volatility {rvol_type}d 1w (%)'] = 'N/A'
-                        rank_dict[f'Min Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict[f'Max Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict[f'Mean Realised Volatility {rvol_type}d (1y)'] = 'N/A'
-                        rank_dict['Rvol 100d Percentile (%)'] = 'N/A'
-                        rank_dict['Rvol 100d Z-Score Percentile (%)'] = 'N/A'
+                        rank_dict[f'Min Realised Volatility {rvol_type}d (2y)'] = 'N/A'
+                        rank_dict[f'Max Realised Volatility {rvol_type}d (2y)'] = 'N/A'
+                        rank_dict[f'Mean Realised Volatility {rvol_type}d (2y)'] = 'N/A'
+                        rank_dict['Rvol 100d Percentile 2y (%)'] = 'N/A'
+                        rank_dict['Rvol 100d Z-Score Percentile 2y (%)'] = 'N/A'
                 rank_dict['ATM IV 3m (%)'] = 'N/A'
                 rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
                 rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
@@ -481,7 +481,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                 rank_dict['OI 1d (%)'] = 'N/A'
                 rank_dict['OI 1w (%)'] = 'N/A'
                 rank_dict['Num Contracts'] = 'N/A'
-            ranking.append(rank_dict) # De-indented to always append
+            ranking.append(rank_dict)
       
         column_order = [
             'Rank', 'Ticker', 'Latest Open', 'Latest Close', 'Latest High', 'Latest Low',
@@ -489,9 +489,9 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'High 1d (%)', 'High 1w (%)', 'Low 1d (%)', 'Low 1w (%)',
             'Realised Volatility 30d (%)', 'Realised Volatility 60d (%)',
             'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
-            'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (1y)',
-            'Max Realised Volatility 100d (1y)', 'Mean Realised Volatility 100d (1y)',
-            'Rvol 100d Percentile (%)', 'Rvol 100d Z-Score Percentile (%)',
+            'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (2y)',
+            'Max Realised Volatility 100d (2y)', 'Mean Realised Volatility 100d (2y)',
+            'Rvol 100d Percentile 2y (%)', 'Rvol 100d Z-Score Percentile 2y (%)',
             'Realised Volatility 180d (%)', 'Realised Volatility 252d (%)',
             'Weighted IV (%)', 'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)',
             'Weighted IV 3m 1w (%)', 'ATM IV 3m (%)', 'ATM IV 3m 1d (%)',
@@ -503,7 +503,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         df_ranking = df_ranking[column_order]
         # Replace 'N/A' with NaN for sorting, sort by percentile descending, reassign rank
         df_ranking.replace('N/A', np.nan, inplace=True)
-        df_ranking.sort_values(by='Rvol 100d Percentile (%)', ascending=False, na_position='last', inplace=True)
+        df_ranking.sort_values(by='Rvol 100d Percentile 2y (%)', ascending=False, na_position='last', inplace=True)
         df_ranking['Rank'] = range(1, len(df_ranking) + 1)
         # Replace NaN back to 'N/A' for output
         df_ranking = df_ranking.fillna('N/A')
