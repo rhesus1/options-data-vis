@@ -240,7 +240,6 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             print(f"No historic data found for {timestamp}")
         if df_processed.empty:
             print(f"No processed data found for {timestamp}")
-            continue
    
         # Load previous day/week processed data (for IV calculations)
         processed_prev_day = load_processed_data(prev_day_ts, prefix) if prev_day_ts else pd.DataFrame(columns=['Ticker'])
@@ -271,16 +270,45 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             end_date_only = end_date.date() if isinstance(end_date, datetime) else end_date
             ticker_data = ticker_data[ticker_data['Date'].dt.date <= end_date_only].sort_values('Date')
             if len(ticker_data) < window:
-                print(f"calculate_rvol: Insufficient data ({len(ticker_data)} rows < {window}) for date {end_date_only}")
+                print(f"calculate_rvol: Insufficient data ({len(ticker_data)} rows < {window}) for date {end_date_only}, ticker {ticker}")
                 return 'N/A'
             log_returns = np.log(ticker_data['Close'] / ticker_data['Close'].shift(1)).dropna()
             if len(log_returns) < window:
-                print(f"calculate_rvol: Insufficient log returns ({len(log_returns)} < {window}) for date {end_date_only}")
+                print(f"calculate_rvol: Insufficient log returns ({len(log_returns)} < {window}) for date {end_date_only}, ticker {ticker}")
                 return 'N/A'
             return np.std(log_returns[-window:]) * np.sqrt(252) * 100 # Annualized volatility in percentage
       
-        tickers = list(set(df_processed['Ticker'].unique()) | set(df_historic['Ticker'].unique()) | set(current_option['Ticker'].unique()))
-        print(f"Found {len(tickers)} tickers to process from data files.")
+        # Use the provided ticker list instead of dynamic discovery
+        tickers = [
+            'AAL', 'ABBV', 'ABNB', 'ABR', 'ACCD', 'AEIS', 'AFRM', 'AG', 'AKAM', 'ALNY', 'ALRM', 'ALTM', 'ALTR', 'AMD', 'AMPH',
+            'AMZN', 'AORT', 'APLS', 'AR', 'ARAY', 'ARCH', 'ARRY', 'ASND', 'ASRT', 'ATEC', 'ATI', 'ATSG', 'AVDL', 'AVGO', 'AWK',
+            'AXON', 'AY', 'BA', 'BABA', 'BAND', 'BB', 'BBAI', 'BBIO', 'BE', 'BEST', 'BFH', 'BHR', 'BILI', 'BILL', 'BKD', 'BKNG',
+            'BL', 'BLMN', 'BMRN', 'BMY', 'BOX', 'BSY', 'BTSG', 'BTU', 'BURL', 'BXMT', 'BYND', 'CABO', 'CAKE', 'CAMP', 'CAMT',
+            'CBRL', 'CCL', 'CDLX', 'CDMO', 'CDP', 'CENX', 'CERE', 'CFLT', 'CHEF', 'CHGG', 'CHRS', 'CHTR', 'CMI', 'CMPO', 'CMRC',
+            'CMS', 'CNK', 'CNMD', 'CNP', 'CNX', 'COIN', 'COLL', 'CRNC', 'CSGS', 'CSIQ', 'CTO', 'CUTR', 'CVX', 'CYBR', 'CYRX',
+            'CYTK', 'DAY', 'DBRG', 'DBX', 'DDD', 'DDOG', 'DIS', 'DKNG', 'DM', 'DNMR', 'DOCN', 'DUK', 'DVAX', 'DXCM', 'EB', 'ECPG',
+            'EEFT', 'EGHT', 'EGIO', 'ENOV', 'ENPH', 'ENV', 'ENVX', 'EQT', 'EQX', 'ETSY', 'EVBG', 'EVH', 'EVRG', 'EXAS', 'EXPE',
+            'EYE', 'EZPW', 'F', 'FARO', 'FE', 'FIVN', 'FLR', 'FOUR', 'FRPT', 'FRT', 'FSLY', 'FSRN', 'FTCHF', 'FUBO', 'FVRR',
+            'FWONK', 'GBX', 'GCI', 'GDS', 'GEO', 'GES', 'GH', 'GKOS', 'GMED', 'GOSS', 'GPN', 'GPRE', 'GPRO', 'GRPN', 'GTLS', 'GVA',
+            'GWRE', 'HAE', 'HALO', 'HASI', 'HCAT', 'HCI', 'HLF', 'HLIT', 'HLX', 'HOPE', 'HOUS', 'HRTG', 'HTHT', 'HUBS', 'IART',
+            'IBM', 'IDCC', 'IIIV', 'IMAX', 'IMCR', 'INDI', 'INFN', 'INN', 'INSG', 'INSM', 'INVA', 'IONS', 'IQ', 'IRTC', 'IRWD',
+            'ITGR', 'ITRI', 'JAMF', 'JAZZ', 'JBLU', 'JBT', 'JD', 'JOYY', 'JPM', 'KHC', 'KOS', 'KPTI', 'KRG', 'LAB', 'LAC', 'LAZR',
+            'LCID', 'LCII', 'LI', 'LITE', 'LIVN', 'LNT', 'LNTH', 'LPSN', 'LRN', 'LSXMA', 'LUV', 'LYFT', 'LYV', 'MARA', 'MAXN',
+            'MCHP', 'MCS', 'MDB', 'MDRX', 'MGNI', 'MGPI', 'MIDD', 'MIRM', 'MITK', 'MITT', 'MKSI', 'MLAB', 'MMM', 'MMSI', 'MMYT',
+            'MNKD', 'MODG', 'MODN', 'MOMO', 'MP', 'MRK', 'MSFT', 'MSTR', 'MTCH', 'MTH', 'MTN', 'MTSI', 'NBR', 'NCLH', 'NEE', 'NEO',
+            'NET', 'NICE', 'NIO', 'NKE', 'NKLA', 'NMFC', 'NOG', 'NOTV', 'NOVA', 'NRG', 'NSIT', 'NSTG', 'NTNX', 'NTRA', 'NVAX',
+            'NVCR', 'NVMI', 'NVRO', 'NVST', 'OKTA', 'OMCL', 'OMER', 'ON', 'OPEN', 'OPK', 'ORA', 'PANW', 'PAR', 'PATK', 'PCG',
+            'PCRX', 'PCT', 'PD', 'PDD', 'PEB', 'PEGA', 'PENN', 'PEP', 'PETQ', 'PI', 'PLUG', 'PMT', 'PODD', 'POST', 'PPL', 'PR',
+            'PRCH', 'PRFT', 'PRGS', 'PRO', 'PSEC', 'PSN', 'PTCT', 'PTON', 'QD', 'QTWO', 'RCL', 'RDFN', 'REAL', 'REXR', 'RGEN',
+            'RH', 'RIG', 'RIVN', 'RKLB', 'RNG', 'RPAY', 'RPD', 'RTX', 'RUN', 'RVNC', 'RWT', 'SABR', 'SATS', 'SAVE', 'SE', 'SEDG',
+            'SENS', 'SGH', 'SHAK', 'SHEL', 'SHOP', 'SIRI', 'SKIN', 'SLB', 'SLNA', 'SMCI', 'SMTC', 'SNAP', 'SO', 'SOFI', 'SPB',
+            'SPCE', 'SPHR', 'SPOT', 'SPR', 'SRPT', 'SSRM', 'STWD', 'STX', 'TCOM', 'TDOC', 'TEVA', 'TGT', 'TMDX', 'TNDM', 'TPIC',
+            'TREE', 'TRIP', 'TSLA', 'TTEK', 'TTGT', 'TTWO', 'TVTX', 'TWO', 'TWOU', 'TYL', 'U', 'UBER', 'UNIT', 'UPHL', 'UPST',
+            'UPWK', 'V', 'VAC', 'VATE', 'VECO', 'VERI', 'VERX', 'VIAV', 'VNET', 'VREX', 'VRM', 'VRNS', 'VRNT', 'VSH', 'VTNR',
+            'VTR', 'W', 'WB', 'WDC', 'WEC', 'WELL', 'WGO', 'WIX', 'WK', 'WKC', 'WOLF', 'WT', 'X', 'XERS', 'XIFR', 'XMTR', 'XOM',
+            'XRX', 'XYZ', 'Z', 'ZD', 'ZS', 'ZTO'
+        ]
+        print(f"Processing {len(tickers)} tickers from provided list.")
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
         past_year_start = current_dt - timedelta(days=365)
@@ -453,6 +481,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         else:
                             rank_dict['Rvol100d - Weighted IV'] = rank_dict.get('Rvol100d - Weighted IV', 'N/A')
                 else:
+                    print(f"No historic data for ticker {ticker}, setting all price-related metrics to 'N/A'")
                     rank_dict['Latest Open'] = 'N/A'
                     rank_dict['Latest Close'] = 'N/A'
                     rank_dict['Latest High'] = 'N/A'
@@ -511,14 +540,16 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
             'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
         ]
         df_ranking = pd.DataFrame(ranking)
+        print(f"Created DataFrame with {len(df_ranking)} rows before sorting.")
         df_ranking = df_ranking[column_order]
 
-        # Fix: Replace 'N/A' with NaN for proper sorting, sort by percentile descending (high outliers first), reassign rank
+        # Replace 'N/A' with NaN for sorting, sort by percentile descending, reassign rank
         df_ranking.replace('N/A', np.nan, inplace=True)
         df_ranking.sort_values(by='Rvol 100d Percentile (%)', ascending=False, na_position='last', inplace=True)
         df_ranking['Rank'] = range(1, len(df_ranking) + 1)
-        # Optional: Replace NaN back to 'N/A' for output if preferred
+        # Replace NaN back to 'N/A' for output
         df_ranking = df_ranking.fillna('N/A')
+        print(f"Final DataFrame has {len(df_ranking)} rows after sorting.")
 
         ranking_dir = f'data/{timestamp}/ranking'
         os.makedirs(ranking_dir, exist_ok=True)
