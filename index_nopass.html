@@ -497,6 +497,82 @@
             white-space: normal;
         }
     }
+    .sub-menu a.sub-tab {
+        font-size: clamp(10px, 1.8vw, 12px);
+        padding: 8px 10px;
+        margin-left: 10px;
+    }
+    .sub-menu a.sub-tab:hover {
+        background-color: #3A8A7E;
+    }
+    .trading-economics-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .shares-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+    .shares-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    .trading-economics-table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 100%;
+        margin-top: 10px;
+        background-color: #25253d;
+        font-size: clamp(9px, 1.8vw, 11px);
+        overflow-x: auto;
+        display: block;
+        table-layout: auto;
+        min-width: 100%;
+        line-height: 1.3;
+    }
+    .trading-economics-table th, .trading-economics-table td {
+        border: 1px solid #26A69A;
+        padding: clamp(4px, 1vw, 6px);
+        text-align: left;
+        color: #FFFFFF;
+        font-size: clamp(9px, 1.8vw, 11px);
+        white-space: nowrap;
+    }
+    .trading-economics-table th {
+        background-color: #373758;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .trading-economics-table th:hover {
+        background-color: #4B4B6F;
+    }
+    @media (max-width: 768px) {
+        .trading-economics-table {
+            font-size: clamp(8px, 1.6vw, 10px);
+            line-height: 1.2;
+        }
+        .trading-economics-table th, .trading-economics-table td {
+            padding: clamp(3px, 0.8vw, 4px);
+            font-size: clamp(8px, 1.6vw, 10px);
+            white-space: normal;
+        }
+        .shares-container {
+            grid-template-columns: 1fr; /* Stack shares tables vertically on smaller screens */
+        }
+    }
+    @media (max-width: 480px) {
+        .trading-economics-table {
+            font-size: clamp(7px, 1.5vw, 9px);
+            line-height: 1.2;
+        }
+        .trading-economics-table th, .trading-economics-table td {
+            padding: clamp(2px, 0.6vw, 3px);
+            font-size: clamp(7px, 1.5vw, 9px);
+            white-space: normal;
+        }
+    }
 </style>
 </head>
 <body>
@@ -514,6 +590,15 @@
         <a href="#ranking">Ranking</a>
         <a href="#stock">Stock</a>
         <a href="#price-comparisons">Price Comparisons</a>
+        <a href="#trading-economics" id="trading-economics-link">Trading Economics</a>
+        <div class="sub-menu" id="trading-economics-sub-menu">
+            <a href="#trading-economics-bonds" class="sub-tab">Bonds</a>
+            <a href="#trading-economics-commodities" class="sub-tab">Commodities</a>
+            <a href="#trading-economics-stocks" class="sub-tab">Stocks</a>
+            <a href="#trading-economics-currencies" class="sub-tab">Currencies</a>
+            <a href="#trading-economics-crypto" class="sub-tab">Crypto</a>
+            <a href="#trading-economics-shares" class="sub-tab">Shares</a>
+        </div>
         <a href="#data-table">Data Table</a>
     </div>
     <div class="main-content">
@@ -691,6 +776,48 @@
             <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
             <table id="normalized-table" class="normalized-table" style="display: none;"></table>
         </div>
+        <div id="trading-economics" class="trading-economics-grid" style="display: none;">
+            <div id="trading-economics-bonds" class="chart-container" style="display: none;">
+                <h2>Bonds</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Show Data</button>
+                <table id="bonds-table" class="trading-economics-table" style="display: none;"></table>
+            </div>
+            <div id="trading-economics-commodities" class="chart-container" style="display: none;">
+                <h2>Commodities</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Show Data</button>
+                <table id="commodities-table" class="trading-economics-table" style="display: none;"></table>
+            </div>
+            <div id="trading-economics-stocks" class="chart-container" style="display: none;">
+                <h2>Stocks</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('stocks')">Show Data</button>
+                <table id="stocks-table" class="trading-economics-table" style="display: none;"></table>
+            </div>
+            <div id="trading-economics-currencies" class="chart-container" style="display: none;">
+                <h2>Currencies</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Show Data</button>
+                <table id="currencies-table" class="trading-economics-table" style="display: none;"></table>
+            </div>
+            <div id="trading-economics-crypto" class="chart-container" style="display: none;">
+                <h2>Crypto</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Show Data</button>
+                <table id="crypto-table" class="trading-economics-table" style="display: none;"></table>
+            </div>
+            <div id="trading-economics-shares" class="chart-container shares-grid" style="display: none;">
+                <h2>Shares</h2>
+                <div class="shares-container">
+                    <div class="chart-container">
+                        <h3>Gainers</h3>
+                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_gainers')">Show Data</button>
+                        <table id="shares-gainers-table" class="trading-economics-table" style="display: none;"></table>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Losers</h3>
+                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_losers')">Show Data</button>
+                        <table id="shares-losers-table" class="trading-economics-table" style="display: none;"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="data-table" class="chart-container" style="display: none;">
             <h2>Data Table</h2>
             <table id="raw-data-table" class="raw-data-table"></table>
@@ -712,6 +839,20 @@
         let stockData = [];
         let uniqueExpiries = []; // Global to store unique expiries
         let normalizedData = [];
+        let bondsData = [];
+        let commoditiesData = [];
+        let stocksData = [];
+        let currenciesData = [];
+        let cryptoData = [];
+        let sharesGainersData = [];
+        let sharesLosersData = [];
+        let bondsTableVisible = false;
+        let commoditiesTableVisible = false;
+        let stocksTableVisible = false;
+        let currenciesTableVisible = false;
+        let cryptoTableVisible = false;
+        let sharesGainersTableVisible = false;
+        let sharesLosersTableVisible = false;
         let normalizedTableVisible = false;
         let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, kurtosisChart, volOfVolChart;
         let statsTablesVisible = false;
@@ -748,10 +889,16 @@
             } catch (error) {
                 console.warn(`Error loading ${url}:`, error);
                 array.splice(0, array.length);
-                document.getElementById('historic-error').textContent = `Failed to load ${url}: ${error.message}`;
-                document.getElementById('historic-error').style.display = 'block';
+                if (url.includes('Trading_Economics')) {
+                    document.getElementById('trading-economics-error')?.textContent = `Failed to load ${url}: ${error.message}`;
+                    document.getElementById('trading-economics-error')?.style.display = 'block';
+                } else {
+                    document.getElementById('historic-error').textContent = `Failed to load ${url}: ${error.message}`;
+                    document.getElementById('historic-error').style.display = 'block';
+                }
             }
         }
+        
         function normalizeDate(dateStr) {
             try {
                 const date = new Date(dateStr);
@@ -846,6 +993,13 @@
                 topOpenInterestData = [];
                 stockData = [];
                 normalizedData = [];
+                bondsData = [];
+                commoditiesData = [];
+                stocksData = [];
+                currenciesData = [];
+                cryptoData = [];
+                sharesGainersData = [];
+                sharesLosersData = [];
         
                 const checkFileExists = async (url) => {
                     try {
@@ -879,7 +1033,14 @@
                     { url: `data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, array: slopeData },
                     { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, array: cleanedData },
                     { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
-                    { url: `data/Events.csv`, array: eventsData }
+                    { url: `data/Events.csv`, array: eventsData },
+                    { url: `data/${timestamp}/Trading_Economics/bonds.csv`, array: bondsData },
+                    { url: `data/${timestamp}/Trading_Economics/commodities.csv`, array: commoditiesData },
+                    { url: `data/${timestamp}/Trading_Economics/stocks.csv`, array: stocksData },
+                    { url: `data/${timestamp}/Trading_Economics/currencies.csv`, array: currenciesData },
+                    { url: `data/${timestamp}/Trading_Economics/crypto.csv`, array: cryptoData },
+                    { url: `data/${timestamp}/Trading_Economics/shares_gainers.csv`, array: sharesGainersData },
+                    { url: `data/${timestamp}/Trading_Economics/shares_losers.csv`, array: sharesLosersData }
                 ];
         
                 const promises = files.map(file =>
@@ -914,7 +1075,6 @@
                     option.textContent = val;
                     tickerCompareSelect.appendChild(option);
                 });
-                // Select the current ticker by default
                 if (uniqueTickers.includes(selectedTicker)) {
                     tickerCompareSelect.value = selectedTicker;
                 }
@@ -948,7 +1108,14 @@
                     topVolumeData: topVolumeData.slice(0, 5),
                     topOpenInterestData: topOpenInterestData.slice(0, 5),
                     stockData: stockData.slice(0, 5),
-                    normalizedData: normalizedData.slice(0, 5)
+                    normalizedData: normalizedData.slice(0, 5),
+                    bondsData: bondsData.slice(0, 5),
+                    commoditiesData: commoditiesData.slice(0, 5),
+                    stocksData: stocksData.slice(0, 5),
+                    currenciesData: currenciesData.slice(0, 5),
+                    cryptoData: cryptoData.slice(0, 5),
+                    sharesGainersData: sharesGainersData.slice(0, 5),
+                    sharesLosersData: sharesLosersData.slice(0, 5)
                 });
         
                 document.getElementById('historic-error').style.display = 'none';
@@ -973,6 +1140,13 @@
                 topOpenInterestData = [];
                 stockData = [];
                 normalizedData = [];
+                bondsData = [];
+                commoditiesData = [];
+                stocksData = [];
+                currenciesData = [];
+                cryptoData = [];
+                sharesGainersData = [];
+                sharesLosersData = [];
                 document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
                 document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
@@ -2960,12 +3134,12 @@
         function updateSection(sectionId) {
             try {
                 console.log('Updating section:', sectionId);
-                const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table', 'price-comparisons'];
+                const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table', 'price-comparisons', 'trading-economics'];
                 const selectedTickerSummary = document.getElementById('selected-ticker-summary');
                 sections.forEach(id => {
                     const element = document.getElementById(id);
                     if (id === sectionId) {
-                        element.style.display = id === 'overview' || id === 'volatility' ? 'grid' : 'block';
+                        element.style.display = id === 'overview' || id === 'volatility' || id === 'trading-economics' ? 'grid' : 'block';
                     } else {
                         element.style.display = 'none';
                     }
@@ -2973,6 +3147,22 @@
                 if (selectedTickerSummary) {
                     selectedTickerSummary.style.display = sectionId === 'volatility' ? 'block' : 'none';
                 }
+        
+                // Handle Trading Economics sub-sections
+                if (sectionId === 'trading-economics') {
+                    const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
+                    const selectedSubSection = document.querySelector('.sub-tab.active')?.getAttribute('href').substring(1) || 'trading-economics-bonds';
+                    subSections.forEach(subId => {
+                        const element = document.getElementById(`trading-economics-${subId}`);
+                        element.style.display = selectedSubSection === `trading-economics-${subId}` ? 'block' : 'none';
+                    });
+                    updateTradingEconomicsTables();
+                } else {
+                    // Hide sub-menu when not in Trading Economics section
+                    const subMenu = document.getElementById('trading-economics-sub-menu');
+                    if (subMenu) subMenu.classList.remove('active');
+                }
+        
                 updateCharts();
             } catch (error) {
                 console.error('Error updating section:', error);
@@ -2980,7 +3170,88 @@
                 document.getElementById('historic-error').style.display = 'block';
             }
         }
-       
+
+        function toggleTradingEconomicsTable(tableName) {
+            try {
+                const tableVisible = window[`${tableName}TableVisible`] || false;
+                window[`${tableName}TableVisible`] = !tableVisible;
+                const table = document.getElementById(`${tableName}-table`);
+                table.style.display = window[`${tableName}TableVisible`] ? 'table' : 'none';
+                document.querySelector(`#trading-economics-${tableName === 'shares_gainers' || tableName === 'shares_losers' ? 'shares' : tableName} .toggle-button[onclick*="${tableName}"]`).textContent = window[`${tableName}TableVisible`] ? 'Hide Data' : 'Show Data';
+                if (window[`${tableName}TableVisible`]) updateTradingEconomicsTables();
+                console.log(`${tableName} table visibility set to: ${window[`${tableName}TableVisible`]}`);
+            } catch (error) {
+                console.error(`Error toggling ${tableName} table:`, error);
+            }
+        }
+
+        function updateTradingEconomicsTables() {
+            try {
+                const tables = [
+                    { id: 'bonds', data: bondsData },
+                    { id: 'commodities', data: commoditiesData },
+                    { id: 'stocks', data: stocksData },
+                    { id: 'currencies', data: currenciesData },
+                    { id: 'crypto', data: cryptoData },
+                    { id: 'shares-gainers', data: sharesGainersData },
+                    { id: 'shares-losers', data: sharesLosersData }
+                ];
+                tables.forEach(({ id, data }) => {
+                    const table = document.getElementById(`${id}-table`);
+                    table.innerHTML = '';
+                    if (!data || data.length === 0) {
+                        table.innerHTML = `<tr><td colspan="10">No ${id} data available</td></tr>`;
+                        console.warn(`No data for ${id} table`);
+                        return;
+                    }
+                    const thead = document.createElement('thead');
+                    const headerRow = thead.insertRow();
+                    const columns = Object.keys(data[0]);
+                    columns.forEach((col, index) => {
+                        const th = document.createElement('th');
+                        th.textContent = col;
+                        th.dataset.column = col;
+                        th.dataset.order = 'desc';
+                        th.style.color = '#FFFFFF';
+                        th.addEventListener('click', () => sortTable(`${id}-table`, index));
+                        headerRow.appendChild(th);
+                    });
+                    table.appendChild(thead);
+                    const tbody = document.createElement('tbody');
+                    data.forEach(item => {
+                        const row = tbody.insertRow();
+                        columns.forEach(col => {
+                            const cell = row.insertCell();
+                            let value = item[col];
+                            if (Number.isFinite(value)) {
+                                if (col.includes('Price') || col.includes('Yield') || col.includes('Chg') || col.includes('Day')) {
+                                    value = value.toFixed(4);
+                                } else if (col.includes('MarketCap')) {
+                                    value = value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                } else {
+                                    value = value.toFixed(2);
+                                }
+                            } else {
+                                value = value || 'N/A';
+                            }
+                            cell.textContent = value;
+                            cell.style.color = '#FFFFFF';
+                            if (col.includes('%') && Number.isFinite(parseFloat(value)) && value !== 'N/A') {
+                                const val = parseFloat(value);
+                                cell.style.color = val < 0 ? '#F87171' : val > 0 ? '#10B981' : '#FFFFFF';
+                            }
+                        });
+                    });
+                    table.appendChild(tbody);
+                    console.log(`${id} table updated successfully, rows: ${data.length}`);
+                });
+            } catch (error) {
+                console.error('Error updating Trading Economics tables:', error);
+                document.getElementById('trading-economics-error')?.textContent = `Error loading tables: ${error.message}`;
+                document.getElementById('trading-economics-error')?.style.display = 'block';
+            }
+        }
+        
         function updateCharts() {
             try {
                 console.log('Updating all charts and tables');
@@ -3190,7 +3461,7 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
                                 const sectionId = currentSection ? currentSection.id : 'overview';
                                 updateSection(sectionId);
                                 console.log('Updated section after date change:', sectionId);
@@ -3206,7 +3477,7 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
                                 const sectionId = currentSection ? currentSection.id : 'overview';
                                 updateSection(sectionId);
                                 console.log('Updated section after time change:', sectionId);
@@ -3223,7 +3494,7 @@
                             if (await validateTimestamp(timestamp)) {
                                 await loadData(timestamp);
                                 updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .chart-container[style*="block"]');
+                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
                                 const sectionId = currentSection ? currentSection.id : 'overview';
                                 updateSection(sectionId);
                                 console.log('Updated section after ticker change:', sectionId);
@@ -3243,13 +3514,36 @@
                                 if (await validateTimestamp(timestamp)) {
                                     await loadData(timestamp);
                                     updateDropdowns();
-                                    updateSection(targetId);
+                                    // Handle Trading Economics sub-tabs
+                                    if (targetId.startsWith('trading-economics-')) {
+                                        document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                        link.classList.add('active');
+                                        const subMenu = document.getElementById('trading-economics-sub-menu');
+                                        if (subMenu) subMenu.classList.add('active');
+                                        updateSection('trading-economics');
+                                    } else {
+                                        document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                        const subMenu = document.getElementById('trading-economics-sub-menu');
+                                        if (subMenu) subMenu.classList.remove('active');
+                                        updateSection(targetId);
+                                    }
                                 } else {
                                     console.warn('Invalid timestamp on navigation:', timestamp);
                                     document.getElementById('historic-error').textContent = 'Invalid data timestamp';
                                     document.getElementById('historic-error').style.display = 'block';
                                 }
                             });
+                        });
+                        // Toggle Trading Economics sub-menu on main tab click
+                        const tradingEconomicsLink = document.getElementById('trading-economics-link');
+                        tradingEconomicsLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const subMenu = document.getElementById('trading-economics-sub-menu');
+                            subMenu.classList.toggle('active');
+                            if (subMenu.classList.contains('active')) {
+                                document.querySelector('.sub-tab[href="#trading-economics-bonds"]').classList.add('active');
+                                updateSection('trading-economics');
+                            }
                         });
                         document.getElementById('ticker-compare-select').addEventListener('change', () => {
                             console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
@@ -3261,6 +3555,7 @@
                         document.getElementById('ranking').style.display = 'none';
                         document.getElementById('data-table').style.display = 'none';
                         document.getElementById('price-comparisons').style.display = 'none';
+                        document.getElementById('trading-economics').style.display = 'none';
                         console.log('Initial load: Showing Overview');
                         addKeyboardNavigation();
                     })
