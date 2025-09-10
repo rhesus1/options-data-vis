@@ -148,7 +148,7 @@ def load_processed_data(ts, prefix):
         print(f"load_processed_data: No processed data files found in {processed_dir}")
         return pd.DataFrame()
     dfs = []
-    required_columns = ['Ticker', 'Expiry', 'IV_mid', 'Moneyness', 'Years_to_Expiry']
+    required_columns = ['Ticker', 'Expiry', 'Strike', 'Type', 'IV_mid', 'Moneyness', 'Years_to_Expiry']
     for file in processed_files:
         try:
             df = pd.read_csv(file)
@@ -162,7 +162,7 @@ def load_processed_data(ts, prefix):
                     if col != 'Ticker':
                         df[col] = np.nan
        
-            numeric_cols = ['IV_mid', 'Moneyness', 'Years_to_Expiry']
+            numeric_cols = ['IV_mid', 'Moneyness', 'Years_to_Expiry', 'Strike']
             for col in numeric_cols:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -174,7 +174,7 @@ def load_processed_data(ts, prefix):
         print(f"load_processed_data: No valid processed data files found in {processed_dir}")
         return pd.DataFrame()
     df_concat = pd.concat(dfs, ignore_index=True)
-    df_concat = df_concat.drop_duplicates(subset=['Ticker', 'Expiry'], keep='last')
+    df_concat = df_concat.drop_duplicates(subset=['Ticker', 'Expiry', 'Strike', 'Type'], keep='last')
     return df_concat if not df_concat.empty else pd.DataFrame(columns=required_columns)
 
 def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
@@ -268,7 +268,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
         print(f"Found {len(tickers)} valid tickers to process from data files.")
         ranking = []
         rvol_types = ['30', '60', '100', '180', '252']
-        past_year_start = current_dt - timedelta(days=730)  # Changed to 2 years
+        past_year_start = current_dt - timedelta(days=730)
   
         for idx, ticker in enumerate(tickers, 1):
             print(f"Processing ticker {ticker} (temp rank {idx})")
@@ -369,11 +369,12 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                         rank_dict[f'Min Realised Volatility {rvol_type}d (2y)'] = 'N/A'
                         rank_dict[f'Max Realised Volatility {rvol_type}d (2y)'] = 'N/A'
                         rank_dict[f'Mean Realised Volatility {rvol_type}d (2y)'] = 'N/A'
-                        # Do not overwrite percentiles for other rvol_types
           
                 if not ticker_processed.empty:
+                    print(f"Num Contracts for {ticker}: {len(ticker_processed)}")
                     weighted_iv = ticker_processed['IV_mid'].mean() if 'IV_mid' in ticker_processed.columns and not ticker_processed['IV_mid'].isna().all() else np.nan
                     rank_dict['Weighted IV (%)'] = weighted_iv * 100 if not np.isnan(weighted_iv) else 'N/A'
+                    rank_dict['Num Contracts'] = len(ticker_processed) if not ticker_processed.empty else 'N/A'
               
                     three_month_data = ticker_processed[(ticker_processed['Years_to_Expiry'] >= 70/365.25) & (ticker_processed['Years_to_Expiry'] <= 110/365.25)]
                     if three_month_data.empty:
@@ -399,7 +400,7 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
                     prev_week_weighted_iv_3m = prev_week_ticker_processed[(prev_week_ticker_processed['Years_to_Expiry'] >= 80/365.25) & (prev_week_ticker_processed['Years_to_Expiry'] <= 100/365.25)]['IV_mid'].mean() if not prev_week_ticker_processed.empty else np.nan
               
                     rank_dict['Weighted IV 3m 1d (%)'] = ((weighted_iv_3m - prev_day_weighted_iv_3m) / prev_day_weighted_iv_3m * 100) if not np.isnan(weighted_iv_3m) and not np.isnan(prev_day_weighted_iv_3m) and prev_day_weighted_iv_3m != 0 else 'N/A'
-                    rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_weighted_iv_3m * 100) if not np.isnan(weighted_iv_3m) and not np.isnan(prev_week_weighted_iv_3m) and prev_week_weighted_iv_3m != 0 else 'N/A'
+                    rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_week_weighted_iv_3m * 100) if not np.isnan(weighted_iv_3m) and not np.isnan(prev_week_weighted_iv_3m) and prev_week_weighted_iv_3m != 0 else 'N/A'
               
                     atm_iv_3m = calculate_atm_iv(ticker_processed, current_price, current_dt) if not ticker_processed.empty and current_price != 'N/A' else np.nan
                     rank_dict['ATM IV 3m (%)'] = atm_iv_3m * 100 if not np.isnan(atm_iv_3m) else 'N/A'
@@ -409,9 +410,6 @@ def calculate_ranking_metrics(timestamp, sources, data_dir='data'):
               
                     rank_dict['ATM IV 3m 1d (%)'] = ((atm_iv_3m - prev_day_atm_iv_3m) / prev_day_atm_iv_3m * 100) if not np.isnan(atm_iv_3m) and not np.isnan(prev_day_atm_iv_3m) and prev_day_atm_iv_3m != 0 else 'N/A'
                     rank_dict['ATM IV 3m 1w (%)'] = ((atm_iv_3m - prev_week_atm_iv_3m) / prev_week_atm_iv_3m * 100) if not np.isnan(atm_iv_3m) and not np.isnan(prev_week_atm_iv_3m) and prev_week_atm_iv_3m != 0 else 'N/A'
-              
-                    # Add number of contracts
-                    rank_dict['Num Contracts'] = len(ticker_processed) if not ticker_processed.empty else 'N/A'
               
                     if not ticker_option.empty:
                         rank_dict['Volume'] = ticker_option['Vol'].iloc[0]
