@@ -103,7 +103,7 @@
             padding: 15px;
             overflow-y: auto;
             background: #1A1A2E;
-            margin-left: 10px;
+            margin-left: clamp(200px, 20vw, 250px); /* Changed from 10px */
             width: calc(100% - clamp(200px, 20vw, 250px));
             box-sizing: border-box;
             transition: margin-left 0.3s ease, width 0.3s ease;
@@ -589,7 +589,7 @@
 </head>
 <body>
     <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
-    <div class="sidebar hidden">
+    <div class="sidebar">
         <img src="logo.webp" alt="Fourier Asset Management" class="sidebar-logo">
         <div class="header">Options Analysis</div>
         <select id="date-select"></select>
@@ -935,13 +935,19 @@
             const sidebar = document.querySelector('.sidebar');
             const mainContent = document.querySelector('.main-content');
             const toggleButton = document.querySelector('.sidebar-toggle');
-            const sidebarWidth = sidebar.classList.contains('hidden') ? 'clamp(200px, 20vw, 250px)' : '0';
+            const sidebarWidth = 'clamp(200px, 20vw, 250px)';
             sidebar.classList.toggle('hidden');
             sidebar.classList.toggle('visible');
             mainContent.classList.toggle('full-width');
-            mainContent.style.marginLeft = sidebar.classList.contains('hidden') ? '0' : sidebarWidth;
-            mainContent.style.width = sidebar.classList.contains('hidden') ? '100%' : `calc(100% - ${sidebarWidth})`;
-            toggleButton.textContent = sidebar.classList.contains('hidden') ? '☰' : '✕';
+            if (sidebar.classList.contains('hidden')) {
+                mainContent.style.marginLeft = '0';
+                mainContent.style.width = '100%';
+                toggleButton.textContent = '☰';
+            } else {
+                mainContent.style.marginLeft = sidebarWidth;
+                mainContent.style.width = `calc(100% - ${sidebarWidth})`;
+                toggleButton.textContent = '✕';
+            }
         }
     
         function toggleStatsTables() {
@@ -3288,8 +3294,13 @@
                 });
             } catch (error) {
                 console.error('Error updating Trading Economics tables:', error);
-                document.getElementById('trading-economics-error')?.textContent = `Error loading tables: ${error.message}`;
-                document.getElementById('trading-economics-error')?.style.display = 'block';
+                const errorElement = document.getElementById('trading-economics-error');
+                if (errorElement) {
+                    errorElement.textContent = `Error loading tables: ${error.message}`;
+                    errorElement.style.display = 'block';
+                } else {
+                    console.warn('trading-economics-error element not found in DOM');
+                }
             }
         }
         
