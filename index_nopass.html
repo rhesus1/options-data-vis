@@ -791,6 +791,7 @@
             <table id="normalized-table" class="normalized-table" style="display: none;"></table>
         </div>
         <div id="trading-economics" class="trading-economics-grid" style="display: none;">
+            <div id="trading-economics-error" class="error-message" style="display: none;">No trading economics data available</div>
             <div id="trading-economics-bonds" class="chart-container" style="display: none;">
                 <h2>Bonds</h2>
                 <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Show Data</button>
@@ -892,7 +893,11 @@
     
         async function fetchWithErrorHandling(url, array) {
             try {
+                if (typeof parseCSV !== 'function') {
+                    throw new Error('parseCSV function is not defined. Ensure PapaParse is loaded.');
+                }
                 const response = await fetch(`${url}?v=${Date.now()}`);
+                console.log(`Fetch response for ${url}:`, { status: response.status, statusText: response.statusText });
                 if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
                 const parsedData = parseCSV(await response.text());
                 array.splice(0, array.length, ...parsedData);
@@ -905,15 +910,15 @@
             } catch (error) {
                 console.warn(`Error loading ${url}:`, error);
                 array.splice(0, array.length);
-                if (url.includes('Trading_Economics')) {
-                    document.getElementById('trading-economics-error')?.textContent = `Failed to load ${url}: ${error.message}`;
-                    document.getElementById('trading-economics-error')?.style.display = 'block';
+                const errorElement = document.getElementById(url.includes('Trading_Economics') ? 'trading-economics-error' : 'historic-error');
+                if (errorElement) {
+                    errorElement.textContent = `Failed to load ${url}: ${error.message}`;
+                    errorElement.style.display = 'block';
                 } else {
-                    document.getElementById('historic-error').textContent = `Failed to load ${url}: ${error.message}`;
-                    document.getElementById('historic-error').style.display = 'block';
+                    console.warn(`${url.includes('Trading_Economics') ? 'trading-economics-error' : 'historic-error'} element not found in DOM`);
                 }
             }
-        }
+}
     
         function normalizeDate(dateStr) {
             try {
