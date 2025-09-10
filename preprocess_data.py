@@ -30,14 +30,14 @@ def load_data(timestamp, source, base_path="data"):
             ranking = pd.read_csv(ranking_path)
             numeric_cols = ['Latest Close', 'Realised Volatility 30d (%)', 'Realised Volatility 100d (%)',
                            'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
-                           'Min Realised Volatility 100d (1y)', 'Max Realised Volatility 100d (1y)',
-                           'Mean Realised Volatility 100d (1y)', 'Rvol 100d Percentile (%)',
-                           'Rvol 100d Z-Score Percentile (%)', 'Realised Volatility 180d (%)',
+                           'Min Realised Volatility 100d (2y)', 'Max Realised Volatility 100d (2y)',
+                           'Mean Realised Volatility 100d (2y)', 'Rvol 100d Percentile 2y (%)',
+                           'Rvol 100d Z-Score Percentile 2y (%)', 'Realised Volatility 180d (%)',
                            'Realised Volatility 252d (%)', 'Weighted IV (%)', 'Weighted IV 1d (%)',
                            'Weighted IV 1w (%)', 'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)',
                            'Weighted IV 3m 1w (%)', 'ATM IV 3m (%)', 'ATM IV 3m 1d (%)',
                            'ATM IV 3m 1w (%)', 'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)',
-                           'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)']
+                           'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts']
             for col in numeric_cols:
                 if col in ranking.columns:
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
@@ -101,15 +101,15 @@ def generate_ranking_table(ranking, company_names):
     columns = [
         "Rank", "Ticker", "Company Name", "Latest Close", "Realised Volatility 30d (%)",
         "Realised Volatility 100d (%)", "Realised Volatility 100d 1d (%)",
-        "Realised Volatility 100d 1w (%)", "Min Realised Volatility 100d (1y)",
-        "Max Realised Volatility 100d (1y)", "Mean Realised Volatility 100d (1y)",
-        "Rvol 100d Percentile (%)", "Rvol 100d Z-Score Percentile (%)",
+        "Realised Volatility 100d 1w (%)", "Min Realised Volatility 100d (2y)",
+        "Max Realised Volatility 100d (2y)", "Mean Realised Volatility 100d (2y)",
+        "Rvol 100d Percentile 2y (%)", "Rvol 100d Z-Score Percentile 2y (%)",
         "Realised Volatility 180d (%)", "Realised Volatility 252d (%)",
         "Weighted IV (%)", "Weighted IV 1d (%)", "Weighted IV 1w (%)",
         "Weighted IV 3m (%)", "Weighted IV 3m 1d (%)", "Weighted IV 3m 1w (%)",
         "ATM IV 3m (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
         "Rvol100d - Weighted IV", "Volume", "Volume 1d (%)", "Volume 1w (%)",
-        "Open Interest", "OI 1d (%)", "OI 1w (%)"
+        "Open Interest", "OI 1d (%)", "OI 1w (%)", "Num Contracts"
     ]
     for col in columns:
         if col not in ranking.columns:
@@ -118,7 +118,7 @@ def generate_ranking_table(ranking, company_names):
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
     for col in columns:
-        if col in ["Volume", "Open Interest"]:
+        if col in ["Volume", "Open Interest", "Num Contracts"]:
             ranking[col] = np.where(
                 ranking[col].notna() & (pd.to_numeric(ranking[col], errors='coerce') > 0) & (pd.to_numeric(ranking[col], errors='coerce').notna()),
                 pd.to_numeric(ranking[col], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) else "N/A"),
@@ -326,7 +326,6 @@ def save_tables(timestamp, source, base_path="data"):
     if ranking is None or ranking.empty:
         print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
         return
-
     # Load all ticker-specific data
     tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
@@ -337,19 +336,16 @@ def save_tables(timestamp, source, base_path="data"):
             processed_data = pd.concat([processed_data, processed], ignore_index=True)
         if not skew.empty:
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
-
     # Generate tables
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
     top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers)
-
     # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/summary", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/contracts", exist_ok=True)
-
     # Save tables
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
@@ -366,14 +362,12 @@ def save_tables(timestamp, source, base_path="data"):
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
         top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table.csv", index=False)
-
     # Append IVOLs to historical data
     ivol_columns = [
         'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)'
     ]
     historical_columns = ['Timestamp', 'Ticker'] + ivol_columns
     historical_data = []
-
     for ticker in tickers:
         ticker_data = ranking[ranking['Ticker'] == ticker]
         if ticker_data.empty:
@@ -383,9 +377,8 @@ def save_tables(timestamp, source, base_path="data"):
             value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].empty else pd.NA
             row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else pd.NA
         historical_data.append(row)
-
     historical_df = pd.DataFrame(historical_data, columns=historical_columns)
-    
+   
     # Save to historical IVOL file
     historical_file = f"{base_path}/history/historic_{ticker}.csv"
     os.makedirs(base_path, exist_ok=True)
@@ -395,11 +388,8 @@ def save_tables(timestamp, source, base_path="data"):
     else:
         # Create new file with header
         historical_df.to_csv(historical_file, mode='w', header=True, index=False)
-
     print(f"Appended IVOL data to {historical_file} in {time.time() - start_time:.2f} seconds")
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
-
-
 
 def main():
     start_time = time.time()
