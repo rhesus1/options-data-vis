@@ -446,6 +446,57 @@
     #selected-ticker-table th:hover {
         background-color: #4B4B6F;
     }
+    .normalized-table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 100%;
+        margin-top: 10px;
+        background-color: #25253d;
+        font-size: clamp(9px, 1.8vw, 11px);
+        overflow-x: auto;
+        display: block;
+        table-layout: auto;
+        min-width: 100%;
+        line-height: 1.3;
+    }
+    .normalized-table th, .normalized-table td {
+        border: 1px solid #26A69A;
+        padding: clamp(4px, 1vw, 6px);
+        text-align: left;
+        color: #FFFFFF;
+        font-size: clamp(9px, 1.8vw, 11px);
+        white-space: normal;
+    }
+    .normalized-table th {
+        background-color: #373758;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .normalized-table th:hover {
+        background-color: #4B4B6F;
+    }
+    @media (max-width: 768px) {
+        .normalized-table {
+            font-size: clamp(8px, 1.6vw, 10px);
+            line-height: 1.2;
+        }
+        .normalized-table th, .normalized-table td {
+            padding: clamp(3px, 0.8vw, 4px);
+            font-size: clamp(8px, 1.6vw, 10px);
+            white-space: normal;
+        }
+    }
+    @media (max-width: 480px) {
+        .normalized-table {
+            font-size: clamp(7px, 1.5vw, 9px);
+            line-height: 1.2;
+        }
+        .normalized-table th, .normalized-table td {
+            padding: clamp(2px, 0.6vw, 3px);
+            font-size: clamp(7px, 1.5vw, 9px);
+            white-space: normal;
+        }
+    }
 </style>
 </head>
 <body>
@@ -462,6 +513,7 @@
         <a href="#volatility">Volatility</a>
         <a href="#ranking">Ranking</a>
         <a href="#stock">Stock</a>
+        <a href="#price-comparisons">Price Comparisons</a>
         <a href="#data-table">Data Table</a>
     </div>
     <div class="main-content">
@@ -629,6 +681,16 @@
             <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
             <table id="stock-table" class="stock-table" style="display: none;"></table>
         </div>
+        <div id="price-comparisons" class="chart-container" style="display: none;">
+        <h2>Price Comparisons</h2>
+            <div class="select-container">
+                <label for="ticker-compare-select">Select Tickers to Compare (Multi): </label>
+                <select id="ticker-compare-select" multiple style="width: 200px;">
+                </select>
+            </div>
+            <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
+            <table id="normalized-table" class="normalized-table" style="display: none;"></table>
+        </div>
         <div id="data-table" class="chart-container" style="display: none;">
             <h2>Data Table</h2>
             <table id="raw-data-table" class="raw-data-table"></table>
@@ -649,6 +711,8 @@
         let topOpenInterestData = [];
         let stockData = [];
         let uniqueExpiries = []; // Global to store unique expiries
+        let normalizedData = [];
+        let normalizedTableVisible = false;
         let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, kurtosisChart, volOfVolChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
@@ -781,7 +845,8 @@
                 topVolumeData = [];
                 topOpenInterestData = [];
                 stockData = [];
-       
+                normalizedData = [];
+        
                 const checkFileExists = async (url) => {
                     try {
                         const response = await fetch(url, { method: 'HEAD' });
@@ -790,7 +855,7 @@
                         return false;
                     }
                 };
-       
+        
                 // Load company names from main directory (tab-separated)
                 const companyNamesExists = await checkFileExists(`./company_names.txt`);
                 if (companyNamesExists) {
@@ -799,7 +864,7 @@
                 } else {
                     console.warn('Company names file not found: ./company_names.txt');
                 }
-       
+        
                 // Load table-specific data files
                 const files = [
                     { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, array: rankingData },
@@ -807,6 +872,7 @@
                     { url: `data/${timestamp}/tables/summary/summary_table${prefix}.csv`, array: summaryData },
                     { url: `data/${timestamp}/tables/contracts/top_volume_table${prefix}.csv`, array: topVolumeData },
                     { url: `data/${timestamp}/tables/contracts/top_open_interest_table${prefix}.csv`, array: topOpenInterestData },
+                    { url: `data/${timestamp}/tables/normalized/normalized_table${prefix}.csv`, array: normalizedData },
                     { url: `data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, array: data },
                     { url: `data/${timestamp}/historic/historic_${selectedTicker}.csv`, array: historicData },
                     { url: `data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, array: skewData },
@@ -815,20 +881,20 @@
                     { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
                     { url: `data/Events.csv`, array: eventsData }
                 ];
-       
+        
                 const promises = files.map(file =>
                     checkFileExists(file.url).then(exists => {
                         if (exists) {
                             return fetchWithErrorHandling(file.url, file.array);
                         }
                         console.warn(`File not found: ${file.url}`);
-                        file.array.length = 0; // Clear array safely
+                        file.array.length = 0;
                         return Promise.resolve();
                     })
                 );
-       
+        
                 await Promise.all(promises);
-       
+        
                 // Populate ticker datalist
                 const tickerDatalist = document.getElementById('ticker-datalist');
                 tickerDatalist.innerHTML = '';
@@ -838,7 +904,21 @@
                     option.value = val;
                     tickerDatalist.appendChild(option);
                 });
-       
+        
+                // Populate ticker comparison dropdown
+                const tickerCompareSelect = document.getElementById('ticker-compare-select');
+                tickerCompareSelect.innerHTML = '';
+                uniqueTickers.forEach(val => {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.textContent = val;
+                    tickerCompareSelect.appendChild(option);
+                });
+                // Select the current ticker by default
+                if (uniqueTickers.includes(selectedTicker)) {
+                    tickerCompareSelect.value = selectedTicker;
+                }
+        
                 // Validate selected ticker
                 if (!uniqueTickers.includes(selectedTicker)) {
                     console.warn(`Selected ticker ${selectedTicker} not in ranking data, defaulting`);
@@ -853,7 +933,7 @@
                 } else {
                     document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
                 }
-       
+        
                 console.log('Data load complete:', {
                     data: data.slice(0, 5),
                     historicData: historicData.slice(0, 5),
@@ -867,15 +947,17 @@
                     summaryData: summaryData.slice(0, 5),
                     topVolumeData: topVolumeData.slice(0, 5),
                     topOpenInterestData: topOpenInterestData.slice(0, 5),
-                    stockData: stockData.slice(0, 5)
+                    stockData: stockData.slice(0, 5),
+                    normalizedData: normalizedData.slice(0, 5)
                 });
-       
+        
                 document.getElementById('historic-error').style.display = 'none';
                 return Promise.resolve();
             } catch (error) {
                 console.error('Error in loadData:', error);
                 document.getElementById('ticker-search').value = '';
                 document.getElementById('ticker-datalist').innerHTML = '';
+                document.getElementById('ticker-compare-select').innerHTML = '';
                 document.getElementById('ticker-display').textContent = 'N/A';
                 data = [];
                 rawData = [];
@@ -890,6 +972,7 @@
                 topVolumeData = [];
                 topOpenInterestData = [];
                 stockData = [];
+                normalizedData = [];
                 document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
                 document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
@@ -1536,6 +1619,77 @@
             } catch (error) {
                 console.error('Error updating stock table:', error);
                 document.getElementById('stock-table').innerHTML = '<tr><td colspan="17">Error loading stock data</td></tr>';
+            }
+        }
+
+        function togglePriceComparisonsTable() {
+            try {
+                normalizedTableVisible = !normalizedTableVisible;
+                const table = document.getElementById('normalized-table');
+                table.style.display = normalizedTableVisible ? 'table' : 'none';
+                document.querySelector('#price-comparisons .toggle-button').textContent = normalizedTableVisible ? 'Hide Data' : 'Show Data';
+                if (normalizedTableVisible) updateNormalizedTable();
+                console.log(`Normalized table visibility set to: ${normalizedTableVisible}`);
+            } catch (error) {
+                console.error('Error in togglePriceComparisonsTable:', error);
+            }
+        }
+        
+        function updateNormalizedTable() {
+            try {
+                const tickerCompareSelect = document.getElementById('ticker-compare-select');
+                const selectedTickers = Array.from(tickerCompareSelect.selectedOptions).map(opt => opt.value.toUpperCase());
+                const table = document.getElementById('normalized-table');
+                table.innerHTML = '';
+                if (normalizedData.length === 0) {
+                    table.innerHTML = '<tr><td colspan="4">No normalized data available</td></tr>';
+                    console.warn('No normalized data for normalized table');
+                    return;
+                }
+                const thead = document.createElement('thead');
+                const headerRow = thead.insertRow();
+                const columns = ['Ticker', 'Normalized 3m', 'Normalized 6m', 'Normalized 1y'];
+                columns.forEach((col, index) => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    th.dataset.column = col;
+                    th.dataset.order = 'desc';
+                    th.style.color = '#FFFFFF';
+                    th.addEventListener('click', () => sortTable('normalized-table', index));
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                const filteredData = selectedTickers.length > 0
+                    ? normalizedData.filter(item => selectedTickers.includes(item.Ticker))
+                    : normalizedData;
+                if (filteredData.length === 0) {
+                    table.innerHTML = '<tr><td colspan="4">No data for selected tickers</td></tr>';
+                    console.warn('No data for selected tickers:', selectedTickers);
+                    return;
+                }
+                filteredData.forEach(item => {
+                    const row = tbody.insertRow();
+                    columns.forEach(col => {
+                        const cell = row.insertCell();
+                        let value = item[col];
+                        if (Number.isFinite(value)) {
+                            value = value.toFixed(2);
+                        } else {
+                            value = value || 'N/A';
+                        }
+                        cell.textContent = value;
+                        cell.style.color = '#FFFFFF';
+                        if (item[`${col}_Color`]) {
+                            cell.style.color = item[`${col}_Color`];
+                        }
+                    });
+                });
+                table.appendChild(tbody);
+                console.log('Normalized table updated successfully for tickers:', selectedTickers);
+            } catch (error) {
+                console.error('Error updating normalized table:', error);
+                document.getElementById('normalized-table').innerHTML = '<tr><td colspan="4">Error loading normalized data</td></tr>';
             }
         }
        
@@ -2806,7 +2960,7 @@
         function updateSection(sectionId) {
             try {
                 console.log('Updating section:', sectionId);
-                const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table'];
+                const sections = ['overview', 'volatility', 'ranking', 'stock', 'data-table', 'price-comparisons'];
                 const selectedTickerSummary = document.getElementById('selected-ticker-summary');
                 sections.forEach(id => {
                     const element = document.getElementById(id);
@@ -2846,6 +3000,7 @@
                 updateRankingTable();
                 updateStockTable();
                 updateSelectedTickerSummary();
+                updateNormalizedTable();
             } catch (error) {
                 console.error('Error updating charts:', error);
                 document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
@@ -3096,11 +3251,16 @@
                                 }
                             });
                         });
+                        document.getElementById('ticker-compare-select').addEventListener('change', () => {
+                            console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
+                            updateNormalizedTable();
+                        });
                         const overviewContainer = document.getElementById('overview');
                         overviewContainer.style.display = 'grid';
                         document.getElementById('volatility').style.display = 'none';
                         document.getElementById('ranking').style.display = 'none';
                         document.getElementById('data-table').style.display = 'none';
+                        document.getElementById('price-comparisons').style.display = 'none';
                         console.log('Initial load: Showing Overview');
                         addKeyboardNavigation();
                     })
