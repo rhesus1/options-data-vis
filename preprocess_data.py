@@ -212,7 +212,7 @@ def generate_normalized_table(ranking):
     for col in columns:
         if col not in normalized_data.columns:
             normalized_data[col] = pd.NA if col != "Ticker" else "N/A"
-    for col in columns[1:]:  # Skip Ticker
+    for col in columns[1:]: # Skip Ticker
         normalized_data[col] = np.where(
             normalized_data[col].notna() & (pd.to_numeric(normalized_data[col], errors='coerce') == pd.to_numeric(normalized_data[col], errors='coerce')),
             pd.to_numeric(normalized_data[col], errors='coerce').round(2),
@@ -301,20 +301,24 @@ def generate_summary_table(ranking, skew_data, tickers):
     print(f"Generated summary table in {time.time() - start_time:.2f} seconds")
     return result, result_no_colors
 
-def generate_top_contracts_tables(processed_data, tickers):
+def generate_top_contracts_tables(processed_data, tickers, timestamp):
     """Generate aggregated top 10 volume and open interest tables for each ticker in a single file."""
     start_time = time.time()
     if processed_data.empty or 'Ticker' not in processed_data.columns:
         print(f"No contracts data in {time.time() - start_time:.2f} seconds")
         return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+    timestamp_dt = datetime.strptime(timestamp, "%Y%m%d_%H%M")
+    min_expiry_dt = (timestamp_dt + pd.DateOffset(months=3)).date()
     top_volume_list = []
     top_open_interest_list = []
     for ticker in tickers:
         filtered = processed_data[processed_data["Ticker"] == ticker]
         if filtered.empty:
             continue
-        top_volume = filtered[filtered["Volume"].notna()].sort_values("Volume", ascending=False).head(10)
-        top_open_interest = filtered[filtered["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
+        filtered['Expiry_dt'] = pd.to_datetime(filtered['Expiry'], errors='coerce').dt.date
+        long_term = filtered[filtered['Expiry_dt'] >= min_expiry_dt].drop(columns=['Expiry_dt'])
+        top_volume = long_term[long_term["Volume"].notna()].sort_values("Volume", ascending=False).head(10)
+        top_open_interest = long_term[long_term["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
         if not top_volume.empty:
             top_volume_list.append(top_volume)
         if not top_open_interest.empty:
@@ -366,7 +370,7 @@ def save_tables(timestamp, source, base_path="data"):
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     normalized_table, normalized_table_no_colors = generate_normalized_table(ranking)
     summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
-    top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers)
+    top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers, timestamp)
     # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
@@ -397,7 +401,6 @@ def save_tables(timestamp, source, base_path="data"):
         'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)'
     ]
     historical_columns = ['Timestamp', 'Ticker'] + ivol_columns
-    historical_data = []
     for ticker in tickers:
         ticker_data = ranking[ranking['Ticker'] == ticker]
         if ticker_data.empty:
@@ -406,19 +409,15 @@ def save_tables(timestamp, source, base_path="data"):
         for col in ivol_columns:
             value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].empty else pd.NA
             row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else pd.NA
-        historical_data.append(row)
-    historical_df = pd.DataFrame(historical_data, columns=historical_columns)
-  
-    # Save to historical IVOL file
-    historical_file = f"{base_path}/history/historic_{ticker}.csv"
-    os.makedirs(base_path, exist_ok=True)
-    if os.path.exists(historical_file):
-        # Append to existing file without header
-        historical_df.to_csv(historical_file, mode='a', header=False, index=False)
-    else:
-        # Create new file with header
-        historical_df.to_csv(historical_file, mode='w', header=True, index=False)
-    print(f"Appended IVOL data to {historical_file} in {time.time() - start_time:.2f} seconds")
+        historical_df = pd.DataFrame([row], columns=historical_columns)
+        historical_file = f"{base_path}/history/historic_{ticker}.csv"
+        os.makedirs(os.path.dirname(historical_file), exist_ok=True)
+        if os.path.exists(historical_file):
+            # Append to existing file without header
+            historical_df.to_csv(historical_file, mode='a', header=False, index=False)
+        else:
+            # Create new file with header
+            historical_df.to_csv(historical_file, mode='w', header=True, index=False)
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
 
 def main():
