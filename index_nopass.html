@@ -1273,7 +1273,7 @@
                 const table = document.getElementById('ranking-table');
                 table.innerHTML = '';
                 if (rankingData.length === 0) {
-                    table.innerHTML = '<tr><td colspan="30">No ranking data available</td></tr>';
+                    table.innerHTML = '<tr><td colspan="31">No ranking data available</td></tr>'; // Updated colspan to 31
                     console.warn('No ranking data for ranking table');
                     return;
                 }
@@ -1290,7 +1290,7 @@
                     'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
                     'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
+                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts' // Added new column
                 ];
                 const displayNameMap = {
                     'Realised Volatility 30d (%)': 'RVol\n30d (%)',
@@ -1313,7 +1313,8 @@
                     'ATM IV 3m (%)': 'ATM IVol\n3m (%)',
                     'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
                     'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
-                    'Rvol100d - Weighted IV': 'RVol100d -\nWIVol'
+                    'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
+                    'Num Contracts': 'Num\nContracts' // Added display name for new column
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1335,7 +1336,7 @@
                         const cell = row.insertCell();
                         let value = item[col];
                         if (Number.isFinite(value)) {
-                            if (col === 'Volume' || col === 'Open Interest') {
+                            if (col === 'Volume' || col === 'Open Interest' || col === 'Num Contracts') { // Added Num Contracts to integer formatting
                                 value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                             } else if (col === 'Rank') {
                                 value = parseInt(value);
@@ -1367,7 +1368,7 @@
                 console.log('Ranking table updated successfully');
             } catch (error) {
                 console.error('Error updating ranking table:', error);
-                document.getElementById('ranking-table').innerHTML = '<tr><td colspan="30">Error loading ranking data</td></tr>';
+                document.getElementById('ranking-table').innerHTML = '<tr><td colspan="31">Error loading ranking data</td></tr>'; // Updated colspan to 31
             }
         }
 
@@ -1378,7 +1379,7 @@
                 table.innerHTML = '';
                 const selectedRow = rankingData.find(item => item.Ticker === selectedTicker);
                 if (!selectedRow) {
-                    table.innerHTML = '<tr><td colspan="30">No ranking data for selected ticker</td></tr>';
+                    table.innerHTML = '<tr><td colspan="31">No ranking data for selected ticker</td></tr>'; // Updated colspan to 31
                     console.warn('No ranking data for selected ticker:', selectedTicker);
                     return;
                 }
@@ -1395,7 +1396,7 @@
                     'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
                     'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)'
+                    'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts' // Added new column
                 ];
                 const displayNameMap = {
                     'Realised Volatility 30d (%)': 'RVol\n30d (%)',
@@ -1418,7 +1419,8 @@
                     'ATM IV 3m (%)': 'ATM IVol\n3m (%)',
                     'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
                     'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
-                    'Rvol100d - Weighted IV': 'RVol100d -\nWIVol'
+                    'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
+                    'Num Contracts': 'Num\nContracts' // Added display name for new column
                 };
                 columns.forEach((col, index) => {
                     const th = document.createElement('th');
@@ -1436,7 +1438,7 @@
                     const cell = row.insertCell();
                     let value = selectedRow[col];
                     if (Number.isFinite(value)) {
-                        if (col === 'Volume' || col === 'Open Interest') {
+                        if (col === 'Volume' || col === 'Open Interest' || col === 'Num Contracts') { // Added Num Contracts to integer formatting
                             value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                         } else if (col === 'Rank') {
                             value = parseInt(value);
@@ -1467,7 +1469,7 @@
                 console.log('Selected ticker summary table updated for:', selectedTicker);
             } catch (error) {
                 console.error('Error updating selected ticker summary table:', error);
-                document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="30">Error loading selected ticker data</td></tr>';
+                document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="31">Error loading selected ticker data</td></tr>'; // Updated colspan to 31
             }
         }
         
@@ -1686,7 +1688,7 @@
                     let bValue = b.children[columnIndex].textContent;
                     if (aValue === 'N/A') return 1;
                     if (bValue === 'N/A') return -1;
-                    if (column === 'Volume' || column === 'Open Interest') {
+                    if (column === 'Volume' || column === 'Open Interest' || column === 'Num Contracts') { // Added Num Contracts
                         aValue = parseInt(aValue.replace(/,/g, '')) || -Infinity;
                         bValue = parseInt(bValue.replace(/,/g, '')) || -Infinity;
                     } else if (column === 'Rank') {
