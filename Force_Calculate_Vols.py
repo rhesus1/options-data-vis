@@ -311,36 +311,33 @@ def find_strike_for_delta(S, T, r, q, sigma, target_delta, option_type):
     except ValueError:
         return np.nan
         
-def find_put_strike_for_price(call_price, S, T, r, q, put_df, exp, tolerance=0.01):
+def find_put_strike_for_price(call_mid, S, T, r, q, put_df, exp, tolerance=0.01):
     def price_diff(K):
-        put_row = put_df[(put_df['Expiry'] == exp) & (abs(put_df['Strike'] - K) < 0.01 * S)]
-        if not put_row.empty and not pd.isna(put_row['IV_mid'].iloc[0]):
-            sigma_guess = put_row['IV_mid'].iloc[0]
+        if put_df.empty:
+            sigma_guess = 0.25
         else:
-            # Find the closest put strike to estimate IV
-            put_row = put_df[put_df['Expiry'] == exp]
-            if not put_row.empty:
-                closest_row = put_row.iloc[(put_row['Strike'] - K).abs().argsort()[:1]]
-                sigma_guess = closest_row['IV_mid'].iloc[0] if not pd.isna(closest_row['IV_mid'].iloc[0]) else 0.25
-            else:
-                sigma_guess = 0.25
-                print(f"Warning: No put data for expiry {exp}, using default sigma_guess=0.25")
+            closest_row = put_df.iloc[(put_df['Strike'] - K).abs().argsort()[:1]]
+            sigma_guess = closest_row['IV_mid'].iloc[0] if not closest_row.empty and not pd.isna(closest_row['IV_mid'].iloc[0]) else 0.25
         put_price = black_scholes_put(S, K, T, r, q, sigma_guess)
-        return put_price - call_price
-
+        return put_price - call_mid
     try:
-        put_strike = brentq(price_diff, S * 0.05, S * 3.0, xtol=0.01, maxiter=100)
-        put_row = put_df[(put_df['Expiry'] == exp) & (abs(put_df['Strike'] - put_strike) < 0.01 * S)]
-        sigma_guess = put_row['IV_mid'].iloc[0] if not put_row.empty and not pd.isna(put_row['IV_mid'].iloc[0]) else 0.25
+        put_strike = brentq(price_diff, S * 0.01, S * 10.0, xtol=0.001, maxiter=200)
+        closest_row = put_df.iloc[(put_df['Strike'] - put_strike).abs().argsort()[:1]]
+        sigma_guess = closest_row['IV_mid'].iloc[0] if not closest_row.empty and not pd.isna(closest_row['IV_mid'].iloc[0]) else 0.25
         put_price = black_scholes_put(S, put_strike, T, r, q, sigma_guess)
-        if abs(put_price - call_price) <= tolerance:
+        if abs(put_price - call_mid) <= tolerance:
             return put_strike
         else:
-            print(f"Warning: Put price {put_price:.4f} does not match call price {call_price:.4f} within tolerance for expiry {exp}")
-            return np.nan
+            # Fallback to closest put price
+            put_df['Mid'] = (put_df['Bid'] + put_df['Ask']) / 2
+            closest_put = put_df.iloc[(put_df['Mid'] - call_mid).abs().argsort()[:1]]
+            return closest_put['Strike'].iloc[0] if not closest_put.empty else np.nan
     except ValueError as e:
-        print(f"Error: brentq failed in find_put_strike_for_price for expiry {exp}: {e}")
-        return np.nan
+        print(f"brentq failed for expiry {exp}: {e}")
+        # Fallback to closest put price
+        put_df['Mid'] = (put_df['Bid'] + put_df['Ask']) / 2
+        closest_put = put_df.iloc[(put_df['Mid'] - call_mid).abs().argsort()[:1]]
+        return closest_put['Strike'].iloc[0] if not closest_put.empty else np.nan
 
 def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
     def get_iv(interp, y, T):
@@ -353,22 +350,17 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
             return np.sqrt(w / T)
         except Exception:
             return np.nan
-
-    moneyness_levels = [0.9, 0.8, 0.7]
+    moneyness_levels = [0.7, 0.8, 0.9]
     target_strikes = [S * m for m in moneyness_levels]
     skew_data = []
     target_deltas = [0.25, 0.75]
-
     for exp in sorted(df['Expiry'].unique()):
         T = df[df['Expiry'] == exp]['Years_to_Expiry'].iloc[0] if not df[df['Expiry'] == exp].empty else np.nan
         if np.isnan(T) or T <= 0:
-            print(f"Warning: Invalid Years_to_Expiry for expiry {exp}")
             continue
         atm_iv = get_iv(call_interp, 0.0, T)
         if np.isnan(atm_iv):
-            print(f"Warning: ATM IV is NaN for expiry {exp}")
             continue
-
         # Delta-based skews
         call_strike_25 = find_strike_for_delta(S, T, r, q, atm_iv, 0.25, 'call')
         call_strike_75 = find_strike_for_delta(S, T, r, q, atm_iv, 0.75, 'call')
@@ -378,70 +370,56 @@ def calculate_skew_metrics(df, call_interp, put_interp, S, r, q):
         iv_call_75 = get_iv(call_interp, np.log(call_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(call_strike_75) else np.nan
         iv_put_25 = get_iv(put_interp, np.log(put_strike_25 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_25) else np.nan
         iv_put_75 = get_iv(put_interp, np.log(put_strike_75 / (S * np.exp((r - q) * T))), T) if not np.isnan(put_strike_75) else np.nan
-        skew_25 = iv_call_25 / iv_put_25 if not np.isnan(iv_call_25) and not np.isnan(iv_put_25) and iv_put_25 > 0 else np.nan
-        skew_75 = iv_call_75 / iv_put_75 if not np.isnan(iv_call_75) and not np.isnan(iv_put_75) and iv_put_75 > 0 else np.nan
-
-        # Initialize skew_moneyness for this expiry
-        skew_moneyness = {
-            'Skew_90_Moneyness': np.nan,
-            'Skew_80_Moneyness': np.nan,
-            'Skew_70_Moneyness': np.nan,
-            'Skew_90_Moneyness_Vol': np.nan,
-            'Skew_80_Moneyness_Vol': np.nan,
-            'Skew_70_Moneyness_Vol': np.nan
-        }
-
+        skew_25 = iv_put_25 / iv_call_25 if not np.isnan(iv_put_25) and not np.isnan(iv_call_25) and iv_call_25 > 0 else np.nan
+        skew_75 = iv_put_75 / iv_call_75 if not np.isnan(iv_put_75) and not np.isnan(iv_call_75) and iv_call_75 > 0 else np.nan
         # Price-matched skews for specified moneyness levels
         put_df = df[(df['Type'] == 'Put') & (df['Expiry'] == exp)]
-        if put_df.empty:
-            print(f"Warning: No put data for expiry {exp}")
+        skew_moneyness = {}
+        skew_moneyness_vol = {}
         for m, call_strike in zip(moneyness_levels, target_strikes):
-            call_row = df[(df["Type"] == "Call") & (df["Strike"] == call_strike) & (df["Expiry"] == exp)]
-            if call_row.empty:
-                call_row = df[(df["Type"] == "Call") & (df["Expiry"] == exp)]
-                if not call_row.empty:
-                    call_row = call_row.iloc[(call_row['Strike'] - call_strike).abs().argsort()[:1]]
-                else:
-                    print(f"Warning: No call data for expiry {exp}, moneyness {m}")
-                    continue
+            call_row = df[(df["Type"] == "Call") & (df["Expiry"] == exp)]
+            if not call_row.empty:
+                call_row = call_row.iloc[(call_row['Strike'] - call_strike).abs().argsort()[:1]]
+            else:
+                skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = np.nan
+                skew_moneyness_vol[f'Skew_{int(m*100)}_Moneyness_Vol'] = np.nan
+                continue
             call_mid = (call_row["Bid"].iloc[0] + call_row["Ask"].iloc[0]) / 2
             call_iv = call_row["IV_mid"].iloc[0]
             if pd.isna(call_mid) or pd.isna(call_iv) or call_mid <= 0:
-                print(f"Warning: Invalid call data (Bid={call_row['Bid'].iloc[0]}, Ask={call_row['Ask'].iloc[0]}, IV_mid={call_iv}) for expiry {exp}, moneyness {m}")
+                skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = np.nan
+                skew_moneyness_vol[f'Skew_{int(m*100)}_Moneyness_Vol'] = np.nan
                 continue
-
             put_strike = find_put_strike_for_price(call_mid, S, T, r, q, put_df, exp)
             if np.isnan(put_strike):
-                print(f"Warning: Could not find put strike for expiry {exp}, moneyness {m}")
+                skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = np.nan
+                skew_moneyness_vol[f'Skew_{int(m*100)}_Moneyness_Vol'] = np.nan
                 continue
-            put_iv = implied_vol(call_mid, S, put_strike, T, r, q, 'put')
-            if pd.isna(put_iv):
-                print(f"Warning: Could not compute put IV for expiry {exp}, moneyness {m}, put_strike={put_strike}")
+            # Use the vol surface to get put IV at the matched strike
+            y_put = np.log(put_strike / (S * np.exp((r - q) * T)))
+            put_iv = get_iv(put_interp, y_put, T)
+            if np.isnan(put_iv):
+                skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = np.nan
+                skew_moneyness_vol[f'Skew_{int(m*100)}_Moneyness_Vol'] = np.nan
                 continue
-
-            iv_skew_price_matched = call_iv / put_iv if put_iv > 0 else np.nan
-            mon_skew_price_matched = m / (put_strike / S) if put_strike > 0 else np.nan
-            skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = mon_skew_price_matched
-            skew_moneyness[f'Skew_{int(m*100)}_Moneyness_Vol'] = iv_skew_price_matched
-
+            skew_moneyness[f'Skew_{int(m*100)}_Moneyness'] = put_strike / S if put_strike > 0 else np.nan
+            skew_moneyness_vol[f'Skew_{int(m*100)}_Moneyness_Vol'] = put_iv / call_iv if not np.isnan(put_iv) and not np.isnan(call_iv) and call_iv > 0 else np.nan
         # ATM IV ratio for 3m and 12m
         atm_iv_3m = get_iv(call_interp, 0.0, 0.25)
         atm_iv_12m = get_iv(call_interp, 0.0, 1.0)
         atm_ratio = atm_iv_12m / atm_iv_3m if not np.isnan(atm_iv_3m) and not np.isnan(atm_iv_12m) and atm_iv_3m > 0 else np.nan
-
         skew_data.append({
             'Expiry': exp,
             'Skew_25_delta': skew_25,
             'Skew_75_delta': skew_75,
-            'Skew_90_Moneyness': skew_moneyness['Skew_90_Moneyness'],
-            'Skew_80_Moneyness': skew_moneyness['Skew_80_Moneyness'],
-            'Skew_70_Moneyness': skew_moneyness['Skew_70_Moneyness'],
-            'Skew_90_Moneyness_Vol': skew_moneyness['Skew_90_Moneyness_Vol'],
-            'Skew_80_Moneyness_Vol': skew_moneyness['Skew_80_Moneyness_Vol'],
-            'Skew_70_Moneyness_Vol': skew_moneyness['Skew_70_Moneyness_Vol'],
+            'Skew_90_Moneyness': skew_moneyness.get('Skew_90_Moneyness', np.nan),
+            'Skew_80_Moneyness': skew_moneyness.get('Skew_80_Moneyness', np.nan),
+            'Skew_70_Moneyness': skew_moneyness.get('Skew_70_Moneyness', np.nan),
+            'Skew_90_Moneyness_Vol': skew_moneyness_vol.get('Skew_90_Moneyness_Vol', np.nan),
+            'Skew_80_Moneyness_Vol': skew_moneyness_vol.get('Skew_80_Moneyness_Vol', np.nan),
+            'Skew_70_Moneyness_Vol': skew_moneyness_vol.get('Skew_70_Moneyness_Vol', np.nan),
             'ATM_12m_3m_Ratio': atm_ratio
         })
-
     skew_metrics_df = pd.DataFrame(skew_data)
     return skew_metrics_df, pd.DataFrame()
 
