@@ -1,4 +1,4 @@
-Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,Skew_60_Moneyness,Skew_80_Moneyness,Skew_120_Moneyness,Skew_140_Moneyness,ATM_12m_3m_Ratio,Ticker
-2025-11-21,,,0.6295507740893614,,0.5107273310077219,0.5107273310077219,0.6350735827883857,0.6350735827883857,,WKC
-2025-12-19,,,0.607772349315489,,,,,,,WKC
-2026-02-20,,,0.7214115763633302,,0.7260218882777206,0.7260218882777206,0.8566870774216865,0.8566870774216865,,WKC
+Expiry,Skew_25_delta,Skew_75_delta,Skew_90_Moneyness,Skew_80_Moneyness,Skew_70_Moneyness,Skew_90_Moneyness_Vol,Skew_80_Moneyness_Vol,Skew_70_Moneyness_Vol,ATM_12m_3m_Ratio,Ticker
+2025-11-21,,,,,,,,,,WKC
+2025-12-19,,,,,,,,,,WKC
+2026-02-20,,,,,,,,,,WKC
