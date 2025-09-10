@@ -270,8 +270,8 @@
         }
         #call-vol-surface {
             width: 100% !important;
-            max-height: clamp(250px, 40vh, 350px);
-            min-height: clamp(200px, 30vh, 300px);
+            max-height: clamp(625px, 100vh, 875px); /* 2.5 * original values */
+            min-height: clamp(500px, 75vh, 750px); /* 2.5 * original values */
             min-width: 100%;
         }
         .slider-container {
@@ -794,41 +794,41 @@
             <div id="trading-economics-error" class="error-message" style="display: none;">No trading economics data available</div>
             <div id="trading-economics-bonds" class="chart-container" style="display: none;">
                 <h2>Bonds</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Show Data</button>
-                <table id="bonds-table" class="trading-economics-table" style="display: none;"></table>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Hide Data</button>
+                <table id="bonds-table" class="trading-economics-table" style="display: table;"></table>
             </div>
             <div id="trading-economics-commodities" class="chart-container" style="display: none;">
                 <h2>Commodities</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Show Data</button>
-                <table id="commodities-table" class="trading-economics-table" style="display: none;"></table>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Hide Data</button>
+                <table id="commodities-table" class="trading-economics-table" style="display: table;"></table>
             </div>
             <div id="trading-economics-stocks" class="chart-container" style="display: none;">
                 <h2>Stocks</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('stocks')">Show Data</button>
-                <table id="stocks-table" class="trading-economics-table" style="display: none;"></table>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('stocks')">Hide Data</button>
+                <table id="stocks-table" class="trading-economics-table" style="display: table;"></table>
             </div>
             <div id="trading-economics-currencies" class="chart-container" style="display: none;">
                 <h2>Currencies</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Show Data</button>
-                <table id="currencies-table" class="trading-economics-table" style="display: none;"></table>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Hide Data</button>
+                <table id="currencies-table" class="trading-economics-table" style="display: table;"></table>
             </div>
             <div id="trading-economics-crypto" class="chart-container" style="display: none;">
                 <h2>Crypto</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Show Data</button>
-                <table id="crypto-table" class="trading-economics-table" style="display: none;"></table>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Hide Data</button>
+                <table id="crypto-table" class="trading-economics-table" style="display: table;"></table>
             </div>
             <div id="trading-economics-shares" class="chart-container shares-grid" style="display: none;">
                 <h2>Shares</h2>
                 <div class="shares-container">
                     <div class="chart-container">
                         <h3>Gainers</h3>
-                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_gainers')">Show Data</button>
-                        <table id="shares-gainers-table" class="trading-economics-table" style="display: none;"></table>
+                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_gainers')">Hide Data</button>
+                        <table id="shares-gainers-table" class="trading-economics-table" style="display: table;"></table>
                     </div>
                     <div class="chart-container">
                         <h3>Losers</h3>
-                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_losers')">Show Data</button>
-                        <table id="shares-losers-table" class="trading-economics-table" style="display: none;"></table>
+                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_losers')">Hide Data</button>
+                        <table id="shares-losers-table" class="trading-economics-table" style="display: table;"></table>
                     </div>
                 </div>
             </div>
@@ -861,13 +861,13 @@
         let cryptoData = [];
         let sharesGainersData = [];
         let sharesLosersData = [];
-        let bondsTableVisible = false;
-        let commoditiesTableVisible = false;
-        let stocksTableVisible = false;
-        let currenciesTableVisible = false;
-        let cryptoTableVisible = false;
-        let sharesGainersTableVisible = false;
-        let sharesLosersTableVisible = false;
+        let bondsTableVisible = true;
+        let commoditiesTableVisible = true;
+        let stocksTableVisible = true;
+        let currenciesTableVisible = true;
+        let cryptoTableVisible = true;
+        let sharesGainersTableVisible = true;
+        let sharesLosersTableVisible = true;
         let normalizedTableVisible = false;
         let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, kurtosisChart, volOfVolChart;
         let statsTablesVisible = false;
@@ -936,16 +936,25 @@
             const mainContent = document.querySelector('.main-content');
             const toggleButton = document.querySelector('.sidebar-toggle');
             const sidebarWidth = 'clamp(200px, 20vw, 250px)';
+            const gap = '10px';
             sidebar.classList.toggle('hidden');
             sidebar.classList.toggle('visible');
             mainContent.classList.toggle('full-width');
             if (sidebar.classList.contains('hidden')) {
                 mainContent.style.marginLeft = '0';
+                mainContent.style.paddingLeft = '0';
                 mainContent.style.width = '100%';
                 toggleButton.textContent = '☰';
             } else {
-                mainContent.style.marginLeft = sidebarWidth;
-                mainContent.style.width = `calc(100% - ${sidebarWidth})`;
+                if (window.innerWidth <= 768) {
+                    mainContent.style.marginLeft = '0';
+                    mainContent.style.paddingLeft = `calc(${sidebarWidth} + ${gap})`;
+                    mainContent.style.width = '100%';
+                } else {
+                    mainContent.style.marginLeft = `calc(${sidebarWidth} + ${gap})`;
+                    mainContent.style.paddingLeft = '0';
+                    mainContent.style.width = `calc(100% - ${sidebarWidth} - ${gap})`;
+                }
                 toggleButton.textContent = '✕';
             }
         }
