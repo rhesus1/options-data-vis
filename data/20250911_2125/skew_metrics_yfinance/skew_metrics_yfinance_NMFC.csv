@@ -1,0 +1,3 @@
+Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,Skew_60_Moneyness,Skew_80_Moneyness,Skew_120_Moneyness,Skew_140_Moneyness,ATM_12m_3m_Ratio,Ticker
+2025-09-19,0.4571178017070484,1.953542844470223,,,,,,,,NMFC
+2025-10-17,0.6500084661595477,4.657655903912483,,,,0.6712675755897146,,,,NMFC
