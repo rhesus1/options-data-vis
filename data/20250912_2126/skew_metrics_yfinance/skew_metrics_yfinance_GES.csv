@@ -1,0 +1,5 @@
+Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,Skew_60_Moneyness,Skew_80_Moneyness,Skew_120_Moneyness,Skew_140_Moneyness,ATM_12m_3m_Ratio,Ticker
+2025-09-19,,,,,,,,,,GES
+2025-10-17,,,,,,0.8984722261125934,,,,GES
+2025-12-19,,0.2184357881527009,,,,1.3319658114939263,,,,GES
+2026-01-16,1.0975773593917648,1.4574256678177495,,,,1.2316297246479595,,,,GES

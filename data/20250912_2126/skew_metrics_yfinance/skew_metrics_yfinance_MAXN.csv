@@ -1,0 +1,6 @@
+Expiry,Skew_25_delta,Skew_75_delta,Skew_call_25_75,Skew_put_25_75,Skew_60_Moneyness,Skew_80_Moneyness,Skew_120_Moneyness,Skew_140_Moneyness,ATM_12m_3m_Ratio,Ticker
+2025-09-19,3.2724299663290752,,,,,0.6527313073195251,,,,MAXN
+2025-10-17,,,,,,1.0570838263854134,,,,MAXN
+2025-12-19,,,,,,0.8894777369390822,,,,MAXN
+2026-01-16,,,,,,1.3054830287206267,,,,MAXN
+2026-03-20,,,,,,1.0241898936019114,,,,MAXN
