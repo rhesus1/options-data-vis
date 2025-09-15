@@ -5,7 +5,7 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250915_0825'
+        default: '20250915_0836'
 
 jobs:
   scrape-trading-economics:
@@ -27,15 +27,22 @@ jobs:
         echo "Extracted Chrome version: $CHROME_VERSION"
         if [ -z "$CHROME_VERSION" ]; then
           echo "Falling back to latest ChromeDriver version"
-          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE || echo "latest")
+          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE || echo "")
         else
-          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION || echo "latest")
+          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION || echo "")
+        fi
+        if [ -z "$CHROMEDRIVER_VERSION" ]; then
+          echo "No specific ChromeDriver version found, trying major version: ${CHROME_VERSION%%.*}"
+          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%%.*} || echo "")
+        fi
+        if [ -z "$CHROMEDRIVER_VERSION" ]; then
+          echo "Error: Could not determine ChromeDriver version. Exiting."
+          exit 1
         fi
         echo "Selected ChromeDriver version: $CHROMEDRIVER_VERSION"
         wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip || {
-          echo "Failed to download ChromeDriver, falling back to latest version"
-          CHROMEDRIVER_VERSION=latest
-          wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+          echo "Failed to download ChromeDriver version $CHROMEDRIVER_VERSION"
+          exit 1
         }
         unzip -o chromedriver_linux64.zip
         sudo mv chromedriver /usr/local/bin/
