@@ -5,8 +5,9 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250915_0752'
+        default: '20250915_0812'
 
+jobswide: true
 jobs:
   scrape-trading-economics:
     runs-on: ubuntu-latest
@@ -21,12 +22,29 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y google-chrome-stable
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-        CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
-        wget -q https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-        unzip chromedriver_linux64.zip
+        echo "Installed Chrome version:"
+        google-chrome --version
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' || echo "Failed to extract Chrome version")
+        echo "Extracted Chrome version: $CHROME_VERSION"
+        if [ -z "$CHROME_VERSION" ]; then
+          echo "Falling back to latest ChromeDriver version"
+          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE || echo "latest")
+        else
+          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION || echo "latest")
+        fi
+        echo "Selected ChromeDriver version: $CHROMEDRIVER_VERSION"
+        wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip || {
+          echo "Failed to download ChromeDriver, falling back to latest version"
+          CHROMEDRIVER_VERSION=latest
+          wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+        }
+        unzip -o chromedriver_linux64.zip
         sudo mv chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
+        chromedriver --version
+        # Clean up any stray Chrome or ChromeDriver processes
+        pkill -f chromedriver || true
+        pkill -f chrome || true
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -50,6 +68,13 @@ jobs:
             echo 'Moved CSVs to data/{timestamp}/Trading_Economics/'
         else
             echo 'No CSVs to move'
+        fi
+        # Move page source files for debugging
+        if ls *.html >/dev/null 2>&1; then
+            mv *.html data/{timestamp}/Trading_Economics/
+            echo 'Moved HTML page source files to data/{timestamp}/Trading_Economics/'
+        else
+            echo 'No HTML page source files to move'
         fi
         "
       continue-on-error: true
