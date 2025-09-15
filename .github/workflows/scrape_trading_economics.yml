@@ -5,9 +5,8 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250915_0812'
+        default: '20250915_0825'
 
-jobswide: true
 jobs:
   scrape-trading-economics:
     runs-on: ubuntu-latest
