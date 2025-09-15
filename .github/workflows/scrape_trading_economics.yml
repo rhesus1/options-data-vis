@@ -5,7 +5,7 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250915_0930'
+        default: '20250915_0932'
 
 jobs:
   scrape-trading-economics:
@@ -25,6 +25,8 @@ jobs:
         google-chrome --version
         CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' || echo "")
         echo "Extracted Chrome version: $CHROME_VERSION"
+        # Remove existing ChromeDriver to avoid version conflicts
+        sudo rm -f /usr/local/bin/chromedriver
         if [ -z "$CHROME_VERSION" ]; then
           echo "Falling back to latest ChromeDriver version"
           CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE || echo "")
@@ -37,7 +39,7 @@ jobs:
         fi
         if [ -z "$CHROMEDRIVER_VERSION" ] || [[ "$CHROMEDRIVER_VERSION" == *"Error"* ]]; then
           echo "No ChromeDriver version found, falling back to a known version"
-          CHROMEDRIVER_VERSION="114.0.5735.90"  # Latest from provided bucket; update to 140.x.x.x if available
+          CHROMEDRIVER_VERSION="140.0.7339.82"  # Recommended version for Chrome 140.0.7339.80
         fi
         echo "Selected ChromeDriver version: $CHROMEDRIVER_VERSION"
         # Validate the version by checking if the file exists
@@ -124,7 +126,7 @@ jobs:
         body: |
           Attached is the latest Trading Economics data.
           Timestamp: ${{ github.event.inputs.timestamp }}
-          Note: Some data may be missing due to scraping issues or ChromeDriver version mismatches.
+          Note: Some data may be missing due to scraping issues.
         attachments: |
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/bonds.csv
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/commodities.csv
