@@ -3279,6 +3279,7 @@
                     updateHistoricChart();
                 } else if (sectionId === 'indices') {
                     updateIndicesTable(); // Added to refresh table when navigating to indices
+                }
             } catch (error) {
                 console.error('Error updating section:', error);
                 document.getElementById('historic-error').textContent = `Error navigating to section: ${error.message}`;
