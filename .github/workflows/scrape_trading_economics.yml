@@ -5,7 +5,7 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250915_0836'
+        default: '20250912_2219'
 
 jobs:
   scrape-trading-economics:
@@ -23,21 +23,21 @@ jobs:
         sudo apt-get install -y google-chrome-stable
         echo "Installed Chrome version:"
         google-chrome --version
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' || echo "Failed to extract Chrome version")
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' || echo "")
         echo "Extracted Chrome version: $CHROME_VERSION"
         if [ -z "$CHROME_VERSION" ]; then
           echo "Falling back to latest ChromeDriver version"
           CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE || echo "")
         else
           CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION || echo "")
+          if [ -z "$CHROMEDRIVER_VERSION" ] || [[ "$CHROMEDRIVER_VERSION" == *"Error"* ]]; then
+            echo "No specific ChromeDriver version found, trying major version: ${CHROME_VERSION%%.*}"
+            CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%%.*} || echo "")
+          fi
         fi
-        if [ -z "$CHROMEDRIVER_VERSION" ]; then
-          echo "No specific ChromeDriver version found, trying major version: ${CHROME_VERSION%%.*}"
-          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%%.*} || echo "")
-        fi
-        if [ -z "$CHROMEDRIVER_VERSION" ]; then
-          echo "Error: Could not determine ChromeDriver version. Exiting."
-          exit 1
+        if [ -z "$CHROMEDRIVER_VERSION" ] || [[ "$CHROMEDRIVER_VERSION" == *"Error"* ]]; then
+          echo "No ChromeDriver version found, falling back to a known version"
+          CHROMEDRIVER_VERSION="140.0.7328.0"  # Known compatible version; update as needed
         fi
         echo "Selected ChromeDriver version: $CHROMEDRIVER_VERSION"
         wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip || {
