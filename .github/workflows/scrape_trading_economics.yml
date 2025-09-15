@@ -5,7 +5,7 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250912_2219'
+        default: '20250912_2126'
 
 jobs:
   scrape-trading-economics:
@@ -37,13 +37,24 @@ jobs:
         fi
         if [ -z "$CHROMEDRIVER_VERSION" ] || [[ "$CHROMEDRIVER_VERSION" == *"Error"* ]]; then
           echo "No ChromeDriver version found, falling back to a known version"
-          CHROMEDRIVER_VERSION="140.0.7328.0"  # Known compatible version; update as needed
+          CHROMEDRIVER_VERSION="140.0.7338.0"  # Known compatible version; update as needed
         fi
         echo "Selected ChromeDriver version: $CHROMEDRIVER_VERSION"
-        wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip || {
-          echo "Failed to download ChromeDriver version $CHROMEDRIVER_VERSION"
-          exit 1
-        }
+        # Validate the version by checking if the file exists
+        if curl -s --head https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip | head -n 1 | grep "HTTP/1.1 200 OK" > /dev/null; then
+          wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+        else
+          echo "ChromeDriver version $CHROMEDRIVER_VERSION not found, trying latest available version"
+          CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE || echo "")
+          if [ -z "$CHROMEDRIVER_VERSION" ] || [[ "$CHROMEDRIVER_VERSION" == *"Error"* ]]; then
+            echo "Error: Could not determine a valid ChromeDriver version. Exiting."
+            exit 1
+          fi
+          wget -q --tries=3 --timeout=10 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip || {
+            echo "Failed to download ChromeDriver version $CHROMEDRIVER_VERSION"
+            exit 1
+          }
+        fi
         unzip -o chromedriver_linux64.zip
         sudo mv chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
@@ -110,7 +121,7 @@ jobs:
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/commodities.csv
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/stocks.csv
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/shares_gainers.csv
-          data/${{ github.event.inputs.timestamp }}/Trading_Economics/shares_losers.csv
+          data/${{ github.event.inputs.timestamp }}/Trading_Ecoomics/shares_losers.csv
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/currencies.csv
           data/${{ github.event.inputs.timestamp }}/Trading_Economics/crypto.csv
         secure: true
