@@ -11,6 +11,8 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
+        <!-- Added this script tag after the existing noUiSlider script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -701,9 +703,11 @@
                 </div>
             </div>
         </div>
+        <!-- Modified Indices section to include Wisesheets data table -->
         <div id="indices" class="chart-container" style="display: none;">
-            <h2>Indices</h2>
+            <h2>Indices Data from Wisesheets</h2>
             <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
+            <table id="indices-table" class="trading-economics-table" style="display: table;"></table>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
             <div id="volatility-smile" class="chart-container" style="display: block;">
@@ -855,6 +859,7 @@
     </div>
     </div>
     <script>
+        let indicesData = []; // Added for Wisesheets indices data
         let data = [];
         let historicData = [];
         let cleanedData = [];
@@ -934,7 +939,64 @@
                     console.warn(`${url.includes('Trading_Economics') ? 'trading-economics-error' : 'historic-error'} element not found in DOM`);
                 }
             }
-}
+        }
+
+        // Added function to load and parse Wisesheets Excel file
+        async function loadWisesheetsData() {
+            try {
+                const response = await fetch('data/Wisesheets History Tool - CB vs HY.xlsx');
+                if (!response.ok) throw new Error(`Failed to fetch Wisesheets file: ${response.statusText}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const sheetName = workbook.SheetNames[0]; // Use first sheet (Sheet4 for prices)
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                // Parse to extract tickers and latest data (assuming row 4 has headers, row 5 latest prices)
+                const tickers = jsonData[3].slice(1, 7); // ICVT, CWB, etc.
+                const latestPrices = jsonData[4].slice(1, 7); // Prices from row5
+                const normalized = jsonData[4].slice(21, 26); // Normalized from third set, adjust indices as needed
+                indicesData = tickers.map((ticker, index) => ({
+                    Ticker: ticker,
+                    Latest_Price: latestPrices[index] || 'N/A',
+                    Normalized: normalized[index] || 'N/A'
+                }));
+                console.log('Wisesheets data loaded:', indicesData);
+                updateIndicesTable();
+            } catch (error) {
+                console.error('Error loading Wisesheets data:', error);
+                document.getElementById('indices-error').textContent = `Error loading Wisesheets file: ${error.message}`;
+                document.getElementById('indices-error').style.display = 'block';
+            }
+        }
+        
+        // Added function to update indices table
+        function updateIndicesTable() {
+            const table = document.getElementById('indices-table');
+            table.innerHTML = '';
+            if (indicesData.length === 0) {
+                table.innerHTML = '<tr><td colspan="3">No indices data available</td></tr>';
+                return;
+            }
+            const thead = document.createElement('thead');
+            const headerRow = thead.insertRow();
+            ['Ticker', 'Latest Price', 'Normalized Value'].forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            indicesData.forEach(item => {
+                const row = tbody.insertRow();
+                ['Ticker', 'Latest_Price', 'Normalized'].forEach(key => {
+                    const cell = row.insertCell();
+                    cell.textContent = item[key];
+                });
+            });
+            table.appendChild(tbody);
+        }
+
+        
     
         function normalizeDate(dateStr) {
             try {
@@ -3216,8 +3278,7 @@
                     updateTopContractsTables();
                     updateHistoricChart();
                 } else if (sectionId === 'indices') {
-                    // No specific updates needed for indices yet
-                }
+                    updateIndicesTable(); // Added to refresh table when navigating to indices
             } catch (error) {
                 console.error('Error updating section:', error);
                 document.getElementById('historic-error').textContent = `Error navigating to section: ${error.message}`;
@@ -3436,209 +3497,208 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-    try {
-        if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined') {
-            console.error('Required libraries (Chart.js, Plotly, or PapaParse) not loaded');
-            document.getElementById('historic-error').textContent = 'Failed to load required libraries';
-            document.getElementById('historic-error').style.display = 'block';
-            return;
-        }
-        const moneynessSlider = document.getElementById('moneyness-slider');
-        const expiryTSlider = document.getElementById('expiry-t-slider');
-        noUiSlider.create(moneynessSlider, {
-            start: [0.6, 2.5],
-            connect: true,
-            range: { min: 0.1, max: 3 },
-            step: 0.1
-        });
-        noUiSlider.create(expiryTSlider, {
-            start: [0.2, 5],
-            connect: true,
-            range: { min: 0, max: 5 },
-            step: 0.1
-        });
-        moneynessSlider.noUiSlider.on('update', (values) => {
-            document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-            updateCallVolSurface();
-        });
-        expiryTSlider.noUiSlider.on('update', (values) => {
-            document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-            updateCallVolSurface();
-        });
-        const dateSelect = document.getElementById('date-select');
-        const timeSelect = document.getElementById('time-select');
-        const tickerSearch = document.getElementById('ticker-search');
-        const validateTimestamp = async (timestamp) => {
-            const prefix = '_yfinance';
-            try {
-                const response = await fetch(`data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
-                return response.ok ? timestamp : null;
-            } catch {
-                return null;
+        try {
+            if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined') {
+                console.error('Required libraries (Chart.js, Plotly, or PapaParse) not loaded');
+                document.getElementById('historic-error').textContent = 'Failed to load required libraries';
+                document.getElementById('historic-error').style.display = 'block';
+                return;
             }
-        };
-        const getLatestValidTimestamp = async (dates) => {
-            const timestamps = dates.sort((a, b) => b.localeCompare(a));
-            for (const ts of timestamps) {
-                if (await validateTimestamp(ts)) return ts;
-            }
-            console.warn('No valid timestamps found, using fallback');
-            return '20250827_2136';
-        };
-        fetch('data/dates.json?v=' + Date.now())
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to load dates.json');
-                return response.json();
-            })
-            .then(async dates => {
-                const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))].sort((a, b) => b.localeCompare(a));
-                dateSelect.innerHTML = '';
-                uniqueDates.forEach(datePart => {
-                    const option = document.createElement('option');
-                    option.value = datePart.replace(/-/g, '');
-                    option.textContent = datePart;
-                    dateSelect.appendChild(option);
-                });
-                const loadInitialData = async () => {
-                    let timestamp = await getLatestValidTimestamp(dates);
-                    if (dateSelect.options.length > 0) {
-                        dateSelect.value = timestamp.slice(0, 8);
-                        await updateTimeOptions(dateSelect.value, dates);
-                        timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                    }
-                    console.log('Loading initial data with timestamp:', timestamp);
-                    await loadData(timestamp);
-                    updateDropdowns();
-                    updateSection('overview');
-                    console.log('Initial data and Overview loaded for timestamp:', timestamp);
-                };
-                await loadInitialData();
-                dateSelect.addEventListener('change', async (e) => {
-                    console.log('Date select changed to:', e.target.value);
-                    await updateTimeOptions(e.target.value, dates);
-                    const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                    if (await validateTimestamp(timestamp)) {
+            const moneynessSlider = document.getElementById('moneyness-slider');
+            const expiryTSlider = document.getElementById('expiry-t-slider');
+            noUiSlider.create(moneynessSlider, {
+                start: [0.6, 2.5],
+                connect: true,
+                range: { min: 0.1, max: 3 },
+                step: 0.1
+            });
+            noUiSlider.create(expiryTSlider, {
+                start: [0.2, 5],
+                connect: true,
+                range: { min: 0, max: 5 },
+                step: 0.1
+            });
+            moneynessSlider.noUiSlider.on('update', (values) => {
+                document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+                updateCallVolSurface();
+            });
+            expiryTSlider.noUiSlider.on('update', (values) => {
+                document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+                updateCallVolSurface();
+            });
+            const dateSelect = document.getElementById('date-select');
+            const timeSelect = document.getElementById('time-select');
+            const tickerSearch = document.getElementById('ticker-search');
+            const validateTimestamp = async (timestamp) => {
+                const prefix = '_yfinance';
+                try {
+                    const response = await fetch(`data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
+                    return response.ok ? timestamp : null;
+                } catch {
+                    return null;
+                }
+            };
+            const getLatestValidTimestamp = async (dates) => {
+                const timestamps = dates.sort((a, b) => b.localeCompare(a));
+                for (const ts of timestamps) {
+                    if (await validateTimestamp(ts)) return ts;
+                }
+                console.warn('No valid timestamps found, using fallback');
+                return '20250827_2136';
+            };
+            fetch('data/dates.json?v=' + Date.now())
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to load dates.json');
+                    return response.json();
+                })
+                .then(async dates => {
+                    const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))].sort((a, b) => b.localeCompare(a));
+                    dateSelect.innerHTML = '';
+                    uniqueDates.forEach(datePart => {
+                        const option = document.createElement('option');
+                        option.value = datePart.replace(/-/g, '');
+                        option.textContent = datePart;
+                        dateSelect.appendChild(option);
+                    });
+                    const loadInitialData = async () => {
+                        let timestamp = await getLatestValidTimestamp(dates);
+                        if (dateSelect.options.length > 0) {
+                            dateSelect.value = timestamp.slice(0, 8);
+                            await updateTimeOptions(dateSelect.value, dates);
+                            timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                        }
+                        console.log('Loading initial data with timestamp:', timestamp);
                         await loadData(timestamp);
                         updateDropdowns();
-                        const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
-                        const sectionId = currentSection ? currentSection.id : 'macro';
-                        updateSection(sectionId);
-                        console.log('Updated section after date change:', sectionId);
-                    } else {
-                        console.warn('Invalid timestamp:', timestamp);
-                        document.getElementById('historic-error').textContent = 'Invalid date selected';
-                        document.getElementById('historic-error').style.display = 'block';
-                    }
-                });
-                timeSelect.addEventListener('change', async (e) => {
-                    console.log('Time select changed to:', e.target.value);
-                    const timestamp = dateSelect.value + '_' + e.target.value;
-                    if (await validateTimestamp(timestamp)) {
-                        await loadData(timestamp);
-                        updateDropdowns();
-                        const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
-                        const sectionId = currentSection ? currentSection.id : 'macro';
-                        updateSection(sectionId);
-                        console.log('Updated section after time change:', sectionId);
-                    } else {
-                        console.warn('Invalid timestamp:', timestamp);
-                        document.getElementById('historic-error').textContent = 'Invalid time selected';
-                        document.getElementById('historic-error').style.display = 'block';
-                    }
-                });
-                tickerSearch.addEventListener('input', debounce(async () => {
-                    console.log('Ticker changed to:', tickerSearch.value);
-                    document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
-                    const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                    if (await validateTimestamp(timestamp)) {
-                        await loadData(timestamp);
-                        updateDropdowns();
-                        const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
-                        const sectionId = currentSection ? currentSection.id : 'macro';
-                        updateSection(sectionId);
-                        console.log('Updated section after ticker change:', sectionId);
-                    } else {
-                        console.warn('Invalid timestamp:', timestamp);
-                        document.getElementById('historic-error').textContent = 'Invalid data timestamp';
-                        document.getElementById('historic-error').style.display = 'block';
-                    }
-                }, 500));
-                const links = document.querySelectorAll('.sidebar a');
-                links.forEach(link => {
-                    link.addEventListener('click', async (e) => {
-                        e.preventDefault();
-                        const targetId = link.getAttribute('href').substring(1);
-                        console.log(`Navigating to section: ${targetId}`);
+                        updateSection('overview');
+                        console.log('Initial data and Overview loaded for timestamp:', timestamp);
+                    };
+                    await loadInitialData();
+                    await loadWisesheetsData(); // Added to load Wisesheets data on init
+                    dateSelect.addEventListener('change', async (e) => {
+                        console.log('Date select changed to:', e.target.value);
+                        await updateTimeOptions(e.target.value, dates);
+                        const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                        if (await validateTimestamp(timestamp)) {
+                            await loadData(timestamp);
+                            updateDropdowns();
+                            const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                            const sectionId = currentSection ? currentSection.id : 'macro';
+                            updateSection(sectionId);
+                            console.log('Updated section after date change:', sectionId);
+                        } else {
+                            console.warn('Invalid timestamp:', timestamp);
+                            document.getElementById('historic-error').textContent = 'Invalid date selected';
+                            document.getElementById('historic-error').style.display = 'block';
+                        }
+                    });
+                    timeSelect.addEventListener('change', async (e) => {
+                        console.log('Time select changed to:', e.target.value);
+                        const timestamp = dateSelect.value + '_' + e.target.value;
+                        if (await validateTimestamp(timestamp)) {
+                            await loadData(timestamp);
+                            updateDropdowns();
+                            const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                            const sectionId = currentSection ? currentSection.id : 'macro';
+                            updateSection(sectionId);
+                            console.log('Updated section after time change:', sectionId);
+                        } else {
+                            console.warn('Invalid timestamp:', timestamp);
+                            document.getElementById('historic-error').textContent = 'Invalid time selected';
+                            document.getElementById('historic-error').style.display = 'block';
+                        }
+                    });
+                    tickerSearch.addEventListener('input', debounce(async () => {
+                        console.log('Ticker changed to:', tickerSearch.value);
+                        document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
                         const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                         if (await validateTimestamp(timestamp)) {
                             await loadData(timestamp);
                             updateDropdowns();
-                            if (targetId.startsWith('macro-') || targetId === 'macro') {
-                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-                                link.classList.add('active');
-                                const subMenu = document.getElementById('macro-sub-menu');
-                                if (subMenu) subMenu.classList.add('active');
-                                updateSection('macro');
-                            } else if (targetId.startsWith('volatility-') || targetId === 'volatility') {
-                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-                                link.classList.add('active');
-                                const subMenu = document.getElementById('volatility-sub-menu');
-                                if (subMenu) subMenu.classList.add('active');
-                                updateSection('volatility');
-                            } else {
-                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-                                const subMenu = document.getElementById('macro-sub-menu');
-                                if (subMenu) subMenu.classList.remove('active');
-                                const volatilitySubMenu = document.getElementById('volatility-sub-menu');
-                                if (volatilitySubMenu) volatilitySubMenu.classList.remove('active');
-                                updateSection(targetId);
-                            }
+                            const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                            const sectionId = currentSection ? currentSection.id : 'macro';
+                            updateSection(sectionId);
+                            console.log('Updated section after ticker change:', sectionId);
                         } else {
-                            console.warn('Invalid timestamp on navigation:', timestamp);
+                            console.warn('Invalid timestamp:', timestamp);
                             document.getElementById('historic-error').textContent = 'Invalid data timestamp';
                             document.getElementById('historic-error').style.display = 'block';
                         }
+                    }, 500));
+                    const links = document.querySelectorAll('.sidebar a');
+                    links.forEach(link => {
+                        link.addEventListener('click', async (e) => {
+                            e.preventDefault();
+                            const targetId = link.getAttribute('href').substring(1);
+                            console.log(`Navigating to section: ${targetId}`);
+                            const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                            if (await validateTimestamp(timestamp)) {
+                                await loadData(timestamp);
+                                updateDropdowns();
+                                if (targetId.startsWith('macro-') || targetId === 'macro') {
+                                    document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                    link.classList.add('active');
+                                    const subMenu = document.getElementById('macro-sub-menu');
+                                    if (subMenu) subMenu.classList.add('active');
+                                    updateSection('macro');
+                                } else if (targetId.startsWith('volatility-') || targetId === 'volatility') {
+                                    document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                    link.classList.add('active');
+                                    const subMenu = document.getElementById('volatility-sub-menu');
+                                    if (subMenu) subMenu.classList.add('active');
+                                    updateSection('volatility');
+                                } else {
+                                    document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                    const subMenu = document.getElementById('macro-sub-menu');
+                                    if (subMenu) subMenu.classList.remove('active');
+                                    const volatilitySubMenu = document.getElementById('volatility-sub-menu');
+                                    if (volatilitySubMenu) volatilitySubMenu.classList.remove('active');
+                                    updateSection(targetId);
+                                }
+                            } else {
+                                console.warn('Invalid timestamp on navigation:', timestamp);
+                                document.getElementById('historic-error').textContent = 'Invalid data timestamp';
+                                document.getElementById('historic-error').style.display = 'block';
+                            }
+                        });
                     });
-                });
-                const macroLink = document.getElementById('macro-link');
-                macroLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const subMenu = document.getElementById('macro-sub-menu');
-                    subMenu.classList.toggle('active');
-                    if (subMenu.classList.contains('active')) {
-                        document.querySelector('.sub-tab[href="#macro-bonds"]').classList.add('active');
-                        updateSection('macro');
-                    }
-                });
-                const volatilityLink = document.getElementById('volatility-link');
-                volatilityLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const subMenu = document.getElementById('volatility-sub-menu');
-                    subMenu.classList.toggle('active');
-                    if (subMenu.classList.contains('active')) {
-                        document.querySelector('.sub-tab[href="#volatility-smile"]').classList.add('active');
-                        updateSection('volatility');
-                    }
-                });
-                document.getElementById('ticker-compare-select').addEventListener('change', () => {
-                    console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
-                    updateNormalizedTable();
-                });
-                const overviewContainer = document.getElementById('overview');
-                overviewContainer.style.display = 'grid';
-                document.getElementById('macro').style.display = 'none';
-                document.getElementById('indices').style.display = 'none';
-                document.getElementById('volatility').style.display = 'none';
-                console.log('Initial load: Showing Overview');
-                addKeyboardNavigation();
-            } catch (error) {
-                addKeyboardNavigation();
-            } catch (error) {
-                console.error('Error in DOMContentLoaded:', error);
-                document.getElementById('historic-error').textContent = `Error initializing page: ${error.message}`;
-                document.getElementById('historic-error').style.display = 'block';
-            }
-        });
+                    const macroLink = document.getElementById('macro-link');
+                    macroLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const subMenu = document.getElementById('macro-sub-menu');
+                        subMenu.classList.toggle('active');
+                        if (subMenu.classList.contains('active')) {
+                            document.querySelector('.sub-tab[href="#macro-bonds"]').classList.add('active');
+                            updateSection('macro');
+                        }
+                    });
+                    const volatilityLink = document.getElementById('volatility-link');
+                    volatilityLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const subMenu = document.getElementById('volatility-sub-menu');
+                        subMenu.classList.toggle('active');
+                        if (subMenu.classList.contains('active')) {
+                            document.querySelector('.sub-tab[href="#volatility-smile"]').classList.add('active');
+                            updateSection('volatility');
+                        }
+                    });
+                    document.getElementById('ticker-compare-select').addEventListener('change', () => {
+                        console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
+                        updateNormalizedTable();
+                    });
+                    const overviewContainer = document.getElementById('overview');
+                    overviewContainer.style.display = 'grid';
+                    document.getElementById('macro').style.display = 'none';
+                    document.getElementById('indices').style.display = 'none';
+                    document.getElementById('volatility').style.display = 'none';
+                    console.log('Initial load: Showing Overview');
+                    addKeyboardNavigation();
+                } catch (error) {
+                    console.error('Error in DOMContentLoaded:', error);
+                    document.getElementById('historic-error').textContent = `Error initializing page: ${error.message}`;
+                    document.getElementById('historic-error').style.display = 'block';
+                }
+            });
         
     </script>
 </body>
