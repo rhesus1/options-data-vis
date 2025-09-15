@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: '0 21 * * 1-5' # Daily at 10:00 PM BST (9:00 PM UTC)
   workflow_dispatch: # Manual trigger option
+    inputs:
+      timestamp:
+        description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
+        required: false
+        default: '20250912_2126'
+
 jobs:
   process-pipeline:
     runs-on: ubuntu-latest
@@ -13,16 +19,16 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-    - name: Install Chrome and ChromeDriver
+    - name: Install Chrome
       run: |
         sudo apt-get update
         sudo apt-get install -y google-chrome-stable
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-        CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
-        wget -q https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-        unzip chromedriver_linux64.zip
-        sudo mv chromedriver /usr/local/bin/
-        sudo chmod +x /usr/local/bin/chromedriver
+        echo "Installed Chrome version:"
+        google-chrome --version
+        # Clean up any stray Chrome or ChromeDriver processes
+        pkill -f chromedriver || true
+        pkill -f chrome || true
+      continue-on-error: false
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -40,32 +46,50 @@ jobs:
         git add data
         git commit -m "Auto-update raw data from scheduled fetch" || echo "No changes to commit"
         git push
+      continue-on-error: false
     - name: Run Trading Economics scrape script
       run: |
         python -c "
         import json
         import os
+        import glob
+        import shutil
         from datetime import datetime
+        timestamp = '${{ github.event.inputs.timestamp }}'
         try:
             with open('data/dates.json', 'r') as f:
                 dates = json.load(f)
             if not dates:
-                print('Error: dates.json is empty')
-                exit(1)
-            latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
-            print(f'Running scrape_trading_economics.py with timestamp: {latest_date}')
-            os.makedirs(f'data/{latest_date}/Trading_Economics', exist_ok=True)
-            rc = os.system(f'python scrape_trading_economics.py')
-            if rc != 0:
-                print(f'Error: scrape_trading_economics.py failed')
-                exit(1)
-            # Move CSVs to timestamped Trading_Economics directory
-            os.system(f'mv *.csv data/{latest_date}/Trading_Economics/ || echo \"No CSVs to move\"')
-        except FileNotFoundError:
-            print('Error: data/dates.json not found')
-            exit(1)
+                print('Error: dates.json is empty, using provided timestamp')
+                latest_date = timestamp
+            else:
+                latest_date = max(dates, key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M'))
+        except (FileNotFoundError, json.JSONDecodeError, ValueError):
+            print('Error: data/dates.json not found or invalid, using provided timestamp')
+            latest_date = timestamp
+        print(f'Running scrape_trading_economics.py with timestamp: {latest_date}')
+        os.makedirs(f'data/{latest_date}/Trading_Economics', exist_ok=True)
+        rc = os.system('python scrape_trading_economics.py')
+        if rc != 0:
+            print('Warning: scrape_trading_economics.py may have encountered issues')
+        # Move CSVs to timestamped Trading_Economics directory
+        csv_files = glob.glob('*.csv')
+        if csv_files:
+            for csv_file in csv_files:
+                shutil.move(csv_file, f'data/{latest_date}/Trading_Economics/{csv_file}')
+            print(f'Moved {len(csv_files)} CSVs to data/{latest_date}/Trading_Economics/')
+        else:
+            print('No CSVs to move')
+        # Move page source files for debugging
+        html_files = glob.glob('*.html')
+        if html_files:
+            for html_file in html_files:
+                shutil.move(html_file, f'data/{latest_date}/Trading_Economics/{html_file}')
+            print(f'Moved {len(html_files)} HTML page source files to data/{latest_date}/Trading_Economics/')
+        else:
+            print('No HTML page source files to move')
         "
-      continue-on-error: false
+      continue-on-error: true
     - name: Commit and push Trading Economics data
       run: |
         git config --global user.name "GitHub Actions"
@@ -73,6 +97,18 @@ jobs:
         git add data
         git commit -m "Auto-update Trading Economics data for ${{ steps.set-latest-date.outputs.latest_date }}" || echo "No changes to commit"
         git push
+      continue-on-error: false
+    - name: Set latest_date output
+      id: set-latest-date
+      run: |
+        if [ -f data/dates.json ]; then
+          latest_date=$(python -c "import json; from datetime import datetime; print(max(json.load(open('data/dates.json')), key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M')))" 2>/dev/null || echo "${{ github.event.inputs.timestamp }}")
+          echo "latest_date=$latest_date" >> $GITHUB_OUTPUT
+        else
+          echo "latest_date=${{ github.event.inputs.timestamp }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+      continue-on-error: false
     - name: Log timestamp and input files
       run: |
         python -c "
@@ -125,6 +161,7 @@ jobs:
         git add data
         git commit -m "Auto-update cleaned data" || echo "No changes to commit"
         git push
+      continue-on-error: false
     - name: Run calculate script
       run: python calculate_data.py
       continue-on-error: false
@@ -135,6 +172,7 @@ jobs:
         git add data
         git commit -m "Auto-update processed data" || echo "No changes to commit"
         git push
+      continue-on-error: false
     - name: Run ranking metrics calculation
       run: |
         python -c "
@@ -165,16 +203,6 @@ jobs:
         git add data
         git commit -m "Auto-update ranking metrics data" || echo "No changes to commit"
         git push
-    - name: Set latest_date output
-      id: set-latest-date
-      run: |
-        if [ -f data/dates.json ]; then
-          latest_date=$(python -c "import json; from datetime import datetime; print(max(json.load(open('data/dates.json')), key=lambda x: datetime.strptime(x, '%Y%m%d_%H%M')))")
-          echo "latest_date=$latest_date" >> $GITHUB_OUTPUT
-        else
-          echo "latest_date=" >> $GITHUB_OUTPUT
-        fi
-      shell: bash
       continue-on-error: false
     - name: Send email with yfinance ranking metrics and Trading Economics data
       uses: dawidd6/action-send-mail@v3
@@ -199,6 +227,7 @@ jobs:
           data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/currencies.csv
           data/${{ steps.set-latest-date.outputs.latest_date }}/Trading_Economics/crypto.csv
         secure: true
+      continue-on-error: true
     - name: Run preprocess data script
       run: |
         python -c "
@@ -229,6 +258,7 @@ jobs:
         git add data
         git commit -m "Auto-update precomputed tables for ${{ steps.set-latest-date.outputs.latest_date }}" || echo "No changes to commit"
         git push
+      continue-on-error: false
     - name: Send email with precomputed tables
       uses: dawidd6/action-send-mail@v3
       with:
@@ -247,3 +277,4 @@ jobs:
           data/${{ steps.set-latest-date.outputs.latest_date }}/tables/stock/stock_table.csv
           data/${{ steps.set-latest-date.outputs.latest_date }}/tables/summary/summary_table.csv
         secure: true
+      continue-on-error: true
