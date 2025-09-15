@@ -5,7 +5,7 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250915_0932'
+        default: '20250912_2126'
 
 jobs:
   scrape-trading-economics:
