@@ -34,6 +34,10 @@
             left: 0;
             height: 100%;
             z-index: 1000;
+            transform: translateX(-100%);
+        }
+        .sidebar.visible {
+            transform: translateX(0);
         }
         .sidebar.hidden {
             transform: translateX(-100%);
@@ -100,22 +104,19 @@
         }
         .main-content {
             flex: 1;
-            padding: 15px;
+            padding: 15px 15px 15px 25px;
             overflow-y: auto;
             background: #1A1A2E;
             margin-left: 0;
             width: 100%;
             box-sizing: border-box;
-            transition: margin-left 0.3s ease, width 0.3s ease;
+            transition: margin-left 0.3s ease, width 0.3s ease, padding-left 0.3s ease;
             overflow-x: auto;
         }
-        .main-content.full-width {
-            margin-left: 0;
-            width: 100%;
-        }
-        .sidebar a.active {
-            background-color: #4DB6AC;
-            color: #FFFFFF;
+        .main-content.sidebar-visible {
+            margin-left: clamp(200px, 20vw, 250px);
+            width: calc(100% - clamp(200px, 20vw, 250px));
+            padding-left: 15px;
         }
         .chart-container {
             background-color: #25253d;
@@ -601,123 +602,83 @@
         <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
         <datalist id="ticker-datalist"></datalist>
         <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
-        <a href="#macro" onclick="updateSection('macro')">Macro</a>
-        <a href="#indices" onclick="updateSection('indices')">Indices</a>
-        <a href="#volatility" onclick="updateSection('volatility')">Volatility</a>
+        <a href="#macro">Macro</a>
+        <div class="sub-menu" id="macro-sub-menu">
+            <a href="#macro-bonds" class="sub-tab">Bonds</a>
+            <a href="#macro-commodities" class="sub-tab">Commodities</a>
+            <a href="#macro-stocks" class="sub-tab">Stocks</a>
+            <a href="#macro-currencies" class="sub-tab">Currencies</a>
+            <a href="#macro-crypto" class="sub-tab">Crypto</a>
+            <a href="#macro-shares" class="sub-tab">Shares</a>
+        </div>
+        <a href="#indices">Indices</a>
+        <a href="#volatility">Volatility</a>
+        <div class="sub-menu" id="volatility-sub-menu">
+            <a href="#volatility-smile" class="sub-tab">Implied Volatility Smile</a>
+            <a href="#volatility-term" class="sub-tab">Term Structure</a>
+            <a href="#volatility-skew" class="sub-tab">Skewness</a>
+            <a href="#volatility-realised" class="sub-tab">Realised Volatility</a>
+            <a href="#volatility-of-vol" class="sub-tab">Vol of Vol</a>
+            <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
+            <a href="#volatility-ranking" class="sub-tab">Ranking</a>
+            <a href="#volatility-stock" class="sub-tab">Stock</a>
+            <a href="#volatility-price-comparisons" class="sub-tab">Price Comparisons</a>
+            <a href="#volatility-data-table" class="sub-tab">Data Table</a>
+        </div>
     </div>
-    <div class="main-content full-width">
+    <div class="main-content">
         <div class="ticker-display" id="ticker-display">N/A</div>
-            <div id="macro" class="trading-economics-grid" style="display: grid;">
-            <div class="chart-container">
-                <h2>Macroeconomic Indicators</h2>
-                <div id="trading-economics-error" class="error-message" style="display: none;">No macroeconomic data available</div>
-                <div id="trading-economics-bonds" class="chart-container">
-                    <h3>Bonds</h3>
-                    <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Toggle Data</button>
-                    <table id="bonds-table" class="trading-economics-table"></table>
-                </div>
-                <div id="trading-economics-commodities" class="chart-container">
-                    <h3>Commodities</h3>
-                    <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Toggle Data</button>
-                    <table id="commodities-table" class="trading-economics-table"></table>
-                </div>
-                <div id="trading-economics-currencies" class="chart-container">
-                    <h3>Currencies</h3>
-                    <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Toggle Data</button>
-                    <table id="currencies-table" class="trading-economics-table"></table>
-                </div>
-                <div id="trading-economics-crypto" class="chart-container">
-                    <h3>Crypto</h3>
-                    <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Toggle Data</button>
-                    <table id="crypto-table" class="trading-economics-table"></table>
+        <div id="selected-ticker-summary" class="chart-container" style="display: none;">
+        <div id="macro" class="trading-economics-grid" style="display: none;">
+            <div id="macro-error" class="error-message" style="display: none;">No macro data available</div>
+            <div id="macro-bonds" class="chart-container" style="display: none;">
+                <h2>Bonds</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Hide Data</button>
+                <table id="bonds-table" class="trading-economics-table" style="display: table;"></table>
+            </div>
+            <div id="macro-commodities" class="chart-container" style="display: none;">
+                <h2>Commodities</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Hide Data</button>
+                <table id="commodities-table" class="trading-economics-table" style="display: table;"></table>
+            </div>
+            <div id="macro-stocks" class="chart-container" style="display: none;">
+                <h2>Stocks</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('stocks')">Hide Data</button>
+                <table id="stocks-table" class="trading-economics-table" style="display: table;"></table>
+            </div>
+            <div id="macro-currencies" class="chart-container" style="display: none;">
+                <h2>Currencies</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Hide Data</button>
+                <table id="currencies-table" class="trading-economics-table" style="display: table;"></table>
+            </div>
+            <div id="macro-crypto" class="chart-container" style="display: none;">
+                <h2>Crypto</h2>
+                <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Hide Data</button>
+                <table id="crypto-table" class="trading-economics-table" style="display: table;"></table>
+            </div>
+            <div id="macro-shares" class="chart-container shares-grid" style="display: none;">
+                <h2>Shares</h2>
+                <div class="shares-container">
+                    <div class="chart-container">
+                        <h3>Gainers</h3>
+                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_gainers')">Hide Data</button>
+                        <table id="shares-gainers-table" class="trading-economics-table" style="display: table;"></table>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Losers</h3>
+                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_losers')">Hide Data</button>
+                        <table id="shares-losers-table" class="trading-economics-table" style="display: table;"></table>
+                    </div>
                 </div>
             </div>
         </div>
-        <div id="indices" class="overview-grid" style="display: none;">
-            <div class="ticker-display" id="ticker-display">N/A</div>
-            <div class="chart-container historic-container">
-                <h2>Historic Stock Price</h2>
-                <div class="select-container">
-                    <label for="historic-start-date">Start Date: </label>
-                    <input type="date" id="historic-start-date">
-                    <label for="historic-end-date">End Date: </label>
-                    <input type="date" id="historic-end-date">
-                </div>
-                <canvas id="historic-price-chart"></canvas>
-                <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
-            </div>
-            <div class="chart-container summary-container">
-                <h2>Summary</h2>
-                <table id="summary-table" class="summary-table"></table>
-            </div>
-            <div class="chart-container contracts-container">
-                <h2>Top 10 Volume Contracts</h2>
-                <table id="top-volume-table" class="contracts-table"></table>
-            </div>
-            <div class="chart-container contracts-container">
-                <h2>Top 10 Open Interest Contracts</h2>
-                <table id="top-open-interest-table" class="contracts-table"></table>
-            </div>
-            <div class="chart-container">
-                <h2>Ticker Ranking</h2>
-                <button class="toggle-button" onclick="toggleRankingTable()">Toggle Data</button>
-                <table id="ranking-table" class="ranking-table"></table>
-                <div class="ranking-grid">
-                    <div class="chart-container">
-                        <h3>Volume</h3>
-                        <canvas id="volume-chart"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <h3>Open Interest</h3>
-                        <canvas id="open-interest-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <h2>Stock Metrics</h2>
-                <button class="toggle-button" onclick="toggleStockTable()">Toggle Data</button>
-                <table id="stock-table" class="stock-table"></table>
-                <div class="chart-container">
-                    <h3>Kurtosis</h3>
-                    <div class="select-container">
-                        <label for="kurtosis-start-date">Start Date: </label>
-                        <input type="date" id="kurtosis-start-date">
-                        <label for="kurtosis-end-date">End Date: </label>
-                        <input type="date" id="kurtosis-end-date">
-                    </div>
-                    <div class="select-container">
-                        <label for="kurtosis-type-select">Select Kurtosis Type: </label>
-                        <select id="kurtosis-type-select">
-                            <option value="Kurtosis_Close_100d" selected>Close Prices</option>
-                            <option value="Kurtosis_Returns_100d">Log Returns</option>
-                        </select>
-                    </div>
-                    <canvas id="kurtosis-chart"></canvas>
-                    <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <h2>Price Comparisons</h2>
-                <div class="select-container">
-                    <label for="ticker-compare-select">Select Tickers to Compare (Multi): </label>
-                    <select id="ticker-compare-select" multiple style="width: 200px;">
-                    </select>
-                </div>
-                <button class="toggle-button" onclick="togglePriceComparisonsTable()">Toggle Data</button>
-                <table id="normalized-table" class="normalized-table"></table>
-            </div>
-            <div class="chart-container">
-                <h2>Selected Ticker Summary</h2>
-                <table id="selected-ticker-table" class="ranking-table"></table>
-            </div>
+        <div id="indices" class="chart-container" style="display: none;">
+            <h2>Indices</h2>
+            <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
-            <div class="chart-container">
-                <h2>Selected Ticker Summary</h2>
-                <table id="selected-ticker-table-vol" class="ranking-table"></table>
-            </div>
-            <div class="chart-container">
-                <h2>Implied Volatility Smile</h2>
+            <div id="volatility-smile" class="chart-container" style="display: block;">
+                <h3>Implied Volatility Smile</h3>
                 <div class="select-container">
                     <label for="expiry-select">Select Expiry: </label>
                     <select id="expiry-select"></select>
@@ -725,8 +686,8 @@
                 <canvas id="moneyness-vs-iv-chart"></canvas>
                 <div id="moneyness-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
-                <h2>Implied Volatility Term Structure</h2>
+            <div id="volatility-term" class="chart-container" style="display: block;">
+                <h3>Implied Volatility Term Structure</h3>
                 <div class="select-container">
                     <label for="moneyness-select">Select Moneyness: </label>
                     <select id="moneyness-select"></select>
@@ -740,8 +701,8 @@
                 <canvas id="expiry-vs-iv-chart"></canvas>
                 <div id="expiry-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
-                <h2>Volatility Skewness</h2>
+            <div id="volatility-skew" class="chart-container" style="display: block;">
+                <h3>Volatility Skewness</h3>
                 <div class="select-container">
                     <label for="skew-min-expiry">Min Expiry: </label>
                     <input type="date" id="skew-min-expiry">
@@ -764,8 +725,8 @@
                 <canvas id="skew-vs-expiry-chart"></canvas>
                 <div id="skew-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
-                <h2>Realised Volatility</h2>
+            <div id="volatility-realised" class="chart-container" style="display: block;">
+                <h3>Realised Volatility</h3>
                 <div class="select-container">
                     <label for="realised-start-date">Start Date: </label>
                     <input type="date" id="realised-start-date">
@@ -785,8 +746,8 @@
                 <canvas id="realised-vol-chart"></canvas>
                 <div id="realised-vol-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
-                <h2>Volatility of Vol (100-day)</h2>
+            <div id="volatility-of-vol" class="chart-container" style="display: block;">
+                <h3>Volatility of Vol (100-day)</h3>
                 <div class="select-container">
                     <label for="volofvol-start-date">Start Date: </label>
                     <input type="date" id="volofvol-start-date">
@@ -796,8 +757,8 @@
                 <canvas id="vol-of-vol-chart"></canvas>
                 <div id="vol-of-vol-error" class="error-message" style="display: none;">No volatility of volatility data available</div>
             </div>
-            <div class="chart-container">
-                <h2>Call Volatility Surface</h2>
+            <div id="volatility-surface" class="chart-container" style="display: block;">
+                <h3>Call Volatility Surface</h3>
                 <div class="slider-container">
                     <div class="slider-group">
                         <label>Moneyness Range: <div id="moneyness-slider" class="pretty-slider"></div>
@@ -809,11 +770,60 @@
                 <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div class="chart-container">
-                <h2>Raw Data</h2>
+            <div id="volatility-ranking" class="chart-container" style="display: block;">
+                <h2>Ticker Ranking</h2>
+                <button class="toggle-button" onclick="toggleRankingTable()">Show Data</button>
+                <table id="ranking-table" class="ranking-table" style="display: none;"></table>
+                <div class="ranking-grid">
+                    <div class="chart-container">
+                        <h3>Volume</h3>
+                        <canvas id="volume-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Open Interest</h3>
+                        <canvas id="open-interest-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="volatility-stock" class="chart-container" style="display: block;">
+                <h2>Stock Metrics</h2>
+                <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
+                <table id="stock-table" class="stock-table" style="display: none;"></table>
+                <div class="chart-container">
+                    <h3>Kurtosis</h3>
+                    <div class="select-container">
+                        <label for="kurtosis-start-date">Start Date: </label>
+                        <input type="date" id="kurtosis-start-date">
+                        <label for="kurtosis-end-date">End Date: </label>
+                        <input type="date" id="kurtosis-end-date">
+                    </div>
+                    <div class="select-container">
+                        <label for="kurtosis-type-select">Select Kurtosis Type: </label>
+                        <select id="kurtosis-type-select">
+                            <option value="Kurtosis_Close_100d" selected>Close Prices</option>
+                            <option value="Kurtosis_Returns_100d">Log Returns</option>
+                        </select>
+                    </div>
+                    <canvas id="kurtosis-chart"></canvas>
+                    <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
+                </div>
+            </div>
+            <div id="volatility-price-comparisons" class="chart-container" style="display: block;">
+                <h2>Price Comparisons</h2>
+                <div class="select-container">
+                    <label for="ticker-compare-select">Select Tickers to Compare (Multi): </label>
+                    <select id="ticker-compare-select" multiple style="width: 200px;">
+                    </select>
+                </div>
+                <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
+                <table id="normalized-table" class="normalized-table" style="display: none;"></table>
+            </div>
+            <div id="volatility-data-table" class="chart-container" style="display: block;">
+                <h2>Data Table</h2>
                 <table id="raw-data-table" class="raw-data-table"></table>
             </div>
         </div>
+    </div>
     </div>
     <script>
         let data = [];
@@ -912,27 +922,10 @@
             const sidebar = document.querySelector('.sidebar');
             const mainContent = document.querySelector('.main-content');
             const toggleButton = document.querySelector('.sidebar-toggle');
-            const sidebarWidth = 'clamp(200px, 20vw, 250px)';
-            const gap = '10px';
             sidebar.classList.toggle('hidden');
             sidebar.classList.toggle('visible');
-            if (sidebar.classList.contains('hidden')) {
-                mainContent.style.marginLeft = '0';
-                mainContent.style.paddingLeft = '0';
-                mainContent.style.width = '100%';
-                toggleButton.textContent = '☰';
-            } else {
-                if (window.innerWidth <= 768) {
-                    mainContent.style.marginLeft = '0';
-                    mainContent.style.paddingLeft = `calc(${sidebarWidth} + ${gap})`;
-                    mainContent.style.width = '100%';
-                } else {
-                    mainContent.style.marginLeft = `calc(${sidebarWidth} + ${gap})`;
-                    mainContent.style.paddingLeft = '0';
-                    mainContent.style.width = `calc(100% - ${sidebarWidth} - ${gap})`;
-                }
-                toggleButton.textContent = '✕';
-            }
+            mainContent.classList.toggle('sidebar-visible');
+            toggleButton.textContent = sidebar.classList.contains('hidden') ? '☰' : '✕';
         }
     
         function toggleStatsTables() {
@@ -3143,40 +3136,54 @@
         
         function updateSection(sectionId) {
             try {
-                console.log('Updating section:', sectionId);
+                console.log('Updatingទ, 'Updating section:', sectionId);
                 const sections = ['macro', 'indices', 'volatility'];
+                const selectedTickerSummary = document.getElementById('selected-ticker-summary');
                 sections.forEach(id => {
                     const element = document.getElementById(id);
-                    element.style.display = id === sectionId ? 'grid' : 'none';
+                    if (element) {
+                        element.style.display = id === sectionId ? (id === 'macro' || id === 'volatility' ? 'grid' : 'block') : 'none';
+                    }
                 });
+                if (selectedTickerSummary) {
+                    selectedTickerSummary.style.display = sectionId === 'volatility' ? 'block' : 'none';
+                }
+        
                 if (sectionId === 'macro') {
+                    const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
+                    const selectedSubSection = document.querySelector('.sub-tab.active')?.getAttribute('href')?.substring(1) || 'macro-bonds';
+                    subSections.forEach(subId => {
+                        const element = document.getElementById(`macro-${subId}`);
+                        if (element) {
+                            element.style.display = selectedSubSection === `macro-${subId}` ? 'block' : 'none';
+                        }
+                    });
                     updateTradingEconomicsTables();
-                } else if (sectionId === 'indices') {
-                    updateSummaryTable();
-                    updateTopContractsTables();
-                    updateHistoricChart();
-                    updateVolumeChart();
-                    updateOpenInterestChart();
-                    updateRankingTable();
-                    updateStockTable();
-                    updateKurtosisChart();
-                    updateNormalizedTable();
-                    updateSelectedTickerSummary();
                 } else if (sectionId === 'volatility') {
+                    const subSections = ['smile', 'term', 'skew', 'realised', 'of-vol', 'surface', 'ranking', 'stock', 'price-comparisons', 'data-table'];
+                    const selectedSubSection = document.querySelector('.sub-tab.active')?.getAttribute('href')?.substring(1) || 'volatility-smile';
+                    subSections.forEach(subId => {
+                        const element = document.getElementById(`volatility-${subId}`);
+                        if (element) {
+                            element.style.display = selectedSubSection === `volatility-${subId}` ? 'block' : 'none';
+                        }
+                    });
                     updateMoneynessVsIV();
                     updateExpiryVsIV();
                     updateSkewVsExpiry();
                     updateRealisedVolChart();
                     updateVolOfVolChart();
-                    updateCallVolSurface();
-                    updateRawDataTable();
                     updateSelectedTickerSummary();
-                    // Update duplicate selected-ticker-table-vol for Volatility page
-                    const volTable = document.getElementById('selected-ticker-table-vol');
-                    const indicesTable = document.getElementById('selected-ticker-table');
-                    if (volTable && indicesTable) {
-                        volTable.innerHTML = indicesTable.innerHTML;
-                    }
+                    updateCallVolSurface();
+                    updateVolumeChart();
+                    updateOpenInterestChart();
+                    updateRankingTable();
+                    updateStockTable();
+                    updateNormalizedTable();
+                    updateRawDataTable();
+                    updateKurtosisChart();
+                } else if (sectionId === 'indices') {
+                    // No specific updates needed for indices yet
                 }
             } catch (error) {
                 console.error('Error updating section:', error);
@@ -3396,170 +3403,200 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+    try {
+        if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined') {
+            console.error('Required libraries (Chart.js, Plotly, or PapaParse) not loaded');
+            document.getElementById('historic-error').textContent = 'Failed to load required libraries';
+            document.getElementById('historic-error').style.display = 'block';
+            return;
+        }
+        const moneynessSlider = document.getElementById('moneyness-slider');
+        const expiryTSlider = document.getElementById('expiry-t-slider');
+        noUiSlider.create(moneynessSlider, {
+            start: [0.6, 2.5],
+            connect: true,
+            range: { min: 0.1, max: 3 },
+            step: 0.1
+        });
+        noUiSlider.create(expiryTSlider, {
+            start: [0.2, 5],
+            connect: true,
+            range: { min: 0, max: 5 },
+            step: 0.1
+        });
+        moneynessSlider.noUiSlider.on('update', (values) => {
+            document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+            updateCallVolSurface();
+        });
+        expiryTSlider.noUiSlider.on('update', (values) => {
+            document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+            updateCallVolSurface();
+        });
+        const dateSelect = document.getElementById('date-select');
+        const timeSelect = document.getElementById('time-select');
+        const tickerSearch = document.getElementById('ticker-search');
+        const validateTimestamp = async (timestamp) => {
+            const prefix = '_yfinance';
             try {
-                if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined') {
-                    console.error('Required libraries (Chart.js, Plotly, or PapaParse) not loaded');
-                    document.getElementById('historic-error').textContent = 'Failed to load required libraries';
-                    document.getElementById('historic-error').style.display = 'block';
-                    return;
-                }
-                const moneynessSlider = document.getElementById('moneyness-slider');
-                const expiryTSlider = document.getElementById('expiry-t-slider');
-                noUiSlider.create(moneynessSlider, {
-                    start: [0.6, 2.5],
-                    connect: true,
-                    range: { min: 0.1, max: 3 },
-                    step: 0.1
+                const response = await fetch(`data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
+                return response.ok ? timestamp : null;
+            } catch {
+                return null;
+            }
+        };
+        const getLatestValidTimestamp = async (dates) => {
+            const timestamps = dates.sort((a, b) => b.localeCompare(a));
+            for (const ts of timestamps) {
+                if (await validateTimestamp(ts)) return ts;
+            }
+            console.warn('No valid timestamps found, using fallback');
+            return '20250827_2136';
+        };
+        fetch('data/dates.json?v=' + Date.now())
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load dates.json');
+                return response.json();
+            })
+            .then(async dates => {
+                const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))].sort((a, b) => b.localeCompare(a));
+                dateSelect.innerHTML = '';
+                uniqueDates.forEach(datePart => {
+                    const option = document.createElement('option');
+                    option.value = datePart.replace(/-/g, '');
+                    option.textContent = datePart;
+                    dateSelect.appendChild(option);
                 });
-                noUiSlider.create(expiryTSlider, {
-                    start: [0.2, 5],
-                    connect: true,
-                    range: { min: 0, max: 5 },
-                    step: 0.1
-                });
-                moneynessSlider.noUiSlider.on('update', (values) => {
-                    document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-                    updateCallVolSurface();
-                });
-                expiryTSlider.noUiSlider.on('update', (values) => {
-                    document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-                    updateCallVolSurface();
-                });
-                const dateSelect = document.getElementById('date-select');
-                const timeSelect = document.getElementById('time-select');
-                const tickerSearch = document.getElementById('ticker-search');
-                const validateTimestamp = async (timestamp) => {
-                    const prefix = '_yfinance';
-                    try {
-                        const response = await fetch(`data/${timestamp}/tables/ranking/ranking_table${prefix}.csv?v=${Date.now()}`, { method: 'HEAD' });
-                        return response.ok ? timestamp : null;
-                    } catch {
-                        return null;
+                const loadInitialData = async () => {
+                    let timestamp = await getLatestValidTimestamp(dates);
+                    if (dateSelect.options.length > 0) {
+                        dateSelect.value = timestamp.slice(0, 8);
+                        await updateTimeOptions(dateSelect.value, dates);
+                        timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
                     }
+                    console.log('Loading initial data with timestamp:', timestamp);
+                    await loadData(timestamp);
+                    updateDropdowns();
+                    updateSection('macro');
+                    console.log('Initial data and Macro loaded for timestamp:', timestamp);
                 };
-                const getLatestValidTimestamp = async (dates) => {
-                    const timestamps = dates.sort((a, b) => b.localeCompare(a));
-                    for (const ts of timestamps) {
-                        if (await validateTimestamp(ts)) return ts;
+                await loadInitialData();
+                dateSelect.addEventListener('change', async (e) => {
+                    console.log('Date select changed to:', e.target.value);
+                    await updateTimeOptions(e.target.value, dates);
+                    const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                    if (await validateTimestamp(timestamp)) {
+                        await loadData(timestamp);
+                        updateDropdowns();
+                        const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                        const sectionId = currentSection ? currentSection.id : 'macro';
+                        updateSection(sectionId);
+                        console.log('Updated section after date change:', sectionId);
+                    } else {
+                        console.warn('Invalid timestamp:', timestamp);
+                        document.getElementById('historic-error').textContent = 'Invalid date selected';
+                        document.getElementById('historic-error').style.display = 'block';
                     }
-                    console.warn('No valid timestamps found, using fallback');
-                    return '20250827_2136';
-                };
-                fetch('data/dates.json?v=' + Date.now())
-                    .then(response => {
-                        if (!response.ok) throw new Error('Failed to load dates.json');
-                        return response.json();
-                    })
-                    .then(async dates => {
-                        const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))].sort((a, b) => b.localeCompare(a));
-                        dateSelect.innerHTML = '';
-                        uniqueDates.forEach(datePart => {
-                            const option = document.createElement('option');
-                            option.value = datePart.replace(/-/g, '');
-                            option.textContent = datePart;
-                            dateSelect.appendChild(option);
-                        });
-                        const loadInitialData = async () => {
-                            let timestamp = await getLatestValidTimestamp(dates);
-                            if (dateSelect.options.length > 0) {
-                                dateSelect.value = timestamp.slice(0, 8);
-                                await updateTimeOptions(dateSelect.value, dates);
-                                timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                            }
-                            console.log('Loading initial data with timestamp:', timestamp);
+                });
+                timeSelect.addEventListener('change', async (e) => {
+                    console.log('Time select changed to:', e.target.value);
+                    const timestamp = dateSelect.value + '_' + e.target.value;
+                    if (await validateTimestamp(timestamp)) {
+                        await loadData(timestamp);
+                        updateDropdowns();
+                        const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                        const sectionId = currentSection ? currentSection.id : 'macro';
+                        updateSection(sectionId);
+                        console.log('Updated section after time change:', sectionId);
+                    } else {
+                        console.warn('Invalid timestamp:', timestamp);
+                        document.getElementById('historic-error').textContent = 'Invalid time selected';
+                        document.getElementById('historic-error').style.display = 'block';
+                    }
+                });
+                tickerSearch.addEventListener('input', debounce(async () => {
+                    console.log('Ticker changed to:', tickerSearch.value);
+                    document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
+                    const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                    if (await validateTimestamp(timestamp)) {
+                        await loadData(timestamp);
+                        updateDropdowns();
+                        const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                        const sectionId = currentSection ? currentSection.id : 'macro';
+                        updateSection(sectionId);
+                        console.log('Updated section after ticker change:', sectionId);
+                    } else {
+                        console.warn('Invalid timestamp:', timestamp);
+                        document.getElementById('historic-error').textContent = 'Invalid data timestamp';
+                        document.getElementById('historic-error').style.display = 'block';
+                    }
+                }, 500));
+                const links = document.querySelectorAll('.sidebar a');
+                links.forEach(link => {
+                    link.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const targetId = link.getAttribute('href').substring(1);
+                        console.log(`Navigating to section: ${targetId}`);
+                        const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                        if (await validateTimestamp(timestamp)) {
                             await loadData(timestamp);
                             updateDropdowns();
-                            updateSection('overview');
-                            console.log('Initial data and Overview loaded for timestamp:', timestamp);
-                        };
-                        await loadInitialData();
-                        dateSelect.addEventListener('change', async (e) => {
-                            console.log('Date select changed to:', e.target.value);
-                            await updateTimeOptions(e.target.value, dates);
-                            const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                            if (await validateTimestamp(timestamp)) {
-                                await loadData(timestamp);
-                                updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
-                                const sectionId = currentSection ? currentSection.id : 'overview';
-                                updateSection(sectionId);
-                                console.log('Updated section after date change:', sectionId);
+                            if (targetId.startsWith('macro-') || targetId === 'macro') {
+                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                link.classList.add('active');
+                                const subMenu = document.getElementById('macro-sub-menu');
+                                if (subMenu) subMenu.classList.add('active');
+                                updateSection('macro');
+                            } else if (targetId.startsWith('volatility-') || targetId === 'volatility') {
+                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                link.classList.add('active');
+                                const subMenu = document.getElementById('volatility-sub-menu');
+                                if (subMenu) subMenu.classList.add('active');
+                                updateSection('volatility');
                             } else {
-                                console.warn('Invalid timestamp:', timestamp);
-                                document.getElementById('historic-error').textContent = 'Invalid date selected';
-                                document.getElementById('historic-error').style.display = 'block';
+                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                const subMenu = document.getElementById('macro-sub-menu');
+                                if (subMenu) subMenu.classList.remove('active');
+                                const volatilitySubMenu = document.getElementById('volatility-sub-menu');
+                                if (volatilitySubMenu) volatilitySubMenu.classList.remove('active');
+                                updateSection(targetId);
                             }
-                        });
-                        timeSelect.addEventListener('change', async (e) => {
-                            console.log('Time select changed to:', e.target.value);
-                            const timestamp = dateSelect.value + '_' + e.target.value;
-                            if (await validateTimestamp(timestamp)) {
-                                await loadData(timestamp);
-                                updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
-                                const sectionId = currentSection ? currentSection.id : 'overview';
-                                updateSection(sectionId);
-                                console.log('Updated section after time change:', sectionId);
-                            } else {
-                                console.warn('Invalid timestamp:', timestamp);
-                                document.getElementById('historic-error').textContent = 'Invalid time selected';
-                                document.getElementById('historic-error').style.display = 'block';
-                            }
-                        });
-                        tickerSearch.addEventListener('input', debounce(async () => {
-                            console.log('Ticker changed to:', tickerSearch.value);
-                            document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
-                            const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                            if (await validateTimestamp(timestamp)) {
-                                await loadData(timestamp);
-                                updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
-                                const sectionId = currentSection ? currentSection.id : 'overview';
-                                updateSection(sectionId);
-                                console.log('Updated section after ticker change:', sectionId);
-                            } else {
-                                console.warn('Invalid timestamp:', timestamp);
-                                document.getElementById('historic-error').textContent = 'Invalid data timestamp';
-                                document.getElementById('historic-error').style.display = 'block';
-                            }
-                        }, 500));
-                        const links = document.querySelectorAll('.sidebar a');
-                        links.forEach(link => {
-                            link.addEventListener('click', async (e) => {
-                                e.preventDefault();
-                                const targetId = link.getAttribute('href').substring(1);
-                                console.log(`Navigating to section: ${targetId}`);
-                                const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
-                                if (await validateTimestamp(timestamp)) {
-                                    await loadData(timestamp);
-                                    updateDropdowns();
-                                    updateSection(targetId);
-                                    // Highlight active link
-                                    links.forEach(l => l.classList.remove('active'));
-                                    link.classList.add('active');
-                                } else {
-                                    console.warn('Invalid timestamp on navigation:', timestamp);
-                                    document.getElementById('historic-error').textContent = 'Invalid data timestamp';
-                                    document.getElementById('historic-error').style.display = 'block';
-                                }
-                            });
-                        });
-                        document.getElementById('ticker-compare-select').addEventListener('change', () => {
-                            console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
-                            updateNormalizedTable();
-                        });
-                        const macroContainer = document.getElementById('macro');
-                        macroContainer.style.display = 'grid';
-                        document.getElementById('indices').style.display = 'none';
-                        document.getElementById('volatility').style.display = 'none';
-                        console.log('Initial load: Showing Macro');
-                        addKeyboardNavigation();
-                    })
-                    .catch(error => {
-                        console.error('Error loading dates:', error);
-                        document.getElementById('historic-error').textContent = `Failed to load date options: ${error.message}`;
-                        document.getElementById('historic-error').style.display = 'block';
+                        } else {
+                            console.warn('Invalid timestamp on navigation:', timestamp);
+                            document.getElementById('historic-error').textContent = 'Invalid data timestamp';
+                            document.getElementById('historic-error').style.display = 'block';
+                        }
                     });
+                });
+                const macroLink = document.getElementById('macro-link');
+                macroLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const subMenu = document.getElementById('macro-sub-menu');
+                    subMenu.classList.toggle('active');
+                    if (subMenu.classList.contains('active')) {
+                        document.querySelector('.sub-tab[href="#macro-bonds"]').classList.add('active');
+                        updateSection('macro');
+                    }
+                });
+                const volatilityLink = document.getElementById('volatility-link');
+                volatilityLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const subMenu = document.getElementById('volatility-sub-menu');
+                    subMenu.classList.toggle('active');
+                    if (subMenu.classList.contains('active')) {
+                        document.querySelector('.sub-tab[href="#volatility-smile"]').classList.add('active');
+                        updateSection('volatility');
+                    }
+                });
+                document.getElementById('ticker-compare-select').addEventListener('change', () => {
+                    console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
+                    updateNormalizedTable();
+                });
+                const macroContainer = document.getElementById('macro');
+                macroContainer.style.display = 'grid';
+                document.getElementById('indices').style.display = 'none';
+                document.getElementById('volatility').style.display = 'none';
+                console.log('Initial load: Showing Macro');
+                addKeyboardNavigation();
             } catch (error) {
                 console.error('Error in DOMContentLoaded:', error);
                 document.getElementById('historic-error').textContent = `Error initializing page: ${error.message}`;
