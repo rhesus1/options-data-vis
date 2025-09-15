@@ -5,7 +5,7 @@ on:
       timestamp:
         description: 'Timestamp for the data scrape (format: YYYYMMDD_HHMM)'
         required: true
-        default: '20250912_2126'
+        default: '20250915_0930'
 
 jobs:
   scrape-trading-economics:
@@ -78,6 +78,8 @@ jobs:
       run: |
         python -c "
         import os
+        import glob
+        import shutil
         timestamp = '${{ github.event.inputs.timestamp }}'
         print(f'Running scrape_trading_economics.py with timestamp: {timestamp}')
         os.makedirs(f'data/{timestamp}/Trading_Economics', exist_ok=True)
@@ -85,19 +87,21 @@ jobs:
         if rc != 0:
             print('Warning: scrape_trading_economics.py may have encountered issues')
         # Move CSVs to timestamped Trading_Economics directory
-        if ls *.csv >/dev/null 2>&1; then
-            mv *.csv data/{timestamp}/Trading_Economics/
-            echo 'Moved CSVs to data/{timestamp}/Trading_Economics/'
-        else
-            echo 'No CSVs to move'
-        fi
+        csv_files = glob.glob('*.csv')
+        if csv_files:
+            for csv_file in csv_files:
+                shutil.move(csv_file, f'data/{timestamp}/Trading_Economics/{csv_file}')
+            print(f'Moved {len(csv_files)} CSVs to data/{timestamp}/Trading_Economics/')
+        else:
+            print('No CSVs to move')
         # Move page source files for debugging
-        if ls *.html >/dev/null 2>&1; then
-            mv *.html data/{timestamp}/Trading_Economics/
-            echo 'Moved HTML page source files to data/{timestamp}/Trading_Economics/'
-        else
-            echo 'No HTML page source files to move'
-        fi
+        html_files = glob.glob('*.html')
+        if html_files:
+            for html_file in html_files:
+                shutil.move(html_file, f'data/{timestamp}/Trading_Economics/{html_file}')
+            print(f'Moved {len(html_files)} HTML page source files to data/{timestamp}/Trading_Economics/')
+        else:
+            print('No HTML page source files to move')
         "
       continue-on-error: true
     - name: Commit and push Trading Economics data
