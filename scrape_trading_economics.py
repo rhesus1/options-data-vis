@@ -2,13 +2,15 @@ import csv
 import time
 import re
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
+from webdriver_manager.chrome import ChromeDriverManager  # Automatic driver download
 
-debug = False  # Enable verbose output for debugging in GitHub Actions
+debug = True  # Enable verbose output for debugging in GitHub Actions
 
 def handle_cookie_consent(driver):
     consent_selectors = [
@@ -65,7 +67,9 @@ def scrape_page(url, output_prefixes, headers, identifier_col=0, skip_cols=0, ex
         try:
             if debug:
                 print(f"Attempt {attempt} of {retries} for {url}")
-            driver = webdriver.Chrome(options=chrome_options)
+            # Use webdriver-manager to automatically download matching ChromeDriver
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
             driver.delete_all_cookies()
             if debug:
                 print(f"Cleared cookies for {url}")
@@ -314,4 +318,5 @@ def main():
             retries=3
         )
 
-main()
+if __name__ == "__main__":
+    main()
