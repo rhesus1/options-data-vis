@@ -30,22 +30,25 @@
             padding: 15px;
             border-right: 1px solid #26A69A;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s ease, width 0.3s ease;
+            transition: transform 0.3s ease, width 0.3s ease, visibility 0.3s ease;
             position: fixed;
             top: 0;
             left: 0;
             height: 100%;
             z-index: 1000;
             transform: translateX(-100%);
+            visibility: hidden; /* Ensure hidden until toggled */
         }
         .sidebar.visible {
             transform: translateX(0);
+            visibility: visible;
         }
         .sidebar.hidden {
             transform: translateX(-100%);
             width: 0;
             padding: 0;
             overflow: hidden;
+            visibility: hidden;
         }
         .sidebar-toggle {
             position: fixed;
@@ -106,19 +109,19 @@
         }
         .main-content {
             flex: 1;
-            padding: 15px 15px 15px 25px;
+            padding: 15px 15px 15px 25px; /* Maintain padding on all sides */
             overflow-y: auto;
             background: #1A1A2E;
             margin-left: 0;
-            width: 100%;
+            width: calc(100% - 25px); /* Add padding buffer when sidebar hidden */
             box-sizing: border-box;
             transition: margin-left 0.3s ease, width 0.3s ease, padding-left 0.3s ease;
             overflow-x: auto;
         }
         .main-content.sidebar-visible {
-            margin-left: clamp(200px, 20vw, 250px);
-            width: calc(100% - clamp(200px, 20vw, 250px));
-            padding-left: 15px;
+            margin-left: clamp(225px, calc(20vw + 25px), 275px); /* Add padding buffer */
+            width: calc(100% - clamp(225px, calc(20vw + 25px), 275px)); /* Adjust for sidebar + padding */
+            padding-left: 25px; /* Consistent padding */
         }
         .chart-container {
             background-color: #25253d;
@@ -627,14 +630,17 @@
             <a href="#macro-shares" class="sub-tab">Shares</a>
         </div>
         <a href="#indices">Indices</a>
+        <div class="sub-menu hidden" id="indices-sub-menu"> <!-- Added sub-menu -->
+            <a href="#indices-overview" class="sub-tab">Overview</a> <!-- Renamed from indices -->
+            <a href="#indices-stock" class="sub-tab">Stock</a> <!-- Moved from Volatility -->
+            <a href="#indices-price-comparisons" class="sub-tab">Price Comparisons</a> <!-- Moved from Volatility -->
+        </div>
         <a href="#volatility" id="volatility-link">Volatility</a>
         <div class="sub-menu hidden" id="volatility-sub-menu">
-            <a href="#volatility-overview" class="sub-tab">Overview</a> <!-- +Added -->
-            <a href="#volatility-plots" class="sub-tab">Volatility Plots</a> <!-- +Added -->
+            <a href="#volatility-overview" class="sub-tab">Overview</a>
+            <a href="#volatility-plots" class="sub-tab">Volatility Plots</a>
             <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
             <a href="#volatility-ranking" class="sub-tab">Ranking</a>
-            <a href="#volatility-stock" class="sub-tab">Stock</a>
-            <a href="#volatility-price-comparisons" class="sub-tab">Price Comparisons</a>
             <a href="#volatility-data-table" class="sub-tab">Data Table</a>
         </div>
     </div>
@@ -687,10 +693,45 @@
                 </div>
             </div>
         </div>
-        <div id="indices" class="chart-container" style="display: none;">
-            <h2>Indices Data from Wisesheets</h2>
-            <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
-            <table id="indices-table" class="trading-economics-table" style="display: table;"></table>
+        <div id="indices" class="trading-economics-grid" style="display: none;"> <!-- Changed to trading-economics-grid -->
+            <div id="indices-overview" class="chart-container" style="display: none;">
+                <h2>Indices Data from Wisesheets</h2>
+                <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
+                <table id="indices-table" class="trading-economics-table" style="display: table;"></table>
+            </div>
+            <div id="indices-stock" class="chart-container" style="display: none;">
+                <h2>Stock Metrics</h2>
+                <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
+                <table id="stock-table" class="stock-table" style="display: none;"></table>
+                <div class="chart-container">
+                    <h3>Kurtosis</h3>
+                    <div class="select-container">
+                        <label for="kurtosis-start-date">Start Date: </label>
+                        <input type="date" id="kurtosis-start-date">
+                        <label for="kurtosis-end-date">End Date: </label>
+                        <input type="date" id="kurtosis-end-date">
+                    </div>
+                    <div class="select-container">
+                        <label for="kurtosis-type-select">Select Kurtosis Type: </label>
+                        <select id="kurtosis-type-select">
+                            <option value="Kurtosis_Close_100d" selected>Close Prices</option>
+                            <option value="Kurtosis_Returns_100d">Log Returns</option>
+                        </select>
+                    </div>
+                    <canvas id="kurtosis-chart"></canvas>
+                    <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
+                </div>
+            </div>
+            <div id="indices-price-comparisons" class="chart-container" style="display: none;">
+                <h2>Price Comparisons</h2>
+                <div class="select-container">
+                    <label for="ticker-compare-select">Select Tickers to Compare (Multi): </label>
+                    <select id="ticker-compare-select" multiple style="width: 200px;">
+                    </select>
+                </div>
+                <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
+                <table id="normalized-table" class="normalized-table" style="display: none;"></table>
+            </div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
             <div id="volatility-overview" class="overview-grid" style="display: none;">
@@ -818,56 +859,23 @@
                     </div>
                 </div>
             </div>
-            <div id="volatility-stock" class="chart-container" style="display: none;">
-                <h2>Stock Metrics</h2>
-                <button class="toggle-button" onclick="toggleStockTable()">Show Data</button>
-                <table id="stock-table" class="stock-table" style="display: none;"></table>
-                <div class="chart-container">
-                    <h3>Kurtosis</h3>
-                    <div class="select-container">
-                        <label for="kurtosis-start-date">Start Date: </label>
-                        <input type="date" id="kurtosis-start-date">
-                        <label for="kurtosis-end-date">End Date: </label>
-                        <input type="date" id="kurtosis-end-date">
-                    </div>
-                    <div class="select-container">
-                        <label for="kurtosis-type-select">Select Kurtosis Type: </label>
-                        <select id="kurtosis-type-select">
-                            <option value="Kurtosis_Close_100d" selected>Close Prices</option>
-                            <option value="Kurtosis_Returns_100d">Log Returns</option>
-                        </select>
-                    </div>
-                    <canvas id="kurtosis-chart"></canvas>
-                    <div id="kurtosis-error" class="error-message" style="display: none;">No kurtosis data available</div>
-                </div>
-            </div>
-            <div id="volatility-price-comparisons" class="chart-container" style="display: none;">
-                <h2>Price Comparisons</h2>
-                <div class="select-container">
-                    <label for="ticker-compare-select">Select Tickers to Compare (Multi): </label>
-                    <select id="ticker-compare-select" multiple style="width: 200px;">
-                    </select>
-                </div>
-                <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
-                <table id="normalized-table" class="normalized-table" style="display: none;"></table>
-            </div>
             <div id="volatility-data-table" class="chart-container" style="display: none;">
                 <h2>Data Table</h2>
                 <table id="raw-data-table" class="raw-data-table"></table>
             </div>
-        </div>
-        <div id="volatility-surface" class="volatility-surface-grid" style="display: none;">
-            <h3>Call Volatility Surface</h3>
-            <div class="slider-container">
-                <div class="slider-group">
-                    <label>Moneyness Range: <div id="moneyness-slider" class="pretty-slider"></div>
-                        <span id="moneyness-value" class="slider-value">0.6 - 2.5</span></label>
-                    <label>Expiry (T) Range: <div id="expiry-t-slider" class="pretty-slider"></div>
-                        <span id="expiry-t-value" class="slider-value">0.2 - 5.0</span></label>
+            <div id="volatility-surface" class="volatility-surface-grid" style="display: none;">
+                <h2>Call Volatility Surface</h3>
+                <div class="slider-container">
+                    <div class="slider-group">
+                        <label>Moneyness Range: <div id="moneyness-slider" class="pretty-slider"></div>
+                            <span id="moneyness-value" class="slider-value">0.6 - 2.5</span></label>
+                        <label>Expiry (T) Range: <div id="expiry-t-slider" class="pretty-slider"></div>
+                            <span id="expiry-t-value" class="slider-value">0.2 - 5.0</span></label>
+                    </div>
                 </div>
+                <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
+                <div id="surface-error" class="error-message" style="display: none;">No data available</div>
             </div>
-            <div id="call-vol-surface" style="height: 100%; width: 100%;"></div>
-            <div id="surface-error" class="error-message" style="display: none;">No data available</div>
         </div>
     </div>
     <script>
@@ -953,25 +961,27 @@
             }
         }
 
-        // Added function to load and parse Wisesheets Excel file
         async function loadWisesheetsData() {
             try {
-                const filePath = 'data/wisesheets_cb_vs_hy.xlsx'; // Use simpler, URL-safe path
-                const encodedPath = encodeURI(filePath); // URL-encode for safety
+                const filePath = 'data/wisesheets_cb_vs_hy.xlsx';
+                const encodedPath = encodeURI(filePath);
                 const response = await fetch(encodedPath + '?v=' + new Date().getTime());
                 if (!response.ok) throw new Error(`Failed to fetch Wisesheets file: ${response.statusText}`);
                 const arrayBuffer = await response.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                const sheet4 = workbook.Sheets['Sheet4']; // Explicitly target Sheet4
+                const sheet4 = workbook.Sheets['Sheet4'];
                 if (!sheet4) throw new Error('Sheet4 not found in Wisesheets file');
                 const jsonSheet4 = XLSX.utils.sheet_to_json(sheet4, { header: 1 });
-                const tickers = jsonSheet4[3]?.slice(1, 7) || []; // First table headers (B2:G2)
-                const historicPrices = jsonSheet4[4]?.slice(1, 7) || []; // First table data (B3:G3)
-                indicesData = tickers.map((ticker, index) => ({
-                    Ticker: ticker || 'N/A',
-                    Historic_Price: historicPrices[index] || 'N/A' // Only historic prices
-                }));
-                console.log('Wisesheets data loaded from Sheet4 (first table):', indicesData);
+                const tickers = jsonSheet4[1]?.slice(1, 7) || []; // Row 2, columns B2:G2
+                const dates = jsonSheet4.slice(2).map(row => row[0]).filter(date => date); // Column A, starting row 3
+                indicesData = dates.map((date, index) => {
+                    const rowData = { Date: date || 'N/A' };
+                    tickers.forEach((ticker, i) => {
+                        rowData[ticker] = jsonSheet4[index + 2]?.[i + 1] || 'N/A'; // Prices for each ticker
+                    });
+                    return rowData;
+                });
+                console.log('Wisesheets data loaded from Sheet4 (ticker columns, date rows):', indicesData);
                 updateIndicesTable();
             } catch (error) {
                 console.error('Error loading Wisesheets data:', error);
@@ -984,12 +994,13 @@
             const table = document.getElementById('indices-table');
             table.innerHTML = '';
             if (indicesData.length === 0) {
-                table.innerHTML = '<tr><td colspan="2">No indices data available</td></tr>';
+                table.innerHTML = '<tr><td colspan="7">No indices data available</td></tr>';
                 return;
             }
             const thead = document.createElement('thead');
             const headerRow = thead.insertRow();
-            ['Ticker', 'Historic Price'].forEach((col, index) => {
+            const columns = ['Date', ...Object.keys(indicesData[0]).filter(key => key !== 'Date')]; // Date + tickers
+            columns.forEach((col, index) => {
                 const th = document.createElement('th');
                 th.textContent = col;
                 th.dataset.column = col;
@@ -1002,7 +1013,7 @@
             const tbody = document.createElement('tbody');
             indicesData.forEach(item => {
                 const row = tbody.insertRow();
-                ['Ticker', 'Historic_Price'].forEach(key => {
+                columns.forEach(key => {
                     const cell = row.insertCell();
                     const value = Number.isFinite(item[key]) ? item[key].toFixed(2) : item[key] || 'N/A';
                     cell.textContent = value;
@@ -2429,11 +2440,11 @@
                 const filteredData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker && item.Type === 'Call');
                 const errorDiv = document.getElementById('surface-error');
                 errorDiv.style.display = 'none';
-                console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length);
+                console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Filtered data size:', filteredData.length, 'Sample data:', filteredData.slice(0, 5));
                 if (!filteredData.length) {
                     console.warn('No call option data for volatility surface:', { ticker: selectedTicker });
                     Plotly.purge('call-vol-surface');
-                    errorDiv.textContent = 'No call option data available';
+                    errorDiv.textContent = 'No call option data available for selected ticker';
                     errorDiv.style.display = 'block';
                     return;
                 }
@@ -2449,15 +2460,16 @@
                     const moneyness = item.Moneyness;
                     return t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax && Number.isFinite(moneyness) && moneyness >= moneynessMin && moneyness <= moneynessMax;
                 });
+                console.log('Filtered by time and moneyness:', tFilteredData.length, 'Sample:', tFilteredData.slice(0, 5));
                 if (!tFilteredData.length) {
-                    console.warn('No data after time and moneyness filtering for volatility surface:', { ticker: selectedTicker });
+                    console.warn('No data after time and moneyness filtering for volatility surface:', { ticker: selectedTicker, moneynessMin, moneynessMax, expiryTMin, expiryTMax });
                     Plotly.purge('call-vol-surface');
                     errorDiv.textContent = 'No data for selected moneyness and expiry range';
                     errorDiv.style.display = 'block';
                     return;
                 }
                 const surfaceData = prepareSurfaceData(tFilteredData, 'Smoothed_IV');
-                console.log('Surface data:', {
+                console.log('Surface data prepared:', {
                     x: surfaceData.x.slice(0, 5),
                     y: surfaceData.y.slice(0, 5),
                     z: surfaceData.z.map(row => row.slice(0, 5)),
@@ -2466,7 +2478,7 @@
                 });
                 if (!surfaceData.x.length || !surfaceData.y.length || !surfaceData.z.length) {
                     Plotly.purge('call-vol-surface');
-                    errorDiv.textContent = 'No data for volatility surface';
+                    errorDiv.textContent = 'No valid data for volatility surface';
                     errorDiv.style.display = 'block';
                     return;
                 }
@@ -2547,7 +2559,7 @@
                     paper_bgcolor: '#1A1A2E',
                     plot_bgcolor: '#1A1A2E'
                 };
-                Plotly.newPlot('call-vol-surface', plotData, layout);
+                Plotly.newPlot('call-vol-surface', plotData, layout, { responsive: true });
                 document.getElementById('moneyness-value').textContent = `${moneynessMin.toFixed(1)} - ${moneynessMax.toFixed(1)}`;
                 document.getElementById('expiry-t-value').textContent = `${expiryTMin.toFixed(1)} - ${expiryTMax.toFixed(1)}`;
             } catch (error) {
@@ -3253,7 +3265,9 @@
                     const element = document.getElementById(id);
                     if (element) element.style.display = id === sectionId ? 'grid' : 'none';
                 });
-                document.getElementById('selected-ticker-summary').style.display = sectionId === 'volatility' ? 'block' : 'none';
+                // Show selected-ticker-summary only for specific Volatility sub-sections
+                const showTickerSummary = sectionId === 'volatility' && ['volatility-overview', 'volatility-plots', 'volatility-surface'].includes(subSectionId);
+                document.getElementById('selected-ticker-summary').style.display = showTickerSummary ? 'block' : 'none';
         
                 // Update active state for main links
                 document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
@@ -3266,18 +3280,33 @@
                     document.querySelectorAll('#macro > div.chart-container').forEach(div => {
                         div.style.display = div.id === selectedSub ? 'block' : 'none';
                     });
-                    // Update active state for sub-tabs
                     document.querySelectorAll('#macro-sub-menu .sub-tab').forEach(tab => {
                         tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
                     });
                     updateTradingEconomicsTables();
+                } else if (sectionId === 'indices') {
+                    const subSections = ['overview', 'stock', 'price-comparisons'];
+                    const selectedSub = subSectionId || 'indices-overview';
+                    document.querySelectorAll('#indices > div').forEach(div => {
+                        div.style.display = div.id === selectedSub ? (div.id === 'indices-overview' ? 'block' : 'block') : 'none';
+                    });
+                    document.querySelectorAll('#indices-sub-menu .sub-tab').forEach(tab => {
+                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
+                    });
+                    if (selectedSub === 'indices-overview') {
+                        updateIndicesTable();
+                    } else if (selectedSub === 'indices-stock') {
+                        updateStockTable();
+                        updateKurtosisChart();
+                    } else if (selectedSub === 'indices-price-comparisons') {
+                        updateNormalizedTable();
+                    }
                 } else if (sectionId === 'volatility') {
-                    const subSections = ['overview', 'plots', 'ranking', 'stock', 'price-comparisons', 'data-table'];
+                    const subSections = ['overview', 'plots', 'ranking', 'data-table'];
                     const selectedSub = subSectionId || 'volatility-overview';
                     document.querySelectorAll('#volatility > div').forEach(div => {
                         div.style.display = div.id === selectedSub ? (div.id === 'volatility-overview' ? 'grid' : 'block') : 'none';
                     });
-                    // Update active state for sub-tabs
                     document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
                         tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
                     });
@@ -3295,23 +3324,16 @@
                         updateVolumeChart();
                         updateOpenInterestChart();
                         updateRankingTable();
-                    } else if (selectedSub === 'volatility-stock') {
-                        updateStockTable();
-                        updateKurtosisChart();
-                    } else if (selectedSub === 'volatility-price-comparisons') {
-                        updateNormalizedTable();
                     } else if (selectedSub === 'volatility-data-table') {
                         updateRawDataTable();
                     }
-                    updateSelectedTickerSummary();
+                    if (showTickerSummary) updateSelectedTickerSummary();
                 } else if (sectionId === 'volatility-surface') {
-                    // Update active state for Volatility Surface sub-tab
                     document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
                         tab.classList.toggle('active', tab.getAttribute('href').substring(1) === 'volatility-surface');
                     });
                     updateCallVolSurface();
-                } else if (sectionId === 'indices') {
-                    updateIndicesTable();
+                    if (showTickerSummary) updateSelectedTickerSummary();
                 }
             } catch (error) {
                 console.error('Error updating section:', error);
@@ -3644,7 +3666,7 @@
                                 await loadData(timestamp);
                                 await loadWisesheetsData();
                                 updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                                 const sectionId = currentSection ? currentSection.id : 'volatility';
                                 const subSectionId = currentSection ? document.querySelector(`#${sectionId} > div[style*="block"], #${sectionId} > div[style*="grid"]`)?.id : 'volatility-overview';
                                 updateSection(sectionId, subSectionId);
@@ -3664,7 +3686,7 @@
                                 await loadData(timestamp);
                                 await loadWisesheetsData();
                                 updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                                 const sectionId = currentSection ? currentSection.id : 'volatility';
                                 const subSectionId = currentSection ? document.querySelector(`#${sectionId} > div[style*="block"], #${sectionId} > div[style*="grid"]`)?.id : 'volatility-overview';
                                 updateSection(sectionId, subSectionId);
@@ -3685,7 +3707,7 @@
                                 await loadData(timestamp);
                                 await loadWisesheetsData();
                                 updateDropdowns();
-                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .chart-container[style*="block"], .trading-economics-grid[style*="grid"]');
+                                const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                                 const sectionId = currentSection ? currentSection.id : 'volatility';
                                 const subSectionId = currentSection ? document.querySelector(`#${sectionId} > div[style*="block"], #${sectionId} > div[style*="grid"]`)?.id : 'volatility-overview';
                                 updateSection(sectionId, subSectionId);
@@ -3703,21 +3725,19 @@
                                 e.preventDefault();
                                 const targetId = link.getAttribute('href').substring(1);
                                 const subMenu = link.nextElementSibling?.classList.contains('sub-menu') ? link.nextElementSibling : null;
-                                // Clear active states
                                 document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(l => l.classList.remove('active'));
                                 document.querySelectorAll('.sub-menu').forEach(menu => {
                                     menu.classList.remove('active');
                                     menu.classList.add('hidden');
                                 });
                                 document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-                                // Set active state for clicked link
                                 link.classList.add('active');
                                 if (subMenu) {
                                     subMenu.classList.add('active');
                                     subMenu.classList.remove('hidden');
-                                    let defaultSub = document.querySelector(`#${subMenu.id} .sub-tab${targetId === 'volatility' ? ':not([href="#volatility-surface"])' : ''}:first-child`);
+                                    let defaultSub = document.querySelector(`#${subMenu.id} .sub-tab:first-child`);
                                     defaultSub.classList.add('active');
-                                    defaultSub.click(); // Trigger sub-section
+                                    defaultSub.click();
                                 } else {
                                     updateSection(targetId);
                                 }
