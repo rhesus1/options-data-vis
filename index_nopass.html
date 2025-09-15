@@ -517,20 +517,25 @@
             }
         }
         .sub-menu {
-            display: none; /* Added: Hide sub-menus by default */
-            margin-left: 10px; /* Added: Indent sub-items */
+            display: none !important; /* Force hide to prevent override */
+            margin-left: 15px; /* Slight indent increase for clarity */
+            opacity: 0; /* Smooth transition */
+            transition: opacity 0.3s ease; /* Transition for visibility */
         }
         .sub-menu.active {
-            display: block; /* Added: Show when active */
+            display: block !important; /* Force show */
+            opacity: 1; /* Visible state */
         }
         .sub-menu a.sub-tab {
             font-size: clamp(10px, 1.8vw, 12px);
             padding: 8px 10px;
-            margin-left: 0; /* Modified: No extra margin */
-            display: block; /* Added: Ensure block display */
+            margin-left: 0;
+            display: block;
+            color: #26A69A; /* Consistent link color */
         }
-        .sub-menu a.sub-tab:hover {
+        .sub-menu a.sub-tab:hover, .sub-menu a.sub-tab.active {
             background-color: #3A8A7E;
+            color: #FFFFFF; /* Highlight active/hover state */
         }
         .trading-economics-grid {
             display: grid;
@@ -613,7 +618,7 @@
         <datalist id="ticker-datalist"></datalist>
         <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
         <a href="#macro" id="macro-link">Macro</a>
-        <div class="sub-menu" id="macro-sub-menu">
+        <div class="sub-menu hidden" id="macro-sub-menu">
             <a href="#macro-bonds" class="sub-tab">Bonds</a>
             <a href="#macro-commodities" class="sub-tab">Commodities</a>
             <a href="#macro-stocks" class="sub-tab">Stocks</a>
@@ -623,7 +628,7 @@
         </div>
         <a href="#indices">Indices</a>
         <a href="#volatility" id="volatility-link">Volatility</a>
-        <div class="sub-menu" id="volatility-sub-menu">
+        <div class="sub-menu hidden" id="volatility-sub-menu">
             <a href="#volatility-overview" class="sub-tab">Overview</a> <!-- +Added -->
             <a href="#volatility-plots" class="sub-tab">Volatility Plots</a> <!-- +Added -->
             <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
@@ -951,23 +956,22 @@
         // Added function to load and parse Wisesheets Excel file
         async function loadWisesheetsData() {
             try {
-                const response = await fetch('data/Wisesheets History Tool - CB vs HY.xlsx');
+                const filePath = 'data/wisesheets_cb_vs_hy.xlsx'; // Use simpler, URL-safe path
+                const encodedPath = encodeURI(filePath); // URL-encode for safety
+                const response = await fetch(encodedPath + '?v=' + new Date().getTime());
                 if (!response.ok) throw new Error(`Failed to fetch Wisesheets file: ${response.statusText}`);
                 const arrayBuffer = await response.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                const sheetName = workbook.SheetNames[0]; // Use first sheet (Sheet4 for prices)
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                // Parse to extract tickers and latest data (assuming row 4 has headers, row 5 latest prices)
-                const tickers = jsonData[3].slice(1, 7); // ICVT, CWB, etc.
-                const latestPrices = jsonData[4].slice(1, 7); // Prices from row5
-                const normalized = jsonData[4].slice(21, 26); // Normalized from third set, adjust indices as needed
+                const sheet4 = workbook.Sheets['Sheet4']; // Explicitly target Sheet4
+                if (!sheet4) throw new Error('Sheet4 not found in Wisesheets file');
+                const jsonSheet4 = XLSX.utils.sheet_to_json(sheet4, { header: 1 });
+                const tickers = jsonSheet4[3]?.slice(1, 7) || []; // First table headers (B2:G2)
+                const historicPrices = jsonSheet4[4]?.slice(1, 7) || []; // First table data (B3:G3)
                 indicesData = tickers.map((ticker, index) => ({
-                    Ticker: ticker,
-                    Latest_Price: latestPrices[index] || 'N/A',
-                    Normalized: normalized[index] || 'N/A'
+                    Ticker: ticker || 'N/A',
+                    Historic_Price: historicPrices[index] || 'N/A' // Only historic prices
                 }));
-                console.log('Wisesheets data loaded:', indicesData);
+                console.log('Wisesheets data loaded from Sheet4 (first table):', indicesData);
                 updateIndicesTable();
             } catch (error) {
                 console.error('Error loading Wisesheets data:', error);
@@ -976,28 +980,33 @@
             }
         }
         
-        // Added function to update indices table
         function updateIndicesTable() {
             const table = document.getElementById('indices-table');
             table.innerHTML = '';
             if (indicesData.length === 0) {
-                table.innerHTML = '<tr><td colspan="3">No indices data available</td></tr>';
+                table.innerHTML = '<tr><td colspan="2">No indices data available</td></tr>';
                 return;
             }
             const thead = document.createElement('thead');
             const headerRow = thead.insertRow();
-            ['Ticker', 'Latest Price', 'Normalized Value'].forEach(col => {
+            ['Ticker', 'Historic Price'].forEach((col, index) => {
                 const th = document.createElement('th');
                 th.textContent = col;
+                th.dataset.column = col;
+                th.dataset.order = 'desc';
+                th.style.color = '#FFFFFF';
+                th.addEventListener('click', () => sortTable('indices-table', index));
                 headerRow.appendChild(th);
             });
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
             indicesData.forEach(item => {
                 const row = tbody.insertRow();
-                ['Ticker', 'Latest_Price', 'Normalized'].forEach(key => {
+                ['Ticker', 'Historic_Price'].forEach(key => {
                     const cell = row.insertCell();
-                    cell.textContent = item[key];
+                    const value = Number.isFinite(item[key]) ? item[key].toFixed(2) : item[key] || 'N/A';
+                    cell.textContent = value;
+                    cell.style.color = '#FFFFFF';
                 });
             });
             table.appendChild(tbody);
@@ -1083,7 +1092,7 @@
                 lastLoadDataTimestamp = timestamp;
                 lastTicker = selectedTicker;
                 clearTimeout(loadDataTimeout);
-                document.getElementById('historic-error').textContent = 'Loading data...';
+                document.getElementById('historic-error').textContent = 'Loading data, please wait...'; // Improved message
                 document.getElementById('historic-error').style.display = 'block';
                 const prefix = '_yfinance';
                 console.log(`Loading data for timestamp: ${timestamp}, source: yfinance, ticker: ${selectedTicker}`);
@@ -1108,7 +1117,7 @@
                 cryptoData = [];
                 sharesGainersData = [];
                 sharesLosersData = [];
-    
+        
                 const checkFileExists = async (url) => {
                     try {
                         const response = await fetch(url, { method: 'HEAD' });
@@ -1117,7 +1126,7 @@
                         return false;
                     }
                 };
-    
+        
                 const companyNamesExists = await checkFileExists(`./company_names.txt`);
                 if (companyNamesExists) {
                     await fetchWithErrorHandling(`./company_names.txt`, companyNames);
@@ -1125,7 +1134,7 @@
                 } else {
                     console.warn('Company names file not found: ./company_names.txt');
                 }
-    
+        
                 const files = [
                     { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, array: rankingData },
                     { url: `data/${timestamp}/tables/stock/stock_table${prefix}.csv`, array: stockData },
@@ -1148,20 +1157,24 @@
                     { url: `data/${timestamp}/Trading_Economics/shares_gainers.csv`, array: sharesGainersData },
                     { url: `data/${timestamp}/Trading_Economics/shares_losers.csv`, array: sharesLosersData }
                 ];
-    
-                const promises = files.map(file =>
-                    checkFileExists(file.url).then(exists => {
-                        if (exists) {
-                            return fetchWithErrorHandling(file.url, file.array);
-                        }
-                        console.warn(`File not found: ${file.url}`);
-                        file.array.length = 0;
-                        return Promise.resolve();
-                    })
-                );
-    
-                await Promise.all(promises);
-    
+        
+                // Batch fetch requests (5 at a time)
+                const batchSize = 5;
+                for (let i = 0; i < files.length; i += batchSize) {
+                    const batch = files.slice(i, i + batchSize);
+                    const batchPromises = batch.map(file =>
+                        checkFileExists(file.url).then(exists => {
+                            if (exists) {
+                                return fetchWithErrorHandling(file.url, file.array);
+                            }
+                            console.warn(`File not found: ${file.url}`);
+                            file.array.length = 0;
+                            return Promise.resolve();
+                        })
+                    );
+                    await Promise.all(batchPromises);
+                }
+        
                 const tickerDatalist = document.getElementById('ticker-datalist');
                 tickerDatalist.innerHTML = '';
                 const uniqueTickers = [...new Set(rankingData.map(item => item.Ticker))].filter(val => val).sort();
@@ -1170,7 +1183,7 @@
                     option.value = val;
                     tickerDatalist.appendChild(option);
                 });
-    
+        
                 const tickerCompareSelect = document.getElementById('ticker-compare-select');
                 tickerCompareSelect.innerHTML = '';
                 uniqueTickers.forEach(val => {
@@ -1182,7 +1195,7 @@
                 if (uniqueTickers.includes(selectedTicker)) {
                     tickerCompareSelect.value = selectedTicker;
                 }
-    
+        
                 if (!uniqueTickers.includes(selectedTicker)) {
                     console.warn(`Selected ticker ${selectedTicker} not in ranking data, defaulting`);
                     const defaultTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
@@ -1196,7 +1209,7 @@
                 } else {
                     document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
                 }
-    
+        
                 console.log('Data load complete:', {
                     data: data.slice(0, 5),
                     historicData: historicData.slice(0, 5),
@@ -1220,7 +1233,7 @@
                     sharesGainersData: sharesGainersData.slice(0, 5),
                     sharesLosersData: sharesLosersData.slice(0, 5)
                 });
-    
+        
                 document.getElementById('historic-error').style.display = 'none';
                 return Promise.resolve();
             } catch (error) {
@@ -3242,11 +3255,20 @@
                 });
                 document.getElementById('selected-ticker-summary').style.display = sectionId === 'volatility' ? 'block' : 'none';
         
+                // Update active state for main links
+                document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href').substring(1) === sectionId);
+                });
+        
                 if (sectionId === 'macro') {
                     const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
                     const selectedSub = subSectionId || 'macro-bonds';
                     document.querySelectorAll('#macro > div.chart-container').forEach(div => {
                         div.style.display = div.id === selectedSub ? 'block' : 'none';
+                    });
+                    // Update active state for sub-tabs
+                    document.querySelectorAll('#macro-sub-menu .sub-tab').forEach(tab => {
+                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
                     });
                     updateTradingEconomicsTables();
                 } else if (sectionId === 'volatility') {
@@ -3254,6 +3276,10 @@
                     const selectedSub = subSectionId || 'volatility-overview';
                     document.querySelectorAll('#volatility > div').forEach(div => {
                         div.style.display = div.id === selectedSub ? (div.id === 'volatility-overview' ? 'grid' : 'block') : 'none';
+                    });
+                    // Update active state for sub-tabs
+                    document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
+                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
                     });
                     if (selectedSub === 'volatility-overview') {
                         updateSummaryTable();
@@ -3279,6 +3305,10 @@
                     }
                     updateSelectedTickerSummary();
                 } else if (sectionId === 'volatility-surface') {
+                    // Update active state for Volatility Surface sub-tab
+                    document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
+                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === 'volatility-surface');
+                    });
                     updateCallVolSurface();
                 } else if (sectionId === 'indices') {
                     updateIndicesTable();
@@ -3560,6 +3590,12 @@
                     return '20250827_2136';
                 };
         
+                // Ensure sidebar sub-menus are hidden initially
+                document.querySelectorAll('.sub-menu').forEach(menu => {
+                    menu.classList.add('hidden');
+                    menu.classList.remove('active');
+                });
+        
                 // Fetch dates and initialize
                 fetch('data/dates.json?v=' + Date.now())
                     .then(response => {
@@ -3589,7 +3625,12 @@
                             await loadData(timestamp);
                             await loadWisesheetsData();
                             updateDropdowns();
-                            updateSection('volatility', 'volatility-overview'); // Start with Volatility > Overview
+                            // Set initial section to Volatility > Overview
+                            document.querySelector('#volatility-link').classList.add('active');
+                            document.querySelector('#volatility-sub-menu').classList.add('active');
+                            document.querySelector('#volatility-sub-menu').classList.remove('hidden');
+                            document.querySelector('a[href="#volatility-overview"]').classList.add('active');
+                            updateSection('volatility', 'volatility-overview');
                             console.log('Initial data and Volatility > Overview loaded for timestamp:', timestamp);
                         };
                         await loadInitialData();
@@ -3662,16 +3703,23 @@
                                 e.preventDefault();
                                 const targetId = link.getAttribute('href').substring(1);
                                 const subMenu = link.nextElementSibling?.classList.contains('sub-menu') ? link.nextElementSibling : null;
-                                document.querySelectorAll('.sub-menu').forEach(menu => menu.classList.remove('active')); // Hide all sub-menus
+                                // Clear active states
+                                document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(l => l.classList.remove('active'));
+                                document.querySelectorAll('.sub-menu').forEach(menu => {
+                                    menu.classList.remove('active');
+                                    menu.classList.add('hidden');
+                                });
+                                document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+                                // Set active state for clicked link
+                                link.classList.add('active');
                                 if (subMenu) {
-                                    subMenu.classList.add('active'); // Show clicked sub-menu
+                                    subMenu.classList.add('active');
+                                    subMenu.classList.remove('hidden');
                                     let defaultSub = document.querySelector(`#${subMenu.id} .sub-tab${targetId === 'volatility' ? ':not([href="#volatility-surface"])' : ''}:first-child`);
-                                    document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
                                     defaultSub.classList.add('active');
                                     defaultSub.click(); // Trigger sub-section
                                 } else {
-                                    document.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-                                    updateSection(targetId, targetId === 'macro' ? 'macro-bonds' : targetId === 'volatility' ? 'volatility-overview' : undefined);
+                                    updateSection(targetId);
                                 }
                             });
                         });
