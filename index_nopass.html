@@ -1169,7 +1169,6 @@
                     { url: `data/${timestamp}/Trading_Economics/shares_losers.csv`, array: sharesLosersData }
                 ];
         
-                // Batch fetch requests (5 at a time)
                 const batchSize = 5;
                 for (let i = 0; i < files.length; i += batchSize) {
                     const batch = files.slice(i, i + batchSize);
@@ -1178,17 +1177,31 @@
                             if (exists) {
                                 return fetchWithErrorHandling(file.url, file.array).then(() => {
                                     if (file.array === data) {
-                                        console.log(`Processed data loaded for ${selectedTicker}:`, {
+                                        console.log(`Processed data for ${selectedTicker}:`, {
                                             url: file.url,
                                             size: file.array.length,
                                             sample: file.array.slice(0, 5),
-                                            columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
+                                            columns: file.array.length > 0 ? Object.keys(file.array[0]) : [],
+                                            hasCalls: file.array.some(item => item.Type && item.Type.toLowerCase() === 'call')
                                         });
                                     }
                                 });
+                            } else {
+                                console.warn(`File not found: ${file.url}`);
+                                file.array.length = 0;
+                                if (file.array === data) {
+                                    document.getElementById('surface-error').textContent = `Data file not found for ${selectedTicker}`;
+                                    document.getElementById('surface-error').style.display = 'block';
+                                }
+                                return Promise.resolve();
                             }
-                            console.warn(`File not found: ${file.url}`);
+                        }).catch(error => {
+                            console.error(`Error checking/fetching ${file.url}:`, error);
                             file.array.length = 0;
+                            if (file.array === data) {
+                                document.getElementById('surface-error').textContent = `Error loading data for ${selectedTicker}: ${error.message}`;
+                                document.getElementById('surface-error').style.display = 'block';
+                            }
                             return Promise.resolve();
                         })
                     );
@@ -1224,8 +1237,10 @@
                     if (!defaultTicker) {
                         console.warn('No valid tickers available');
                         document.getElementById('historic-error').textContent = 'No valid tickers available';
+                        document.getElementById('historic-error').style.display = 'block';
                         return Promise.resolve();
                     }
+                    await loadData(timestamp); // Reload for default ticker
                 } else {
                     document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
                 }
@@ -1382,34 +1397,35 @@
                 const tickerSearch = document.getElementById('ticker-search');
                 if (!tickerSearch) throw new Error('Ticker search input not found');
                 const selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
-                const tickerData = data.filter(item => item.Ticker === selectedTicker && item.Moneyness && item.Expiry);
+                const tickerData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker && item.Moneyness && item.Expiry);
                 console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
-    
+        
                 const moneynessSelect = document.getElementById('moneyness-select');
                 const expirySelect = document.getElementById('expiry-select');
                 if (!moneynessSelect || !expirySelect) {
                     throw new Error('Moneyness or expiry select element not found');
                 }
-    
+        
                 if (!tickerData.length) {
                     console.warn('No data for dropdowns, ticker:', selectedTicker);
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
                     expirySelect.innerHTML = '<option value="">No expiries available</option>';
-                    document.getElementById('historic-error').textContent = `No data available for ticker: ${selectedTicker}`;
-                    document.getElementById('historic-error').style.display = 'block';
+                    document.getElementById('surface-error').textContent = `No data available for ticker: ${selectedTicker}`;
+                    document.getElementById('surface-error').style.display = 'block';
                     return;
                 }
-    
+        
                 const prevMoneyness = moneynessSelect.value || '';
                 const prevExpiry = expirySelect.value || '';
-    
+        
                 const uniqueRoundedMoneyness = [...new Set(tickerData
-                    .filter(item => Number.isFinite(item.Moneyness))
-                    .map(item => Math.round(item.Moneyness * 100 / 10) * 0.1))]
+                    .filter(item => Number.isFinite(parseFloat(item.Moneyness)))
+                    .map(item => Math.round(parseFloat(item.Moneyness) * 100) / 100))]
                     .sort((a, b) => a - b);
                 moneynessSelect.innerHTML = '';
                 if (uniqueRoundedMoneyness.length === 0) {
                     moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
+                    console.warn('No valid moneyness values for ticker:', selectedTicker);
                 } else {
                     uniqueRoundedMoneyness.forEach(val => {
                         const option = document.createElement('option');
@@ -1418,24 +1434,17 @@
                         moneynessSelect.appendChild(option);
                     });
                     const targetMoneyness = 1.0;
-                    let closestMoneyness = uniqueRoundedMoneyness[0];
+                    let closestMoneyness = uniqueRoundedMoneyness[0] || 1.0;
                     if (uniqueRoundedMoneyness.length > 0) {
                         closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
                             Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev
                         );
                     }
-                    if (prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness)) {
-                        moneynessSelect.value = prevMoneyness;
-                    } else if (uniqueRoundedMoneyness.includes(targetMoneyness)) {
-                        moneynessSelect.value = targetMoneyness.toString();
-                    } else if (uniqueRoundedMoneyness.length > 0) {
-                        moneynessSelect.value = closestMoneyness.toString();
-                    } else {
-                        moneynessSelect.value = '';
-                    }
+                    moneynessSelect.value = prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness) ? prevMoneyness :
+                                            uniqueRoundedMoneyness.includes(targetMoneyness) ? targetMoneyness.toString() : closestMoneyness.toString();
                 }
                 console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
-    
+        
                 const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
                 uniqueExpiries = [...new Set(tickerData
                     .filter(item => item.Expiry && !isNaN(new Date(item.Expiry).getTime()))
@@ -1464,16 +1473,37 @@
                             closestExpiry = expiry;
                         }
                     });
-                    if (prevExpiry && uniqueExpiries.includes(prevExpiry)) {
-                        expirySelect.value = prevExpiry;
-                    } else if (closestExpiry) {
-                        expirySelect.value = closestExpiry;
-                    } else {
-                        expirySelect.value = '';
-                    }
+                    expirySelect.value = prevExpiry && uniqueExpiries.includes(prevExpiry) ? prevExpiry : closestExpiry || '';
                 }
                 console.log('Expiry dropdown updated, selected:', expirySelect.value);
-    
+        
+                // Update sliders based on data ranges
+                const moneynessSlider = document.getElementById('moneyness-slider');
+                const expiryTSlider = document.getElementById('expiry-t-slider');
+                if (uniqueRoundedMoneyness.length > 0) {
+                    const minMoneyness = Math.min(...uniqueRoundedMoneyness);
+                    const maxMoneyness = Math.max(...uniqueRoundedMoneyness);
+                    moneynessSlider.noUiSlider.updateOptions({
+                        range: { min: Math.max(0.1, minMoneyness - 0.1), max: maxMoneyness + 0.1 },
+                        start: [minMoneyness, maxMoneyness]
+                    });
+                    document.getElementById('moneyness-value').textContent = `${minMoneyness.toFixed(1)} - ${maxMoneyness.toFixed(1)}`;
+                    console.log('Moneyness slider updated:', { min: minMoneyness, max: maxMoneyness });
+                }
+                if (uniqueExpiries.length > 0) {
+                    const expiryTimes = uniqueExpiries.map(exp => calculateTimeToExpiry(exp, datasetDate)).filter(t => Number.isFinite(t));
+                    if (expiryTimes.length > 0) {
+                        const minExpiryT = Math.min(...expiryTimes);
+                        const maxExpiryT = Math.max(...expiryTimes);
+                        expiryTSlider.noUiSlider.updateOptions({
+                            range: { min: Math.max(0, minExpiryT - 0.1), max: maxExpiryT + 0.1 },
+                            start: [minExpiryT, maxExpiryT]
+                        });
+                        document.getElementById('expiry-t-value').textContent = `${minExpiryT.toFixed(1)} - ${maxExpiryT.toFixed(1)}`;
+                        console.log('Expiry slider updated:', { min: minExpiryT, max: maxExpiryT });
+                    }
+                }
+        
                 if (uniqueExpiries.length > 0) {
                     const minExpDate = new Date(Math.min(...uniqueExpiries.map(e => new Date(e))));
                     const maxExpDate = new Date(Math.max(...uniqueExpiries.map(e => new Date(e))));
@@ -1484,7 +1514,7 @@
                     document.getElementById('skew-min-expiry').value = minExpStr;
                     document.getElementById('skew-max-expiry').value = maxExpStr;
                 }
-    
+        
                 if (historicData.length > 0) {
                     const minHistDate = new Date(Math.min(...historicData.map(item => new Date(item.Date))));
                     const maxHistDate = new Date(Math.max(...historicData.map(item => new Date(item.Date))));
@@ -1501,8 +1531,8 @@
                 }
             } catch (error) {
                 console.error('Error updating dropdowns:', error);
-                document.getElementById('historic-error').textContent = `Error updating dropdowns: ${error.message}`;
-                document.getElementById('historic-error').style.display = 'block';
+                document.getElementById('surface-error').textContent = `Error updating dropdowns: ${error.message}`;
+                document.getElementById('surface-error').style.display = 'block';
             }
         }
     
@@ -2447,10 +2477,9 @@
             try {
                 const selectedTicker = document.getElementById('ticker-search').value.toUpperCase();
                 console.log('Updating Call Volatility Surface for ticker:', selectedTicker, 'Raw data size:', data.length);
-                // Relaxed filtering to handle potential data inconsistencies
                 const filteredData = data.filter(item => {
                     const isValid = item.Ticker && item.Ticker.toUpperCase() === selectedTicker &&
-                                   (item.Type === 'Call' || item.Type === 'call' || item.Type === 'CALL') &&
+                                   (!item.Type || item.Type.toLowerCase() === 'call') && // Allow missing Type
                                    item.Expiry && !isNaN(new Date(item.Expiry).getTime()) &&
                                    Number.isFinite(parseFloat(item.Moneyness)) &&
                                    Number.isFinite(parseFloat(item.Smoothed_IV));
@@ -2530,7 +2559,7 @@
                     [0.9, '#fde725']
                 ];
                 const numTicks = 6;
-                const tickInterval = (maxZ - minZ) / (numTicks - 1) || 1; // Prevent division by zero
+                const tickInterval = (maxZ - minZ) / (numTicks - 1) || 1;
                 const tickvals = [];
                 const ticktext = [];
                 for (let i = 0; i < numTicks; i++) {
@@ -2832,17 +2861,18 @@
                 const tFilteredData = filteredData.filter(item => {
                     const t = calculateTimeToExpiry(item.Expiry, datasetDate);
                     const moneyness = parseFloat(item.Moneyness);
+                    const iv = parseFloat(item[zKey]);
                     const valid = t !== null && Number.isFinite(t) && t >= expiryTMin && t <= expiryTMax &&
                                   Number.isFinite(moneyness) && moneyness >= moneynessMin && moneyness <= moneynessMax &&
-                                  Number.isFinite(parseFloat(item[zKey]));
+                                  Number.isFinite(iv);
                     if (!valid) {
-                        console.log('Filtered out item:', { item, t, moneyness, iv: item[zKey] });
+                        console.log('Filtered out item:', { item, t, moneyness, iv });
                     }
                     return valid;
                 });
                 console.log('Data after time and moneyness filtering:', tFilteredData.length, 'Sample:', tFilteredData.slice(0, 5));
-                if (tFilteredData.length === 0) {
-                    console.warn('No filtered data for surface after validation');
+                if (tFilteredData.length < 2) {
+                    console.warn('Insufficient data for surface after validation:', tFilteredData.length);
                     return { x: [], y: [], z: [], minZ: 0, maxZ: 0 };
                 }
                 const uniqueRoundedMoneyness = [...new Set(tFilteredData.map(item => Math.round(parseFloat(item.Moneyness) * 100) / 100))]
@@ -2852,7 +2882,7 @@
                     const minM = Math.max(moneynessMin, Math.min(...moneynessValues));
                     const maxM = Math.min(moneynessMax, Math.max(...moneynessValues));
                     const grid = [];
-                    const step = (maxM - minM) / 50; // 50 points for smoother interpolation
+                    const step = moneynessValues.length >= 2 ? (maxM - minM) / Math.min(10, moneynessValues.length - 1) : 0.1;
                     for (let m = minM; m <= maxM + 0.0001; m += step) {
                         grid.push(Math.round(m * 100) / 100);
                     }
