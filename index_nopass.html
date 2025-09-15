@@ -602,7 +602,7 @@
         <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
         <datalist id="ticker-datalist"></datalist>
         <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
-        <a href="#macro">Macro</a>
+        <a href="#macro" id="macro-link">Macro</a>
         <div class="sub-menu" id="macro-sub-menu">
             <a href="#macro-bonds" class="sub-tab">Bonds</a>
             <a href="#macro-commodities" class="sub-tab">Commodities</a>
@@ -612,7 +612,7 @@
             <a href="#macro-shares" class="sub-tab">Shares</a>
         </div>
         <a href="#indices">Indices</a>
-        <a href="#volatility">Volatility</a>
+        <a href="#volatility" id="volatility-link">Volatility</a>
         <div class="sub-menu" id="volatility-sub-menu">
             <a href="#volatility-smile" class="sub-tab">Implied Volatility Smile</a>
             <a href="#volatility-term" class="sub-tab">Term Structure</a>
@@ -627,8 +627,37 @@
         </div>
     </div>
     <div class="main-content">
+       <div class="main-content">
         <div class="ticker-display" id="ticker-display">N/A</div>
         <div id="selected-ticker-summary" class="chart-container" style="display: none;">
+            <h3>Selected Ticker Ranking Summary</h3>
+            <table id="selected-ticker-table" class="ranking-table"></table>
+        </div>
+        <div id="overview" class="overview-grid" style="display: grid;">
+            <div class="chart-container historic-container">
+                <h2>Historic Stock Price</h2>
+                <div class="select-container">
+                    <label for="historic-start-date">Start Date: </label>
+                    <input type="date" id="historic-start-date">
+                    <label for="historic-end-date">End Date: </label>
+                    <input type="date" id="historic-end-date">
+                </div>
+                <canvas id="historic-price-chart"></canvas>
+                <div id="historic-error" class="error-message" style="display: none;">No historic data available</div>
+            </div>
+            <div class="chart-container summary-container">
+                <h2>Summary</h2>
+                <table id="summary-table" class="summary-table"></table>
+            </div>
+            <div class="chart-container contracts-container">
+                <h2>Top 10 Volume Contracts</h2>
+                <table id="top-volume-table" class="contracts-table"></table>
+            </div>
+            <div class="chart-container contracts-container">
+                <h2>Top 10 Open Interest Contracts</h2>
+                <table id="top-open-interest-table" class="contracts-table"></table>
+            </div>
+        </div>
         <div id="macro" class="trading-economics-grid" style="display: none;">
             <div id="macro-error" class="error-message" style="display: none;">No macro data available</div>
             <div id="macro-bonds" class="chart-container" style="display: none;">
@@ -3136,19 +3165,19 @@
         
         function updateSection(sectionId) {
             try {
-                console.log('Updatingទ, 'Updating section:', sectionId);
-                const sections = ['macro', 'indices', 'volatility'];
+                console.log('Updating section:', sectionId);
+                const sections = ['overview', 'macro', 'indices', 'volatility'];
                 const selectedTickerSummary = document.getElementById('selected-ticker-summary');
                 sections.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
-                        element.style.display = id === sectionId ? (id === 'macro' || id === 'volatility' ? 'grid' : 'block') : 'none';
+                        element.style.display = id === sectionId ? (id === 'overview' || id === 'macro' || id === 'volatility' ? 'grid' : 'block') : 'none';
                     }
                 });
                 if (selectedTickerSummary) {
                     selectedTickerSummary.style.display = sectionId === 'volatility' ? 'block' : 'none';
                 }
-        
+
                 if (sectionId === 'macro') {
                     const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
                     const selectedSubSection = document.querySelector('.sub-tab.active')?.getAttribute('href')?.substring(1) || 'macro-bonds';
@@ -3182,6 +3211,10 @@
                     updateNormalizedTable();
                     updateRawDataTable();
                     updateKurtosisChart();
+                } else if (sectionId === 'overview') {
+                    updateSummaryTable();
+                    updateTopContractsTables();
+                    updateHistoricChart();
                 } else if (sectionId === 'indices') {
                     // No specific updates needed for indices yet
                 }
@@ -3198,7 +3231,7 @@
                 window[`${tableName}TableVisible`] = !tableVisible;
                 const table = document.getElementById(`${tableName}-table`);
                 table.style.display = window[`${tableName}TableVisible`] ? 'table' : 'none';
-                document.querySelector(`#trading-economics-${tableName === 'shares_gainers' || tableName === 'shares_losers' ? 'shares' : tableName} .toggle-button[onclick*="${tableName}"]`).textContent = window[`${tableName}TableVisible`] ? 'Hide Data' : 'Show Data';
+                document.querySelector(`#macro-${tableName === 'shares_gainers' || tableName === 'shares_losers' ? 'shares' : tableName} .toggle-button[onclick*="${tableName}"]`).textContent = window[`${tableName}TableVisible`] ? 'Hide Data' : 'Show Data';
                 if (window[`${tableName}TableVisible`]) updateTradingEconomicsTables();
                 console.log(`${tableName} table visibility set to: ${window[`${tableName}TableVisible`]}`);
             } catch (error) {
@@ -3476,8 +3509,8 @@
                     console.log('Loading initial data with timestamp:', timestamp);
                     await loadData(timestamp);
                     updateDropdowns();
-                    updateSection('macro');
-                    console.log('Initial data and Macro loaded for timestamp:', timestamp);
+                    updateSection('overview');
+                    console.log('Initial data and Overview loaded for timestamp:', timestamp);
                 };
                 await loadInitialData();
                 dateSelect.addEventListener('change', async (e) => {
@@ -3591,11 +3624,14 @@
                     console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
                     updateNormalizedTable();
                 });
-                const macroContainer = document.getElementById('macro');
-                macroContainer.style.display = 'grid';
+                const overviewContainer = document.getElementById('overview');
+                overviewContainer.style.display = 'grid';
+                document.getElementById('macro').style.display = 'none';
                 document.getElementById('indices').style.display = 'none';
                 document.getElementById('volatility').style.display = 'none';
-                console.log('Initial load: Showing Macro');
+                console.log('Initial load: Showing Overview');
+                addKeyboardNavigation();
+            } catch (error) {
                 addKeyboardNavigation();
             } catch (error) {
                 console.error('Error in DOMContentLoaded:', error);
