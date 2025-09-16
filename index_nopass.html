@@ -631,8 +631,8 @@
         </div>
         <a href="#indices">Indices</a>
         <div class="sub-menu hidden" id="indices-sub-menu"> <!-- Added sub-menu -->
-            <a href="#indices-overview" class="sub-tab">Overview</a> <!-- Renamed from indices -->
-            <a href="#indices-stock" class="sub-tab">Stock</a> <!-- Moved from Volatility -->
+            <a href="#indices-overview" class="sub-tab">Wisesheets</a> <!-- Renamed from indices -->
+            <a href="#indices-stock" class="sub-tab">Yahoo Finance</a> <!-- Moved from Volatility -->
             <a href="#indices-price-comparisons" class="sub-tab">Price Comparisons</a> <!-- Moved from Volatility -->
         </div>
         <a href="#volatility" id="volatility-link">Volatility</a>
@@ -697,6 +697,9 @@
             <div id="indices-overview" class="chart-container" style="display: none;">
                 <h2>Indices Data from Wisesheets</h2>
                 <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
+                <button class="toggle-button" onclick="toggleIndicesData()">Toggle Normalized Data</button>
+                <button class="toggle-button" onclick="toggleIndicesChart()">Show Data</button>
+                <canvas id="indices-chart" style="display: none;"></canvas>
                 <table id="indices-table" class="trading-economics-table" style="display: table;"></table>
             </div>
             <div id="indices-stock" class="chart-container" style="display: none;">
@@ -879,6 +882,10 @@
         </div>
     </div>
     <script>
+        let normalizedIndicesData = [];
+        let showNormalized = false;
+        let indicesChartVisible = false;
+        let indicesChart = null;
         let indicesData = []; // Added for Wisesheets indices data
         let data = [];
         let historicData = [];
@@ -978,22 +985,34 @@
                 const tickers = jsonSheet4[2]?.slice(1, 7) || ['ICVT', 'CWB', 'JNK', 'HYG', 'SJNK', 'IWM'];
                 console.log('Extracted tickers:', tickers);
         
-                // Extract price rows (every third row starting from index 3, i.e., row 4)
+                // Parse price data (columns B-G, every third row starting from index 3)
                 indicesData = [];
+                // Parse normalized data (columns Q-V, every third row starting from index 3)
+                normalizedIndicesData = [];
                 for (let i = 3; i < jsonSheet4.length; i += 3) {
                     const date = jsonSheet4[i][0];
-                    if (!date || isNaN(new Date(date).getTime())) continue; // Skip invalid dates
-                    const rowData = { Date: date };
+                    if (!date || isNaN(new Date(date).getTime())) continue;
+                    // Price data
+                    const priceRowData = { Date: date };
                     tickers.forEach((ticker, idx) => {
                         const value = jsonSheet4[i][idx + 1];
-                        rowData[ticker] = Number.isFinite(parseFloat(value)) ? parseFloat(value) : 'N/A';
+                        priceRowData[ticker] = Number.isFinite(parseFloat(value)) ? parseFloat(value) : 'N/A';
                     });
-                    indicesData.push(rowData);
+                    indicesData.push(priceRowData);
+                    // Normalized data (columns Q-V, assuming same row as price data)
+                    const normRowData = { Date: date };
+                    tickers.forEach((ticker, idx) => {
+                        const value = jsonSheet4[i][idx + 16]; // Columns Q-V (16-21)
+                        normRowData[ticker] = Number.isFinite(parseFloat(value)) ? parseFloat(value) : 'N/A';
+                    });
+                    normalizedIndicesData.push(normRowData);
                 }
-                indicesData.sort((a, b) => new Date(b.Date) - new Date(a.Date)); // Sort by date descending
-                console.log('Parsed Wisesheets data:', indicesData.slice(0, 5));
-                if (indicesData.length === 0) {
-                    throw new Error('No valid price data extracted from Wisesheets file');
+                indicesData.sort((a, b) => new Date(a.Date) - new Date(b.Date)); // Oldest to newest
+                normalizedIndicesData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                console.log('Parsed price data:', indicesData.slice(0, 5));
+                console.log('Parsed normalized data:', normalizedIndicesData.slice(0, 5));
+                if (indicesData.length === 0 && normalizedIndicesData.length === 0) {
+                    throw new Error('No valid price or normalized data extracted from Wisesheets file');
                 }
                 updateIndicesTable();
             } catch (error) {
@@ -1001,6 +1020,7 @@
                 document.getElementById('indices-error').textContent = `Error loading Wisesheets file: ${error.message}`;
                 document.getElementById('indices-error').style.display = 'block';
                 indicesData = [];
+                normalizedIndicesData = [];
                 updateIndicesTable();
             }
         }
@@ -1008,13 +1028,15 @@
         function updateIndicesTable() {
             const table = document.getElementById('indices-table');
             table.innerHTML = '';
-            if (indicesData.length === 0) {
+            const dataToShow = showNormalized ? normalizedIndicesData : indicesData;
+            if (dataToShow.length === 0) {
                 table.innerHTML = '<tr><td colspan="7">No indices data available</td></tr>';
+                console.warn('No indices data available for table, normalized:', showNormalized);
                 return;
             }
             const thead = document.createElement('thead');
             const headerRow = thead.insertRow();
-            const columns = ['Date', ...Object.keys(indicesData[0]).filter(key => key !== 'Date')]; // Date + tickers
+            const columns = ['Date', ...Object.keys(dataToShow[0]).filter(key => key !== 'Date')];
             columns.forEach((col, index) => {
                 const th = document.createElement('th');
                 th.textContent = col;
@@ -1026,7 +1048,7 @@
             });
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            indicesData.forEach(item => {
+            dataToShow.forEach(item => {
                 const row = tbody.insertRow();
                 columns.forEach(key => {
                     const cell = row.insertCell();
@@ -1036,9 +1058,93 @@
                 });
             });
             table.appendChild(tbody);
+            console.log('Indices table updated, normalized:', showNormalized, 'rows:', dataToShow.length);
         }
 
-        
+        function toggleIndicesData() {
+            try {
+                showNormalized = !showNormalized;
+                document.querySelector('#indices-overview .toggle-button[onclick="toggleIndicesData()"]').textContent = showNormalized ? 'Show Price Data' : 'Show Normalized Data';
+                updateIndicesTable();
+                if (indicesChartVisible) updateIndicesChart();
+                console.log('Toggled indices data, showNormalized:', showNormalized);
+            } catch (error) {
+                console.error('Error toggling indices data:', error);
+                document.getElementById('indices-error').textContent = `Error toggling data: ${error.message}`;
+                document.getElementById('indices-error').style.display = 'block';
+            }
+        }
+
+        function toggleIndicesChart() {
+            try {
+                indicesChartVisible = !indicesChartVisible;
+                const chart = document.getElementById('indices-chart');
+                chart.style.display = indicesChartVisible ? 'block' : 'none';
+                document.querySelector('#indices-overview .toggle-button[onclick="toggleIndicesChart()"]').textContent = indicesChartVisible ? 'Hide Data' : 'Show Data';
+                if (indicesChartVisible) updateIndicesChart();
+                console.log('Indices chart visibility toggled:', indicesChartVisible);
+            } catch (error) {
+                console.error('Error toggling indices chart:', error);
+                document.getElementById('indices-error').textContent = `Error toggling chart: ${error.message}`;
+                document.getElementById('indices-error').style.display = 'block';
+            }
+        }
+
+        function updateIndicesChart() {
+            try {
+                const dataToShow = showNormalized ? normalizedIndicesData : indicesData;
+                if (!dataToShow.length) {
+                    console.warn('No data for indices chart, normalized:', showNormalized);
+                    if (indicesChart) indicesChart.destroy();
+                    document.getElementById('indices-error').textContent = 'No data available for chart';
+                    document.getElementById('indices-error').style.display = 'block';
+                    return;
+                }
+                const tickers = Object.keys(dataToShow[0]).filter(key => key !== 'Date');
+                const colors = ['#FFA500', '#00FF00', '#FF0000', '#26A69A', '#800080', '#00FFFF'];
+                const datasets = tickers.map((ticker, idx) => ({
+                    label: ticker,
+                    data: dataToShow.map(item => ({ x: new Date(item.Date), y: parseFloat(item[ticker]) || null })),
+                    borderColor: colors[idx % colors.length],
+                    fill: false,
+                    pointRadius: 0,
+                    showLine: true
+                }));
+                if (indicesChart) indicesChart.destroy();
+                const canvas = document.getElementById('indices-chart');
+                if (!canvas.getContext('2d')) {
+                    throw new Error('Canvas context not available for indices-chart');
+                }
+                indicesChart = new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        plugins: { legend: { labels: { color: '#FFFFFF' } } },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: { unit: 'month' },
+                                title: { display: true, text: 'Date', color: '#FFFFFF' },
+                                grid: { display: false },
+                                ticks: { color: '#FFFFFF' }
+                            },
+                            y: {
+                                title: { display: true, text: showNormalized ? 'Normalized Value' : 'Price ($)', color: '#FFFFFF' },
+                                grid: { display: false },
+                                ticks: { color: '#FFFFFF' }
+                            }
+                        },
+                        backgroundColor: '#1A1A2E'
+                    }
+                });
+                document.getElementById('indices-error').style.display = 'none';
+                console.log('Indices chart updated, normalized:', showNormalized, 'datasets:', datasets.length);
+            } catch (error) {
+                console.error('Error updating indices chart:', error);
+                document.getElementById('indices-error').textContent = `Error rendering chart: ${error.message}`;
+                document.getElementById('indices-error').style.display = 'block';
+            }
+        }
     
         function normalizeDate(dateStr) {
             try {
@@ -3363,11 +3469,9 @@
                     const element = document.getElementById(id);
                     if (element) element.style.display = id === sectionId ? 'grid' : 'none';
                 });
-                // Show selected-ticker-summary only for specific Volatility sub-sections
                 const showTickerSummary = sectionId === 'volatility' && ['volatility-overview', 'volatility-plots', 'volatility-surface'].includes(subSectionId);
                 document.getElementById('selected-ticker-summary').style.display = showTickerSummary ? 'block' : 'none';
         
-                // Update active state for main links
                 document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
                     link.classList.toggle('active', link.getAttribute('href').substring(1) === sectionId);
                 });
@@ -3393,6 +3497,7 @@
                     });
                     if (selectedSub === 'indices-overview') {
                         updateIndicesTable();
+                        if (indicesChartVisible) updateIndicesChart();
                     } else if (selectedSub === 'indices-stock') {
                         updateStockTable();
                         updateKurtosisChart();
