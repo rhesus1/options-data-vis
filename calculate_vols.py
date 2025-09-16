@@ -7,8 +7,6 @@ import json
 from scipy.optimize import brentq, least_squares
 from scipy.stats import norm
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import plotly.graph_objects as go
-import plotly.io as pio
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -241,7 +239,7 @@ MODEL_CONFIG = {
     }
 }
 
-def fit_vol_surface(df, ticker=None, exp_min=0.3, exp_max=np.inf, mon_min=0.3, mon_max=np.inf, extrap_tau=None, model='hyp', option_type='Call'):
+def fit_vol_surface(df, ticker=None, exp_min=0.2, exp_max=np.inf, mon_min=0, mon_max=np.inf, extrap_tau=None, model='hyp', option_type='Call'):
     df = df.copy()
     if model not in MODEL_CONFIG:
         raise ValueError(f"Model must be one of {list(MODEL_CONFIG.keys())}")
@@ -255,10 +253,7 @@ def fit_vol_surface(df, ticker=None, exp_min=0.3, exp_max=np.inf, mon_min=0.3, m
         print(f"Data points for {ticker} ({option_type}): {len(df_ticker)}, Moneyness range: {df_ticker['Moneyness'].min():.2f}–{df_ticker['Moneyness'].max():.2f}, "
               f"Expiry range: {df_ticker['Years_to_Expiry'].min():.2f}–{df_ticker['Years_to_Expiry'].max():.2f}, "
               f"IV range: {df_ticker['IV_mid'].min():.2f}–{df_ticker['IV_mid'].max():.2f}")
-        result = fit_single_ticker(df_ticker, model)
-        if result[0] is not None:
-            plot_vol_surface_3d(df_ticker, result[0], ticker, exp_min, exp_max, mon_min, mon_max, extrap_tau, model, result[1], option_type)
-        return result
+        return fit_single_ticker(df_ticker, model)
     else:
         results = {}
         for tick, group in df.groupby('Ticker'):
@@ -269,10 +264,7 @@ def fit_vol_surface(df, ticker=None, exp_min=0.3, exp_max=np.inf, mon_min=0.3, m
             print(f"Data points for {tick} ({option_type}): {len(group)}, Moneyness range: {group['Moneyness'].min():.2f}–{group['Moneyness'].max():.2f}, "
                   f"Expiry range: {group['Years_to_Expiry'].min():.2f}–{group['Years_to_Expiry'].max():.2f}, "
                   f"IV range: {group['IV_mid'].min():.2f}–{group['IV_mid'].max():.2f}")
-            result = fit_single_ticker(group, model)
-            results[tick] = result
-            if result[0] is not None:
-                plot_vol_surface_3d(group, result[0], tick, exp_min, exp_max, mon_min, mon_max, extrap_tau, model, result[1], option_type)
+            results[tick] = fit_single_ticker(group, model)
         return results
 
 def fit_single_ticker(df, model):
@@ -364,128 +356,10 @@ def fit_single_ticker(df, model):
             IV_ref = 1.0
         res = (IV - model_func(xdata, *popt)) / IV_ref * 100
         residuals_sum = np.sum(w * res**2)
-        fig = go.Figure(data=[go.Scatter3d(
-            x=M, y=tau, z=res,
-            mode='markers',
-            marker=dict(size=5, color=res, colorscale='Viridis', showscale=True, colorbar=dict(title='Normalized Residual (% of ATM IV)'))
-        )])
-        fig.update_layout(
-            title=f'Normalized Residuals for {df["Ticker"].iloc[0]} ({model.capitalize()} Model, Ref IV={IV_ref:.4f})',
-            scene=dict(
-                xaxis_title='Moneyness (S/K)',
-                yaxis_title='Years to Expiry',
-                zaxis_title='Normalized Residual (% of ATM IV)'
-            ),
-            width=800,
-            height=600
-        )
-        pio.write_html(fig, f'residuals_3d_{df["Ticker"].iloc[0]}_{model}.html')
-        fig.show()
         return popt, residuals_sum
     except Exception as e:
         print(f"Fit failed for ticker {df['Ticker'].iloc[0] if not df.empty else 'unknown'} with model {model}: {e}")
         return None, None
-
-def plot_vol_surface_3d(df, params, ticker, exp_min, exp_max, mon_min, mon_max, extrap_tau, model, residuals, option_type='Call'):
-    M_min, M_max = df['Moneyness'].min(), df['Moneyness'].max()
-    tau_min, tau_max = df['Years_to_Expiry'].min(), df['Years_to_Expiry'].max()
-    grid_min = max(mon_min, M_min)
-    grid_max = min(mon_max, M_max)
-    if grid_min >= grid_max:
-        raise ValueError(f"Invalid Moneyness range: grid_min ({grid_min}) >= grid_max ({grid_max}).")
-    M_grid = np.linspace(grid_min, grid_max, 50)
-    tau_lower = max(exp_min, tau_min)
-    tau_upper = min(exp_max, tau_max)
-    if tau_lower >= tau_upper:
-        raise ValueError(f"Invalid tau range: tau_lower ({tau_lower}) >= tau_upper ({tau_upper}).")
-    tau_grid = np.linspace(tau_lower, tau_upper, 50)
-    M_grid_orig, tau_grid_orig = np.meshgrid(M_grid, tau_grid)
-    IV_grid_orig = MODEL_CONFIG[model]['func']((M_grid_orig, tau_grid_orig), *params)
-    IV_grid_orig = np.clip(IV_grid_orig, 0, np.inf)
-    surface_orig = go.Surface(
-        x=M_grid_orig,
-        y=tau_grid_orig,
-        z=IV_grid_orig,
-        colorscale='Viridis',
-        opacity=0.8,
-        showscale=True,
-        colorbar=dict(title='Implied Volatility')
-    )
-    scatter = go.Scatter3d(
-        x=df['Moneyness'],
-        y=df['Years_to_Expiry'],
-        z=df['IV_mid'],
-        mode='markers',
-        marker=dict(size=5, color='red', opacity=1.0),
-        name='Data Points'
-    )
-    fig_rev = go.Figure(data=[surface_orig, scatter])
-    fig_rev.update_layout(
-        title=f'Volatility Surface (Reversed Axis) for {ticker} ({option_type})',
-        scene=dict(
-            xaxis_title='Moneyness (S/K)',
-            yaxis_title='Years to Expiry',
-            zaxis_title='Implied Volatility',
-            xaxis=dict(
-                range=[grid_max, grid_min],
-                autorange='reversed',
-                tickmode='linear',
-                tick0=grid_min,
-                dtick=(grid_max - grid_min) / 5,
-                ticks='outside',
-                showgrid=True,
-                zeroline=False,
-                title=dict(text='Moneyness (S/K)')
-            ),
-            yaxis=dict(
-                range=[tau_lower, tau_upper],
-                autorange=False
-            ),
-            zaxis=dict(
-                range=[IV_grid_orig.min() - 0.05, IV_grid_orig.max()],
-                autorange=False
-            ),
-            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0))
-        ),
-        width=800,
-        height=600
-    )
-    output_file = f'vol_surface_3d_{ticker}_exp{exp_min}-{exp_max}_mon{mon_min}-{mon_max}_{model}_{option_type.lower()}.html'
-    pio.write_html(fig_rev, output_file)
-    print(f"Plot saved to {output_file}")
-    if extrap_tau is not None:
-        tau_upper_extrap = extrap_tau
-        tau_grid_extrap = np.linspace(tau_lower, tau_upper_extrap, 50)
-        M_grid_extrap, tau_grid_extrap = np.meshgrid(M_grid, tau_grid_extrap)
-        IV_grid_extrap = MODEL_CONFIG[model]['func']((M_grid_extrap, tau_grid_extrap), *params)
-        IV_grid_extrap = np.clip(IV_grid_extrap, 0, np.inf)
-        surface_extrap = go.Surface(
-            x=M_grid_extrap,
-            y=tau_grid_extrap,
-            z=IV_grid_extrap,
-            colorscale='Viridis',
-            opacity=0.8,
-            showscale=True,
-            colorbar=dict(title='Implied Volatility')
-        )
-        fig_extrap = go.Figure(data=[surface_extrap, scatter])
-        extrap_note = f", extrapolated to {extrap_tau}"
-        fig_extrap.update_layout(
-            title=f'Volatility Surface for {ticker} ({option_type}, {model.capitalize()} Model, {exp_min} < Years_to_Expiry < {exp_max}, {mon_min} < Moneyness < {mon_max}, Residuals: {residuals:.4e}{extrap_note})',
-            scene=dict(
-                xaxis_title='Moneyness (S/K)',
-                yaxis_title='Years to Expiry',
-                zaxis_title='Implied Volatility',
-                xaxis=dict(range=[max(mon_min, M_min), min(mon_max, M_max)]),
-                yaxis=dict(range=[tau_lower, tau_upper_extrap]),
-                zaxis=dict(range=[IV_grid_extrap.min()-0.05, IV_grid_extrap.max()])
-            ),
-            showlegend=True,
-            width=800,
-            height=600
-        )
-        pio.write_html(fig_extrap, f'vol_surface_3d_{ticker}_exp{exp_min}-{exp_max}_mon{mon_min}-{mon_max}_extrap{extrap_tau}_{model}_{option_type.lower()}.html')
-        fig_extrap.show()
 
 def calculate_smoothed_iv(df, params_calls, params_puts, model='hyp'):
     df = df.copy()
@@ -597,66 +471,6 @@ def calculate_skew_slope_metrics(df, ticker, timestamp, r, q=0.0):
                 })
     skew_metrics_df = pd.DataFrame(skew_data)
     slope_metrics_df = pd.DataFrame(slope_data)
-    if not skew_metrics_df.empty:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=skew_metrics_df['T'],
-            y=skew_metrics_df['Skew_90_Moneyness_Vol'],
-            mode='lines',
-            name='Skew 90% Moneyness (Put IV / Call IV)',
-            line=dict(color='blue')
-        ))
-        fig.add_trace(go.Scatter(
-            x=skew_metrics_df['T'],
-            y=skew_metrics_df['Skew_80_Moneyness_Vol'],
-            mode='lines',
-            name='Skew 80% Moneyness (Put IV / Call IV)',
-            line=dict(color='green')
-        ))
-        fig.add_trace(go.Scatter(
-            x=skew_metrics_df['T'],
-            y=skew_metrics_df['Skew_70_Moneyness_Vol'],
-            mode='lines',
-            name='Skew 70% Moneyness (Put IV / Call IV)',
-            line=dict(color='red')
-        ))
-        fig.add_trace(go.Scatter(
-            x=skew_metrics_df['T'],
-            y=skew_metrics_df['Skew_90_Moneyness'],
-            mode='lines',
-            name='Skew 90% Moneyness (Put m / Call m)',
-            line=dict(color='blue', dash='dash')
-        ))
-        fig.add_trace(go.Scatter(
-            x=skew_metrics_df['T'],
-            y=skew_metrics_df['Skew_80_Moneyness'],
-            mode='lines',
-            name='Skew 80% Moneyness (Put m / Call m)',
-            line=dict(color='green', dash='dash')
-        ))
-        fig.add_trace(go.Scatter(
-            x=skew_metrics_df['T'],
-            y=skew_metrics_df['Skew_70_Moneyness'],
-            mode='lines',
-            name='Skew 70% Moneyness (Put m / Call m)',
-            line=dict(color='red', dash='dash')
-        ))
-        fig.update_layout(
-            title=f'Skew Metrics for {ticker}',
-            xaxis_title='Time to Expiry (Years)',
-            yaxis_title='Skew (Put IV / Call IV)',
-            xaxis=dict(range=[0.1, 5.0], tickmode='linear', dtick=0.5),
-            yaxis=dict(range=[skew_metrics_df[['Skew_90_Moneyness_Vol', 'Skew_80_Moneyness_Vol', 'Skew_70_Moneyness_Vol', 'Skew_90_Moneyness', 'Skew_80_Moneyness', 'Skew_70_Moneyness']].min().min() * 0.9, skew_metrics_df[['Skew_90_Moneyness_Vol', 'Skew_80_Moneyness_Vol', 'Skew_70_Moneyness_Vol', 'Skew_90_Moneyness', 'Skew_80_Moneyness', 'Skew_70_Moneyness']].max().max() * 1.1]),
-            showlegend=True,
-            width=800,
-            height=600
-        )
-        skew_dir = f'data/{timestamp}/skew_metrics_yfinance'
-        os.makedirs(skew_dir, exist_ok=True)
-        plot_file = os.path.join(skew_dir, f'skew_plot_{ticker}.html')
-        pio.write_html(fig, plot_file)
-        print(f"Skew plot for {ticker} saved to {plot_file}")
-        fig.show()
     skew_dir = f'data/{timestamp}/skew_metrics_yfinance'
     slope_dir = f'data/{timestamp}/slope_metrics_yfinance'
     os.makedirs(skew_dir, exist_ok=True)
@@ -811,17 +625,6 @@ def process_volumes(timestamp):
                     print(f"Error reading existing {vol_surf_file}: {e}")
             param_df.to_csv(vol_surf_file, index=False)
             print(f"Volatility surface parameters saved to {vol_surf_file}")
-        
-        skew_metrics_df, slope_metrics_df = calculate_skew_slope_metrics(df, ticker, timestamp, r=interpolate_r(1.0, yields_dict), q=q)
-        
-        if not skew_metrics_df.empty:
-            skew_file = os.path.join(skew_dir, f'skew_metrics_yfinance_{ticker}.csv')
-            skew_metrics_df.to_csv(skew_file, index=False)
-            print(f"Skew metrics for {ticker} saved to {skew_file}")
-        if not slope_metrics_df.empty:
-            slope_file = os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv')
-            slope_metrics_df.to_csv(slope_file, index=False)
-            print(f"Slope metrics for {ticker} saved to {slope_file}")
     
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
