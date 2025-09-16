@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
-    <title>Options Analysis</title>
+    <title>Fourier Toolbox</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
@@ -971,22 +971,37 @@
                 const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                 const sheet4 = workbook.Sheets['Sheet4'];
                 if (!sheet4) throw new Error('Sheet4 not found in Wisesheets file');
-                const jsonSheet4 = XLSX.utils.sheet_to_json(sheet4, { header: 1 });
-                const tickers = jsonSheet4[1]?.slice(1, 7) || []; // Row 2, columns B2:G2
-                const dates = jsonSheet4.slice(2).map(row => row[0]).filter(date => date); // Column A, starting row 3
-                indicesData = dates.map((date, index) => {
-                    const rowData = { Date: date || 'N/A' };
-                    tickers.forEach((ticker, i) => {
-                        rowData[ticker] = jsonSheet4[index + 2]?.[i + 1] || 'N/A'; // Prices for each ticker
+                const jsonSheet4 = XLSX.utils.sheet_to_json(sheet4, { header: 1, raw: false });
+                console.log('Raw Wisesheets data (first 12 rows):', jsonSheet4.slice(0, 12));
+        
+                // Extract tickers from row 3 (index 2, columns B-G)
+                const tickers = jsonSheet4[2]?.slice(1, 7) || ['ICVT', 'CWB', 'JNK', 'HYG', 'SJNK', 'IWM'];
+                console.log('Extracted tickers:', tickers);
+        
+                // Extract price rows (every third row starting from index 3, i.e., row 4)
+                indicesData = [];
+                for (let i = 3; i < jsonSheet4.length; i += 3) {
+                    const date = jsonSheet4[i][0];
+                    if (!date || isNaN(new Date(date).getTime())) continue; // Skip invalid dates
+                    const rowData = { Date: date };
+                    tickers.forEach((ticker, idx) => {
+                        const value = jsonSheet4[i][idx + 1];
+                        rowData[ticker] = Number.isFinite(parseFloat(value)) ? parseFloat(value) : 'N/A';
                     });
-                    return rowData;
-                });
-                console.log('Wisesheets data loaded from Sheet4 (ticker columns, date rows):', indicesData);
+                    indicesData.push(rowData);
+                }
+                indicesData.sort((a, b) => new Date(b.Date) - new Date(a.Date)); // Sort by date descending
+                console.log('Parsed Wisesheets data:', indicesData.slice(0, 5));
+                if (indicesData.length === 0) {
+                    throw new Error('No valid price data extracted from Wisesheets file');
+                }
                 updateIndicesTable();
             } catch (error) {
                 console.error('Error loading Wisesheets data:', error);
                 document.getElementById('indices-error').textContent = `Error loading Wisesheets file: ${error.message}`;
                 document.getElementById('indices-error').style.display = 'block';
+                indicesData = [];
+                updateIndicesTable();
             }
         }
         
