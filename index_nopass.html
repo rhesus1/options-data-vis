@@ -699,6 +699,15 @@
                 <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
                 <button class="toggle-button" onclick="toggleIndicesData()">Toggle Normalized Data</button>
                 <button class="toggle-button" onclick="toggleIndicesChart()">Show Data</button>
+                <div class="select-container">
+                    <label for="wisesheets-ticker-search">Search Ticker: </label>
+                    <input type="text" id="wisesheets-ticker-search" placeholder="Search for ticker..." oninput="filterWisesheetsTickers()">
+                </div>
+                <div class="select-container">
+                    <label for="wisesheets-ticker-select">Select Tickers to Compare (Multi): </label>
+                    <select id="wisesheets-ticker-select" multiple style="width: 200px;">
+                    </select>
+                </div>
                 <canvas id="indices-chart" style="display: none;"></canvas>
                 <table id="indices-table" class="trading-economics-table" style="display: table;"></table>
             </div>
@@ -882,6 +891,7 @@
         </div>
     </div>
     <script>
+        let wisesheetsSelectedTickers = []; // Array of selected tickers for chart
         let normalizedIndicesData = [];
         let showNormalized = false;
         let indicesChartVisible = false;
@@ -1014,6 +1024,8 @@
                 if (indicesData.length === 0 && normalizedIndicesData.length === 0) {
                     throw new Error('No valid price or normalized data extracted from Wisesheets file');
                 }
+                // Populate ticker dropdown
+                populateWisesheetsTickers();
                 updateIndicesTable();
             } catch (error) {
                 console.error('Error loading Wisesheets data:', error);
@@ -1022,6 +1034,56 @@
                 indicesData = [];
                 normalizedIndicesData = [];
                 updateIndicesTable();
+            }
+        }
+
+        function populateWisesheetsTickers() {
+            try {
+                const tickerSelect = document.getElementById('wisesheets-ticker-select');
+                tickerSelect.innerHTML = '';
+                const tickers = indicesData.length > 0 ? Object.keys(indicesData[0]).filter(key => key !== 'Date') : ['ICVT', 'CWB', 'JNK', 'HYG', 'SJNK', 'IWM'];
+                tickers.forEach(ticker => {
+                    const option = document.createElement('option');
+                    option.value = ticker;
+                    option.textContent = ticker;
+                    tickerSelect.appendChild(option);
+                });
+                // Default to first two tickers if none selected
+                if (wisesheetsSelectedTickers.length === 0 && tickers.length > 0) {
+                    wisesheetsSelectedTickers = tickers.slice(0, 2);
+                    Array.from(tickerSelect.options).forEach(opt => {
+                        opt.selected = wisesheetsSelectedTickers.includes(opt.value);
+                    });
+                }
+                console.log('Wisesheets tickers populated:', tickers, 'Selected:', wisesheetsSelectedTickers);
+                if (indicesChartVisible) updateIndicesChart();
+            } catch (error) {
+                console.error('Error populating Wisesheets tickers:', error);
+                document.getElementById('indices-error').textContent = `Error populating tickers: ${error.message}`;
+                document.getElementById('indices-error').style.display = 'block';
+            }
+        }
+
+        function filterWisesheetsTickers() {
+            try {
+                const searchInput = document.getElementById('wisesheets-ticker-search').value.toUpperCase();
+                const tickerSelect = document.getElementById('wisesheets-ticker-select');
+                const tickers = indicesData.length > 0 ? Object.keys(indicesData[0]).filter(key => key !== 'Date') : ['ICVT', 'CWB', 'JNK', 'HYG', 'SJNK', 'IWM'];
+                tickerSelect.innerHTML = '';
+                tickers.forEach(ticker => {
+                    if (ticker.toUpperCase().includes(searchInput)) {
+                        const option = document.createElement('option');
+                        option.value = ticker;
+                        option.textContent = ticker;
+                        option.selected = wisesheetsSelectedTickers.includes(ticker);
+                        tickerSelect.appendChild(option);
+                    }
+                });
+                console.log('Filtered Wisesheets tickers, search:', searchInput, 'Visible:', Array.from(tickerSelect.options).map(opt => opt.value));
+            } catch (error) {
+                console.error('Error filtering Wisesheets tickers:', error);
+                document.getElementById('indices-error').textContent = `Error filtering tickers: ${error.message}`;
+                document.getElementById('indices-error').style.display = 'block';
             }
         }
         
@@ -1066,6 +1128,7 @@
                 showNormalized = !showNormalized;
                 document.querySelector('#indices-overview .toggle-button[onclick="toggleIndicesData()"]').textContent = showNormalized ? 'Show Price Data' : 'Show Normalized Data';
                 updateIndicesTable();
+                populateWisesheetsTickers(); // Refresh ticker dropdown
                 if (indicesChartVisible) updateIndicesChart();
                 console.log('Toggled indices data, showNormalized:', showNormalized);
             } catch (error) {
@@ -1100,7 +1163,7 @@
                     document.getElementById('indices-error').style.display = 'block';
                     return;
                 }
-                const tickers = Object.keys(dataToShow[0]).filter(key => key !== 'Date');
+                const tickers = wisesheetsSelectedTickers.length > 0 ? wisesheetsSelectedTickers : Object.keys(dataToShow[0]).filter(key => key !== 'Date');
                 const colors = ['#FFA500', '#00FF00', '#FF0000', '#26A69A', '#800080', '#00FFFF'];
                 const datasets = tickers.map((ticker, idx) => ({
                     label: ticker,
@@ -1138,7 +1201,7 @@
                     }
                 });
                 document.getElementById('indices-error').style.display = 'none';
-                console.log('Indices chart updated, normalized:', showNormalized, 'datasets:', datasets.length);
+                console.log('Indices chart updated, normalized:', showNormalized, 'tickers:', tickers);
             } catch (error) {
                 console.error('Error updating indices chart:', error);
                 document.getElementById('indices-error').textContent = `Error rendering chart: ${error.message}`;
@@ -3922,6 +3985,13 @@
                             }
                         }, 500));
         
+                        // Wisesheets ticker selection handler
+                        document.getElementById('wisesheets-ticker-select').addEventListener('change', () => {
+                            wisesheetsSelectedTickers = Array.from(document.getElementById('wisesheets-ticker-select').selectedOptions).map(opt => opt.value);
+                            console.log('Wisesheets ticker selection changed:', wisesheetsSelectedTickers);
+                            if (indicesChartVisible) updateIndicesChart();
+                        });
+        
                         // Main section navigation
                         document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
                             link.addEventListener('click', async (e) => {
@@ -3995,8 +4065,6 @@
                 document.getElementById('historic-error').style.display = 'block';
             }
         });
-        
-        
     </script>
 </body>
 </html>
