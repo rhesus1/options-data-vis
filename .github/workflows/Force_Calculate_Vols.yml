@@ -1,10 +1,9 @@
-# Force_Calculate_Vols.yml
 name: Force Calculate Vols
 on:
   workflow_run:
-      workflows: ["Force Clean"]
-      types:
-        - completed
+    workflows: ["Force Clean"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       date:
@@ -24,13 +23,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yfinance pandas numpy scipy joblib statsmodels
+        pip install yfinance pandas numpy scipy joblib statsmodels plotly
     - name: Run the script
-      run: python Force_Calculate_Vols.py ${{ inputs.date }}
+      run: python force_calculate_vols.py ${{ inputs.date }}
     - name: Commit and push updated data
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add data
-        git commit -m "Auto-update processed data for ${{ inputs.date }}" || echo "No changes to commit"
+        git commit -m "Auto-update processed volatility data for ${{ inputs.date }}" || echo "No changes to commit"
         git push
