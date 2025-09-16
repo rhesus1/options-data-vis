@@ -191,7 +191,7 @@ def _compute_iv_for_row(args):
                 intrinsic = np.float64(max(S - K, 0)) if type_ == 'call' else np.float64(max(K - S, 0))
                 market_price = np.maximum(market_price, intrinsic)
                 iv_bs, _ = implied_vol_bsm(S, K, T, r, market_price, type_, q)
-                iv_binomial, _ = iv_bs_#implied_vol_binomial(S, K, T, r, market_price, type_, q, N, iv_bs)
+                iv_binomial, _ = iv_bs#implied_vol_binomial(S, K, T, r, market_price, type_, q, N, iv_bs)
     return T, r, market_price, iv_bs, iv_binomial
 
 def calculate_iv_binomial(options_df, yields_dict, q=0, default_r=0.05, max_workers=None, binomial_steps=100):
