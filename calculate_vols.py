@@ -511,10 +511,10 @@ def process_volumes(timestamp):
     print(f"Using treasury yields for {timestamp_date}")
     
     model = 'hyp'
-    exp_min = 0.25
+    exp_min = 0.3
     exp_max = np.inf
-    mon_min = 0.5
-    mon_max = 2.5#np.inf
+    mon_min = 0.3
+    mon_max = np.inf
     extrap_tau = None
     
     for ticker in tickers:
