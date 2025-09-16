@@ -3,11 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # Triggers on pushes to main branch
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # Use GitHub-hosted runner (resets disk per job)
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
@@ -19,28 +20,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones can save space
+          fetch-depth: 0
 
       - name: Clean up disk space
         run: |
-          # Clean up temporary files and caches to free disk space
-          rm -rf /tmp/*
-          rm -rf $HOME/.cache/*
+          # Clean only user-writable temp files and caches
+          find /tmp -maxdepth 1 -type f -user runner -delete
+          find /home/runner/.cache -type f -delete
           sudo apt-get clean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h  # Log disk space for debugging
+          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+          df -h
         shell: bash
-          
+        continue-on-error: true  # Ignore cleanup errors
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'  # Deploy from root folder (output folder is the entire repo root)
+          path: '.'  # Deploy root, including data/
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
