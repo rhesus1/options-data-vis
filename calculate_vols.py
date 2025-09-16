@@ -513,7 +513,7 @@ def process_volumes(timestamp):
     model = 'hyp'
     exp_min = 0.3
     exp_max = np.inf
-    mon_min = 0.3
+    mon_min = 0
     mon_max = np.inf
     extrap_tau = None
     
