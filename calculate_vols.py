@@ -575,6 +575,8 @@ def process_volumes(timestamp):
         df = calculate_smoothed_iv(df, params_calls, params_puts, model)
         df['TotalVariance'] = df['Smoothed_IV']**2 * df['Years_to_Expiry']
         df['TotalVariance'] = df['TotalVariance'].fillna(np.nan)
+
+        skew_metrics_df, slope_metrics_df = calculate_skew_slope_metrics(df, ticker, timestamp, r=df['r'].iloc[0], q=q)
         
         output_columns = [
             'Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest',
