@@ -513,8 +513,8 @@ def process_volumes(timestamp):
     model = 'hyp'
     exp_min = 0.25
     exp_max = np.inf
-    mon_min = 0
-    mon_max = np.inf
+    mon_min = 0.5
+    mon_max = 2.5#np.inf
     extrap_tau = None
     
     for ticker in tickers:
