@@ -575,6 +575,8 @@ def process_volumes(timestamp):
         df = calculate_smoothed_iv(df, params_calls, params_puts, model)
         df['TotalVariance'] = df['Smoothed_IV']**2 * df['Years_to_Expiry']
         df['TotalVariance'] = df['TotalVariance'].fillna(np.nan)
+
+        r = df['r'].iloc[0]
         
         output_columns = [
             'Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest',
@@ -626,7 +628,7 @@ def process_volumes(timestamp):
             param_df.to_csv(vol_surf_file, index=False)
             print(f"Volatility surface parameters saved to {vol_surf_file}")
 
-        skew_metrics_df, slope_metrics_df = calculate_skew_slope_metrics(df, ticker, timestamp, r=df['r'].iloc[0], q=q)
+        skew_metrics_df, slope_metrics_df = calculate_skew_slope_metrics(df, ticker, timestamp, r, q=q)
 
     
     dates_file = 'data/dates.json'
