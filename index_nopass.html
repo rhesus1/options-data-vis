@@ -72,6 +72,13 @@ body {
     visibility: hidden;
     color: #FFFFFF;
 }
+.sidebar .toggle-button {
+    color: #FFFFFF !important; /* Applies to "Show Stats Tables" and "Toggle Light/Dark Mode" buttons */
+}
+.ticker-display {
+    color: #FFFFFF !important; /* Ensures ticker name in teal bar is always white */
+}
+
 .sidebar.visible {
     transform: translateX(0);
     visibility: visible;
@@ -549,11 +556,19 @@ canvas, #call-vol-surface, #put-vol-surface {
         font-size: clamp(10px, 1.6vw, 12px);
     }
 }
-.selected-ticker-row {
-    background-color: #4B4B6F !important;
+/* Adjust selected ticker row shading for light and dark modes */
+.selected-ticker-row,
+.selected-ticker-row td,
+#selected-ticker-table .selected-ticker-row,
+#selected-ticker-table .selected-ticker-row td {
+    background-color: #4B4B6F !important; /* Dark mode: Keep existing color */
 }
-.selected-ticker-row td {
-    background-color: #4B4B6F !important;
+
+body[data-theme="light"] .selected-ticker-row,
+body[data-theme="light"] .selected-ticker-row td,
+body[data-theme="light"] #selected-ticker-table .selected-ticker-row,
+body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
+    background-color: #B0B0D0 !important; /* Light mode: Lighter shade for better contrast */
 }
 .sub-menu {
     display: none !important;
