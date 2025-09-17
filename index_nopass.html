@@ -263,6 +263,13 @@ canvas, #call-vol-surface, #put-vol-surface {
     min-width: 100%;
     background-color: var(--container-bg) !important;
 }
+#call-vol-surface, #put-vol-surface {
+    background-color: var(--container-bg) !important;
+}
+#call-vol-surface .plotly, #put-vol-surface .plotly,
+#call-vol-surface .main-svg, #put-vol-surface .main-svg {
+    background-color: transparent !important;
+}
 .sidebar .header {
     text-align: center;
     padding: 10px;
@@ -378,13 +385,20 @@ canvas, #call-vol-surface, #put-vol-surface {
     width: 100%;
     justify-content: center;
 }
+.slider-group label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: clamp(12px, 2vw, 14px);
+}
 .noUi-target {
     background: var(--slider-bg);
     border: none;
     border-radius: 5px;
     height: 10px;
     width: 80%;
-    margin: 0 10px;
+    margin: 0 auto;
 }
 .noUi-connect {
     background: var(--slider-connect);
@@ -400,14 +414,16 @@ canvas, #call-vol-surface, #put-vol-surface {
     margin-top: -5px;
 }
 .slider-value {
-    margin-top: 15px;
+    margin-top: 0;
     color: var(--button-hover-bg);
     font-weight: bold;
     font-size: clamp(14px, 2.5vw, 16px);
     padding: 5px 10px;
-    background: rgba(37, 37, 61, 0.8);
+    background: transparent;
     border-radius: 4px;
     white-space: nowrap;
+    display: block;
+    text-align: center;
 }
 .chart-container h2, .chart-container h3 {
     margin-bottom: 10px;
@@ -666,8 +682,8 @@ canvas, #call-vol-surface, #put-vol-surface {
                 <h2>Indices Data from Wisesheets</h2>
                 <div id="indices-error" class="error-message" style="display: none;">No indices data available</div>
                 <button class="toggle-button" onclick="toggleIndicesData()">Toggle Normalized Data</button>
-                <button class="toggle-button" onclick="toggleIndicesChart()">Show Data</button>
-                <div class="select-container">
+				<button class="toggle-button" onclick="toggleIndicesChart()">Show Plot</button>
+				<div class="select-container">
                     <label for="wisesheets-start-date">Start Date: </label>
                     <input type="date" id="wisesheets-start-date">
                     <label for="wisesheets-end-date">End Date: </label>
@@ -1286,19 +1302,19 @@ canvas, #call-vol-surface, #put-vol-surface {
         }
 
         function toggleIndicesChart() {
-            try {
-                indicesChartVisible = !indicesChartVisible;
-                const chart = document.getElementById('indices-chart');
-                chart.style.display = indicesChartVisible ? 'block' : 'none';
-                document.querySelector('#indices-overview .toggle-button[onclick="toggleIndicesChart()"]').textContent = indicesChartVisible ? 'Hide Data' : 'Show Data';
-                if (indicesChartVisible) updateIndicesChart();
-                console.log('Indices chart visibility toggled:', indicesChartVisible);
-            } catch (error) {
-                console.error('Error toggling indices chart:', error);
-                document.getElementById('indices-error').textContent = `Error toggling chart: ${error.message}`;
-                document.getElementById('indices-error').style.display = 'block';
-            }
-        }
+		    try {
+		        indicesChartVisible = !indicesChartVisible;
+		        const chart = document.getElementById('indices-chart');
+		        chart.style.display = indicesChartVisible ? 'block' : 'none';
+		        document.querySelector('#indices-overview .toggle-button[onclick="toggleIndicesChart()"]').textContent = indicesChartVisible ? 'Hide Plot' : 'Show Plot';
+		        if (indicesChartVisible) updateIndicesChart();
+		        console.log('Indices chart visibility toggled:', indicesChartVisible);
+		    } catch (error) {
+		        console.error('Error toggling indices chart:', error);
+		        document.getElementById('indices-error').textContent = `Error toggling chart: ${error.message}`;
+		        document.getElementById('indices-error').style.display = 'block';
+		    }
+		}
 
         function updateIndicesChart() {
     try {
@@ -1754,148 +1770,183 @@ canvas, #call-vol-surface, #put-vol-surface {
         }
     
         function updateDropdowns() {
-            try {
-                const tickerSearch = document.getElementById('ticker-search');
-                if (!tickerSearch) throw new Error('Ticker search input not found');
-                const selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
-                const tickerData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker && item.Moneyness && item.Expiry);
-                console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
+    try {
+        const tickerSearch = document.getElementById('ticker-search');
+        if (!tickerSearch) throw new Error('Ticker search input not found');
+        const selectedTicker = tickerSearch.value.toUpperCase() || 'COIN';
+        const tickerData = data.filter(item => item.Ticker && item.Ticker.toUpperCase() === selectedTicker && item.Moneyness && item.Expiry);
+        console.log('Updating dropdowns for ticker:', selectedTicker, 'Data size:', tickerData.length);
         
-                const moneynessSelect = document.getElementById('moneyness-select');
-                const expirySelect = document.getElementById('expiry-select');
-                if (!moneynessSelect || !expirySelect) {
-                    throw new Error('Moneyness or expiry select element not found');
-                }
-        
-                if (!tickerData.length) {
-                    console.warn('No data for dropdowns, ticker:', selectedTicker);
-                    moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
-                    expirySelect.innerHTML = '<option value="">No expiries available</option>';
-                    document.getElementById('surface-error').textContent = `No data available for ticker: ${selectedTicker}`;
-                    document.getElementById('surface-error').style.display = 'block';
-                    return;
-                }
-        
-                const prevMoneyness = moneynessSelect.value || '';
-                const prevExpiry = expirySelect.value || '';
-        
-                const uniqueRoundedMoneyness = [...new Set(tickerData
-                    .filter(item => Number.isFinite(parseFloat(item.Moneyness)))
-                    .map(item => Math.round(parseFloat(item.Moneyness) * 100) / 100))]
-                    .sort((a, b) => a - b);
-                moneynessSelect.innerHTML = '';
-                if (uniqueRoundedMoneyness.length === 0) {
-                    moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
-                    console.warn('No valid moneyness values for ticker:', selectedTicker);
-                } else {
-                    uniqueRoundedMoneyness.forEach(val => {
-                        const option = document.createElement('option');
-                        option.value = val;
-                        option.text = `${(val * 100).toFixed(0)}%`;
-                        moneynessSelect.appendChild(option);
-                    });
-                    const targetMoneyness = 1.0;
-                    let closestMoneyness = uniqueRoundedMoneyness[0] || 1.0;
-                    if (uniqueRoundedMoneyness.length > 0) {
-                        closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
-                            Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev
-                        );
-                    }
-                    moneynessSelect.value = prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness) ? prevMoneyness :
-                                            uniqueRoundedMoneyness.includes(targetMoneyness) ? targetMoneyness.toString() : closestMoneyness.toString();
-                }
-                console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
-        
-                const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-                uniqueExpiries = [...new Set(tickerData
-                    .filter(item => item.Expiry && !isNaN(new Date(item.Expiry).getTime()))
-                    .map(item => item.Expiry))]
-                    .sort((a, b) => new Date(a) - new Date(b));
-                expirySelect.innerHTML = '';
-                if (uniqueExpiries.length === 0) {
-                    expirySelect.innerHTML = '<option value="">No expiries available</option>';
-                    console.warn('No valid expiries found for ticker:', selectedTicker);
-                } else {
-                    uniqueExpiries.forEach(val => {
-                        const option = document.createElement('option');
-                        option.value = val;
-                        option.text = new Date(val).toLocaleDateString('en-GB');
-                        expirySelect.appendChild(option);
-                    });
-                    const targetExpiry = new Date(datasetDate);
-                    targetExpiry.setDate(targetExpiry.getDate() + 90);
-                    let closestExpiry = uniqueExpiries[0];
-                    let minDiff = Infinity;
-                    uniqueExpiries.forEach(expiry => {
-                        const expiryDate = new Date(expiry);
-                        const diffDays = Math.abs((expiryDate - targetExpiry) / (1000 * 60 * 60 * 24));
-                        if (diffDays < minDiff) {
-                            minDiff = diffDays;
-                            closestExpiry = expiry;
-                        }
-                    });
-                    expirySelect.value = prevExpiry && uniqueExpiries.includes(prevExpiry) ? prevExpiry : closestExpiry || '';
-                }
-                console.log('Expiry dropdown updated, selected:', expirySelect.value);
-        
-                // Update sliders based on data ranges
-                const moneynessSlider = document.getElementById('moneyness-slider');
-                const expiryTSlider = document.getElementById('expiry-t-slider');
-                if (uniqueRoundedMoneyness.length > 0) {
-                    const minMoneyness = Math.min(...uniqueRoundedMoneyness);
-                    const maxMoneyness = Math.max(...uniqueRoundedMoneyness);
-                    moneynessSlider.noUiSlider.updateOptions({
-                        range: { min: Math.max(0.1, minMoneyness - 0.1), max: maxMoneyness + 0.1 },
-                        start: [minMoneyness, maxMoneyness]
-                    });
-                    document.getElementById('moneyness-value').textContent = `${minMoneyness.toFixed(1)} - ${maxMoneyness.toFixed(1)}`;
-                    console.log('Moneyness slider updated:', { min: minMoneyness, max: maxMoneyness });
-                }
-                if (uniqueExpiries.length > 0) {
-                    const expiryTimes = uniqueExpiries.map(exp => calculateTimeToExpiry(exp, datasetDate)).filter(t => Number.isFinite(t));
-                    if (expiryTimes.length > 0) {
-                        const minExpiryT = Math.min(...expiryTimes);
-                        const maxExpiryT = Math.max(...expiryTimes);
-                        expiryTSlider.noUiSlider.updateOptions({
-                            range: { min: Math.max(0, minExpiryT - 0.1), max: maxExpiryT + 0.1 },
-                            start: [minExpiryT, maxExpiryT]
-                        });
-                        document.getElementById('expiry-t-value').textContent = `${minExpiryT.toFixed(1)} - ${maxExpiryT.toFixed(1)}`;
-                        console.log('Expiry slider updated:', { min: minExpiryT, max: maxExpiryT });
-                    }
-                }
-        
-                if (uniqueExpiries.length > 0) {
-                    const minExpDate = new Date(Math.min(...uniqueExpiries.map(e => new Date(e))));
-                    const maxExpDate = new Date(Math.max(...uniqueExpiries.map(e => new Date(e))));
-                    const minExpStr = minExpDate.toISOString().split('T')[0];
-                    const maxExpStr = maxExpDate.toISOString().split('T')[0];
-                    document.getElementById('term-min-expiry').value = minExpStr;
-                    document.getElementById('term-max-expiry').value = maxExpStr;
-                    document.getElementById('skew-min-expiry').value = minExpStr;
-                    document.getElementById('skew-max-expiry').value = maxExpStr;
-                }
-        
-                if (historicData.length > 0) {
-                    const minHistDate = new Date(Math.min(...historicData.map(item => new Date(item.Date))));
-                    const maxHistDate = new Date(Math.max(...historicData.map(item => new Date(item.Date))));
-                    const minHistStr = minHistDate.toISOString().split('T')[0];
-                    const maxHistStr = maxHistDate.toISOString().split('T')[0];
-                    document.getElementById('historic-start-date').value = minHistStr;
-                    document.getElementById('historic-end-date').value = maxHistStr;
-                    document.getElementById('realised-start-date').value = minHistStr;
-                    document.getElementById('realised-end-date').value = maxHistStr;
-                    document.getElementById('kurtosis-start-date').value = minHistStr;
-                    document.getElementById('kurtosis-end-date').value = maxHistStr;
-                    document.getElementById('volofvol-start-date').value = minHistStr;
-                    document.getElementById('volofvol-end-date').value = maxHistStr;
-                }
-            } catch (error) {
-                console.error('Error updating dropdowns:', error);
-                document.getElementById('surface-error').textContent = `Error updating dropdowns: ${error.message}`;
-                document.getElementById('surface-error').style.display = 'block';
-            }
+        const moneynessSelect = document.getElementById('moneyness-select');
+        const expirySelect = document.getElementById('expiry-select');
+        if (!moneynessSelect || !expirySelect) {
+            throw new Error('Moneyness or expiry select element not found');
         }
+        
+        if (!tickerData.length) {
+            console.warn('No data for dropdowns, ticker:', selectedTicker);
+            moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
+            expirySelect.innerHTML = '<option value="">No expiries available</option>';
+            document.getElementById('surface-error').textContent = `No data available for ticker: ${selectedTicker}`;
+            document.getElementById('surface-error').style.display = 'block';
+            return;
+        }
+        
+        const prevMoneyness = moneynessSelect.value || '';
+        const prevExpiry = expirySelect.value || '';
+        
+        const uniqueRoundedMoneyness = [...new Set(tickerData
+            .filter(item => Number.isFinite(parseFloat(item.Moneyness)))
+            .map(item => Math.round(parseFloat(item.Moneyness) * 100) / 100))]
+            .sort((a, b) => a - b);
+        moneynessSelect.innerHTML = '';
+        if (uniqueRoundedMoneyness.length === 0) {
+            moneynessSelect.innerHTML = '<option value="">No moneyness available</option>';
+            console.warn('No valid moneyness values for ticker:', selectedTicker);
+        } else {
+            uniqueRoundedMoneyness.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = `${(val * 100).toFixed(0)}%`;
+                moneynessSelect.appendChild(option);
+            });
+            const targetMoneyness = 1.0;
+            let closestMoneyness = uniqueRoundedMoneyness[0] || 1.0;
+            if (uniqueRoundedMoneyness.length > 0) {
+                closestMoneyness = uniqueRoundedMoneyness.reduce((prev, curr) =>
+                    Math.abs(curr - targetMoneyness) < Math.abs(prev - targetMoneyness) ? curr : prev
+                );
+            }
+            moneynessSelect.value = prevMoneyness && uniqueRoundedMoneyness.map(String).includes(prevMoneyness) ? prevMoneyness :
+                                    uniqueRoundedMoneyness.includes(targetMoneyness) ? targetMoneyness.toString() : closestMoneyness.toString();
+        }
+        console.log('Moneyness dropdown updated, selected:', moneynessSelect.value);
+        
+        const datasetDate = new Date(document.getElementById('date-select').value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+        uniqueExpiries = [...new Set(tickerData
+            .filter(item => item.Expiry && !isNaN(new Date(item.Expiry).getTime()))
+            .map(item => item.Expiry))]
+            .sort((a, b) => new Date(a) - new Date(b));
+        expirySelect.innerHTML = '';
+        if (uniqueExpiries.length === 0) {
+            expirySelect.innerHTML = '<option value="">No expiries available</option>';
+            console.warn('No valid expiries found for ticker:', selectedTicker);
+        } else {
+            uniqueExpiries.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.text = new Date(val).toLocaleDateString('en-GB');
+                expirySelect.appendChild(option);
+            });
+            const targetExpiry = new Date(datasetDate);
+            targetExpiry.setDate(targetExpiry.getDate() + 90);
+            let closestExpiry = uniqueExpiries[0];
+            let minDiff = Infinity;
+            uniqueExpiries.forEach(expiry => {
+                const expiryDate = new Date(expiry);
+                const diffDays = Math.abs((expiryDate - targetExpiry) / (1000 * 60 * 60 * 24));
+                if (diffDays < minDiff) {
+                    minDiff = diffDays;
+                    closestExpiry = expiry;
+                }
+            });
+            expirySelect.value = prevExpiry && uniqueExpiries.includes(prevExpiry) ? prevExpiry : closestExpiry || '';
+        }
+        console.log('Expiry dropdown updated, selected:', expirySelect.value);
+        
+        // Update sliders based on data ranges with minimum defaults
+        const moneynessSlider = document.getElementById('moneyness-slider');
+        const expiryTSlider = document.getElementById('expiry-t-slider');
+        if (uniqueRoundedMoneyness.length > 0) {
+            let minMoneyness = Math.max(0.5, Math.min(...uniqueRoundedMoneyness));
+            let maxMoneyness = Math.max(...uniqueRoundedMoneyness);
+            moneynessSlider.noUiSlider.updateOptions({
+                range: { min: minMoneyness, max: maxMoneyness + 0.1 },
+                start: [minMoneyness, maxMoneyness]
+            });
+            document.getElementById('moneyness-value').textContent = `${minMoneyness.toFixed(1)} - ${maxMoneyness.toFixed(1)}`;
+            console.log('Moneyness slider updated:', { min: minMoneyness, max: maxMoneyness });
+        } else {
+            moneynessSlider.noUiSlider.updateOptions({
+                range: { min: 0.5, max: 3 },
+                start: [0.5, 2.5]
+            });
+            document.getElementById('moneyness-value').textContent = '0.5 - 2.5';
+            console.log('Moneyness slider set to default:', { min: 0.5, max: 2.5 });
+        }
+        if (uniqueExpiries.length > 0) {
+            const expiryTimes = uniqueExpiries.map(exp => calculateTimeToExpiry(exp, datasetDate)).filter(t => Number.isFinite(t));
+            if (expiryTimes.length > 0) {
+                let minExpiryT = Math.max(0.25, Math.min(...expiryTimes));
+                let maxExpiryT = Math.max(...expiryTimes);
+                expiryTSlider.noUiSlider.updateOptions({
+                    range: { min: minExpiryT, max: maxExpiryT + 0.1 },
+                    start: [minExpiryT, maxExpiryT]
+                });
+                document.getElementById('expiry-t-value').textContent = `${minExpiryT.toFixed(1)} - ${maxExpiryT.toFixed(1)}`;
+                console.log('Expiry slider updated:', { min: minExpiryT, max: maxExpiryT });
+            } else {
+                expiryTSlider.noUiSlider.updateOptions({
+                    range: { min: 0.25, max: 5 },
+                    start: [0.25, 5]
+                });
+                document.getElementById('expiry-t-value').textContent = '0.25 - 5.0';
+                console.log('Expiry slider set to default:', { min: 0.25, max: 5 });
+            }
+        } else {
+            expiryTSlider.noUiSlider.updateOptions({
+                range: { min: 0.25, max: 5 },
+                start: [0.25, 5]
+            });
+            document.getElementById('expiry-t-value').textContent = '0.25 - 5.0';
+            console.log('Expiry slider set to default:', { min: 0.25, max: 5 });
+        }
+        
+        if (uniqueExpiries.length > 0) {
+            const minExpDate = new Date(Math.min(...uniqueExpiries.map(e => new Date(e))));
+            const maxExpDate = new Date(Math.max(...uniqueExpiries.map(e => new Date(e))));
+            const minExpStr = minExpDate.toISOString().split('T')[0];
+            const maxExpStr = maxExpDate.toISOString().split('T')[0];
+            document.getElementById('term-min-expiry').value = minExpStr;
+            document.getElementById('term-max-expiry').value = maxExpStr;
+            document.getElementById('skew-min-expiry').value = minExpStr;
+            document.getElementById('skew-max-expiry').value = maxExpStr;
+        }
+        
+        if (historicData.length > 0) {
+            const minHistDate = new Date(Math.min(...historicData.map(item => new Date(item.Date))));
+            const maxHistDate = new Date(Math.max(...historicData.map(item => new Date(item.Date))));
+            const minHistStr = minHistDate.toISOString().split('T')[0];
+            const maxHistStr = maxHistDate.toISOString().split('T')[0];
+            document.getElementById('historic-start-date').value = minHistStr;
+            document.getElementById('historic-end-date').value = maxHistStr;
+            document.getElementById('realised-start-date').value = minHistStr;
+            document.getElementById('realised-end-date').value = maxHistStr;
+            document.getElementById('kurtosis-start-date').value = minHistStr;
+            document.getElementById('kurtosis-end-date').value = maxHistStr;
+            document.getElementById('volofvol-start-date').value = minHistStr;
+            document.getElementById('volofvol-end-date').value = maxHistStr;
+        }
+    } catch (error) {
+        console.error('Error updating dropdowns:', error);
+        document.getElementById('surface-error').textContent = `Error updating dropdowns: ${error.message}`;
+        document.getElementById('surface-error').style.display = 'block';
+        // Set sliders to defaults on error
+        const moneynessSlider = document.getElementById('moneyness-slider');
+        const expiryTSlider = document.getElementById('expiry-t-slider');
+        moneynessSlider.noUiSlider.updateOptions({
+            range: { min: 0.5, max: 3 },
+            start: [0.5, 2.5]
+        });
+        document.getElementById('moneyness-value').textContent = '0.5 - 2.5';
+        expiryTSlider.noUiSlider.updateOptions({
+            range: { min: 0.25, max: 5 },
+            start: [0.25, 5]
+        });
+        document.getElementById('expiry-t-value').textContent = '0.25 - 5.0';
+        console.log('Sliders reset to defaults on error:', { moneyness: '0.5 - 2.5', expiry: '0.25 - 5.0' });
+    }
+}
     
         function updateSkewVsExpiry() {
     try {
@@ -3023,7 +3074,7 @@ canvas, #call-vol-surface, #put-vol-surface {
             marker: { color: 'red', size: 3, opacity: 0.8 },
             name: 'Put Data Points'
         } : null };
-        const themeBgColor = document.body.getAttribute('data-theme') === 'light' ? '#F5F7FA' : '#1A1A2E';
+        const containerBgColor = 'var(--container-bg)';
         const callPlotData = [callResult.surface, callResult.points].filter(s => s !== null);
         if (callPlotData.length === 0) {
             console.warn('No call surface or data points for plotting:', { ticker: selectedTicker });
@@ -3049,15 +3100,17 @@ canvas, #call-vol-surface, #put-vol-surface {
                         range: [zMin, zMax]
                     },
                     aspectmode: 'cube',
-                    bgcolor: themeBgColor
+                    bgcolor: containerBgColor
                 },
                 margin: { l: 0, r: 0, b: 0, t: 60 },
                 autosize: true,
                 height: 750,
-                paper_bgcolor: themeBgColor,
-                plot_bgcolor: themeBgColor
+                paper_bgcolor: containerBgColor,
+                plot_bgcolor: containerBgColor,
+                legend: { bgcolor: containerBgColor } // Added to set legend background
             };
             Plotly.newPlot('call-vol-surface', callPlotData, callLayout, { responsive: true });
+            Plotly.Plots.resize('call-vol-surface'); // Ensure initial resize
         }
         const putPlotData = [putResult.surface, putResult.points].filter(s => s !== null);
         if (putPlotData.length === 0) {
@@ -3084,15 +3137,17 @@ canvas, #call-vol-surface, #put-vol-surface {
                         range: [zMin, zMax]
                     },
                     aspectmode: 'cube',
-                    bgcolor: themeBgColor
+                    bgcolor: containerBgColor
                 },
                 margin: { l: 0, r: 0, b: 0, t: 60 },
                 autosize: true,
                 height: 750,
-                paper_bgcolor: themeBgColor,
-                plot_bgcolor: themeBgColor
+                paper_bgcolor: containerBgColor,
+                plot_bgcolor: containerBgColor,
+                legend: { bgcolor: containerBgColor } // Added to set legend background
             };
             Plotly.newPlot('put-vol-surface', putPlotData, putLayout, { responsive: true });
+            Plotly.Plots.resize('put-vol-surface'); // Ensure initial resize
         }
         if (callPlotData.length === 0 && putPlotData.length === 0) {
             errorDiv.textContent = `No valid surface or data points for ${selectedTicker}`;
@@ -4035,26 +4090,26 @@ function updateHistoricChart() {
         // Initialize sliders
         const moneynessSlider = document.getElementById('moneyness-slider');
         const expiryTSlider = document.getElementById('expiry-t-slider');
-        noUiSlider.create(moneynessSlider, {
-            start: [0.5, 2.5],
-            connect: true,
-            range: { min: 0.5, max: 3 },
-            step: 0.05
-        });
-        noUiSlider.create(expiryTSlider, {
-            start: [0.3, 5],
-            connect: true,
-            range: { min: 0.3, max: 5 },
-            step: 0.05
-        });
-        moneynessSlider.noUiSlider.on('update', (values) => {
-            document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-            updateCallVolSurface();
-        });
-        expiryTSlider.noUiSlider.on('update', (values) => {
-            document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-            updateCallVolSurface();
-        });
+		noUiSlider.create(moneynessSlider, {
+		    start: [0.5, 2.5],
+		    connect: true,
+		    range: { min: 0, max: 3 },
+		    step: 0.05
+		});
+		noUiSlider.create(expiryTSlider, {
+		    start: [0.25, 5],
+		    connect: true,
+		    range: { min: 0, max: 5 },
+		    step: 0.05
+		});
+		moneynessSlider.noUiSlider.on('update', (values) => {
+		    document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+		    updateCallVolSurface();
+		});
+		expiryTSlider.noUiSlider.on('update', (values) => {
+		    document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+		    updateCallVolSurface();
+		});
 
         // Initialize selectors
         const dateSelect = document.getElementById('date-select');
