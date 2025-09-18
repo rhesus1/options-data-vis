@@ -14,605 +14,620 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.0/dist/chartjs-chart-financial.min.js"></script>
     <style>
-:root {
-    --bg-color: #1A1A2E;
-    --text-color: #FFFFFF;
-    --container-bg: #25253d;
-    --header-bg: #373758;
-    --sidebar-bg: #208191;
-    --border-color: #26A69A;
-    --button-bg: #208191;
-    --button-hover-bg: #4DB6AC;
-    --error-color: #FF6B6B;
-    --error-bg: rgba(255, 107, 107, 0.1);
-    --slider-bg: linear-gradient(to right, #26A69A, #4DB6AC);
-    --slider-connect: #26A69A;
-    --highlight-positive: #10B981;
-    --highlight-negative: #F87171;
-}
-body[data-theme="light"] {
-    --bg-color: #F5F7FA;
-    --text-color: #1A1A2E;
-    --container-bg: #E8ECEF;
-    --header-bg: #D1D9E0;
-    --sidebar-bg: #208191;
-    --border-color: #26A69A;
-    --button-bg: #208191;
-    --button-hover-bg: #4DB6AC;
-    --error-color: #D32F2F;
-    --error-bg: rgba(211, 47, 47, 0.1);
-    --slider-bg: linear-gradient(to right, #26A69A, #4DB6AC);
-    --slider-connect: #26A69A;
-    --highlight-positive: #2E7D32;
-    --highlight-negative: #D32F2F;
-}
-body {
-    font-family: Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 0;
-    display: flex;
-    min-height: 100vh;
-    font-size: clamp(14px, 2.5vw, 16px);
-}
-.sidebar {
-    width: clamp(200px, 20vw, 250px);
-    background: var(--sidebar-bg);
-    padding: 15px;
-    border-right: 1px solid var(--border-color);
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease, width 0.3s ease, visibility 0.3s ease;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    z-index: 1000;
-    transform: translateX(-100%);
-    visibility: hidden;
-    color: #FFFFFF;
-}
-.sidebar .toggle-button {
-    color: #FFFFFF !important; /* Applies to "Show Stats Tables" and "Toggle Light/Dark Mode" buttons */
-}
-.ticker-display {
-    color: #FFFFFF !important; /* Ensures ticker name in teal bar is always white */
-}
-
-.sidebar.visible {
-    transform: translateX(0);
-    visibility: visible;
-}
-.sidebar.hidden {
-    transform: translateX(-100%);
-    width: 0;
-    padding: 0;
-    overflow: hidden;
-    visibility: hidden;
-}
-.sidebar-toggle {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background-color: var(--button-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px;
-    cursor: pointer;
-    z-index: 1001;
-    font-size: clamp(12px, 2vw, 14px);
-    display: block;
-}
-.sidebar.hidden .sidebar-logo,
-.sidebar.hidden .header,
-.sidebar.hidden select,
-.sidebar.hidden input,
-.sidebar.hidden .toggle-button,
-.sidebar.hidden a {
-    display: none;
-}
-.sidebar-logo {
-    display: block;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto 15px;
-    border-radius: 4px;
-}
-.sidebar-logo[src=""] {
-    display: none;
-}
-.sidebar a {
-    color: #FFFFFF;
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    font-size: clamp(12px, 2vw, 14px);
-    transition: background-color 0.3s ease;
-    border-radius: 4px;
-}
-.sidebar a:hover {
-    background-color: var(--button-hover-bg);
-}
-.sidebar select, .sidebar input {
-    width: 100%;
-    padding: 8px;
-    background-color: var(--button-bg);
-    color: #FFFFFF;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    margin-bottom: 10px;
-    font-size: clamp(12px, 2vw, 14px);
-    transition: border-color 0.3s ease;
-    box-sizing: border-box;
-}
-.sidebar #ticker-search {
-    max-width: clamp(150px, 15vw, 180px);
-}
-.sidebar select:focus, .sidebar input:focus {
-    border-color: var(--button-hover-bg);
-    outline: none;
-}
-.main-content {
-    flex: 1;
-    padding: 15px 15px 15px 25px;
-    overflow-y: auto;
-    background: var(--bg-color);
-    margin-left: 0;
-    width: calc(100% - 25px);
-    box-sizing: border-box;
-    transition: margin-left 0.3s ease, width 0.3s ease, padding-left 0.3s ease;
-    overflow-x: auto;
-}
-.main-content.sidebar-visible {
-    margin-left: clamp(225px, calc(20vw + 25px), 275px);
-    width: calc(100% - clamp(225px, calc(20vw + 25px), 275px));
-    padding-left: 25px;
-}
-.chart-container {
-    background-color: var(--container-bg);
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: relative; /* Ensure positioning context for canvas */
-    min-height: 400px; /* Ensure minimum height for chart */
-}
-.summary-container, .contracts-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-#indices-chart {
-    width: 100% !important;
-    height: 400px !important;
-    display: block; /* Ensure canvas is block-level */
-}
-.stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table, .normalized-table, .trading-economics-table, #selected-ticker-table {
-    border-collapse: collapse;
-    width: 100%;
-    max-width: 100%;
-    margin-top: 10px;
-    background-color: var(--container-bg);
-    font-size: clamp(10px, 2vw, 12px);
-    overflow-x: auto;
-    display: block;
-    table-layout: auto;
-    min-width: 100%;
-    line-height: 1.4;
-}
-.summary-table, .contracts-table {
-    width: auto;
-    max-width: 90%;
-    margin: 0 auto;
-    display: table;
-}
-.summary-table th, .summary-table td, .contracts-table th, .contracts-table td {
-    text-align: center;
-}
-.ranking-table th, .stock-table th, .contracts-table th, .normalized-table th, .trading-economics-table th, #selected-ticker-table th {
-    border: 1px solid var(--border-color);
-    background-color: var(--header-bg);
-    font-weight: bold;
-    cursor: pointer;
-    white-space: nowrap;
-    padding: clamp(6px, 1.2vw, 8px) clamp(4px, 0.8vw, 6px);
-    text-align: left;
-    color: var(--text-color);
-    line-height: 1.4;
-    min-width: 50px;
-    font-size: clamp(10px, 2vw, 12px);
-}
-.summary-table th, .contracts-table th {
-    text-align: center;
-}
-.stats-table th, .stats-table td, .summary-table th, .summary-table td,
-.ranking-table td, .raw-data-table th, .raw-data-table td,
-.contracts-table th, .contracts-table td, .stock-table th, .stock-table td,
-.normalized-table th, .normalized-table td, .trading-economics-table th, .trading-economics-table td,
-#selected-ticker-table th, #selected-ticker-table td {
-    border: 1px solid var(--border-color);
-    padding: clamp(4px, 1vw, 6px);
-    text-align: left;
-    color: var(--text-color);
-    font-size: clamp(10px, 2vw, 12px);
-    white-space: normal;
-    line-height: 1.4;
-}
-.stats-table th, .summary-table th, .raw-data-table th, .contracts-table th, .stock-table th,
-.normalized-table th, .trading-economics-table th, #selected-ticker-table th {
-    background-color: var(--header-bg);
-    font-weight: bold;
-    cursor: pointer;
-}
-.stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover,
-.stock-table th:hover, .normalized-table th:hover, .trading-economics-table th:hover, #selected-ticker-table th:hover {
-    background-color: #4B4B6F;
-}
-canvas, #call-vol-surface, #put-vol-surface {
-    width: 100% !important;
-    max-height: clamp(250px, 40vh, 350px);
-    min-height: clamp(200px, 30vh, 300px);
-    border-radius: 4px;
-    background-color: var(--container-bg) !important;
-}
-.volatility-grid canvas {
-    width: 100% !important;
-    max-height: clamp(500px, 80vh, 700px);
-    min-height: clamp(400px, 60vh, 600px);
-    border-radius: 4px;
-    background-color: var(--container-bg) !important;
-}
-#call-vol-surface, #put-vol-surface {
-    width: 100% !important;
-    max-height: clamp(625px, 100vh, 875px);
-    min-height: clamp(500px, 75vh, 750px);
-    min-width: 100%;
-    background-color: var(--container-bg) !important;
-}
-#call-vol-surface, #put-vol-surface {
-    background-color: var(--container-bg) !important;
-}
-#call-vol-surface .plotly, #put-vol-surface .plotly,
-#call-vol-surface .main-svg, #put-vol-surface .main-svg {
-    background-color: transparent !important;
-}
-.sidebar .header {
-    text-align: center;
-    padding: 10px;
-    background-color: var(--sidebar-bg);
-    border-bottom: 1px solid var(--border-color);
-    font-size: clamp(14px, 2.5vw, 16px);
-    font-weight: bold;
-    color: #FFFFFF;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-.header {
-    text-align: center;
-    padding: 10px;
-    background-color: var(--sidebar-bg);
-    border-bottom: 1px solid var(--border-color);
-    font-size: clamp(14px, 2.5vw, 16px);
-    font-weight: bold;
-    color: var(--text-color);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-.ticker-display {
-    font-size: clamp(12px, 2vw, 14px);
-    margin-bottom: 10px;
-    color: var(--text-color);
-    text-align: center;
-    background-color: var(--sidebar-bg);
-    padding: 8px;
-    border-radius: 4px;
-}
-.select-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-}
-.arrow-button, .toggle-button {
-    background-color: var(--button-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    font-size: clamp(12px, 2vw, 14px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-.arrow-button:hover, .toggle-button:hover {
-    background-color: var(--button-hover-bg);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-#historic-error, .error-message {
-    color: var(--error-color);
-    background-color: var(--error-bg);
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 4px;
-    text-align: center;
-    font-size: clamp(12px, 2vw, 14px);
-}
-.line-swatch {
-    display: inline-block;
-    vertical-align: middle;
-    margin-right: 5px;
-}
-.overview-grid {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: auto auto;
-    gap: 20px;
-    max-width: 100%;
-}
-.overview-grid .historic-container {
-    grid-column: span 7;
-}
-.overview-grid .summary-container {
-    grid-column: span 3;
-}
-.overview-grid .contracts-container:nth-child(3) {
-    grid-column: span 5;
-}
-.overview-grid .contracts-container:nth-child(4) {
-    grid-column: span 5;
-}
-.volatility-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(clamp(700px, 70vw, 800px), 1fr));
-    gap: 20px;
-}
-.volatility-surface-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-.ranking-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(clamp(300px, 30vw, 350px), 1fr));
-    gap: 20px;
-}
-.slider-container {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    justify-content: center;
-    align-items: center;
-}
-.slider-group {
-    display: flex;
-    flex-direction: row;
-    gap: 40px;
-    align-items: center;
-    width: 100%;
-    justify-content: center;
-}
-.slider-group label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    font-size: clamp(12px, 2vw, 14px);
-}
-.noUi-target {
-    background: var(--slider-bg);
-    border: none;
-    border-radius: 5px;
-    height: 10px;
-    width: 80%;
-    margin: 0 auto;
-}
-.noUi-connect {
-    background: var(--slider-connect);
-}
-.noUi-handle {
-    width: 20px;
-    height: 20px;
-    background: var(--text-color);
-    border: 2px solid var(--border-color);
-    border-radius: 50%;
-    box-shadow: 0 0 5px rgba(38, 166, 154, 0.5);
-    cursor: pointer;
-    margin-top: -5px;
-}
-.slider-value {
-    margin-top: 0;
-    color: var(--button-hover-bg);
-    font-weight: bold;
-    font-size: clamp(14px, 2.5vw, 16px);
-    padding: 5px 10px;
-    background: transparent;
-    border-radius: 4px;
-    white-space: nowrap;
-    display: block;
-    text-align: center;
-}
-.chart-container h2, .chart-container h3 {
-    margin-bottom: 10px;
-    text-align: center;
-    font-size: clamp(12px, 2vw, 14px);
-    line-height: 1.3;
-    color: var(--text-color);
-}
-@media (max-width: 1024px) {
-    .volatility-grid {
-        grid-template-columns: 1fr;
-    }
-    .volatility-surface-grid {
-        grid-template-columns: 1fr;
-    }
-    .overview-grid, .ranking-grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto;
-    }
-    .overview-grid .historic-container { grid-column: span 1; }
-    .overview-grid .summary-container { grid-column: span 1; }
-    .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
-    .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
-}
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-        width: clamp(180px, 80vw, 200px);
-    }
-    .sidebar.visible {
-        transform: translateX(0);
-    }
-    .sidebar-toggle {
-        display: block;
-    }
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-    }
-    .main-content.full-width {
-        margin-left: 0;
-        width: 100%;
-    }
-    .overview-grid, .volatility-grid, .volatility-surface-grid, .ranking-grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto;
-    }
-    .overview-grid .historic-container { grid-column: span 1; }
-    .overview-grid .summary-container { grid-column: span 1; }
-    .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
-    .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
-    .chart-container {
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    canvas, #call-vol-surface {
-        max-height: clamp(400px, 70vh, 600px);
-        min-height: clamp(360px, 60vh, 500px);
-    }
-    .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table,
-    .normalized-table, .trading-economics-table, #selected-ticker-table {
-        font-size: clamp(8px, 1.6vw, 10px);
-        line-height: 1.2;
-    }
-    .ranking-table th, .stock-table th, .contracts-table th, .normalized-table th,
-    .trading-economics-table th, #selected-ticker-table th {
-        padding: clamp(3px, 0.8vw, 4px) clamp(2px, 0.4vw, 3px);
-        min-width: 40px;
-        font-size: clamp(8px, 1.6vw, 10px);
-        white-space: normal;
-    }
-    .stats-table th, .stats-table td, .summary-table th, .summary-table td,
-    .ranking-table td, .raw-data-table th, .raw-data-table td,
-    .contracts-table th, .contracts-table td, .stock-table th, .stock-table td,
-    .normalized-table th, .normalized-table td, .trading-economics-table th, .trading-economics-table td,
-    #selected-ticker-table th, #selected-ticker-table td {
-        padding: clamp(4px, 1vw, 6px);
-        text-align: left;
-        color: var(--text-color);
-        font-size: clamp(10px, 2vw, 12px);
-        white-space: normal;
-        line-height: 1.4;
-    }
-    .chart-container h2, .chart-container h3 {
-        font-size: clamp(11px, 1.8vw, 13px);
-    }
-    .shares-container {
-        grid-template-columns: 1fr;
-    }
-}
-@media (max-width: 480px) {
-    .sidebar {
-        width: 100%;
-    }
-    .chart-container {
-        padding: 8px;
-    }
-    canvas, #call-vol-surface {
-        max-height: clamp(360px, 60vh, 500px);
-        min-height: clamp(320px, 50vh, 440px);
-    }
-    .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table,
-    .normalized-table, .trading-economics-table, #selected-ticker-table {
-        font-size: clamp(7px, 1.5vw, 9px);
-        line-height: 1.2;
-    }
-    .ranking-table th, .stock-table th, .contracts-table th, .normalized-table th,
-    .trading-economics-table th, #selected-ticker-table th {
-        padding: clamp(2px, 0.6vw, 3px) clamp(1px, 0.3vw, 2px);
-        min-width: 30px;
-        font-size: clamp(7px, 1.5vw, 9px);
-        white-space: normal;
-    }
-    .stats-table th, .stats-table td, .summary-table th, .summary-table td,
-    .ranking-table td, .raw-data-table th, .raw-data-table td,
-    .contracts-table th, .contracts-table td, .stock-table th, .stock-table td,
-    .normalized-table th, .normalized-table td, .trading-economics-table th, .trading-economics-table td,
-    #selected-ticker-table th, #selected-ticker-table td {
-        padding: clamp(2px, 0.6vw, 3px);
-        white-space: normal;
-    }
-    .chart-container h2, .chart-container h3 {
-        font-size: clamp(10px, 1.6vw, 12px);
-    }
-}
-/* Adjust selected ticker row shading for light and dark modes */
-.selected-ticker-row,
-.selected-ticker-row td,
-#selected-ticker-table .selected-ticker-row,
-#selected-ticker-table .selected-ticker-row td {
-    background-color: #4B4B6F !important; /* Dark mode: Keep existing color */
-}
-
-body[data-theme="light"] .selected-ticker-row,
-body[data-theme="light"] .selected-ticker-row td,
-body[data-theme="light"] #selected-ticker-table .selected-ticker-row,
-body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
-    background-color: #B0B0D0 !important; /* Light mode: Lighter shade for better contrast */
-}
-.sub-menu {
-    display: none !important;
-    margin-left: 15px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-.sub-menu.active {
-    display: block !important;
-    opacity: 1;
-}
-.sub-menu a.sub-tab {
-    font-size: clamp(10px, 1.8vw, 12px);
-    padding: 8px 10px;
-    margin-left: 0;
-    display: block;
-    color: #FFFFFF;
-}
-.sub-menu a.sub-tab:hover, .sub-menu a.sub-tab.active {
-    background-color: #3A8A7E;
-    color: #FFFFFF;
-}
-.trading-economics-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-.shares-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-}
-.shares-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-}
-</style>
+		:root {
+		    --bg-color: #1A1A2E;
+		    --text-color: #FFFFFF;
+		    --container-bg: #25253d;
+		    --header-bg: #373758;
+		    --sidebar-bg: #208191;
+		    --border-color: #26A69A;
+		    --button-bg: #208191;
+		    --button-hover-bg: #4DB6AC;
+		    --error-color: #FF6B6B;
+		    --error-bg: rgba(255, 107, 107, 0.1);
+		    --slider-bg: linear-gradient(to right, #26A69A, #4DB6AC);
+		    --slider-connect: #26A69A;
+		    --highlight-positive: #10B981;
+		    --highlight-negative: #F87171;
+		}
+		body[data-theme="light"] {
+		    --bg-color: #F5F7FA;
+		    --text-color: #1A1A2E;
+		    --container-bg: #E8ECEF;
+		    --header-bg: #D1D9E0;
+		    --sidebar-bg: #208191;
+		    --border-color: #26A69A;
+		    --button-bg: #208191;
+		    --button-hover-bg: #4DB6AC;
+		    --error-color: #D32F2F;
+		    --error-bg: rgba(211, 47, 47, 0.1);
+		    --slider-bg: linear-gradient(to right, #26A69A, #4DB6AC);
+		    --slider-connect: #26A69A;
+		    --highlight-positive: #2E7D32;
+		    --highlight-negative: #D32F2F;
+		}
+		body {
+		    font-family: Arial, sans-serif;
+		    background-color: var(--bg-color);
+		    color: var(--text-color);
+		    margin: 0;
+		    padding: 0;
+		    display: flex;
+		    min-height: 100vh;
+		    font-size: clamp(14px, 2.5vw, 16px);
+		}
+		.sidebar {
+		    width: clamp(200px, 20vw, 250px);
+		    background: var(--sidebar-bg);
+		    padding: 15px;
+		    border-right: 1px solid var(--border-color);
+		    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+		    transition: transform 0.3s ease, width 0.3s ease, visibility 0.3s ease;
+		    position: fixed;
+		    top: 0;
+		    left: 0;
+		    height: 100%;
+		    z-index: 1000;
+		    transform: translateX(-100%);
+		    visibility: hidden;
+		    color: #FFFFFF;
+		}
+		.sidebar .toggle-button {
+		    color: #FFFFFF !important; /* Applies to "Show Stats Tables" and "Toggle Light/Dark Mode" buttons */
+		}
+		.ticker-display {
+		    color: #FFFFFF !important; /* Ensures ticker name in teal bar is always white */
+		}
+		.sidebar.visible {
+		    transform: translateX(0);
+		    visibility: visible;
+		}
+		.sidebar.hidden {
+		    transform: translateX(-100%);
+		    width: 0;
+		    padding: 0;
+		    overflow: hidden;
+		    visibility: hidden;
+		}
+		.sidebar-toggle {
+		    position: fixed;
+		    top: 10px;
+		    left: 10px;
+		    background-color: var(--button-bg);
+		    color: var(--text-color);
+		    border: 1px solid var(--border-color);
+		    border-radius: 4px;
+		    padding: 8px;
+		    cursor: pointer;
+		    z-index: 1001;
+		    font-size: clamp(12px, 2vw, 14px);
+		    display: block;
+		}
+		.sidebar.hidden .sidebar-logo,
+		.sidebar.hidden .header,
+		.sidebar.hidden select,
+		.sidebar.hidden input,
+		.sidebar.hidden .toggle-button,
+		.sidebar.hidden a {
+		    display: none;
+		}
+		.sidebar-logo {
+		    display: block;
+		    max-width: 100%;
+		    height: auto;
+		    margin: 0 auto 15px;
+		    border-radius: 4px;
+		}
+		.sidebar-logo[src=""] {
+		    display: none;
+		}
+		.sidebar a {
+		    color: #FFFFFF;
+		    text-decoration: none;
+		    display: block;
+		    padding: 10px;
+		    font-size: clamp(12px, 2vw, 14px);
+		    transition: background-color 0.3s ease;
+		    border-radius: 4px;
+		}
+		.sidebar a:hover {
+		    background-color: var(--button-hover-bg);
+		}
+		.sidebar select, .sidebar input {
+		    width: 100%;
+		    padding: 8px;
+		    background-color: var(--button-bg);
+		    color: #FFFFFF;
+		    border: 1px solid var(--border-color);
+		    border-radius: 4px;
+		    margin-bottom: 10px;
+		    font-size: clamp(12px, 2vw, 14px);
+		    transition: border-color 0.3s ease;
+		    box-sizing: border-box;
+		}
+		.sidebar #ticker-search {
+		    max-width: clamp(150px, 15vw, 180px);
+		}
+		.sidebar select:focus, .sidebar input:focus {
+		    border-color: var(--button-hover-bg);
+		    outline: none;
+		}
+		.main-content {
+		    flex: 1;
+		    padding: 15px 15px 15px 25px;
+		    overflow-y: auto;
+		    background: var(--bg-color);
+		    margin-left: 0;
+		    width: calc(100% - 25px);
+		    box-sizing: border-box;
+		    transition: margin-left 0.3s ease, width 0.3s ease, padding-left 0.3s ease;
+		    overflow-x: auto;
+		}
+		.main-content.sidebar-visible {
+		    margin-left: clamp(225px, calc(20vw + 25px), 275px);
+		    width: calc(100% - clamp(225px, calc(20vw + 25px), 275px));
+		    padding-left: 25px;
+		}
+		.chart-container {
+		    background-color: var(--container-bg);
+		    padding: 15px;
+		    border-radius: 8px;
+		    margin-bottom: 15px;
+		    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+		    width: 100%;
+		    max-width: 100%;
+		    box-sizing: border-box;
+		    overflow-x: auto;
+		    overflow-y: hidden;
+		    position: relative; /* Ensure positioning context for canvas */
+		    min-height: 400px; /* Ensure minimum height for chart */
+		}
+		.summary-container, .contracts-container {
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    justify-content: center;
+		    text-align: center;
+		}
+		#indices-chart {
+		    width: 100% !important;
+		    height: 400px !important;
+		    display: block; /* Ensure canvas is block-level */
+		}
+		.stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table, .normalized-table, .trading-economics-table, #selected-ticker-table {
+		    border-collapse: collapse;
+		    width: 100%;
+		    max-width: 100%;
+		    margin-top: 10px;
+		    background-color: var(--container-bg);
+		    font-size: clamp(10px, 2vw, 12px);
+		    overflow-x: auto;
+		    display: block;
+		    table-layout: auto;
+		    min-width: 100%;
+		    line-height: 1.4;
+		}
+		.summary-table, .contracts-table {
+		    width: auto;
+		    max-width: 90%;
+		    margin: 0 auto;
+		    display: table;
+		}
+		.summary-table th, .summary-table td, .contracts-table th, .contracts-table td {
+		    text-align: center;
+		}
+		.ranking-table th, .stock-table th, .contracts-table th, .normalized-table th, .trading-economics-table th, #selected-ticker-table th {
+		    border: 1px solid var(--border-color);
+		    background-color: var(--header-bg);
+		    font-weight: bold;
+		    cursor: pointer;
+		    white-space: nowrap;
+		    padding: clamp(6px, 1.2vw, 8px) clamp(4px, 0.8vw, 6px);
+		    text-align: left;
+		    color: var(--text-color);
+		    line-height: 1.4;
+		    min-width: 50px;
+		    font-size: clamp(10px, 2vw, 12px);
+		}
+		.summary-table th, .contracts-table th {
+		    text-align: center;
+		}
+		.stats-table th, .stats-table td, .summary-table th, .summary-table td,
+		.ranking-table td, .raw-data-table th, .raw-data-table td,
+		.contracts-table th, .contracts-table td, .stock-table th, .stock-table td,
+		.normalized-table th, .normalized-table td, .trading-economics-table th, .trading-economics-table td,
+		#selected-ticker-table th, #selected-ticker-table td {
+		    border: 1px solid var(--border-color);
+		    padding: clamp(4px, 1vw, 6px);
+		    text-align: left;
+		    color: var(--text-color);
+		    font-size: clamp(10px, 2vw, 12px);
+		    white-space: normal;
+		    line-height: 1.4;
+		}
+		.stats-table th, .summary-table th, .raw-data-table th, .contracts-table th, .stock-table th,
+		.normalized-table th, .trading-economics-table th, #selected-ticker-table th {
+		    background-color: var(--header-bg);
+		    font-weight: bold;
+		    cursor: pointer;
+		}
+		.stats-table th:hover, .raw-data-table th:hover, .ranking-table th:hover, .contracts-table th:hover,
+		.stock-table th:hover, .normalized-table th:hover, .trading-economics-table th:hover, #selected-ticker-table th:hover {
+		    background-color: #4B4B6F;
+		}
+		canvas, #call-vol-surface, #put-vol-surface {
+		    width: 100% !important;
+		    max-height: clamp(250px, 40vh, 350px);
+		    min-height: clamp(200px, 30vh, 300px);
+		    border-radius: 4px;
+		    background-color: var(--container-bg) !important;
+		}
+		.volatility-grid canvas {
+		    width: 100% !important;
+		    max-height: clamp(500px, 80vh, 700px);
+		    min-height: clamp(400px, 60vh, 600px);
+		    border-radius: 4px;
+		    background-color: var(--container-bg) !important;
+		}
+		#call-vol-surface, #put-vol-surface {
+		    width: 100% !important;
+		    max-height: clamp(625px, 100vh, 875px);
+		    min-height: clamp(500px, 75vh, 750px);
+		    min-width: 100%;
+		    background-color: var(--container-bg) !important;
+		}
+		#call-vol-surface .plotly, #put-vol-surface .plotly,
+		#call-vol-surface .main-svg, #put-vol-surface .main-svg {
+		    background-color: transparent !important;
+		}
+		.sidebar .header {
+		    text-align: center;
+		    padding: 10px;
+		    background-color: var(--sidebar-bg);
+		    border-bottom: 1px solid var(--border-color);
+		    font-size: clamp(14px, 2.5vw, 16px);
+		    font-weight: bold;
+		    color: #FFFFFF;
+		    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+		}
+		.header {
+		    text-align: center;
+		    padding: 10px;
+		    background-color: var(--sidebar-bg);
+		    border-bottom: 1px solid var(--border-color);
+		    font-size: clamp(14px, 2.5vw, 16px);
+		    font-weight: bold;
+		    color: var(--text-color);
+		    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+		}
+		.ticker-display {
+		    font-size: clamp(12px, 2vw, 14px);
+		    margin-bottom: 10px;
+		    color: var(--text-color);
+		    text-align: center;
+		    background-color: var(--sidebar-bg);
+		    padding: 8px;
+		    border-radius: 4px;
+		}
+		.select-container {
+		    display: flex;
+		    align-items: center;
+		    gap: 8px;
+		    margin-bottom: 8px;
+		    flex-wrap: wrap;
+		}
+		.arrow-button, .toggle-button {
+		    background-color: var(--button-bg);
+		    color: var(--text-color);
+		    border: 1px solid var(--border-color);
+		    border-radius: 6px;
+		    padding: 8px 12px;
+		    cursor: pointer;
+		    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+		    font-size: clamp(12px, 2vw, 14px);
+		    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		}
+		.arrow-button:hover, .toggle-button:hover {
+		    background-color: var(--button-hover-bg);
+		    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+		}
+		#historic-error, .error-message {
+		    color: var(--error-color);
+		    background-color: var(--error-bg);
+		    padding: 10px;
+		    margin: 10px 0;
+		    border-radius: 4px;
+		    text-align: center;
+		    font-size: clamp(12px, 2vw, 14px);
+		}
+		.line-swatch {
+		    display: inline-block;
+		    vertical-align: middle;
+		    margin-right: 5px;
+		}
+		.overview-grid {
+		    display: grid;
+		    grid-template-columns: repeat(10, 1fr);
+		    grid-template-rows: auto auto;
+		    gap: 20px;
+		    max-width: 100%;
+		}
+		.overview-grid .historic-container {
+		    grid-column: span 7;
+		}
+		.overview-grid .summary-container {
+		    grid-column: span 3;
+		}
+		.overview-grid .contracts-container:nth-child(3) {
+		    grid-column: span 5;
+		}
+		.overview-grid .contracts-container:nth-child(4) {
+		    grid-column: span 5;
+		}
+		.volatility-grid {
+		    display: grid;
+		    grid-template-columns: repeat(auto-fit, minmax(clamp(700px, 70vw, 800px), 1fr));
+		    gap: 20px;
+		}
+		.volatility-surface-grid {
+		    display: grid;
+		    grid-template-columns: 1fr;
+		    gap: 20px;
+		}
+		.ranking-grid {
+		    display: grid;
+		    grid-template-columns: repeat(auto-fit, minmax(clamp(300px, 30vw, 350px), 1fr));
+		    gap: 20px;
+		}
+		.slider-container {
+		    margin-top: 10px;
+		    display: flex;
+		    flex-direction: column;
+		    gap: 10px;
+		    justify-content: center;
+		    align-items: center;
+		}
+		.slider-group {
+		    display: flex;
+		    flex-direction: row;
+		    gap: 40px;
+		    align-items: center;
+		    width: 100%;
+		    justify-content: center;
+		}
+		.slider-group label {
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    gap: 10px;
+		    font-size: clamp(12px, 2vw, 14px);
+		}
+		.noUi-target {
+		    background: var(--slider-bg);
+		    border: none;
+		    border-radius: 5px;
+		    height: 10px;
+		    width: 80%;
+		    margin: 0 auto;
+		}
+		.noUi-connect {
+		    background: var(--slider-connect);
+		}
+		.noUi-handle {
+		    width: 20px;
+		    height: 20px;
+		    background: var(--text-color);
+		    border: 2px solid var(--border-color);
+		    border-radius: 50%;
+		    box-shadow: 0 0 5px rgba(38, 166, 154, 0.5);
+		    cursor: pointer;
+		    margin-top: -5px;
+		}
+		.slider-value {
+		    margin-top: 0;
+		    color: var(--button-hover-bg);
+		    font-weight: bold;
+		    font-size: clamp(14px, 2.5vw, 16px);
+		    padding: 5px 10px;
+		    background: transparent;
+		    border-radius: 4px;
+		    white-space: nowrap;
+		    display: block;
+		    text-align: center;
+		}
+		.chart-container h2, .chart-container h3 {
+		    margin-bottom: 10px;
+		    text-align: center;
+		    font-size: clamp(12px, 2vw, 14px);
+		    line-height: 1.3;
+		    color: var(--text-color);
+		}
+		.table-select-container {
+		    display: flex;
+		    align-items: center;
+		    gap: 8px;
+		    margin-bottom: 10px;
+		    flex-wrap: wrap;
+		}
+		.table-select-container select {
+		    background-color: var(--button-bg);
+		    color: #FFFFFF;
+		    border: 1px solid var(--border-color);
+		    border-radius: 4px;
+		    padding: 8px;
+		    font-size: clamp(12px, 2vw, 14px);
+		    transition: border-color 0.3s ease;
+		}
+		.table-select-container select:focus {
+		    border-color: var(--button-hover-bg);
+		    outline: none;
+		}
+		@media (max-width: 1024px) {
+		    .volatility-grid {
+		        grid-template-columns: 1fr;
+		    }
+		    .volatility-surface-grid {
+		        grid-template-columns: 1fr;
+		    }
+		    .overview-grid, .ranking-grid {
+		        grid-template-columns: 1fr;
+		        grid-template-rows: auto auto auto auto;
+		    }
+		    .overview-grid .historic-container { grid-column: span 1; }
+		    .overview-grid .summary-container { grid-column: span 1; }
+		    .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
+		    .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
+		}
+		@media (max-width: 768px) {
+		    .sidebar {
+		        transform: translateX(-100%);
+		        width: clamp(180px, 80vw, 200px);
+		    }
+		    .sidebar.visible {
+		        transform: translateX(0);
+		    }
+		    .sidebar-toggle {
+		        display: block;
+		    }
+		    .main-content {
+		        margin-left: 0;
+		        width: 100%;
+		    }
+		    .main-content.full-width {
+		        margin-left: 0;
+		        width: 100%;
+		    }
+		    .overview-grid, .volatility-grid, .volatility-surface-grid, .ranking-grid {
+		        grid-template-columns: 1fr;
+		        grid-template-rows: auto auto auto auto;
+		    }
+		    .overview-grid .historic-container { grid-column: span 1; }
+		    .overview-grid .summary-container { grid-column: span 1; }
+		    .overview-grid .contracts-container:nth-child(3) { grid-column: span 1; }
+		    .overview-grid .contracts-container:nth-child(4) { grid-column: span 1; }
+		    .chart-container {
+		        padding: 10px;
+		        margin-bottom: 10px;
+		    }
+		    canvas, #call-vol-surface {
+		        max-height: clamp(400px, 70vh, 600px);
+		        min-height: clamp(360px, 60vh, 500px);
+		    }
+		    .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table,
+		    .normalized-table, .trading-economics-table, #selected-ticker-table {
+		        font-size: clamp(8px, 1.6vw, 10px);
+		        line-height: 1.2;
+		    }
+		    .ranking-table th, .stock-table th, .contracts-table th, .normalized-table th,
+		    .trading-economics-table th, #selected-ticker-table th {
+		        padding: clamp(3px, 0.8vw, 4px) clamp(2px, 0.4vw, 3px);
+		        min-width: 40px;
+		        font-size: clamp(8px, 1.6vw, 10px);
+		        white-space: normal;
+		    }
+		    .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+		    .ranking-table td, .raw-data-table th, .raw-data-table td,
+		    .contracts-table th, .contracts-table td, .stock-table th, .stock-table td,
+		    .normalized-table th, .normalized-table td, .trading-economics-table th, .trading-economics-table td,
+		    #selected-ticker-table th, #selected-ticker-table td {
+		        padding: clamp(4px, 1vw, 6px);
+		        text-align: left;
+		        color: var(--text-color);
+		        font-size: clamp(10px, 2vw, 12px);
+		        white-space: normal;
+		        line-height: 1.4;
+		    }
+		    .chart-container h2, .chart-container h3 {
+		        font-size: clamp(11px, 1.8vw, 13px);
+		    }
+		    .shares-container {
+		        grid-template-columns: 1fr;
+		    }
+		}
+		@media (max-width: 480px) {
+		    .sidebar {
+		        width: 100%;
+		    }
+		    .chart-container {
+		        padding: 8px;
+		    }
+		    canvas, #call-vol-surface {
+		        max-height: clamp(360px, 60vh, 500px);
+		        min-height: clamp(320px, 50vh, 440px);
+		    }
+		    .stats-table, .summary-table, .raw-data-table, .contracts-table, .ranking-table, .stock-table,
+		    .normalized-table, .trading-economics-table, #selected-ticker-table {
+		        font-size: clamp(7px, 1.5vw, 9px);
+		        line-height: 1.2;
+		    }
+		    .ranking-table th, .stock-table th, .contracts-table th, .normalized-table th,
+		    .trading-economics-table th, #selected-ticker-table th {
+		        padding: clamp(2px, 0.6vw, 3px) clamp(1px, 0.3vw, 2px);
+		        min-width: 30px;
+		        font-size: clamp(7px, 1.5vw, 9px);
+		        white-space: normal;
+		    }
+		    .stats-table th, .stats-table td, .summary-table th, .summary-table td,
+		    .ranking-table td, .raw-data-table th, .raw-data-table td,
+		    .contracts-table th, .contracts-table td, .stock-table th, .stock-table td,
+		    .normalized-table th, .normalized-table td, .trading-economics-table th, .trading-economics-table td,
+		    #selected-ticker-table th, #selected-ticker-table td {
+		        padding: clamp(2px, 0.6vw, 3px);
+		        white-space: normal;
+		    }
+		    .chart-container h2, .chart-container h3 {
+		        font-size: clamp(10px, 1.6vw, 12px);
+		    }
+		}
+		/* Adjust selected ticker row shading for light and dark modes */
+		.selected-ticker-row,
+		.selected-ticker-row td,
+		#selected-ticker-table .selected-ticker-row,
+		#selected-ticker-table .selected-ticker-row td {
+		    background-color: #4B4B6F !important; /* Dark mode: Keep existing color */
+		}
+		body[data-theme="light"] .selected-ticker-row,
+		body[data-theme="light"] .selected-ticker-row td,
+		body[data-theme="light"] #selected-ticker-table .selected-ticker-row,
+		body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
+		    background-color: #B0B0D0 !important; /* Light mode: Lighter shade for better contrast */
+		}
+		.sub-menu {
+		    display: none !important;
+		    margin-left: 15px;
+		    opacity: 0;
+		    transition: opacity 0.3s ease;
+		}
+		.sub-menu.active {
+		    display: block !important;
+		    opacity: 1;
+		}
+		.sub-menu a.sub-tab {
+		    font-size: clamp(10px, 1.8vw, 12px);
+		    padding: 8px 10px;
+		    margin-left: 0;
+		    display: block;
+		    color: #FFFFFF;
+		}
+		.sub-menu a.sub-tab:hover, .sub-menu a.sub-tab.active {
+		    background-color: #3A8A7E;
+		    color: #FFFFFF;
+		}
+		.trading-economics-grid {
+		    display: grid;
+		    grid-template-columns: 1fr;
+		    gap: 20px;
+		}
+		.shares-grid {
+		    display: grid;
+		    grid-template-columns: 1fr;
+		}
+		.shares-container {
+		    display: grid;
+		    grid-template-columns: repeat(2, 1fr);
+		    gap: 20px;
+		}
+	</style>
 </head>
 <body>
     <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -659,45 +674,79 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
             <div id="trading-economics-error" class="error-message" style="display: none;">No Trading Economics data available</div>
             <div id="macro-error" class="error-message" style="display: none;">No macro data available</div>
             <div id="macro-bonds" class="chart-container" style="display: none;">
-                <h2>Bonds</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Hide Data</button>
-                <table id="bonds-table" class="trading-economics-table" style="display: table;"></table>
-            </div>
-            <div id="macro-commodities" class="chart-container" style="display: none;">
-                <h2>Commodities</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Hide Data</button>
-                <table id="commodities-table" class="trading-economics-table" style="display: table;"></table>
-            </div>
-            <div id="macro-stocks" class="chart-container" style="display: none;">
-                <h2>Stocks</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('stocks')">Hide Data</button>
-                <table id="stocks-table" class="trading-economics-table" style="display: table;"></table>
-            </div>
-            <div id="macro-currencies" class="chart-container" style="display: none;">
-                <h2>Currencies</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Hide Data</button>
-                <table id="currencies-table" class="trading-economics-table" style="display: table;"></table>
-            </div>
-            <div id="macro-crypto" class="chart-container" style="display: none;">
-                <h2>Crypto</h2>
-                <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Hide Data</button>
-                <table id="crypto-table" class="trading-economics-table" style="display: table;"></table>
-            </div>
-            <div id="macro-shares" class="chart-container shares-grid" style="display: none;">
-                <h2>Shares</h2>
-                <div class="shares-container">
-                    <div class="chart-container">
-                        <h3>Gainers</h3>
-                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_gainers')">Hide Data</button>
-                        <table id="shares-gainers-table" class="trading-economics-table" style="display: table;"></table>
-                    </div>
-                    <div class="chart-container">
-                        <h3>Losers</h3>
-                        <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares_losers')">Hide Data</button>
-                        <table id="shares-losers-table" class="trading-economics-table" style="display: table;"></table>
-                    </div>
-                </div>
-            </div>
+			    <h2>Bonds</h2>
+			    <div class="table-select-container">
+			        <label for="bonds-table-select">Select Table: </label>
+			        <select id="bonds-table-select"></select>
+			    </div>
+			    <button class="toggle-button" onclick="toggleTradingEconomicsTable('bonds')">Hide Data</button>
+			    <table id="bonds-table" class="trading-economics-table" style="display: table;"></table>
+			</div>
+			
+			<!-- For Commodities -->
+			<div id="macro-commodities" class="chart-container" style="display: none;">
+			    <h2>Commodities</h2>
+			    <div class="table-select-container">
+			        <label for="commodities-table-select">Select Table: </label>
+			        <select id="commodities-table-select"></select>
+			    </div>
+			    <button class="toggle-button" onclick="toggleTradingEconomicsTable('commodities')">Hide Data</button>
+			    <table id="commodities-table" class="trading-economics-table" style="display: table;"></table>
+			</div>
+			
+			<!-- For Stocks -->
+			<div id="macro-stocks" class="chart-container" style="display: none;">
+			    <h2>Stocks</h2>
+			    <div class="table-select-container">
+			        <label for="stocks-table-select">Select Table: </label>
+			        <select id="stocks-table-select"></select>
+			    </div>
+			    <button class="toggle-button" onclick="toggleTradingEconomicsTable('stocks')">Hide Data</button>
+			    <table id="stocks-table" class="trading-economics-table" style="display: table;"></table>
+			</div>
+			
+			<!-- For Currencies -->
+			<div id="macro-currencies" class="chart-container" style="display: none;">
+			    <h2>Currencies</h2>
+			    <div class="table-select-container">
+			        <label for="currencies-table-select">Select Table: </label>
+			        <select id="currencies-table-select"></select>
+			    </div>
+			    <button class="toggle-button" onclick="toggleTradingEconomicsTable('currencies')">Hide Data</button>
+			    <table id="currencies-table" class="trading-economics-table" style="display: table;"></table>
+			</div>
+			
+			<!-- For Crypto -->
+			<div id="macro-crypto" class="chart-container" style="display: none;">
+			    <h2>Crypto</h2>
+			    <div class="table-select-container">
+			        <label for="crypto-table-select">Select Table: </label>
+			        <select id="crypto-table-select"></select>
+			    </div>
+			    <button class="toggle-button" onclick="toggleTradingEconomicsTable('crypto')">Hide Data</button>
+			    <table id="crypto-table" class="trading-economics-table" style="display: table;"></table>
+			</div>
+			
+			<!-- For Shares (modify the existing shares container to include a single dropdown) -->
+			<div id="macro-shares" class="chart-container shares-grid" style="display: none;">
+			    <h2>Shares</h2>
+			    <div class="table-select-container">
+			        <label for="shares-table-select">Select Table: </label>
+			        <select id="shares-table-select"></select>
+			    </div>
+			    <div class="shares-container">
+			        <div class="chart-container">
+			            <h3>Gainers</h3>
+			            <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares-gainers')">Hide Data</button>
+			            <table id="shares-gainers-table" class="trading-economics-table" style="display: table;"></table>
+			        </div>
+			        <div class="chart-container">
+			            <h3>Losers</h3>
+			            <button class="toggle-button" onclick="toggleTradingEconomicsTable('shares-losers')">Hide Data</button>
+			            <table id="shares-losers-table" class="trading-economics-table" style="display: table;"></table>
+			        </div>
+			    </div>
+			</div>
         </div>
         <div id="indices" class="trading-economics-grid" style="display: none;"> <!-- Changed to trading-economics-grid -->
             <div id="indices-overview" class="chart-container" style="display: none;">
@@ -1007,6 +1056,116 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
                 }
             }
         }
+
+		async function loadTradingEconomicsData(timestamp) {
+    try {
+        // Clear existing data
+        bondsData = [];
+        commoditiesData = [];
+        stocksData = [];
+        currenciesData = [];
+        cryptoData = [];
+        sharesGainersData = [];
+        sharesLosersData = [];
+
+        // Define table mappings
+        const tableMappings = {
+            bonds: [
+                'major10y_bonds.csv', 'europe_bonds.csv', 'america_bonds.csv',
+                'asia_bonds.csv', 'australia_bonds.csv', 'africa_bonds.csv'
+            ],
+            commodities: [
+                'energy_commodities.csv', 'metals_commodities.csv', 'agricultural_commodities.csv',
+                'industrial_commodities.csv', 'livestock_commodities.csv', 'index_commodities.csv',
+                'electricity_commodities.csv'
+            ],
+            stocks: [
+                'major_stocks.csv', 'europe_stocks.csv', 'america_stocks.csv',
+                'asia_stocks.csv', 'australia_stocks.csv', 'africa_stocks.csv'
+            ],
+            currencies: [
+                'major_currencies.csv', 'europe_currencies.csv', 'america_currencies.csv',
+                'asia_currencies.csv', 'australia_currencies.csv', 'africa_currencies.csv'
+            ],
+            crypto: [
+                'crypto_crypto.csv', 'btc_crypto.csv', 'eth_crypto.csv'
+            ],
+            shares: [
+                'top_gainers_shares.csv', 'top_losers_shares.csv'
+            ]
+        };
+
+        // Map files to data arrays
+        const dataMap = {
+            bonds: bondsData,
+            commodities: commoditiesData,
+            stocks: stocksData,
+            currencies: currenciesData,
+            crypto: cryptoData,
+            'shares-gainers': sharesGainersData,
+            'shares-losers': sharesLosersData
+        };
+
+        // Store available tables for each section
+        window.availableTables = {
+            bonds: [],
+            commodities: [],
+            stocks: [],
+            currencies: [],
+            crypto: [],
+            shares: []
+        };
+
+        const checkFileExists = async (url) => {
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                return response.ok;
+            } catch {
+                return false;
+            }
+        };
+
+        // Fetch all files in parallel
+        const promises = [];
+        for (const [section, files] of Object.entries(tableMappings)) {
+            for (const file of files) {
+                const url = `data/${timestamp}/Trading_Economics/${file}?v=${Date.now()}`;
+                const tableId = file.replace('.csv', '');
+                promises.push(
+                    checkFileExists(url).then(exists => {
+                        if (exists) {
+                            window.availableTables[section].push({ file, tableId });
+                            const targetData = section === 'shares' ? dataMap[`${tableId.split('_')[0]}_${section}`] : dataMap[section];
+                            return fetchWithErrorHandling(url, targetData).then(() => {
+                                console.log(`Loaded ${file} into ${section} data, size: ${targetData.length}`);
+                            });
+                        } else {
+                            console.warn(`File not found: ${url}`);
+                            return Promise.resolve();
+                        }
+                    })
+                );
+            }
+        }
+        await Promise.all(promises);
+
+        // Populate dropdowns
+        populateTableDropdowns();
+        console.log('Trading Economics data loaded:', {
+            bonds: bondsData.length,
+            commodities: commoditiesData.length,
+            stocks: stocksData.length,
+            currencies: currenciesData.length,
+            crypto: cryptoData.length,
+            sharesGainers: sharesGainersData.length,
+            sharesLosers: sharesLosersData.length
+        });
+    } catch (error) {
+        console.error('Error loading Trading Economics data:', error);
+        document.getElementById('trading-economics-error').textContent = `Error loading Trading Economics data: ${error.message}`;
+        document.getElementById('trading-economics-error').style.display = 'block';
+    }
+}
 
         async function loadWisesheetsData() {
     try {
@@ -1510,226 +1669,255 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
         }
     
         async function loadData(timestamp) {
+    try {
+        const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
+        if (lastLoadDataTimestamp === timestamp && lastTicker === selectedTicker) {
+            console.log(`Skipping redundant loadData for ticker: ${selectedTicker}, timestamp: ${timestamp}`);
+            return Promise.resolve();
+        }
+        lastLoadDataTimestamp = timestamp;
+        lastTicker = selectedTicker;
+        clearTimeout(loadDataTimeout);
+        document.getElementById('historic-error').textContent = 'Loading data, please wait...';
+        document.getElementById('historic-error').style.display = 'block';
+        const prefix = '_yfinance';
+        console.log(`Loading data for timestamp: ${timestamp}, source: yfinance, ticker: ${selectedTicker}`);
+        data = [];
+        rawData = [];
+        skewData = [];
+        slopeData = [];
+        historicData = [];
+        eventsData = [];
+        rankingData = [];
+        companyNames = [];
+        cleanedData = [];
+        summaryData = [];
+        topVolumeData = [];
+        topOpenInterestData = [];
+        stockData = [];
+        normalizedData = [];
+        bondsData = [];
+        commoditiesData = [];
+        stocksData = [];
+        currenciesData = [];
+        cryptoData = [];
+        sharesGainersData = [];
+        sharesLosersData = [];
+        volSurfData = [];
+
+        const checkFileExists = async (url) => {
             try {
-                const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
-                if (lastLoadDataTimestamp === timestamp && lastTicker === selectedTicker) {
-                    console.log(`Skipping redundant loadData for ticker: ${selectedTicker}, timestamp: ${timestamp}`);
-                    return Promise.resolve();
-                }
-                lastLoadDataTimestamp = timestamp;
-                lastTicker = selectedTicker;
-                clearTimeout(loadDataTimeout);
-                document.getElementById('historic-error').textContent = 'Loading data, please wait...';
-                document.getElementById('historic-error').style.display = 'block';
-                const prefix = '_yfinance';
-                console.log(`Loading data for timestamp: ${timestamp}, source: yfinance, ticker: ${selectedTicker}`);
-                data = [];
-                rawData = [];
-                skewData = [];
-                slopeData = [];
-                historicData = [];
-                eventsData = [];
-                rankingData = [];
-                companyNames = [];
-                cleanedData = [];
-                summaryData = [];
-                topVolumeData = [];
-                topOpenInterestData = [];
-                stockData = [];
-                normalizedData = [];
-                bondsData = [];
-                commoditiesData = [];
-                stocksData = [];
-                currenciesData = [];
-                cryptoData = [];
-                sharesGainersData = [];
-                sharesLosersData = [];
-                volSurfData = []; // Added for vol_surf.csv
-        
-                const checkFileExists = async (url) => {
-                    try {
-                        const response = await fetch(url, { method: 'HEAD' });
-                        return response.ok;
-                    } catch {
-                        return false;
-                    }
-                };
-        
-                const companyNamesExists = await checkFileExists(`./company_names.txt`);
-                if (companyNamesExists) {
-                    await fetchWithErrorHandling(`./company_names.txt`, companyNames);
-                    console.log('Company names loaded, size:', companyNames.length, 'sample:', companyNames.slice(0, 5));
-                } else {
-                    console.warn('Company names file not found: ./company_names.txt');
-                }
-        
-                const files = [
-                    { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, array: rankingData },
-                    { url: `data/${timestamp}/tables/stock/stock_table${prefix}.csv`, array: stockData },
-                    { url: `data/${timestamp}/tables/summary/summary_table${prefix}.csv`, array: summaryData },
-                    { url: `data/${timestamp}/tables/contracts/top_volume_table${prefix}.csv`, array: topVolumeData },
-                    { url: `data/${timestamp}/tables/contracts/top_open_interest_table${prefix}.csv`, array: topOpenInterestData },
-                    { url: `data/${timestamp}/tables/normalized/normalized_table${prefix}.csv`, array: normalizedData },
-                    { url: `data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, array: data },
-                    { url: `data/${timestamp}/historic/historic_${selectedTicker}.csv`, array: historicData },
-                    { url: `data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, array: skewData },
-                    { url: `data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, array: slopeData },
-                    { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, array: cleanedData },
-                    { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
-                    { url: `data/Events.csv`, array: eventsData },
-                    { url: `data/${timestamp}/Trading_Economics/bonds.csv`, array: bondsData },
-                    { url: `data/${timestamp}/Trading_Economics/commodities.csv`, array: commoditiesData },
-                    { url: `data/${timestamp}/Trading_Economics/stocks.csv`, array: stocksData },
-                    { url: `data/${timestamp}/Trading_Economics/currencies.csv`, array: currenciesData },
-                    { url: `data/${timestamp}/Trading_Economics/crypto.csv`, array: cryptoData },
-                    { url: `data/${timestamp}/Trading_Economics/shares_gainers.csv`, array: sharesGainersData },
-                    { url: `data/${timestamp}/Trading_Economics/shares_losers.csv`, array: sharesLosersData },
-                    { url: `data/${timestamp}/vol_surf/vol_surf.csv`, array: volSurfData } // Added vol_surf.csv
-                ];
-        
-                const batchSize = 5;
-                for (let i = 0; i < files.length; i += batchSize) {
-                    const batch = files.slice(i, i + batchSize);
-                    const batchPromises = batch.map(file =>
-                        checkFileExists(file.url).then(exists => {
-                            if (exists) {
-                                return fetchWithErrorHandling(file.url, file.array).then(() => {
-                                    if (file.array === data) {
-                                        console.log(`Processed data for ${selectedTicker}:`, {
-                                            url: file.url,
-                                            size: file.array.length,
-                                            sample: file.array.slice(0, 5),
-                                            columns: file.array.length > 0 ? Object.keys(file.array[0]) : [],
-                                            hasCalls: file.array.some(item => item.Type && item.Type.toLowerCase() === 'call')
-                                        });
-                                    } else if (file.array === volSurfData) {
-                                        console.log(`Volatility surface data loaded:`, {
-                                            url: file.url,
-                                            size: file.array.length,
-                                            sample: file.array.slice(0, 5),
-                                            columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
-                                        });
-                                    }
+                const response = await fetch(url, { method: 'HEAD' });
+                return response.ok;
+            } catch {
+                return false;
+            }
+        };
+
+        const companyNamesExists = await checkFileExists(`./company_names.txt`);
+        if (companyNamesExists) {
+            await fetchWithErrorHandling(`./company_names.txt`, companyNames);
+            console.log('Company names loaded, size:', companyNames.length, 'sample:', companyNames.slice(0, 5));
+        } else {
+            console.warn('Company names file not found: ./company_names.txt');
+        }
+
+        const files = [
+            { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, array: rankingData },
+            { url: `data/${timestamp}/tables/stock/stock_table${prefix}.csv`, array: stockData },
+            { url: `data/${timestamp}/tables/summary/summary_table${prefix}.csv`, array: summaryData },
+            { url: `data/${timestamp}/tables/contracts/top_volume_table${prefix}.csv`, array: topVolumeData },
+            { url: `data/${timestamp}/tables/contracts/top_open_interest_table${prefix}.csv`, array: topOpenInterestData },
+            { url: `data/${timestamp}/tables/normalized/normalized_table${prefix}.csv`, array: normalizedData },
+            { url: `data/${timestamp}/processed${prefix}/processed${prefix}_${selectedTicker}.csv`, array: data },
+            { url: `data/${timestamp}/historic/historic_${selectedTicker}.csv`, array: historicData },
+            { url: `data/${timestamp}/skew_metrics${prefix}/skew_metrics${prefix}_${selectedTicker}.csv`, array: skewData },
+            { url: `data/${timestamp}/slope_metrics${prefix}/slope_metrics${prefix}_${selectedTicker}.csv`, array: slopeData },
+            { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, array: cleanedData },
+            { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
+            { url: `data/Events.csv`, array: eventsData },
+            { url: `data/${timestamp}/vol_surf/vol_surf.csv`, array: volSurfData }
+        ];
+
+        const batchSize = 5;
+        for (let i = 0; i < files.length; i += batchSize) {
+            const batch = files.slice(i, i + batchSize);
+            const batchPromises = batch.map(file =>
+                checkFileExists(file.url).then(exists => {
+                    if (exists) {
+                        return fetchWithErrorHandling(file.url, file.array).then(() => {
+                            if (file.array === data) {
+                                console.log(`Processed data for ${selectedTicker}:`, {
+                                    url: file.url,
+                                    size: file.array.length,
+                                    sample: file.array.slice(0, 5),
+                                    columns: file.array.length > 0 ? Object.keys(file.array[0]) : [],
+                                    hasCalls: file.array.some(item => item.Type && item.Type.toLowerCase() === 'call')
                                 });
-                            } else {
-                                console.warn(`File not found: ${file.url}`);
-                                file.array.length = 0;
-                                if (file.array === data || file.array === volSurfData) {
-                                    document.getElementById('surface-error').textContent = `Data file not found for ${selectedTicker}`;
-                                    document.getElementById('surface-error').style.display = 'block';
-                                }
-                                return Promise.resolve();
+                            } else if (file.array === volSurfData) {
+                                console.log(`Volatility surface data loaded:`, {
+                                    url: file.url,
+                                    size: file.array.length,
+                                    sample: file.array.slice(0, 5),
+                                    columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
+                                });
                             }
-                        }).catch(error => {
-                            console.error(`Error checking/fetching ${file.url}:`, error);
-                            file.array.length = 0;
-                            if (file.array === data || file.array === volSurfData) {
-                                document.getElementById('surface-error').textContent = `Error loading data for ${selectedTicker}: ${error.message}`;
-                                document.getElementById('surface-error').style.display = 'block';
-                            }
-                            return Promise.resolve();
-                        })
-                    );
-                    await Promise.all(batchPromises);
-                }
-        
-                const tickerDatalist = document.getElementById('ticker-datalist');
-                tickerDatalist.innerHTML = '';
-                const uniqueTickers = [...new Set([...rankingData.map(item => item.Ticker), ...volSurfData.map(item => item.Ticker)])].filter(val => val).sort();
-                uniqueTickers.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    tickerDatalist.appendChild(option);
-                });
-        
-                const tickerCompareSelect = document.getElementById('ticker-compare-select');
-                tickerCompareSelect.innerHTML = '';
-                uniqueTickers.forEach(val => {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.textContent = val;
-                    tickerCompareSelect.appendChild(option);
-                });
-                if (uniqueTickers.includes(selectedTicker)) {
-                    tickerCompareSelect.value = selectedTicker;
-                }
-        
-                if (!uniqueTickers.includes(selectedTicker)) {
-                    console.warn(`Selected ticker ${selectedTicker} not in data, defaulting`);
-                    const defaultTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
-                    document.getElementById('ticker-search').value = defaultTicker;
-                    document.getElementById('ticker-display').textContent = `${defaultTicker || 'N/A'}`;
-                    if (!defaultTicker) {
-                        console.warn('No valid tickers available');
-                        document.getElementById('historic-error').textContent = 'No valid tickers available';
-                        document.getElementById('historic-error').style.display = 'block';
+                        });
+                    } else {
+                        console.warn(`File not found: ${file.url}`);
+                        file.array.length = 0;
+                        if (file.array === data || file.array === volSurfData) {
+                            document.getElementById('surface-error').textContent = `Data file not found for ${selectedTicker}`;
+                            document.getElementById('surface-error').style.display = 'block';
+                        }
                         return Promise.resolve();
                     }
-                    await loadData(timestamp); // Reload for default ticker
-                } else {
-                    document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
-                }
-        
-                console.log('Data load complete:', {
-                    data: data.slice(0, 5),
-                    historicData: historicData.slice(0, 5),
-                    skewData: skewData.slice(0, 5),
-                    slopeData: slopeData.slice(0, 5),
-                    rawData: rawData.slice(0, 5),
-                    eventsData: eventsData.slice(0, 5),
-                    rankingData: rankingData.slice(0, 5),
-                    companyNames: companyNames.slice(0, 5),
-                    cleanedData: cleanedData.slice(0, 5),
-                    summaryData: summaryData.slice(0, 5),
-                    topVolumeData: topVolumeData.slice(0, 5),
-                    topOpenInterestData: topOpenInterestData.slice(0, 5),
-                    stockData: stockData.slice(0, 5),
-                    normalizedData: normalizedData.slice(0, 5),
-                    bondsData: bondsData.slice(0, 5),
-                    commoditiesData: commoditiesData.slice(0, 5),
-                    stocksData: stocksData.slice(0, 5),
-                    currenciesData: currenciesData.slice(0, 5),
-                    cryptoData: cryptoData.slice(0, 5),
-                    sharesGainersData: sharesGainersData.slice(0, 5),
-                    sharesLosersData: sharesLosersData.slice(0, 5),
-                    volSurfData: volSurfData.slice(0, 5)
-                });
-        
-                document.getElementById('historic-error').style.display = 'none';
-                return Promise.resolve();
-            } catch (error) {
-                console.error('Error in loadData:', error);
-                document.getElementById('ticker-search').value = '';
-                document.getElementById('ticker-datalist').innerHTML = '';
-                document.getElementById('ticker-compare-select').innerHTML = '';
-                document.getElementById('ticker-display').textContent = 'N/A';
-                data = [];
-                rawData = [];
-                skewData = [];
-                slopeData = [];
-                historicData = [];
-                eventsData = [];
-                rankingData = [];
-                companyNames = [];
-                cleanedData = [];
-                summaryData = [];
-                topVolumeData = [];
-                topOpenInterestData = [];
-                stockData = [];
-                normalizedData = [];
-                bondsData = [];
-                commoditiesData = [];
-                stocksData = [];
-                currenciesData = [];
-                cryptoData = [];
-                sharesGainersData = [];
-                sharesLosersData = [];
-                volSurfData = [];
-                document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
+                }).catch(error => {
+                    console.error(`Error checking/fetching ${file.url}:`, error);
+                    file.array.length = 0;
+                    if (file.array === data || file.array === volSurfData) {
+                        document.getElementById('surface-error').textContent = `Error loading data for ${selectedTicker}: ${error.message}`;
+                        document.getElementById('surface-error').style.display = 'block';
+                    }
+                    return Promise.resolve();
+                })
+            );
+            await Promise.all(batchPromises);
+        }
+
+        // Load Trading Economics data dynamically
+        await loadTradingEconomicsData(timestamp);
+
+        const tickerDatalist = document.getElementById('ticker-datalist');
+        tickerDatalist.innerHTML = '';
+        const uniqueTickers = [...new Set([...rankingData.map(item => item.Ticker), ...volSurfData.map(item => item.Ticker)])].filter(val => val).sort();
+        uniqueTickers.forEach(val => {
+            const option = document.createElement('option');
+            option.value = val;
+            tickerDatalist.appendChild(option);
+        });
+
+        const tickerCompareSelect = document.getElementById('ticker-compare-select');
+        tickerCompareSelect.innerHTML = '';
+        uniqueTickers.forEach(val => {
+            const option = document.createElement('option');
+            option.value = val;
+            option.textContent = val;
+            tickerCompareSelect.appendChild(option);
+        });
+        if (uniqueTickers.includes(selectedTicker)) {
+            tickerCompareSelect.value = selectedTicker;
+        }
+
+        if (!uniqueTickers.includes(selectedTicker)) {
+            console.warn(`Selected ticker ${selectedTicker} not in data, defaulting`);
+            const defaultTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
+            document.getElementById('ticker-search').value = defaultTicker;
+            document.getElementById('ticker-display').textContent = `${defaultTicker || 'N/A'}`;
+            if (!defaultTicker) {
+                console.warn('No valid tickers available');
+                document.getElementById('historic-error').textContent = 'No valid tickers available';
                 document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
             }
+            await loadData(timestamp); // Reload for default ticker
+        } else {
+            document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
         }
+
+        console.log('Data load complete:', {
+            data: data.slice(0, 5),
+            historicData: historicData.slice(0, 5),
+            skewData: skewData.slice(0, 5),
+            slopeData: slopeData.slice(0, 5),
+            rawData: rawData.slice(0, 5),
+            eventsData: eventsData.slice(0, 5),
+            rankingData: rankingData.slice(0, 5),
+            companyNames: companyNames.slice(0, 5),
+            cleanedData: cleanedData.slice(0, 5),
+            summaryData: summaryData.slice(0, 5),
+            topVolumeData: topVolumeData.slice(0, 5),
+            topOpenInterestData: topOpenInterestData.slice(0, 5),
+            stockData: stockData.slice(0, 5),
+            normalizedData: normalizedData.slice(0, 5),
+            bondsData: bondsData.slice(0, 5),
+            commoditiesData: commoditiesData.slice(0, 5),
+            stocksData: stocksData.slice(0, 5),
+            currenciesData: currenciesData.slice(0, 5),
+            cryptoData: cryptoData.slice(0, 5),
+            sharesGainersData: sharesGainersData.slice(0, 5),
+            sharesLosersData: sharesLosersData.slice(0, 5),
+            volSurfData: volSurfData.slice(0, 5)
+        });
+
+        document.getElementById('historic-error').style.display = 'none';
+        return Promise.resolve();
+    } catch (error) {
+        console.error('Error in loadData:', error);
+        document.getElementById('ticker-search').value = '';
+        document.getElementById('ticker-datalist').innerHTML = '';
+        document.getElementById('ticker-compare-select').innerHTML = '';
+        document.getElementById('ticker-display').textContent = 'N/A';
+        data = [];
+        rawData = [];
+        skewData = [];
+        slopeData = [];
+        historicData = [];
+        eventsData = [];
+        rankingData = [];
+        companyNames = [];
+        cleanedData = [];
+        summaryData = [];
+        topVolumeData = [];
+        topOpenInterestData = [];
+        stockData = [];
+        normalizedData = [];
+        bondsData = [];
+        commoditiesData = [];
+        stocksData = [];
+        currenciesData = [];
+        cryptoData = [];
+        sharesGainersData = [];
+        sharesLosersData = [];
+        volSurfData = [];
+        document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
+        document.getElementById('historic-error').style.display = 'block';
+        return Promise.resolve();
+    }
+}
+		function populateTableDropdowns() {
+    try {
+        const sections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
+        sections.forEach(section => {
+            const select = document.getElementById(`${section}-table-select`);
+            if (!select) {
+                console.warn(`Table select element not found for ${section}`);
+                return;
+            }
+            select.innerHTML = '';
+            const tables = window.availableTables[section] || [];
+            if (tables.length === 0) {
+                select.innerHTML = '<option value="">No tables available</option>';
+                console.warn(`No tables available for ${section}`);
+                return;
+            }
+            tables.forEach(({ file, tableId }) => {
+                const option = document.createElement('option');
+                option.value = tableId;
+                option.textContent = tableId.replace('_' + section, '').replace(/_/g, ' ').toUpperCase();
+                select.appendChild(option);
+            });
+            // Set default selection to the first table
+            select.value = tables[0].tableId;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log(`Populated ${section} dropdown with ${tables.length} options`, tables.map(t => t.tableId));
+        });
+    } catch (error) {
+        console.error('Error populating table dropdowns:', error);
+        document.getElementById('trading-economics-error').textContent = `Error populating table dropdowns: ${error.message}`;
+        document.getElementById('trading-economics-error').style.display = 'block';
+    }
+}
     
         function calculateMarketSpread(ticker) {
             try {
@@ -3937,25 +4125,36 @@ function updateHistoricChart() {
         function updateTradingEconomicsTables() {
     try {
         const tables = [
-            { id: 'bonds', data: bondsData },
-            { id: 'commodities', data: commoditiesData },
-            { id: 'stocks', data: stocksData },
-            { id: 'currencies', data: currenciesData },
-            { id: 'crypto', data: cryptoData },
-            { id: 'shares-gainers', data: sharesGainersData },
-            { id: 'shares-losers', data: sharesLosersData }
+            { id: 'bonds', data: bondsData, selectId: 'bonds-table-select' },
+            { id: 'commodities', data: commoditiesData, selectId: 'commodities-table-select' },
+            { id: 'stocks', data: stocksData, selectId: 'stocks-table-select' },
+            { id: 'currencies', data: currenciesData, selectId: 'currencies-table-select' },
+            { id: 'crypto', data: cryptoData, selectId: 'crypto-table-select' },
+            { id: 'shares-gainers', data: sharesGainersData, selectId: 'shares-table-select' },
+            { id: 'shares-losers', data: sharesLosersData, selectId: 'shares-table-select' }
         ];
-        tables.forEach(({ id, data }) => {
+        tables.forEach(({ id, data, selectId }) => {
             const table = document.getElementById(`${id}-table`);
+            const select = document.getElementById(selectId);
             table.innerHTML = '';
-            if (!data || data.length === 0) {
-                table.innerHTML = `<tr><td colspan="10">No ${id} data available</td></tr>`;
-                console.warn(`No data for ${id} table`);
+            if (!select || !select.value) {
+                table.innerHTML = `<tr><td colspan="10">Please select a table</td></tr>`;
+                console.warn(`No table selected for ${id}`);
+                return;
+            }
+            const selectedTableId = select.value;
+            // For shares, handle both gainers and losers based on table ID
+            const isShares = id.startsWith('shares');
+            const targetData = isShares ? (id === 'shares-gainers' && selectedTableId === 'top_gainers_shares' ? sharesGainersData :
+                                          id === 'shares-losers' && selectedTableId === 'top_losers_shares' ? sharesLosersData : []) : data;
+            if (!targetData || targetData.length === 0) {
+                table.innerHTML = `<tr><td colspan="10">No data available for ${selectedTableId}</td></tr>`;
+                console.warn(`No data for ${id} table, selected: ${selectedTableId}`);
                 return;
             }
             const thead = document.createElement('thead');
             const headerRow = thead.insertRow();
-            const columns = Object.keys(data[0]);
+            const columns = targetData.length > 0 ? Object.keys(targetData[0]) : [];
             columns.forEach((col, index) => {
                 const th = document.createElement('th');
                 th.textContent = col;
@@ -3966,7 +4165,7 @@ function updateHistoricChart() {
             });
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
-            data.forEach(item => {
+            targetData.forEach(item => {
                 const row = tbody.insertRow();
                 columns.forEach(col => {
                     const cell = row.insertCell();
@@ -3989,7 +4188,7 @@ function updateHistoricChart() {
                 });
             });
             table.appendChild(tbody);
-            console.log(`${id} table updated successfully, rows: ${data.length}`);
+            console.log(`${id} table updated successfully, selected: ${selectedTableId}, rows: ${targetData.length}`);
         });
     } catch (error) {
         console.error('Error updating Trading Economics tables:', error);
@@ -4127,7 +4326,8 @@ function updateHistoricChart() {
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        <script>
+document.addEventListener('DOMContentLoaded', () => {
     try {
         // Check required libraries
         if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined' || typeof XLSX === 'undefined') {
@@ -4136,36 +4336,33 @@ function updateHistoricChart() {
             document.getElementById('historic-error').style.display = 'block';
             return;
         }
-
         // Initialize sliders
         const moneynessSlider = document.getElementById('moneyness-slider');
         const expiryTSlider = document.getElementById('expiry-t-slider');
-		noUiSlider.create(moneynessSlider, {
-		    start: [0.5, 2.5],
-		    connect: true,
-		    range: { min: 0, max: 3 },
-		    step: 0.05
-		});
-		noUiSlider.create(expiryTSlider, {
-		    start: [0.25, 5],
-		    connect: true,
-		    range: { min: 0, max: 5 },
-		    step: 0.05
-		});
-		moneynessSlider.noUiSlider.on('update', (values) => {
-		    document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-		    updateCallVolSurface();
-		});
-		expiryTSlider.noUiSlider.on('update', (values) => {
-		    document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
-		    updateCallVolSurface();
-		});
-
+        noUiSlider.create(moneynessSlider, {
+            start: [0.5, 2.5],
+            connect: true,
+            range: { min: 0, max: 3 },
+            step: 0.05
+        });
+        noUiSlider.create(expiryTSlider, {
+            start: [0.25, 5],
+            connect: true,
+            range: { min: 0, max: 5 },
+            step: 0.05
+        });
+        moneynessSlider.noUiSlider.on('update', (values) => {
+            document.getElementById('moneyness-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+            updateCallVolSurface();
+        });
+        expiryTSlider.noUiSlider.on('update', (values) => {
+            document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
+            updateCallVolSurface();
+        });
         // Initialize selectors
         const dateSelect = document.getElementById('date-select');
         const timeSelect = document.getElementById('time-select');
         const tickerSearch = document.getElementById('ticker-search');
-
         // Validate timestamp
         const validateTimestamp = async (timestamp) => {
             const prefix = '_yfinance';
@@ -4176,7 +4373,6 @@ function updateHistoricChart() {
                 return null;
             }
         };
-
         // Get latest valid timestamp
         const getLatestValidTimestamp = async (dates) => {
             const timestamps = dates.sort((a, b) => b.localeCompare(a));
@@ -4186,24 +4382,20 @@ function updateHistoricChart() {
             console.warn('No valid timestamps found, using fallback');
             return '20250827_2136';
         };
-
         // Ensure sidebar sub-menus are hidden initially
         document.querySelectorAll('.sub-menu').forEach(menu => {
             menu.classList.add('hidden');
             menu.classList.remove('active');
         });
-
         // Initialize theme
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
-
-	window.addEventListener('resize', () => {
-    if (indicesChart && indicesChartVisible) {
-        indicesChart.resize();
-        console.log('Indices chart resized on window resize');
-    }
-});
-
+        window.addEventListener('resize', () => {
+            if (indicesChart && indicesChartVisible) {
+                indicesChart.resize();
+                console.log('Indices chart resized on window resize');
+            }
+        });
         // Fetch dates and initialize
         fetch('data/dates.json?v=' + Date.now())
             .then(response => {
@@ -4220,7 +4412,6 @@ function updateHistoricChart() {
                     option.textContent = datePart;
                     dateSelect.appendChild(option);
                 });
-
                 // Load initial data
                 const loadInitialData = async () => {
                     let timestamp = await getLatestValidTimestamp(dates);
@@ -4247,7 +4438,6 @@ function updateHistoricChart() {
                     console.log('Initial data and Volatility > Overview loaded for timestamp:', timestamp);
                 };
                 await loadInitialData();
-
                 // Date change handler
                 dateSelect.addEventListener('change', async (e) => {
                     console.log('Date select changed to:', e.target.value);
@@ -4268,7 +4458,6 @@ function updateHistoricChart() {
                         document.getElementById('historic-error').style.display = 'block';
                     }
                 });
-
                 // Time change handler
                 timeSelect.addEventListener('change', async (e) => {
                     console.log('Time select changed to:', e.target.value);
@@ -4288,7 +4477,6 @@ function updateHistoricChart() {
                         document.getElementById('historic-error').style.display = 'block';
                     }
                 });
-
                 // Ticker change handler
                 tickerSearch.addEventListener('input', debounce(async () => {
                     console.log('Ticker changed to:', tickerSearch.value);
@@ -4309,7 +4497,6 @@ function updateHistoricChart() {
                         document.getElementById('historic-error').style.display = 'block';
                     }
                 }, 500));
-
                 // Wisesheets ticker selection handler
                 document.getElementById('wisesheets-ticker-select').addEventListener('change', () => {
                     wisesheetsSelectedTickers = Array.from(document.getElementById('wisesheets-ticker-select').selectedOptions).map(opt => opt.value);
@@ -4317,7 +4504,6 @@ function updateHistoricChart() {
                     if (indicesChartVisible) updateIndicesChart();
                     updateIndicesTable();
                 });
-
                 // Wisesheets date range handlers
                 document.getElementById('wisesheets-start-date').addEventListener('change', () => {
                     console.log('Wisesheets start date changed:', document.getElementById('wisesheets-start-date').value);
@@ -4329,13 +4515,21 @@ function updateHistoricChart() {
                     updateIndicesChart();
                     updateIndicesTable();
                 });
-
                 // Historic chart type handler
                 document.getElementById('historic-chart-type').addEventListener('change', () => {
                     console.log('Chart type changed to:', document.getElementById('historic-chart-type').value);
                     updateHistoricChart();
                 });
-
+                // Table selection handlers
+                ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'].forEach(section => {
+                    const select = document.getElementById(`${section}-table-select`);
+                    if (select) {
+                        select.addEventListener('change', () => {
+                            console.log(`${section} table selection changed to:`, select.value);
+                            updateTradingEconomicsTables();
+                        });
+                    }
+                });
                 // Main section navigation
                 document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
                     link.addEventListener('click', async (e) => {
@@ -4360,7 +4554,6 @@ function updateHistoricChart() {
                         }
                     });
                 });
-
                 // Sub-section navigation
                 document.querySelectorAll('.sub-tab').forEach(subTab => {
                     subTab.addEventListener('click', async (e) => {
@@ -4382,13 +4575,11 @@ function updateHistoricChart() {
                         }
                     });
                 });
-
                 // Ticker compare handler
                 document.getElementById('ticker-compare-select').addEventListener('change', () => {
                     console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
                     updateNormalizedTable();
                 });
-
                 // Set initial visibility
                 document.getElementById('volatility').style.display = 'grid';
                 document.getElementById('macro').style.display = 'none';
@@ -4409,6 +4600,7 @@ function updateHistoricChart() {
         document.getElementById('historic-error').style.display = 'block';
     }
 });
+</script>
     </script>
 </body>
 </html>
