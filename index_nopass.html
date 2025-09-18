@@ -627,6 +627,9 @@
 		    grid-template-columns: repeat(2, 1fr);
 		    gap: 20px;
 		}
+#selected-ticker-summary {
+    min-height: 200px;
+}
 	</style>
 </head>
 <body>
@@ -657,12 +660,13 @@
         </div>
         <a href="#volatility" id="volatility-link">Volatility</a>
         <div class="sub-menu hidden" id="volatility-sub-menu">
-            <a href="#volatility-overview" class="sub-tab">Overview</a>
-            <a href="#volatility-plots" class="sub-tab">Volatility Plots</a>
-            <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
-            <a href="#volatility-ranking" class="sub-tab">Ranking</a>
-            <a href="#volatility-data-table" class="sub-tab">Data Table</a>
-        </div>
+    <a href="#volatility-overview" class="sub-tab">Overview</a>
+    <a href="#volatility-plots" class="sub-tab">Volatility Plots</a>
+    <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
+    <a href="#volatility-ranking" class="sub-tab">Ranking</a>
+    <a href="#volatility-data-table" class="sub-tab">Data Table</a>
+    <a href="#volatility-historic" class="sub-tab">Historic</a>
+</div>
     </div>
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">N/A</div>
@@ -923,6 +927,23 @@
                     </div>
                 </div>
             </div>
+	    <div id="volatility-historic" class="chart-container" style="display: none;">
+    <h3>Historic Volatility Data</h3>
+    <div class="select-container">
+        <label for="historic-vol-metric-select">Select Volatility Metric: </label>
+        <select id="historic-vol-metric-select">
+            <option value="Rvol_100d" selected>100-day Realised Volatility (%)</option>
+            <option value="ATM IV">ATM Implied Volatility (%)</option>
+            <option value="IVol - Rvol">IVol - RVol (%)</option>
+        </select>
+        <label for="historic-vol-start-date">Start Date: </label>
+        <input type="date" id="historic-vol-start-date">
+        <label for="historic-vol-end-date">End Date: </label>
+        <input type="date" id="historic-vol-end-date">
+    </div>
+    <canvas id="historic-vol-chart"></canvas>
+    <div id="historic-vol-error" class="error-message" style="display: none;">No historic volatility data available</div>
+</div>
             <div id="volatility-ranking" class="chart-container" style="display: none;">
                 <h2>Ticker Ranking</h2>
                 <button class="toggle-button" onclick="toggleRankingTable()">Show Data</button>
@@ -976,6 +997,7 @@
         let indicesChart = null;
         let indicesData = []; // Added for Wisesheets indices data
         let data = [];
+	let historicVolData = [];
         let volSurfData = [];
         let historicData = [];
         let cleanedData = [];
@@ -1006,7 +1028,7 @@
         let sharesGainersTableVisible = true;
         let sharesLosersTableVisible = true;
         let normalizedTableVisible = false;
-        let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, kurtosisChart, volOfVolChart;
+	let moneynessChart, expiryChart, historicChart, volumeChart, openInterestChart, skewChart, realisedVolChart, kurtosisChart, volOfVolChart, historicVolChart;
         let statsTablesVisible = false;
         let rankingTableVisible = false;
         let stockTableVisible = false;
@@ -1056,6 +1078,60 @@
                 }
             }
         }
+
+	function parseDate(dateStr) {
+    if (!dateStr || dateStr === '########') return null;
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    return isNaN(date.getTime()) ? null : date;
+}
+
+	async function loadHistoricVolData(timestamp, ticker) {
+    try {
+        const url = `data/Options_Historic/ATM_historical_${ticker}.csv?v=${Date.now()}`;
+        historicVolData = [];
+        await fetchWithErrorHandling(url, historicVolData);
+        console.log(`Historic volatility data loaded for ${ticker}:`, {
+            url,
+            size: historicVolData.length,
+            sample: historicVolData.slice(0, 5)
+        });
+
+        // Filter valid dates using parseDate
+        const validData = historicVolData.filter(item => {
+            const date = parseDate(item.Date);
+            return date !== null;
+        });
+
+        if (validData.length > 0) {
+            const validTimestamps = validData.map(item => parseDate(item.Date).getTime());
+            const minTimestamp = Math.min(...validTimestamps);
+            const maxTimestamp = Math.max(...validTimestamps);
+            const minDate = new Date(minTimestamp);
+            const maxDate = new Date(maxTimestamp);
+            document.getElementById('historic-vol-start-date').value = minDate.toISOString().split('T')[0];
+            document.getElementById('historic-vol-end-date').value = maxDate.toISOString().split('T')[0];
+            console.log(`Valid date range set: ${minDate.toISOString().split('T')[0]} to ${maxDate.toISOString().split('T')[0]} (${validData.length} valid rows)`);
+        } else {
+            document.getElementById('historic-vol-error').textContent = `No valid historic volatility data available for ${ticker}`;
+            document.getElementById('historic-vol-error').style.display = 'block';
+            // Set default date range as fallback
+            document.getElementById('historic-vol-start-date').value = '2020-01-01';
+            document.getElementById('historic-vol-end-date').value = '2025-09-17';
+        }
+    } catch (error) {
+        console.error(`Error loading historic volatility data for ${ticker}:`, error);
+        document.getElementById('historic-vol-error').textContent = `Error loading data: ${error.message}`;
+        document.getElementById('historic-vol-error').style.display = 'block';
+        // Set default date range as fallback
+        document.getElementById('historic-vol-start-date').value = '2020-01-01';
+        document.getElementById('historic-vol-end-date').value = '2025-09-17';
+    }
+}
 
 		async function loadTradingEconomicsData(timestamp) {
     try {
@@ -1404,6 +1480,175 @@
     updateAllPlots(); // Redraw all plots to update theme colors
 }
 
+function updateHistoricVolChart() {
+    try {
+        const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
+        const startInput = document.getElementById('historic-vol-start-date').value;
+        const endInput = document.getElementById('historic-vol-end-date').value;
+        const volMetric = document.getElementById('historic-vol-metric-select').value;
+        const errorDiv = document.getElementById('historic-vol-error');
+        errorDiv.style.display = 'none';
+
+        // Filter data using parseDate for dd/mm/yyyy
+        let filteredData = historicVolData.filter(item => {
+            const parsedDate = parseDate(item.Date);
+            const hasValidDate = parsedDate !== null;
+            const hasValidPrice = item['Underlying Price'] != null && !isNaN(parseFloat(item['Underlying Price']));
+            const hasValidMetric = item[volMetric] != null && !isNaN(parseFloat(item[volMetric]));
+            return hasValidDate && (hasValidPrice || hasValidMetric);
+        });
+
+        console.log('Initial filtered data length:', filteredData.length);
+
+        if (!filteredData.length) {
+            if (historicVolChart) historicVolChart.destroy();
+            errorDiv.textContent = 'No historic volatility data available';
+            errorDiv.style.display = 'block';
+            console.warn('No data for Historic Volatility chart:', { ticker: selectedTicker });
+            return;
+        }
+
+        // Sort by parsed date
+        filteredData.sort((a, b) => parseDate(a.Date) - parseDate(b.Date));
+
+        // Calculate min/max dates using parsed dates
+        const validTimestamps = filteredData.map(item => parseDate(item.Date).getTime());
+        const minTimestamp = Math.min(...validTimestamps);
+        const maxTimestamp = Math.max(...validTimestamps);
+        const minDate = new Date(minTimestamp);
+        const maxDate = new Date(maxTimestamp);
+        const startDate = startInput ? new Date(startInput) : minDate;
+        const endDate = endInput ? new Date(endInput) : maxDate;
+
+        // Filter by date range using parsed dates
+        filteredData = filteredData.filter(item => {
+            const itemDate = parseDate(item.Date);
+            return itemDate >= startDate && itemDate <= endDate;
+        });
+
+        console.log('Date-filtered data length:', filteredData.length, 'range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+
+        if (!filteredData.length) {
+            if (historicVolChart) historicVolChart.destroy();
+            errorDiv.textContent = 'No data in selected date range';
+            errorDiv.style.display = 'block';
+            console.warn('No data after date filtering for Historic Volatility chart:', { ticker: selectedTicker });
+            return;
+        }
+
+        // Prepare datasets using parsed dates
+        const parsedDates = filteredData.map(item => parseDate(item.Date));
+        const prices = filteredData.map(item => parseFloat(item['Underlying Price'])).filter(v => !isNaN(v));
+        const volValues = filteredData.map(item => parseFloat(item[volMetric]) * (volMetric === 'Rvol_100d' || volMetric === 'ATM IV' ? 100 : 1)).filter(v => !isNaN(v));
+
+        console.log('Prepared data points:', { dates: parsedDates.length, prices: prices.length, volValues: volValues.length });
+
+        const datasets = [];
+
+        // Add price dataset if available
+        if (prices.length > 0) {
+            datasets.push({
+                label: 'Stock Price ($)',
+                data: filteredData.map((item, i) => ({
+                    x: parsedDates[i],
+                    y: parseFloat(item['Underlying Price'])
+                })).filter(d => !isNaN(d.y)),
+                borderColor: '#FFFF00',
+                backgroundColor: 'rgba(255, 255, 0, 0.2)',
+                pointRadius: 1,
+                fill: false,
+                showLine: true,
+                yAxisID: 'y'
+            });
+        }
+
+        // Add volatility dataset if available
+        if (volValues.length > 0) {
+            datasets.push({
+                label: volMetric === 'Rvol_100d' ? '100-day Realised Vol (%)' :
+                       volMetric === 'ATM IV' ? 'ATM Implied Vol (%)' : 'IVol - RVol (%)',
+                data: filteredData.map((item, i) => ({
+                    x: parsedDates[i],
+                    y: parseFloat(item[volMetric]) * (volMetric === 'Rvol_100d' || volMetric === 'ATM IV' ? 100 : 1)
+                })).filter(d => !isNaN(d.y)),
+                borderColor: '#26A69A',
+                backgroundColor: 'rgba(38, 166, 154, 0.2)',
+                pointRadius: 1,
+                fill: false,
+                showLine: true,
+                yAxisID: 'y1'
+            });
+        }
+
+        if (datasets.length === 0) {
+            if (historicVolChart) historicVolChart.destroy();
+            errorDiv.textContent = 'No valid data points for chart';
+            errorDiv.style.display = 'block';
+            console.warn('No valid datasets for Historic Volatility chart:', { ticker: selectedTicker });
+            return;
+        }
+
+        if (historicVolChart) historicVolChart.destroy();
+        const canvas = document.getElementById('historic-vol-chart');
+        if (!canvas.getContext('2d')) {
+            throw new Error('Canvas context not available for historic-vol-chart');
+        }
+
+        // Set axis ranges based on available data
+        const minPrice = prices.length > 0 ? Math.min(...prices) * 0.95 : undefined;
+        const maxPrice = prices.length > 0 ? Math.max(...prices) * 1.05 : undefined;
+        const minVol = volValues.length > 0 ? Math.min(...volValues) * 0.9 : undefined;
+        const maxVol = volValues.length > 0 ? Math.max(...volValues) * 1.1 : undefined;
+
+        historicVolChart = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: { datasets },
+            options: {
+                plugins: {
+                    legend: { labels: { color: getThemeColor() } }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'month' },
+                        title: { display: true, text: 'Date', color: getThemeColor() },
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() }
+                    },
+                    y: {
+                        title: { display: true, text: 'Stock Price ($)', color: getThemeColor() },
+                        beginAtZero: false,
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() },
+                        min: minPrice,
+                        max: maxPrice,
+                        display: prices.length > 0
+                    },
+                    y1: {
+                        title: { display: true, text: 'Volatility (%)', color: getThemeColor() },
+                        position: 'right',
+                        beginAtZero: false,
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() },
+                        min: minVol,
+                        max: maxVol,
+                        display: volValues.length > 0
+                    }
+                },
+                backgroundColor: document.body.getAttribute('data-theme') === 'light' ? '#F5F7FA' : '#1A1A2E'
+            }
+        });
+
+        createStatsTable(historicVolChart, 'historic-vol-chart');
+        console.log('Historic Volatility chart rendered successfully, data points:', filteredData.length);
+    } catch (error) {
+        console.error('Error updating Historic Volatility chart:', error);
+        document.getElementById('historic-vol-error').textContent = `Error rendering chart: ${error.message}`;
+        document.getElementById('historic-vol-error').style.display = 'block';
+    }
+}
+
+
 	function updateAllPlots() {
     try {
         console.log('Updating all plots for theme change');
@@ -1736,7 +1981,7 @@
         sharesGainersData = [];
         sharesLosersData = [];
         volSurfData = [];
-
+        historicVolData = []; // Added
         const checkFileExists = async (url) => {
             try {
                 const response = await fetch(url, { method: 'HEAD' });
@@ -1745,7 +1990,6 @@
                 return false;
             }
         };
-
         const companyNamesExists = await checkFileExists(`./company_names.txt`);
         if (companyNamesExists) {
             await fetchWithErrorHandling(`./company_names.txt`, companyNames);
@@ -1753,7 +1997,6 @@
         } else {
             console.warn('Company names file not found: ./company_names.txt');
         }
-
         const files = [
             { url: `data/${timestamp}/tables/ranking/ranking_table${prefix}.csv`, array: rankingData },
             { url: `data/${timestamp}/tables/stock/stock_table${prefix}.csv`, array: stockData },
@@ -1768,9 +2011,9 @@
             { url: `data/${timestamp}/cleaned_yfinance/cleaned_yfinance_${selectedTicker}.csv`, array: cleanedData },
             { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
             { url: `data/Events.csv`, array: eventsData },
-            { url: `data/${timestamp}/vol_surf/vol_surf.csv`, array: volSurfData }
+            { url: `data/${timestamp}/vol_surf/vol_surf.csv`, array: volSurfData },
+            { url: `data/Options_Historic/ATM_historical_${selectedTicker}.csv`, array: historicVolData } // Added
         ];
-
         const batchSize = 5;
         for (let i = 0; i < files.length; i += batchSize) {
             const batch = files.slice(i, i + batchSize);
@@ -1793,12 +2036,19 @@
                                     sample: file.array.slice(0, 5),
                                     columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
                                 });
+                            } else if (file.array === historicVolData) {
+                                console.log(`Historic volatility data loaded:`, {
+                                    url: file.url,
+                                    size: file.array.length,
+                                    sample: file.array.slice(0, 5),
+                                    columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
+                                });
                             }
                         });
                     } else {
                         console.warn(`File not found: ${file.url}`);
                         file.array.length = 0;
-                        if (file.array === data || file.array === volSurfData) {
+                        if (file.array === data || file.array === volSurfData || file.array === historicVolData) {
                             document.getElementById('surface-error').textContent = `Data file not found for ${selectedTicker}`;
                             document.getElementById('surface-error').style.display = 'block';
                         }
@@ -1807,7 +2057,7 @@
                 }).catch(error => {
                     console.error(`Error checking/fetching ${file.url}:`, error);
                     file.array.length = 0;
-                    if (file.array === data || file.array === volSurfData) {
+                    if (file.array === data || file.array === volSurfData || file.array === historicVolData) {
                         document.getElementById('surface-error').textContent = `Error loading data for ${selectedTicker}: ${error.message}`;
                         document.getElementById('surface-error').style.display = 'block';
                     }
@@ -1816,10 +2066,7 @@
             );
             await Promise.all(batchPromises);
         }
-
-        // Load Trading Economics data dynamically
         await loadTradingEconomicsData(timestamp);
-
         const tickerDatalist = document.getElementById('ticker-datalist');
         tickerDatalist.innerHTML = '';
         const uniqueTickers = [...new Set([...rankingData.map(item => item.Ticker), ...volSurfData.map(item => item.Ticker)])].filter(val => val).sort();
@@ -1828,7 +2075,6 @@
             option.value = val;
             tickerDatalist.appendChild(option);
         });
-
         const tickerCompareSelect = document.getElementById('ticker-compare-select');
         tickerCompareSelect.innerHTML = '';
         uniqueTickers.forEach(val => {
@@ -1840,7 +2086,6 @@
         if (uniqueTickers.includes(selectedTicker)) {
             tickerCompareSelect.value = selectedTicker;
         }
-
         if (!uniqueTickers.includes(selectedTicker)) {
             console.warn(`Selected ticker ${selectedTicker} not in data, defaulting`);
             const defaultTicker = uniqueTickers.includes('COIN') ? 'COIN' : uniqueTickers[0] || '';
@@ -1852,11 +2097,10 @@
                 document.getElementById('historic-error').style.display = 'block';
                 return Promise.resolve();
             }
-            await loadData(timestamp); // Reload for default ticker
+            await loadData(timestamp);
         } else {
             document.getElementById('ticker-display').textContent = `${selectedTicker || 'N/A'}`;
         }
-
         console.log('Data load complete:', {
             data: data.slice(0, 5),
             historicData: historicData.slice(0, 5),
@@ -1879,9 +2123,9 @@
             cryptoData: cryptoData.slice(0, 5),
             sharesGainersData: sharesGainersData.slice(0, 5),
             sharesLosersData: sharesLosersData.slice(0, 5),
-            volSurfData: volSurfData.slice(0, 5)
+            volSurfData: volSurfData.slice(0, 5),
+            historicVolData: historicVolData.slice(0, 5)
         });
-
         document.getElementById('historic-error').style.display = 'none';
         return Promise.resolve();
     } catch (error) {
@@ -1912,6 +2156,7 @@
         sharesGainersData = [];
         sharesLosersData = [];
         volSurfData = [];
+        historicVolData = [];
         document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
         document.getElementById('historic-error').style.display = 'block';
         return Promise.resolve();
@@ -4062,88 +4307,90 @@ function updateHistoricChart() {
 }
         
         function updateSection(sectionId, subSectionId) {
-            try {
-                console.log('Updating section:', sectionId, 'subSection:', subSectionId);
-                const sections = ['macro', 'indices', 'volatility', 'volatility-surface'];
-                sections.forEach(id => {
-                    const element = document.getElementById(id);
-                    if (element) element.style.display = id === sectionId ? 'grid' : 'none';
-                });
-                const showTickerSummary = sectionId === 'volatility' && ['volatility-overview', 'volatility-plots', 'volatility-surface'].includes(subSectionId);
-                document.getElementById('selected-ticker-summary').style.display = showTickerSummary ? 'block' : 'none';
-        
-                document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
-                    link.classList.toggle('active', link.getAttribute('href').substring(1) === sectionId);
-                });
-        
-                if (sectionId === 'macro') {
-                    const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
-                    const selectedSub = subSectionId || 'macro-bonds';
-                    document.querySelectorAll('#macro > div.chart-container').forEach(div => {
-                        div.style.display = div.id === selectedSub ? 'block' : 'none';
-                    });
-                    document.querySelectorAll('#macro-sub-menu .sub-tab').forEach(tab => {
-                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
-                    });
-                    updateTradingEconomicsTables();
-                } else if (sectionId === 'indices') {
-                    const subSections = ['overview', 'stock', 'price-comparisons'];
-                    const selectedSub = subSectionId || 'indices-overview';
-                    document.querySelectorAll('#indices > div').forEach(div => {
-                        div.style.display = div.id === selectedSub ? (div.id === 'indices-overview' ? 'block' : 'block') : 'none';
-                    });
-                    document.querySelectorAll('#indices-sub-menu .sub-tab').forEach(tab => {
-                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
-                    });
-                    if (selectedSub === 'indices-overview') {
-                        updateIndicesTable();
-                        if (indicesChartVisible) updateIndicesChart();
-                    } else if (selectedSub === 'indices-stock') {
-                        updateStockTable();
-                        updateKurtosisChart();
-                    } else if (selectedSub === 'indices-price-comparisons') {
-                        updateNormalizedTable();
-                    }
-                } else if (sectionId === 'volatility') {
-                    const subSections = ['overview', 'plots', 'ranking', 'data-table'];
-                    const selectedSub = subSectionId || 'volatility-overview';
-                    document.querySelectorAll('#volatility > div').forEach(div => {
-                        div.style.display = div.id === selectedSub ? (div.id === 'volatility-overview' ? 'grid' : 'block') : 'none';
-                    });
-                    document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
-                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
-                    });
-                    if (selectedSub === 'volatility-overview') {
-                        updateSummaryTable();
-                        updateTopContractsTables();
-                        updateHistoricChart();
-                    } else if (selectedSub === 'volatility-plots') {
-                        updateMoneynessVsIV();
-                        updateExpiryVsIV();
-                        updateSkewVsExpiry();
-                        updateRealisedVolChart();
-                        updateVolOfVolChart();
-                    } else if (selectedSub === 'volatility-ranking') {
-                        updateVolumeChart();
-                        updateOpenInterestChart();
-                        updateRankingTable();
-                    } else if (selectedSub === 'volatility-data-table') {
-                        updateRawDataTable();
-                    }
-                    if (showTickerSummary) updateSelectedTickerSummary();
-                } else if (sectionId === 'volatility-surface') {
-                    document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
-                        tab.classList.toggle('active', tab.getAttribute('href').substring(1) === 'volatility-surface');
-                    });
-                    updateCallVolSurface();
-                    if (showTickerSummary) updateSelectedTickerSummary();
-                }
-            } catch (error) {
-                console.error('Error updating section:', error);
-                document.getElementById('historic-error').textContent = `Error navigating to section: ${error.message}`;
-                document.getElementById('historic-error').style.display = 'block';
+    try {
+        console.log('Updating section:', sectionId, 'subSection:', subSectionId);
+        const sections = ['macro', 'indices', 'volatility', 'volatility-surface'];
+        sections.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.style.display = id === sectionId ? 'grid' : 'none';
+        });
+        const showTickerSummary = sectionId === 'volatility' && ['volatility-overview', 'volatility-plots', 'volatility-surface', 'volatility-historic'].includes(subSectionId);
+        document.getElementById('selected-ticker-summary').style.display = showTickerSummary ? 'block' : 'none';
+
+        document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href').substring(1) === sectionId);
+        });
+
+        if (sectionId === 'macro') {
+            const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
+            const selectedSub = subSectionId || 'macro-bonds';
+            document.querySelectorAll('#macro > div.chart-container').forEach(div => {
+                div.style.display = div.id === selectedSub ? 'block' : 'none';
+            });
+            document.querySelectorAll('#macro-sub-menu .sub-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
+            });
+            updateTradingEconomicsTables();
+        } else if (sectionId === 'indices') {
+            const subSections = ['overview', 'stock', 'price-comparisons'];
+            const selectedSub = subSectionId || 'indices-overview';
+            document.querySelectorAll('#indices > div').forEach(div => {
+                div.style.display = div.id === selectedSub ? (div.id === 'indices-overview' ? 'block' : 'block') : 'none';
+            });
+            document.querySelectorAll('#indices-sub-menu .sub-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
+            });
+            if (selectedSub === 'indices-overview') {
+                updateIndicesTable();
+                if (indicesChartVisible) updateIndicesChart();
+            } else if (selectedSub === 'indices-stock') {
+                updateStockTable();
+                updateKurtosisChart();
+            } else if (selectedSub === 'indices-price-comparisons') {
+                updateNormalizedTable();
             }
+        } else if (sectionId === 'volatility') {
+            const subSections = ['overview', 'plots', 'ranking', 'data-table', 'historic'];
+            const selectedSub = subSectionId || 'volatility-overview';
+            document.querySelectorAll('#volatility > div').forEach(div => {
+                div.style.display = div.id === selectedSub ? (div.id === 'volatility-overview' ? 'grid' : 'block') : 'none';
+            });
+            document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('href').substring(1) === selectedSub);
+            });
+            if (selectedSub === 'volatility-overview') {
+                updateSummaryTable();
+                updateTopContractsTables();
+                updateHistoricChart();
+            } else if (selectedSub === 'volatility-plots') {
+                updateMoneynessVsIV();
+                updateExpiryVsIV();
+                updateSkewVsExpiry();
+                updateRealisedVolChart();
+                updateVolOfVolChart();
+            } else if (selectedSub === 'volatility-ranking') {
+                updateVolumeChart();
+                updateOpenInterestChart();
+                updateRankingTable();
+            } else if (selectedSub === 'volatility-data-table') {
+                updateRawDataTable();
+            } else if (selectedSub === 'volatility-historic') {
+                updateHistoricVolChart();
+            }
+            if (showTickerSummary) updateSelectedTickerSummary();
+        } else if (sectionId === 'volatility-surface') {
+            document.querySelectorAll('#volatility-sub-menu .sub-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('href').substring(1) === 'volatility-surface');
+            });
+            updateCallVolSurface();
+            if (showTickerSummary) updateSelectedTickerSummary();
         }
+    } catch (error) {
+        console.error('Error updating section:', error);
+        document.getElementById('historic-error').textContent = `Error navigating to section: ${error.message}`;
+        document.getElementById('historic-error').style.display = 'block';
+    }
+}
         
         function toggleTradingEconomicsTable(tableName) {
             try {
@@ -4293,96 +4540,101 @@ function updateHistoricChart() {
 }
         
         function updateCharts() {
-            try {
-                console.log('Updating all charts and tables');
-                updateMoneynessVsIV();
-                updateExpiryVsIV();
-                updateSkewVsExpiry();
-                updateRealisedVolChart();
-                updateVolOfVolChart();
-                updateSummaryTable();
-                updateTopContractsTables();
-                updateVolumeChart();
-                updateOpenInterestChart();
-                updateHistoricChart();
-                updateRawDataTable();
-                updateRankingTable();
-                updateStockTable();
-                updateSelectedTickerSummary();
-                updateNormalizedTable();
-                updateKurtosisChart();
-                updateCallVolSurface();
-            } catch (error) {
-                console.error('Error updating charts:', error);
-                document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
-                document.getElementById('historic-error').style.display = 'block';
-            }
-        }
+    try {
+        console.log('Updating all charts and tables');
+        updateMoneynessVsIV();
+        updateExpiryVsIV();
+        updateSkewVsExpiry();
+        updateRealisedVolChart();
+        updateVolOfVolChart();
+        updateSummaryTable();
+        updateTopContractsTables();
+        updateVolumeChart();
+        updateOpenInterestChart();
+        updateHistoricChart();
+        updateRawDataTable();
+        updateRankingTable();
+        updateStockTable();
+        updateSelectedTickerSummary();
+        updateNormalizedTable();
+        updateKurtosisChart();
+        updateCallVolSurface();
+        updateHistoricVolChart(); // Added
+    } catch (error) {
+        console.error('Error updating charts:', error);
+        document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
+        document.getElementById('historic-error').style.display = 'block';
+    }
+}
         
         function addKeyboardNavigation() {
-            try {
-                const chartConfigs = [
-                    { canvasId: 'moneyness-vs-iv-chart', selectId: 'expiry-select' },
-                    { canvasId: 'expiry-vs-iv-chart', selectId: 'moneyness-select' },
-                    { canvasId: 'skew-vs-expiry-chart', selectId: 'skew-metric-select' },
-                    { canvasId: 'realised-vol-chart', selectId: 'realised-vol-metric-select' },
-                    { canvasId: 'kurtosis-chart', selectId: 'kurtosis-type-select' },
-                    { canvasId: 'vol-of-vol-chart', selectId: null },
-                    { canvasId: 'volume-chart', selectId: 'ticker-search' },
-                    { canvasId: 'open-interest-chart', selectId: 'ticker-search' },
-                    { canvasId: 'historic-price-chart', selectId: null }
-                ];
-                chartConfigs.forEach(config => {
-                    const canvas = document.getElementById(config.canvasId);
-                    const select = config.selectId ? document.getElementById(config.selectId) : null;
-                    if (canvas && select) {
-                        canvas.addEventListener('keydown', (event) => {
-                            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                                event.preventDefault();
-                                let newIndex = select.selectedIndex + (event.key === 'ArrowLeft' ? -1 : 1);
-                                if (newIndex < 0) newIndex = select.options.length - 1;
-                                if (newIndex >= select.options.length) newIndex = 0;
-                                select.selectedIndex = newIndex;
-                                select.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                        });
+    try {
+        const chartConfigs = [
+            { canvasId: 'moneyness-vs-iv-chart', selectId: 'expiry-select' },
+            { canvasId: 'expiry-vs-iv-chart', selectId: 'moneyness-select' },
+            { canvasId: 'skew-vs-expiry-chart', selectId: 'skew-metric-select' },
+            { canvasId: 'realised-vol-chart', selectId: 'realised-vol-metric-select' },
+            { canvasId: 'kurtosis-chart', selectId: 'kurtosis-type-select' },
+            { canvasId: 'vol-of-vol-chart', selectId: null },
+            { canvasId: 'volume-chart', selectId: 'ticker-search' },
+            { canvasId: 'open-interest-chart', selectId: 'ticker-search' },
+            { canvasId: 'historic-price-chart', selectId: null },
+            { canvasId: 'historic-vol-chart', selectId: 'historic-vol-metric-select' } // Added
+        ];
+        chartConfigs.forEach(config => {
+            const canvas = document.getElementById(config.canvasId);
+            const select = config.selectId ? document.getElementById(config.selectId) : null;
+            if (canvas && select) {
+                canvas.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        let newIndex = select.selectedIndex + (event.key === 'ArrowLeft' ? -1 : 1);
+                        if (newIndex < 0) newIndex = select.options.length - 1;
+                        if (newIndex >= select.options.length) newIndex = 0;
+                        select.selectedIndex = newIndex;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 });
-                const expirySelect = document.getElementById('expiry-select');
-                if (expirySelect) {
-                    expirySelect.addEventListener('change', () => {
-                        console.log('Expiry select changed to:', expirySelect.value);
-                        updateCharts();
-                    });
-                }
-                const moneynessSelect = document.getElementById('moneyness-select');
-                if (moneynessSelect) {
-                    moneynessSelect.addEventListener('change', () => {
-                        console.log('Moneyness select changed to:', moneynessSelect.value);
-                        updateCharts();
-                    });
-                }
-                document.getElementById('historic-start-date').addEventListener('change', updateHistoricChart);
-                document.getElementById('historic-end-date').addEventListener('change', updateHistoricChart);
-                document.getElementById('realised-start-date').addEventListener('change', updateRealisedVolChart);
-                document.getElementById('realised-end-date').addEventListener('change', updateRealisedVolChart);
-                document.getElementById('realised-vol-metric-select').addEventListener('change', updateRealisedVolChart);
-                document.getElementById('kurtosis-start-date').addEventListener('change', updateKurtosisChart);
-                document.getElementById('kurtosis-end-date').addEventListener('change', updateKurtosisChart);
-                document.getElementById('volofvol-start-date').addEventListener('change', updateVolOfVolChart);
-                document.getElementById('volofvol-end-date').addEventListener('change', updateVolOfVolChart);
-                document.getElementById('term-min-expiry').addEventListener('change', updateExpiryVsIV);
-                document.getElementById('term-max-expiry').addEventListener('change', updateExpiryVsIV);
-                document.getElementById('skew-min-expiry').addEventListener('change', updateSkewVsExpiry);
-                document.getElementById('skew-max-expiry').addEventListener('change', updateSkewVsExpiry);
-                document.getElementById('skew-metric-select').addEventListener('change', updateSkewVsExpiry);
-                document.getElementById('kurtosis-type-select').addEventListener('change', updateKurtosisChart);
-            } catch (error) {
-                console.error('Error adding keyboard navigation:', error);
-                document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
-                document.getElementById('historic-error').style.display = 'block';
             }
+        });
+        const expirySelect = document.getElementById('expiry-select');
+        if (expirySelect) {
+            expirySelect.addEventListener('change', () => {
+                console.log('Expiry select changed to:', expirySelect.value);
+                updateCharts();
+            });
         }
+        const moneynessSelect = document.getElementById('moneyness-select');
+        if (moneynessSelect) {
+            moneynessSelect.addEventListener('change', () => {
+                console.log('Moneyness select changed to:', moneynessSelect.value);
+                updateCharts();
+            });
+        }
+        document.getElementById('historic-start-date').addEventListener('change', updateHistoricChart);
+        document.getElementById('historic-end-date').addEventListener('change', updateHistoricChart);
+        document.getElementById('realised-start-date').addEventListener('change', updateRealisedVolChart);
+        document.getElementById('realised-end-date').addEventListener('change', updateRealisedVolChart);
+        document.getElementById('realised-vol-metric-select').addEventListener('change', updateRealisedVolChart);
+        document.getElementById('kurtosis-start-date').addEventListener('change', updateKurtosisChart);
+        document.getElementById('kurtosis-end-date').addEventListener('change', updateKurtosisChart);
+        document.getElementById('volofvol-start-date').addEventListener('change', updateVolOfVolChart);
+        document.getElementById('volofvol-end-date').addEventListener('change', updateVolOfVolChart);
+        document.getElementById('term-min-expiry').addEventListener('change', updateExpiryVsIV);
+        document.getElementById('term-max-expiry').addEventListener('change', updateExpiryVsIV);
+        document.getElementById('skew-min-expiry').addEventListener('change', updateSkewVsExpiry);
+        document.getElementById('skew-max-expiry').addEventListener('change', updateSkewVsExpiry);
+        document.getElementById('skew-metric-select').addEventListener('change', updateSkewVsExpiry);
+        document.getElementById('kurtosis-type-select').addEventListener('change', updateKurtosisChart);
+        document.getElementById('historic-vol-metric-select').addEventListener('change', updateHistoricVolChart); // Added
+        document.getElementById('historic-vol-start-date').addEventListener('change', updateHistoricVolChart); // Added
+        document.getElementById('historic-vol-end-date').addEventListener('change', updateHistoricVolChart); // Added
+    } catch (error) {
+        console.error('Error adding keyboard navigation:', error);
+        document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
+        document.getElementById('historic-error').style.display = 'block';
+    }
+}
         
         function updateTimeOptions(selectedDate, dates) {
             try {
@@ -4418,14 +4670,12 @@ function updateHistoricChart() {
 
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        // Check required libraries
         if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined' || typeof XLSX === 'undefined') {
             console.error('Required libraries (Chart.js, Plotly, PapaParse, or SheetJS) not loaded');
             document.getElementById('historic-error').textContent = 'Failed to load required libraries';
             document.getElementById('historic-error').style.display = 'block';
             return;
         }
-        // Initialize sliders
         const moneynessSlider = document.getElementById('moneyness-slider');
         const expiryTSlider = document.getElementById('expiry-t-slider');
         noUiSlider.create(moneynessSlider, {
@@ -4448,11 +4698,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('expiry-t-value').textContent = `${parseFloat(values[0]).toFixed(1)} - ${parseFloat(values[1]).toFixed(1)}`;
             updateCallVolSurface();
         });
-        // Initialize selectors
         const dateSelect = document.getElementById('date-select');
         const timeSelect = document.getElementById('time-select');
         const tickerSearch = document.getElementById('ticker-search');
-        // Validate timestamp
         const validateTimestamp = async (timestamp) => {
             const prefix = '_yfinance';
             try {
@@ -4462,21 +4710,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return null;
             }
         };
-        // Get latest valid timestamp
         const getLatestValidTimestamp = async (dates) => {
             const timestamps = dates.sort((a, b) => b.localeCompare(a));
             for (const ts of timestamps) {
                 if (await validateTimestamp(ts)) return ts;
             }
             console.warn('No valid timestamps found, using fallback');
-            return '20250917_2128'; // Updated to match your logs
+            return '20250917_2128';
         };
-        // Ensure sidebar sub-menus are hidden initially
         document.querySelectorAll('.sub-menu').forEach(menu => {
             menu.classList.add('hidden');
             menu.classList.remove('active');
         });
-        // Initialize theme
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
         window.addEventListener('resize', () => {
@@ -4485,7 +4730,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Indices chart resized on window resize');
             }
         });
-        // Add change event listeners for table dropdowns
         ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'].forEach(section => {
             const select = document.getElementById(`${section}-table-select`);
             if (select) {
@@ -4495,14 +4739,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-        // Fetch dates and initialize
         fetch('data/dates.json?v=' + Date.now())
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load dates.json');
                 return response.json();
             })
             .then(async dates => {
-                // Populate date dropdown
                 const uniqueDates = [...new Set(dates.map(date => date.replace(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/, '$1-$2-$3')))].sort((a, b) => b.localeCompare(a));
                 dateSelect.innerHTML = '';
                 uniqueDates.forEach(datePart => {
@@ -4511,7 +4753,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     option.textContent = datePart;
                     dateSelect.appendChild(option);
                 });
-                // Load initial data
                 const loadInitialData = async () => {
                     let timestamp = await getLatestValidTimestamp(dates);
                     if (dateSelect.options.length > 0) {
@@ -4519,7 +4760,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         await updateTimeOptions(dateSelect.value, dates);
                         timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2128');
                     }
-                    // Set default ticker in ticker-search input
                     const defaultTicker = 'COIN';
                     tickerSearch.value = defaultTicker;
                     document.getElementById('ticker-display').textContent = defaultTicker;
@@ -4527,8 +4767,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('Loading initial data with timestamp:', timestamp);
                     await loadData(timestamp);
                     await loadWisesheetsData();
+                    await loadHistoricVolData(timestamp, defaultTicker); // Added
                     updateDropdowns();
-                    // Set initial section to Volatility > Overview
                     document.querySelector('#volatility-link').classList.add('active');
                     document.querySelector('#volatility-sub-menu').classList.add('active');
                     document.querySelector('#volatility-sub-menu').classList.remove('hidden');
@@ -4537,7 +4777,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('Initial data and Volatility > Overview loaded for timestamp:', timestamp);
                 };
                 await loadInitialData();
-                // Date change handler
                 dateSelect.addEventListener('change', async (e) => {
                     console.log('Date select changed to:', e.target.value);
                     await updateTimeOptions(e.target.value, dates);
@@ -4545,6 +4784,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
+                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
                         updateDropdowns();
                         const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                         const sectionId = currentSection ? currentSection.id : 'volatility';
@@ -4557,13 +4797,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('historic-error').style.display = 'block';
                     }
                 });
-                // Time change handler
                 timeSelect.addEventListener('change', async (e) => {
                     console.log('Time select changed to:', e.target.value);
                     const timestamp = dateSelect.value + '_' + e.target.value;
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
+                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
                         updateDropdowns();
                         const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                         const sectionId = currentSection ? currentSection.id : 'volatility';
@@ -4576,7 +4816,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('historic-error').style.display = 'block';
                     }
                 });
-                // Ticker change handler
                 tickerSearch.addEventListener('input', debounce(async () => {
                     console.log('Ticker changed to:', tickerSearch.value);
                     document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
@@ -4584,6 +4823,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
+                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
                         updateDropdowns();
                         const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                         const sectionId = currentSection ? currentSection.id : 'volatility';
@@ -4596,14 +4836,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('historic-error').style.display = 'block';
                     }
                 }, 500));
-                // Wisesheets ticker selection handler
                 document.getElementById('wisesheets-ticker-select').addEventListener('change', () => {
                     wisesheetsSelectedTickers = Array.from(document.getElementById('wisesheets-ticker-select').selectedOptions).map(opt => opt.value);
                     console.log('Wisesheets ticker selection changed:', wisesheetsSelectedTickers);
                     if (indicesChartVisible) updateIndicesChart();
                     updateIndicesTable();
                 });
-                // Wisesheets date range handlers
                 document.getElementById('wisesheets-start-date').addEventListener('change', () => {
                     console.log('Wisesheets start date changed:', document.getElementById('wisesheets-start-date').value);
                     updateIndicesChart();
@@ -4614,12 +4852,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateIndicesChart();
                     updateIndicesTable();
                 });
-                // Historic chart type handler
                 document.getElementById('historic-chart-type').addEventListener('change', () => {
                     console.log('Chart type changed to:', document.getElementById('historic-chart-type').value);
                     updateHistoricChart();
                 });
-                // Main section navigation
                 document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
                     link.addEventListener('click', async (e) => {
                         e.preventDefault();
@@ -4643,7 +4879,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 });
-                // Sub-section navigation
                 document.querySelectorAll('.sub-tab').forEach(subTab => {
                     subTab.addEventListener('click', async (e) => {
                         e.preventDefault();
@@ -4655,6 +4890,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (await validateTimestamp(timestamp)) {
                             await loadData(timestamp);
                             await loadWisesheetsData();
+                            await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
                             updateDropdowns();
                             updateSection(mainSection, targetSubId);
                         } else {
@@ -4664,12 +4900,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 });
-                // Ticker compare handler
                 document.getElementById('ticker-compare-select').addEventListener('change', () => {
                     console.log('Ticker compare select changed to:', Array.from(document.getElementById('ticker-compare-select').selectedOptions).map(opt => opt.value));
                     updateNormalizedTable();
                 });
-                // Set initial visibility
                 document.getElementById('volatility').style.display = 'grid';
                 document.getElementById('macro').style.display = 'none';
                 document.getElementById('indices').style.display = 'none';
