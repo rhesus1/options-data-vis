@@ -51,7 +51,7 @@ def check_for_bot_detection(soup):
             return True
     return False
 
-def scrape_page(url, output_prefixes, headers, identifier_col=0, skip_cols=0, expected_cols=8, is_shares=False, retries=3):
+def scrape_page(url, page_type, headers=None, expected_cols=None, headers_9=None, expected_cols_9=None, headers_10=None, expected_cols_10=None, has_extra_col=False, retries=3):
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")  # Use new headless mode for better compatibility
     chrome_options.add_argument("--no-sandbox")  # Required for GitHub Actions
@@ -61,7 +61,6 @@ def scrape_page(url, output_prefixes, headers, identifier_col=0, skip_cols=0, ex
     chrome_options.add_argument("--window-size=1920,1080")  # Set standard resolution
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Hide Selenium automation
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])  # Avoid detection
-
     for attempt in range(1, retries + 1):
         driver = None
         try:
@@ -73,13 +72,10 @@ def scrape_page(url, output_prefixes, headers, identifier_col=0, skip_cols=0, ex
             driver.delete_all_cookies()
             if debug:
                 print(f"Cleared cookies for {url}")
-
             driver.get(url)
             if debug:
                 print(f"Navigated to {url}")
-
             handle_cookie_consent(driver)
-
             # Wait for tables or a reasonable amount of time
             try:
                 WebDriverWait(driver, 30).until(  # Increased timeout to 30 seconds
@@ -92,160 +88,109 @@ def scrape_page(url, output_prefixes, headers, identifier_col=0, skip_cols=0, ex
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 if check_for_bot_detection(soup):
                     print(f"Bot detection or CAPTCHA likely encountered on {url}")
-                with open(f"{output_prefixes[0]}_page_source_attempt_{attempt}.html", "w", encoding="utf-8") as f:
-                    f.write(driver.page_source)
-                print(f"Saved page source to {output_prefixes[0]}_page_source_attempt_{attempt}.html")
                 if attempt == retries:
                     print(f"Failed to find tables after {retries} attempts for {url}")
                     return
                 time.sleep(5)  # Wait before retrying
                 continue
-
             # Parse page content
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             if check_for_bot_detection(soup):
                 print(f"Bot detection or CAPTCHA likely encountered on {url}")
-                with open(f"{output_prefixes[0]}_page_source_attempt_{attempt}.html", "w", encoding="utf-8") as f:
-                    f.write(driver.page_source)
-                print(f"Saved page source to {output_prefixes[0]}_page_source_attempt_{attempt}.html")
                 if attempt == retries:
                     print(f"Failed to bypass bot detection after {retries} attempts for {url}")
                     return
                 time.sleep(5)
                 continue
-
             tables = soup.find_all('table')
             if debug:
                 print(f"Found {len(tables)} tables on {url}")
-
-            if is_shares:
-                if len(tables) >= 2:
-                    for t_idx, table in enumerate(tables[:2]):  # First two tables
-                        all_data = []
-                        header_row = table.find('tr')
-                        if not header_row:
-                            if debug:
-                                print(f"Table {t_idx+1} has no rows, skipping")
-                            continue
-                        table_headers = [th.get_text().strip() if th else td.get_text().strip() for th, td in zip(header_row.find_all('th'), header_row.find_all('td')) if th or td]
-                        if debug:
-                            print(f"Table {t_idx+1} headers: {table_headers}")
-                        rows = table.find_all('tr')[1:]
-                        for j, row in enumerate(rows):
-                            cells = row.find_all(['td', 'th'])
-                            if not cells:
-                                continue
-                            row_data = [cell.get_text().strip() for cell in cells]
-                            if debug:
-                                print(f"Raw row data (table {t_idx+1}, row {j+1}): {row_data}")
-                            if len(row_data) > skip_cols:
-                                identifier = row_data[skip_cols].replace('\n', ' ').strip() if len(row_data) > skip_cols else ''
-                                metrics = row_data[skip_cols + 1:] if skip_cols + 1 < len(row_data) else []
-                                full_row = [identifier] + metrics[:expected_cols - 1]
-                                while len(full_row) < expected_cols:
-                                    full_row.append('')
-                                full_row = full_row[:expected_cols]
-                                full_row = [re.sub(r'\s+', ' ', cell) for cell in full_row]
-                                if full_row[1]:
-                                    all_data.append(full_row)
-                                    if debug:
-                                        print(f"Added row: {full_row[0]} - {full_row[1]}")
-                                else:
-                                    if debug:
-                                        print(f"Skipped row (no primary value): {full_row}")
-                        # Deduplicate
-                        unique_data = []
-                        seen_identifiers = set()
-                        for row in all_data:
-                            identifier = row[identifier_col].lower().strip()
-                            if identifier and identifier not in seen_identifiers:
-                                unique_data.append(row)
-                                seen_identifiers.add(identifier)
-                                if debug:
-                                    print(f"Unique row added: {row[0]}")
-                        # Write to CSV
-                        output_file = f"{output_prefixes[t_idx]}.csv"
-                        with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-                            writer = csv.writer(csvfile)
-                            writer.writerow(headers)
-                            for row in unique_data:
-                                writer.writerow(row)
-                        print(f"Data scraped for table {t_idx+1}: {len(unique_data)} unique rows saved to {output_file}")
-                        if len(unique_data) > 0 and debug:
-                            print("First few rows:")
-                            for row in unique_data[:5]:
-                                print(row)
+            processed_count = 0
+            for t_idx, table in enumerate(tables):
+                header_row = table.find('tr')
+                if not header_row:
+                    if debug:
+                        print(f"Table {t_idx+1} has no header row, skipping")
+                    continue
+                header_cells = header_row.find_all(['th', 'td'])
+                if not header_cells:
+                    if debug:
+                        print(f"Table {t_idx+1} has no header cells, skipping")
+                    continue
+                # Determine category
+                if has_extra_col:
+                    category = header_cells[1].get_text().strip() if len(header_cells) > 1 else f"table_{t_idx+1}"
                 else:
-                    print(f"Expected at least 2 tables for shares, but found {len(tables)}.")
-            else:
+                    category = header_cells[0].get_text().strip() if header_cells else f"table_{t_idx+1}"
+                if not category:
+                    category = f"table_{t_idx+1}"
+                clean_category = re.sub(r'[^a-zA-Z0-9]', '_', category).lower()
+                output_file = f"{clean_category}_{page_type}.csv"
+                if debug:
+                    print(f"Processing table {t_idx+1}: category '{category}', file: {output_file}")
+                # Determine headers and expected columns for this table
+                table_headers_list = [h.get_text().strip() for h in header_cells]
+                if page_type == "crypto":
+                    if any('market' in h.lower() and 'cap' in h.lower() for h in table_headers_list):
+                        this_headers = headers_10
+                        this_expected = expected_cols_10
+                    else:
+                        this_headers = headers_9
+                        this_expected = expected_cols_9
+                else:
+                    this_headers = headers
+                    this_expected = expected_cols
+                # Process rows
+                rows = table.find_all('tr')[1:]
                 all_data = []
-                for i, table in enumerate(tables):
-                    if debug:
-                        print(f"Processing table {i+1}")
-                    header_row = table.find('tr')
-                    if not header_row:
-                        if debug:
-                            print(f"Table {i+1} has no rows, skipping")
+                start_idx = 1 if has_extra_col else 0
+                for j, row in enumerate(rows):
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) < start_idx + 2:
                         continue
-                    table_headers = [th.get_text().strip() if th else td.get_text().strip() for th, td in zip(header_row.find_all('th'), header_row.find_all('td')) if th or td]
-                    if debug:
-                        print(f"Table {i+1} headers: {table_headers}")
-                    rows = table.find_all('tr')[1:]
-                    for j, row in enumerate(rows):
-                        cells = row.find_all(['td', 'th'])
-                        if not cells:
-                            continue
-                        row_data = [cell.get_text().strip() for cell in cells]
-                        if debug:
-                            print(f"Raw row data (table {i+1}, row {j+1}): {row_data}")
-                        if len(row_data) > skip_cols:
-                            identifier = row_data[skip_cols].replace('\n', ' ').strip() if len(row_data) > skip_cols else ''
-                            metrics = row_data[skip_cols + 1:] if skip_cols + 1 < len(row_data) else []
-                            full_row = [identifier] + metrics[:expected_cols - 1]
-                            while len(full_row) < expected_cols:
-                                full_row.append('')
-                            full_row = full_row[:expected_cols]
-                            full_row = [re.sub(r'\s+', ' ', cell) for cell in full_row]
-                            if full_row[1]:
-                                all_data.append(full_row)
-                                if debug:
-                                    print(f"Added row: {full_row[0]} - {full_row[1]}")
-                            else:
-                                if debug:
-                                    print(f"Skipped row (no primary value): {full_row}")
+                    row_data = [re.sub(r'\s+', ' ', cell.get_text().strip()) for cell in cells]
+                    if len(row_data) < start_idx + this_expected or not row_data[start_idx + 1].strip():
+                        if debug and j < 3:
+                            print(f"Skipped row in table {t_idx+1}: too short or no value {row_data[:5]}")
+                        continue
+                    full_row = row_data[start_idx : start_idx + this_expected]
+                    while len(full_row) < this_expected:
+                        full_row.append('')
+                    full_row = full_row[:this_expected]
+                    if full_row[1].strip():
+                        all_data.append(full_row)
+                        if debug and len(all_data) <= 3:
+                            print(f"Sample row in {output_file}: {full_row}")
                 # Deduplicate
                 unique_data = []
                 seen_identifiers = set()
                 for row in all_data:
-                    identifier = row[identifier_col].lower().strip()
+                    identifier = row[0].lower().strip()
                     if identifier and identifier not in seen_identifiers:
                         unique_data.append(row)
                         seen_identifiers.add(identifier)
                         if debug:
                             print(f"Unique row added: {row[0]}")
                 # Write to CSV
-                output_file = f"{output_prefixes[0]}.csv"
-                with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerow(headers)
-                    for row in unique_data:
-                        writer.writerow(row)
-                print(f"Data scraped: {len(unique_data)} unique rows saved to {output_file}")
-                if len(unique_data) > 0 and debug:
-                    print("First few rows:")
-                    for row in unique_data[:5]:
-                        print(row)
-            # Save page source for debugging
-            with open(f"{output_prefixes[0]}_page_source_success.html", "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
-            print(f"Saved page source to {output_prefixes[0]}_page_source_success.html")
+                if unique_data:
+                    with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(this_headers)
+                        for row in unique_data:
+                            writer.writerow(row)
+                    print(f"Data scraped for table {t_idx+1} ({category}): {len(unique_data)} unique rows saved to {output_file}")
+                    processed_count += 1
+                    if len(unique_data) > 0 and debug:
+                        print("First few rows:")
+                        for row in unique_data[:3]:
+                            print(row)
+                else:
+                    print(f"No valid data found for table {t_idx+1} ({category})")
+            if processed_count == 0:
+                print(f"No tables processed successfully for {url}")
             break  # Exit retry loop on success
         except Exception as e:
             print(f"An error occurred during scraping {url} on attempt {attempt}: {e}")
-            if driver:
-                with open(f"{output_prefixes[0]}_page_source_attempt_{attempt}.html", "w", encoding='utf-8') as f:
-                    f.write(driver.page_source)
-                print(f"Saved page source to {output_prefixes[0]}_page_source_attempt_{attempt}.html")
             if attempt == retries:
                 print(f"Failed to scrape {url} after {retries} attempts")
         finally:
@@ -257,64 +202,61 @@ def main():
     pages = [
         {
             "url": "https://tradingeconomics.com/bonds",
-            "output_prefixes": ["bonds"],
+            "page_type": "bonds",
             "headers": ["Country", "Yield", "Day", "Weekly", "Monthly", "YTD", "YoY", "Date"],
-            "identifier_col": 0,
-            "skip_cols": 1,
-            "expected_cols": 8
+            "expected_cols": 8,
+            "has_extra_col": True
         },
         {
             "url": "https://tradingeconomics.com/commodities",
-            "output_prefixes": ["commodities"],
-            "headers": ["Commodity", "Price", "Day", "Weekly", "Monthly", "YTD", "YoY", "Date"],
-            "identifier_col": 0,
-            "skip_cols": 0,
-            "expected_cols": 8
+            "page_type": "commodities",
+            "headers": ["Commodity", "Price", "Day", "%", "Weekly", "Monthly", "YTD", "YoY", "Date"],
+            "expected_cols": 9,
+            "has_extra_col": False
         },
         {
             "url": "https://tradingeconomics.com/stocks",
-            "output_prefixes": ["stocks"],
+            "page_type": "stocks",
             "headers": ["Index", "Price", "Day", "%", "Weekly", "Monthly", "YTD", "YoY", "Date"],
-            "identifier_col": 0,
-            "skip_cols": 1,
-            "expected_cols": 9
+            "expected_cols": 9,
+            "has_extra_col": True
         },
         {
             "url": "https://tradingeconomics.com/shares",
-            "output_prefixes": ["shares_gainers", "shares_losers"],
+            "page_type": "shares",
             "headers": ["Company", "Price", "Chg", "%Chg", "YoY"],
-            "identifier_col": 0,
-            "skip_cols": 0,
             "expected_cols": 5,
-            "is_shares": True
+            "has_extra_col": False
         },
         {
             "url": "https://tradingeconomics.com/currencies",
-            "output_prefixes": ["currencies"],
-            "headers": ["Pair", "Price", "Day", "Weekly", "Monthly", "YTD", "YoY", "Date"],
-            "identifier_col": 0,
-            "skip_cols": 1,
-            "expected_cols": 8
+            "page_type": "currencies",
+            "headers": ["Pair", "Price", "Day", "%", "Weekly", "Monthly", "YTD", "YoY", "Date"],
+            "expected_cols": 9,
+            "has_extra_col": True
         },
         {
             "url": "https://tradingeconomics.com/crypto",
-            "output_prefixes": ["crypto"],
-            "headers": ["Crypto", "Price", "Day", "Weekly", "Monthly", "YTD", "YoY", "MarketCap", "Date"],
-            "identifier_col": 0,
-            "skip_cols": 0,
-            "expected_cols": 9
+            "page_type": "crypto",
+            "headers_9": ["Name", "Price", "Day", "%", "Weekly", "Monthly", "YTD", "YoY", "Date"],
+            "expected_cols_9": 9,
+            "headers_10": ["Crypto", "Price", "Day", "%", "Weekly", "Monthly", "YTD", "YoY", "MarketCap", "Date"],
+            "expected_cols_10": 10,
+            "has_extra_col": False
         }
     ]
-    for page in pages:
-        print(f"\nScraping {page['url']}...")
+    for page_config in pages:
+        print(f"\nScraping {page_config['url']}...")
         scrape_page(
-            url=page["url"],
-            output_prefixes=page["output_prefixes"],
-            headers=page["headers"],
-            identifier_col=page["identifier_col"],
-            skip_cols=page["skip_cols"],
-            expected_cols=page["expected_cols"],
-            is_shares=page.get("is_shares", False),
+            url=page_config["url"],
+            page_type=page_config["page_type"],
+            headers=page_config.get("headers"),
+            expected_cols=page_config.get("expected_cols"),
+            headers_9=page_config.get("headers_9"),
+            expected_cols_9=page_config.get("expected_cols_9"),
+            headers_10=page_config.get("headers_10"),
+            expected_cols_10=page_config.get("expected_cols_10"),
+            has_extra_col=page_config.get("has_extra_col", False),
             retries=3
         )
 
