@@ -1059,14 +1059,14 @@
 
 		async function loadTradingEconomicsData(timestamp) {
     try {
-        // Clear existing data
-        bondsData = [];
-        commoditiesData = [];
-        stocksData = [];
-        currenciesData = [];
-        cryptoData = [];
-        sharesGainersData = [];
-        sharesLosersData = [];
+        // Initialize global arrays to prevent undefined errors
+        window.bondsData = window.bondsData || [];
+        window.commoditiesData = window.commoditiesData || [];
+        window.stocksData = window.stocksData || [];
+        window.currenciesData = window.currenciesData || [];
+        window.cryptoData = window.cryptoData || [];
+        window.sharesGainersData = window.sharesGainersData || [];
+        window.sharesLosersData = window.sharesLosersData || [];
 
         // Define table mappings
         const tableMappings = {
@@ -1095,25 +1095,25 @@
             ]
         };
 
-        // Map files to data arrays
-        const dataMap = {
-            bonds: bondsData,
-            commodities: commoditiesData,
-            stocks: stocksData,
-            currencies: currenciesData,
-            crypto: cryptoData,
-            'shares-gainers': sharesGainersData,
-            'shares-losers': sharesLosersData
-        };
-
-        // Store available tables for each section
-        window.availableTables = {
+        // Initialize availableTables and dataMap as global to persist data
+        window.availableTables = window.availableTables || {
             bonds: [],
             commodities: [],
             stocks: [],
             currencies: [],
             crypto: [],
             shares: []
+        };
+        window.dataMap = window.dataMap || {
+            bonds: {},
+            commodities: {},
+            stocks: {},
+            currencies: {},
+            crypto: {},
+            shares: {
+                'top_gainers_shares': window.sharesGainersData,
+                'top_losers_shares': window.sharesLosersData
+            }
         };
 
         const checkFileExists = async (url) => {
@@ -1135,38 +1135,70 @@
                     checkFileExists(url).then(exists => {
                         if (exists) {
                             window.availableTables[section].push({ file, tableId });
-                            const targetData = section === 'shares' ? dataMap[`${tableId.split('_')[0]}_${section}`] : dataMap[section];
-                            return fetchWithErrorHandling(url, targetData).then(() => {
-                                console.log(`Loaded ${file} into ${section} data, size: ${targetData.length}`);
+                            const tempData = [];
+                            return fetchWithErrorHandling(url, tempData).then(() => {
+                                if (section === 'shares') {
+                                    if (tableId === 'top_gainers_shares') {
+                                        window.sharesGainersData.splice(0, window.sharesGainersData.length, ...tempData);
+                                        window.dataMap.shares['top_gainers_shares'] = window.sharesGainersData;
+                                    } else if (tableId === 'top_losers_shares') {
+                                        window.sharesLosersData.splice(0, window.sharesLosersData.length, ...tempData);
+                                        window.dataMap.shares['top_losers_shares'] = window.sharesLosersData;
+                                    }
+                                } else {
+                                    window.dataMap[section][tableId] = tempData;
+                                    // Assign to global array if first table or matches current selection
+                                    const select = document.getElementById(`${section}-table-select`);
+                                    if (!select || !select.value || select.value === tableId || window.availableTables[section].length === 1) {
+                                        window[`${section}Data`].splice(0, window[`${section}Data`].length, ...tempData);
+                                    }
+                                }
+                                console.log(`Loaded ${file} into ${section} data, size: ${tempData.length}`);
                             });
                         } else {
                             console.warn(`File not found: ${url}`);
                             return Promise.resolve();
                         }
+                    }).catch(error => {
+                        console.error(`Error processing ${file}:`, error);
+                        return Promise.resolve();
                     })
                 );
             }
         }
+
         await Promise.all(promises);
 
-        // Populate dropdowns
+        // Ensure at least one table's data is assigned to global arrays if available
+        ['bonds', 'commodities', 'stocks', 'currencies', 'crypto'].forEach(section => {
+            const select = document.getElementById(`${section}-table-select`);
+            const selectedTableId = select && select.value ? select.value : window.availableTables[section][0]?.tableId;
+            if (selectedTableId && window.dataMap[section][selectedTableId]) {
+                window[`${section}Data`].splice(0, window[`${section}Data`].length, ...window.dataMap[section][selectedTableId]);
+            }
+        });
+
+        // Populate dropdowns and trigger table updates
         populateTableDropdowns();
+        updateTradingEconomicsTables();
+
         console.log('Trading Economics data loaded:', {
-            bonds: bondsData.length,
-            commodities: commoditiesData.length,
-            stocks: stocksData.length,
-            currencies: currenciesData.length,
-            crypto: cryptoData.length,
-            sharesGainers: sharesGainersData.length,
-            sharesLosers: sharesLosersData.length
+            bonds: window.bondsData.length,
+            commodities: window.commoditiesData.length,
+            stocks: window.stocksData.length,
+            currencies: window.currenciesData.length,
+            crypto: window.cryptoData.length,
+            sharesGainers: window.sharesGainersData.length,
+            sharesLosers: window.sharesLosersData.length
         });
     } catch (error) {
         console.error('Error loading Trading Economics data:', error);
         document.getElementById('trading-economics-error').textContent = `Error loading Trading Economics data: ${error.message}`;
         document.getElementById('trading-economics-error').style.display = 'block';
+        populateTableDropdowns();
     }
 }
-
+		
         async function loadWisesheetsData() {
     try {
         const filePath = 'data/wisesheets_cb_vs_hy.xlsx';
@@ -1908,9 +1940,14 @@
                 select.appendChild(option);
             });
             // Set default selection to the first table
-            select.value = tables[0].tableId;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log(`Populated ${section} dropdown with ${tables.length} options`, tables.map(t => t.tableId));
+            if (tables.length > 0) {
+                select.value = tables[0].tableId;
+                // Trigger table update
+                updateTradingEconomicsTables();
+                console.log(`Populated ${section} dropdown with ${tables.length} options, selected: ${select.value}`, tables.map(t => t.tableId));
+            } else {
+                console.warn(`No tables available for ${section} dropdown`);
+            }
         });
     } catch (error) {
         console.error('Error populating table dropdowns:', error);
@@ -1918,7 +1955,7 @@
         document.getElementById('trading-economics-error').style.display = 'block';
     }
 }
-    
+		
         function calculateMarketSpread(ticker) {
             try {
                 const selectedTicker = ticker.toUpperCase();
@@ -4124,34 +4161,75 @@ function updateHistoricChart() {
         
         function updateTradingEconomicsTables() {
     try {
+        // Ensure dataMap is initialized
+        window.dataMap = window.dataMap || {
+            bonds: {},
+            commodities: {},
+            stocks: {},
+            currencies: {},
+            crypto: {},
+            shares: {
+                'top_gainers_shares': window.sharesGainersData,
+                'top_losers_shares': window.sharesLosersData
+            }
+        };
+
         const tables = [
-            { id: 'bonds', data: bondsData, selectId: 'bonds-table-select' },
-            { id: 'commodities', data: commoditiesData, selectId: 'commodities-table-select' },
-            { id: 'stocks', data: stocksData, selectId: 'stocks-table-select' },
-            { id: 'currencies', data: currenciesData, selectId: 'currencies-table-select' },
-            { id: 'crypto', data: cryptoData, selectId: 'crypto-table-select' },
-            { id: 'shares-gainers', data: sharesGainersData, selectId: 'shares-table-select' },
-            { id: 'shares-losers', data: sharesLosersData, selectId: 'shares-table-select' }
+            { id: 'bonds', selectId: 'bonds-table-select', visible: window.bondsTableVisible },
+            { id: 'commodities', selectId: 'commodities-table-select', visible: window.commoditiesTableVisible },
+            { id: 'stocks', selectId: 'stocks-table-select', visible: window.stocksTableVisible },
+            { id: 'currencies', selectId: 'currencies-table-select', visible: window.currenciesTableVisible },
+            { id: 'crypto', selectId: 'crypto-table-select', visible: window.cryptoTableVisible },
+            { id: 'shares-gainers', selectId: 'shares-table-select', visible: window.sharesGainersTableVisible },
+            { id: 'shares-losers', selectId: 'shares-table-select', visible: window.sharesLosersTableVisible }
         ];
-        tables.forEach(({ id, data, selectId }) => {
+
+        tables.forEach(({ id, selectId, visible }) => {
             const table = document.getElementById(`${id}-table`);
             const select = document.getElementById(selectId);
-            table.innerHTML = '';
-            if (!select || !select.value) {
-                table.innerHTML = `<tr><td colspan="10">Please select a table</td></tr>`;
-                console.warn(`No table selected for ${id}`);
+            if (!select) {
+                table.innerHTML = `<tr><td colspan="10">Dropdown not found for ${id}</td></tr>`;
+                console.warn(`Dropdown not found for ${id}`);
                 return;
             }
-            const selectedTableId = select.value;
-            // For shares, handle both gainers and losers based on table ID
-            const isShares = id.startsWith('shares');
-            const targetData = isShares ? (id === 'shares-gainers' && selectedTableId === 'top_gainers_shares' ? sharesGainersData :
-                                          id === 'shares-losers' && selectedTableId === 'top_losers_shares' ? sharesLosersData : []) : data;
+
+            if (!visible) {
+                console.log(`Skipping update for ${id} as it is not visible`);
+                return;
+            }
+
+            table.innerHTML = '';
+            const selectedTableId = select.value || window.availableTables[id.replace(/-.*/, '')][0]?.tableId;
+            if (!selectedTableId) {
+                table.innerHTML = `<tr><td colspan="10">No tables available</td></tr>`;
+                console.warn(`No table selected or available for ${id}`);
+                return;
+            }
+
+            let targetData;
+            if (id.startsWith('shares')) {
+                if (id === 'shares-gainers' && selectedTableId === 'top_gainers_shares') {
+                    targetData = window.dataMap.shares['top_gainers_shares'];
+                } else if (id === 'shares-losers' && selectedTableId === 'top_losers_shares') {
+                    targetData = window.dataMap.shares['top_losers_shares'];
+                } else {
+                    table.innerHTML = `<tr><td colspan="10">No data available for ${selectedTableId}</td></tr>`;
+                    console.log(`No data for ${id} with selected table ${selectedTableId}`);
+                    return;
+                }
+            } else {
+                targetData = window.dataMap[id][selectedTableId] || [];
+                // Update global array with selected table's data
+                window[`${id}Data`] = window[`${id}Data`] || [];
+                window[`${id}Data`].splice(0, window[`${id}Data`].length, ...targetData);
+            }
+
             if (!targetData || targetData.length === 0) {
                 table.innerHTML = `<tr><td colspan="10">No data available for ${selectedTableId}</td></tr>`;
                 console.warn(`No data for ${id} table, selected: ${selectedTableId}`);
                 return;
             }
+
             const thead = document.createElement('thead');
             const headerRow = thead.insertRow();
             const columns = targetData.length > 0 ? Object.keys(targetData[0]) : [];
@@ -4164,6 +4242,7 @@ function updateHistoricChart() {
                 headerRow.appendChild(th);
             });
             table.appendChild(thead);
+
             const tbody = document.createElement('tbody');
             targetData.forEach(item => {
                 const row = tbody.insertRow();
@@ -4188,6 +4267,17 @@ function updateHistoricChart() {
                 });
             });
             table.appendChild(tbody);
+
+            // Update toggle button text for shares section
+            if (id.startsWith('shares')) {
+                const gainersButton = document.querySelector('#macro-shares .toggle-button[onclick*="shares-gainers"]');
+                const losersButton = document.querySelector('#macro-shares .toggle-button[onclick*="shares-losers"]');
+                if (gainersButton && losersButton) {
+                    gainersButton.textContent = selectedTableId === 'top_gainers_shares' && window.sharesGainersTableVisible ? 'Hide Data' : 'Show Data';
+                    losersButton.textContent = selectedTableId === 'top_losers_shares' && window.sharesLosersTableVisible ? 'Hide Data' : 'Show Data';
+                }
+            }
+
             console.log(`${id} table updated successfully, selected: ${selectedTableId}, rows: ${targetData.length}`);
         });
     } catch (error) {
@@ -4379,7 +4469,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (await validateTimestamp(ts)) return ts;
             }
             console.warn('No valid timestamps found, using fallback');
-            return '20250827_2136';
+            return '20250917_2128'; // Updated to match your logs
         };
         // Ensure sidebar sub-menus are hidden initially
         document.querySelectorAll('.sub-menu').forEach(menu => {
@@ -4393,6 +4483,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (indicesChart && indicesChartVisible) {
                 indicesChart.resize();
                 console.log('Indices chart resized on window resize');
+            }
+        });
+        // Add change event listeners for table dropdowns
+        ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'].forEach(section => {
+            const select = document.getElementById(`${section}-table-select`);
+            if (select) {
+                select.addEventListener('change', () => {
+                    console.log(`${section} table selection changed to:`, select.value);
+                    updateTradingEconomicsTables();
+                });
             }
         });
         // Fetch dates and initialize
@@ -4417,7 +4517,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (dateSelect.options.length > 0) {
                         dateSelect.value = timestamp.slice(0, 8);
                         await updateTimeOptions(dateSelect.value, dates);
-                        timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                        timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2128');
                     }
                     // Set default ticker in ticker-search input
                     const defaultTicker = 'COIN';
@@ -4441,7 +4541,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dateSelect.addEventListener('change', async (e) => {
                     console.log('Date select changed to:', e.target.value);
                     await updateTimeOptions(e.target.value, dates);
-                    const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                    const timestamp = e.target.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2128');
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
@@ -4480,7 +4580,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tickerSearch.addEventListener('input', debounce(async () => {
                     console.log('Ticker changed to:', tickerSearch.value);
                     document.getElementById('ticker-display').textContent = `${tickerSearch.value.toUpperCase() || 'N/A'}`;
-                    const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                    const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2128');
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
@@ -4519,16 +4619,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('Chart type changed to:', document.getElementById('historic-chart-type').value);
                     updateHistoricChart();
                 });
-                // Table selection handlers
-                ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'].forEach(section => {
-                    const select = document.getElementById(`${section}-table-select`);
-                    if (select) {
-                        select.addEventListener('change', () => {
-                            console.log(`${section} table selection changed to:`, select.value);
-                            updateTradingEconomicsTables();
-                        });
-                    }
-                });
                 // Main section navigation
                 document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
                     link.addEventListener('click', async (e) => {
@@ -4561,7 +4651,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         subTab.classList.add('active');
                         const targetSubId = subTab.getAttribute('href').substring(1);
                         const mainSection = subTab.closest('.sub-menu').previousElementSibling.getAttribute('href').substring(1);
-                        const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2136');
+                        const timestamp = dateSelect.value + '_' + (timeSelect.options.length > 0 ? timeSelect.value : '2128');
                         if (await validateTimestamp(timestamp)) {
                             await loadData(timestamp);
                             await loadWisesheetsData();
