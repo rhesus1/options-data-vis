@@ -589,12 +589,14 @@ def process_volumes(timestamp):
                 try:
                     atm_iv = global_vol_model_hyp(np.array([[1.0], [1.0]]), *params)
                     atm_iv = float(atm_iv.item()) if isinstance(atm_iv, np.ndarray) else float(atm_iv)
-                    if np.isnan(atm_iv) or atm_iv <= 0:
+                    if np.isnan(atm_iv) or atm_iv <= 0.01:  # Avoid division by near-zero
                         atm_iv = np.nan
                 except Exception:
                     atm_iv = np.nan
             # Compute relative errors for valid rows in df_type
-            df_type['rel_error_atm_pct'] = np.where((df_type['IV_mid'].notna()) & (df_type['Smoothed_IV'].notna()) & (atm_iv > 0),
+            df_type['rel_error_atm_pct'] = np.where((df_type['IV_mid'].notna()) & 
+                                                    (df_type['Smoothed_IV'].notna()) & 
+                                                    (atm_iv > 0),
                                                     abs((df_type['IV_mid'] - df_type['Smoothed_IV']) / atm_iv) * 100,
                                                     np.nan)
             atm_candidates = df_type[
@@ -603,15 +605,22 @@ def process_volumes(timestamp):
             ].copy()
             one_yr_atm_residual = np.nan
             atm_details = " (no close match)"
+            atm_dist_t = np.nan
+            atm_dist_m = np.nan
             if not atm_candidates.empty:
                 atm_candidates['dist_to_atm'] = (abs(atm_candidates['Years_to_Expiry'] - 1) +
                                                 abs(atm_candidates['Moneyness'] - 1))
                 closest_idx = atm_candidates['dist_to_atm'].idxmin()
                 one_yr_atm_residual = df_type.at[closest_idx, 'rel_error_atm_pct']
+                atm_dist_t = abs(df_type.at[closest_idx, 'Years_to_Expiry'] - 1)
+                atm_dist_m = abs(df_type.at[closest_idx, 'Moneyness'] - 1)
                 atm_details = f" (closest: T={df_type.at[closest_idx, 'Years_to_Expiry']:.2f}, " \
                               f"M={df_type.at[closest_idx, 'Moneyness']:.2f})"
                
             p90_rel_error = df_type['rel_error_atm_pct'].quantile(0.9) if not df_type.empty else np.nan
+            if not np.isnan(p90_rel_error) and p90_rel_error > 1000:  # Cap extreme values
+                print(f"Warning: High P90 rel error ({p90_rel_error:.2f}%) for {ticker} ({opt_type}), setting to NaN")
+                p90_rel_error = np.nan
             print(f"{ticker} ({opt_type}): 1yr ATM rel error = {one_yr_atm_residual:.2f}%{atm_details}, "
                   f"P90 rel error (ATM-norm) = {p90_rel_error:.2f}% (n_valid={len(df_type)})")
             metrics_df = pd.DataFrame({
@@ -621,10 +630,8 @@ def process_volumes(timestamp):
                 'One_Yr_ATM_Rel_Error_Pct': [one_yr_atm_residual],
                 'P90_Rel_Error_Pct': [p90_rel_error],
                 'N_Valid_Options': [len(df_type)],
-                'ATM_Dist_T': [abs(df_type.at[closest_idx, 'Years_to_Expiry'] - 1)
-                               if 'closest_idx' in locals() else np.nan],
-                'ATM_Dist_M': [abs(df_type.at[closest_idx, 'Moneyness'] - 1)
-                               if 'closest_idx' in locals() else np.nan],
+                'ATM_Dist_T': [atm_dist_t],
+                'ATM_Dist_M': [atm_dist_m],
                 'ATM_IV': [atm_iv]
             })
             all_metrics.append(metrics_df)
