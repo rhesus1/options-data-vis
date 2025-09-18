@@ -491,7 +491,7 @@ def process_volumes(timestamp):
         return
     with open('tickers.txt', 'r') as f:
         tickers = [line.strip() for line in f if line.strip()]
-    
+   
     clean_dir = f'data/{timestamp}/cleaned_yfinance'
     raw_dir = f'data/{timestamp}/raw_yfinance'
     processed_dir = f'data/{timestamp}/processed_yfinance'
@@ -504,39 +504,42 @@ def process_volumes(timestamp):
     os.makedirs(slope_dir, exist_ok=True)
     os.makedirs(historic_dir, exist_ok=True)
     os.makedirs(vol_surf_dir, exist_ok=True)
-    
+   
     timestamp_dt = datetime.strptime(timestamp, '%Y%m%d_%H%M')
     timestamp_date = timestamp_dt.strftime('%Y-%m-%d')
     yields_dict = fetch_treasury_yields(timestamp_date)
     print(f"Using treasury yields for {timestamp_date}")
-    
+   
     model = 'hyp'
     exp_min = 0.3
     exp_max = np.inf
     mon_min = 0
     mon_max = np.inf
     extrap_tau = None
-    
+   
+    # Initialize metrics collection for all tickers
+    all_metrics = []
+   
     for ticker in tickers:
         data_file = os.path.join(clean_dir, f'cleaned_yfinance_{ticker}.csv')
         raw_file = os.path.join(raw_dir, f'raw_yfinance_{ticker}.csv')
         historic_file = os.path.join(historic_dir, f'historic_{ticker}.csv')
-        
+       
         if not os.path.exists(data_file):
             print(f"No cleaned file for {ticker} in {clean_dir}")
             continue
         if not os.path.exists(raw_file):
             print(f"No raw file for {ticker} in {raw_dir}")
             continue
-        
+       
         df = pd.read_csv(data_file, parse_dates=['Expiry'])
         if df.empty:
             print(f"No data for ticker {ticker}")
             continue
-        
+       
         q = get_dividend_yield(ticker)
         print(f"Dividend yield for {ticker}: {q}")
-        
+       
         rvol100d = np.nan
         if os.path.exists(historic_file):
             try:
@@ -545,39 +548,90 @@ def process_volumes(timestamp):
                     rvol100d = historic_df['Realised_Vol_Close_100'].iloc[-1] / 100
             except Exception as e:
                 print(f"Error reading historic file for {ticker}: {e}")
-        
+       
         df['Expiry_dt'] = pd.to_datetime(df['Expiry'])
         df['Years_to_Expiry'] = (df['Expiry_dt'] - timestamp_dt).dt.days / 365.25
         S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
         df['Last Stock Price'] = S
-        
+       
         df = calculate_iv_binomial(df, yields_dict, q=q, default_r=0.05, max_workers=None, binomial_steps=100)
         if df.empty:
             print(f"Failed to calculate IV for {ticker}")
             continue
-        
+       
         df['Forward'] = df['Last Stock Price'] * np.exp((df['r'] - q) * df['Years_to_Expiry'])
         df['Moneyness'] = df['Strike'] / df['Forward']
         df['LogMoneyness'] = np.log(df['Moneyness'].where(df['Moneyness'] > 0, np.nan))
         df['Realised Vol 100d'] = rvol100d
         df['Ivol/Rvol100d Ratio'] = df['IV_mid'] / rvol100d if not np.isnan(rvol100d) else np.nan
-        
+       
         params_calls, residuals_calls = fit_vol_surface(df, ticker=ticker, exp_min=exp_min, exp_max=exp_max, mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau, model=model, option_type='Call')
         print(f"Parameters for {ticker} (Calls, {model} model, {exp_min} < Years_to_Expiry < {exp_max}, {mon_min} < Moneyness < {mon_max}):",
               params_calls,
               f"Residuals: {residuals_calls:.4e}" if residuals_calls is not None else "N/A")
-        
+       
         params_puts, residuals_puts = fit_vol_surface(df, ticker=ticker, exp_min=exp_min, exp_max=exp_max, mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau, model=model, option_type='Put')
         print(f"Parameters for {ticker} (Puts, {model} model, {exp_min} < Years_to_Expiry < {exp_max}, {mon_min} < Moneyness < {mon_max}):",
               params_puts,
               f"Residuals: {residuals_puts:.4e}" if residuals_puts is not None else "N/A")
-        
+       
         df = calculate_smoothed_iv(df, params_calls, params_puts, model)
+       
+        # Compute ATM-normalized relative errors for calls and puts
+        valid_mask = (df['IV_mid'].notna() & df['Smoothed_IV'].notna() &
+                      (df['IV_mid'] > 0) & (df['Smoothed_IV'] > 0))
+        for opt_type in ['Call', 'Put']:
+            type_mask = (df['Type'] == opt_type) & valid_mask
+            df_type = df[type_mask].copy()
+            params = params_calls if opt_type == 'Call' else params_puts
+            atm_iv = np.nan
+            if params is not None:
+                try:
+                    atm_iv = global_vol_model_hyp(np.array([[1.0], [1.0]]), *params)
+                    atm_iv = float(atm_iv.item()) if isinstance(atm_iv, np.ndarray) else float(atm_iv)
+                    if np.isnan(atm_iv) or atm_iv <= 0:
+                        atm_iv = np.nan
+                except Exception:
+                    atm_iv = np.nan
+            df_type['rel_error_atm_pct'] = np.where(type_mask & (atm_iv > 0),
+                                                    abs((df_type['IV_mid'] - df_type['Smoothed_IV']) / atm_iv) * 100,
+                                                    np.nan)
+            atm_candidates = df_type[
+                (abs(df_type['Years_to_Expiry'] - 1) <= 0.25) &  # Within ~3 months
+                (abs(df_type['Moneyness'] - 1) <= 0.05)          # Within 5% moneyness
+            ].copy()
+            one_yr_atm_residual = np.nan
+            atm_details = " (no close match)"
+            if not atm_candidates.empty:
+                atm_candidates['dist_to_atm'] = (abs(atm_candidates['Years_to_Expiry'] - 1) +
+                                                abs(atm_candidates['Moneyness'] - 1))
+                closest_idx = atm_candidates['dist_to_atm'].idxmin()
+                one_yr_atm_residual = df_type.at[closest_idx, 'rel_error_atm_pct']
+                atm_details = f" (closest: T={df_type.at[closest_idx, 'Years_to_Expiry']:.2f}, " \
+                              f"M={df_type.at[closest_idx, 'Moneyness']:.2f})"
+               
+            p90_rel_error = df_type['rel_error_atm_pct'].quantile(0.9) if type_mask.sum() > 0 else np.nan
+            print(f"{ticker} ({opt_type}): 1yr ATM rel error = {one_yr_atm_residual:.2f}%{atm_details}, "
+                  f"P90 rel error (ATM-norm) = {p90_rel_error:.2f}% (n_valid={type_mask.sum()})")
+            metrics_df = pd.DataFrame({
+                'Ticker': [ticker],
+                'Timestamp': [timestamp],
+                'Option_Type': [opt_type],
+                'One_Yr_ATM_Rel_Error_Pct': [one_yr_atm_residual],
+                'P90_Rel_Error_Pct': [p90_rel_error],
+                'N_Valid_Options': [type_mask.sum()],
+                'ATM_Dist_T': [abs(df_type.at[closest_idx, 'Years_to_Expiry'] - 1)
+                               if 'closest_idx' in locals() else np.nan],
+                'ATM_Dist_M': [abs(df_type.at[closest_idx, 'Moneyness'] - 1)
+                               if 'closest_idx' in locals() else np.nan],
+                'ATM_IV': [atm_iv]
+            })
+            all_metrics.append(metrics_df)
+       
         df['TotalVariance'] = df['Smoothed_IV']**2 * df['Years_to_Expiry']
         df['TotalVariance'] = df['TotalVariance'].fillna(np.nan)
-
         r = df['r'].iloc[0]
-        
+       
         output_columns = [
             'Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Moneyness', 'Bid', 'Ask', 'Volume', 'Open Interest',
             'Bid Stock', 'Ask Stock', 'Last Stock Price', 'Implied Volatility', 'Expiry_dt', 'Years_to_Expiry', 'Forward',
@@ -592,12 +646,12 @@ def process_volumes(timestamp):
         df['Call Local Vol'] = np.nan
         df['Put Local Vol'] = np.nan
         df = df[output_columns]
-        
+       
         output_file = os.path.join(processed_dir, f'processed_yfinance_{ticker}.csv')
         df.to_csv(output_file, index=False)
         df.to_json(os.path.join(processed_dir, f'processed_yfinance_{ticker}.json'), orient='records', date_format='iso')
         print(f"Processed data for {ticker} saved to {processed_dir}")
-        
+       
         param_names = ['a0', 'a1', 'b0', 'b1', 'm0', 'm1', 'rho0', 'rho1', 'sigma0', 'sigma1', 'c']
         vol_surf_file = os.path.join(vol_surf_dir, 'vol_surf.csv')
         param_dfs = []
@@ -627,10 +681,21 @@ def process_volumes(timestamp):
                     print(f"Error reading existing {vol_surf_file}: {e}")
             param_df.to_csv(vol_surf_file, index=False)
             print(f"Volatility surface parameters saved to {vol_surf_file}")
-
         skew_metrics_df, slope_metrics_df = calculate_skew_slope_metrics(df, ticker, timestamp, r, q=q)
-
-    
+   
+    # Save all metrics after processing all tickers
+    if all_metrics:
+        metrics_file = os.path.join(processed_dir, 'fit_metrics_yfinance_all.csv')
+        all_metrics_df = pd.concat(all_metrics, ignore_index=True)
+        if os.path.exists(metrics_file):
+            try:
+                existing_metrics = pd.read_csv(metrics_file)
+                all_metrics_df = pd.concat([existing_metrics, all_metrics_df], ignore_index=True)
+            except Exception as e:
+                print(f"Error reading existing {metrics_file}: {e}")
+        all_metrics_df.to_csv(metrics_file, index=False)
+        print(f"All fit metrics saved to {metrics_file}")
+   
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
