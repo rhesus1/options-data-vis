@@ -581,8 +581,8 @@ def process_volumes(timestamp):
         valid_mask = (df['IV_mid'].notna() & df['Smoothed_IV'].notna() &
                       (df['IV_mid'] > 0) & (df['Smoothed_IV'] > 0))
         for opt_type in ['Call', 'Put']:
-            type_mask = (df['Type'] == opt_type) & valid_mask
-            df_type = df[type_mask].copy()
+            type_mask = df['Type'] == opt_type
+            df_type = df[valid_mask & type_mask].copy()
             params = params_calls if opt_type == 'Call' else params_puts
             atm_iv = np.nan
             if params is not None:
@@ -593,7 +593,8 @@ def process_volumes(timestamp):
                         atm_iv = np.nan
                 except Exception:
                     atm_iv = np.nan
-            df_type['rel_error_atm_pct'] = np.where(type_mask & (atm_iv > 0),
+            # Compute relative errors for valid rows in df_type
+            df_type['rel_error_atm_pct'] = np.where((df_type['IV_mid'].notna()) & (df_type['Smoothed_IV'].notna()) & (atm_iv > 0),
                                                     abs((df_type['IV_mid'] - df_type['Smoothed_IV']) / atm_iv) * 100,
                                                     np.nan)
             atm_candidates = df_type[
@@ -610,16 +611,16 @@ def process_volumes(timestamp):
                 atm_details = f" (closest: T={df_type.at[closest_idx, 'Years_to_Expiry']:.2f}, " \
                               f"M={df_type.at[closest_idx, 'Moneyness']:.2f})"
                
-            p90_rel_error = df_type['rel_error_atm_pct'].quantile(0.9) if type_mask.sum() > 0 else np.nan
+            p90_rel_error = df_type['rel_error_atm_pct'].quantile(0.9) if not df_type.empty else np.nan
             print(f"{ticker} ({opt_type}): 1yr ATM rel error = {one_yr_atm_residual:.2f}%{atm_details}, "
-                  f"P90 rel error (ATM-norm) = {p90_rel_error:.2f}% (n_valid={type_mask.sum()})")
+                  f"P90 rel error (ATM-norm) = {p90_rel_error:.2f}% (n_valid={len(df_type)})")
             metrics_df = pd.DataFrame({
                 'Ticker': [ticker],
                 'Timestamp': [timestamp],
                 'Option_Type': [opt_type],
                 'One_Yr_ATM_Rel_Error_Pct': [one_yr_atm_residual],
                 'P90_Rel_Error_Pct': [p90_rel_error],
-                'N_Valid_Options': [type_mask.sum()],
+                'N_Valid_Options': [len(df_type)],
                 'ATM_Dist_T': [abs(df_type.at[closest_idx, 'Years_to_Expiry'] - 1)
                                if 'closest_idx' in locals() else np.nan],
                 'ATM_Dist_M': [abs(df_type.at[closest_idx, 'Moneyness'] - 1)
