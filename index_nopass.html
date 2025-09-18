@@ -653,11 +653,12 @@
             <a href="#macro-shares" class="sub-tab">Shares</a>
         </div>
         <a href="#indices">Indices</a>
-        <div class="sub-menu hidden" id="indices-sub-menu"> <!-- Added sub-menu -->
-            <a href="#indices-overview" class="sub-tab">Wisesheets</a> <!-- Renamed from indices -->
-            <a href="#indices-stock" class="sub-tab">Yahoo Finance</a> <!-- Moved from Volatility -->
-            <a href="#indices-price-comparisons" class="sub-tab">Price Comparisons</a> <!-- Moved from Volatility -->
-        </div>
+        <div class="sub-menu hidden" id="indices-sub-menu">
+    	    <a href="#indices-overview" class="sub-tab">Wisesheets</a>
+    	    <a href="#indices-stock" class="sub-tab">Yahoo Finance</a>
+    	    <a href="#indices-price-comparisons" class="sub-tab">Price Comparisons</a>
+   	    <a href="#indices-hedge" class="sub-tab">Hedge</a>
+	</div>
         <a href="#volatility" id="volatility-link">Volatility</a>
         <div class="sub-menu hidden" id="volatility-sub-menu">
     <a href="#volatility-overview" class="sub-tab">Overview</a>
@@ -810,6 +811,26 @@
                 <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
                 <table id="normalized-table" class="normalized-table" style="display: none;"></table>
             </div>
+	    <div id="indices-hedge" class="chart-container" style="display: none;">
+    <h2>Hedge Fund Strategies</h2>
+    <div id="hedge-error" class="error-message" style="display: none;">No hedge data available</div>
+    <button class="toggle-button" onclick="toggleHedgeTable()">Show Data</button>
+    <button class="toggle-button" onclick="toggleHedgeChart()">Show Plot</button>
+    <div class="select-container">
+        <label for="hedge-start-date">Start Date: </label>
+        <input type="date" id="hedge-start-date">
+        <label for="hedge-end-date">End Date: </label>
+        <input type="date" id="hedge-end-date">
+        <button class="toggle-button" onclick="exportHedgeData()">Export to XLSX</button>
+    </div>
+    <div class="select-container">
+        <label for="hedge-strategy-select">Select Strategies to Compare (Multi): </label>
+        <select id="hedge-strategy-select" multiple style="width: 200px;">
+        </select>
+    </div>
+    <canvas id="hedge-chart" style="display: none;"></canvas>
+    <table id="hedge-table" class="trading-economics-table" style="display: none;"></table>
+</div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
             <div id="volatility-overview" class="overview-grid" style="display: none;">
@@ -990,6 +1011,11 @@
         function getThemeColor() {
             return document.body.getAttribute('data-theme') === 'light' ? '#1A1A2E' : '#FFFFFF';
         }    
+	let hedgeData = [];
+let hedgeStatsData = [];
+let hedgeChart = null;
+let hedgeChartVisible = false;
+let hedgeTableVisible = false;
         let wisesheetsSelectedTickers = []; // Array of selected tickers for chart
         let normalizedIndicesData = [];
         let showNormalized = false;
@@ -1081,13 +1107,27 @@
 
 	function parseDate(dateStr) {
     if (!dateStr || dateStr === '########') return null;
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
-    const year = parseInt(parts[2], 10);
-    const date = new Date(year, month, day);
-    return isNaN(date.getTime()) ? null : date;
+    // Try DD/MM/YYYY format (e.g., "01/04/2021")
+    let match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
+        const year = parseInt(match[3], 10);
+        const date = new Date(year, month, day);
+        return isNaN(date.getTime()) ? null : date;
+    }
+    // Try MMM-YY format (e.g., "Jan-21")
+    match = dateStr.match(/^([A-Za-z]{3})-(\d{2})$/);
+    if (match) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = monthNames.indexOf(match[1]);
+        const year = parseInt(match[2], 10) + 2000; // Assume 21 means 2021
+        if (month === -1) return null;
+        const date = new Date(year, month, 1); // Use first day of the month
+        return isNaN(date.getTime()) ? null : date;
+    }
+    console.warn(`Unrecognized date format: ${dateStr}`);
+    return null;
 }
 
 	async function loadHistoricVolData(timestamp, ticker) {
@@ -1663,6 +1703,8 @@ function updateHistoricVolChart() {
         updateOpenInterestChart();
         updateKurtosisChart();
         updateCallVolSurface();
+        updateHistoricVolChart();
+        updateHedgeChart();
     } catch (error) {
         console.error('Error updating all plots:', error);
         document.getElementById('historic-error').textContent = `Error updating plots: ${error.message}`;
@@ -1899,17 +1941,18 @@ function updateHistoricVolChart() {
         }
     
         function toggleStatsTables() {
-            try {
-                statsTablesVisible = !statsTablesVisible;
-                document.querySelectorAll('.stats-table:not(#historic-price-chart + .stats-table)').forEach(table => {
-                    table.style.display = statsTablesVisible ? 'table' : 'none';
-                });
-                document.querySelector('.toggle-button:not(#ranking .toggle-button)').textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
-                console.log(`Stats tables visibility set to: ${statsTablesVisible}`);
-            } catch (error) {
-                console.error('Error in toggleStatsTables:', error);
-            }
-        }
+    try {
+        statsTablesVisible = !statsTablesVisible;
+        document.querySelectorAll('.stats-table:not(#historic-price-chart + .stats-table):not(#hedge-chart + .stats-table)').forEach(table => {
+            table.style.display = statsTablesVisible ? 'table' : 'none';
+        });
+        document.querySelector('.toggle-button:not(#ranking .toggle-button)').textContent = statsTablesVisible ? 'Hide Stats Tables' : 'Show Stats Tables';
+        if (statsTablesVisible) updateHedgeStatsTable();
+        console.log(`Stats tables visibility set to: ${statsTablesVisible}`);
+    } catch (error) {
+        console.error('Error in toggleStatsTables:', error);
+    }
+}
     
         function toggleRankingTable() {
             try {
@@ -1981,7 +2024,9 @@ function updateHistoricVolChart() {
         sharesGainersData = [];
         sharesLosersData = [];
         volSurfData = [];
-        historicVolData = []; // Added
+        historicVolData = [];
+        hedgeData = [];
+        hedgeStatsData = [];
         const checkFileExists = async (url) => {
             try {
                 const response = await fetch(url, { method: 'HEAD' });
@@ -2012,7 +2057,8 @@ function updateHistoricVolChart() {
             { url: `data/${timestamp}/raw${prefix}/raw${prefix}_${selectedTicker}.csv`, array: rawData },
             { url: `data/Events.csv`, array: eventsData },
             { url: `data/${timestamp}/vol_surf/vol_surf.csv`, array: volSurfData },
-            { url: `data/Options_Historic/ATM_historical_${selectedTicker}.csv`, array: historicVolData } // Added
+            { url: `data/Options_Historic/ATM_historical_${selectedTicker}.csv`, array: historicVolData },
+            { url: `data/BH_HF_Ret_Sept_25.csv`, array: hedgeData }
         ];
         const batchSize = 5;
         for (let i = 0; i < files.length; i += batchSize) {
@@ -2043,6 +2089,13 @@ function updateHistoricVolChart() {
                                     sample: file.array.slice(0, 5),
                                     columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
                                 });
+                            } else if (file.array === hedgeData) {
+                                console.log(`Hedge data loaded:`, {
+                                    url: file.url,
+                                    size: file.array.length,
+                                    sample: file.array.slice(0, 5),
+                                    columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
+                                });
                             }
                         });
                     } else {
@@ -2051,6 +2104,9 @@ function updateHistoricVolChart() {
                         if (file.array === data || file.array === volSurfData || file.array === historicVolData) {
                             document.getElementById('surface-error').textContent = `Data file not found for ${selectedTicker}`;
                             document.getElementById('surface-error').style.display = 'block';
+                        } else if (file.array === hedgeData) {
+                            document.getElementById('hedge-error').textContent = `Hedge data file not found`;
+                            document.getElementById('hedge-error').style.display = 'block';
                         }
                         return Promise.resolve();
                     }
@@ -2060,11 +2116,60 @@ function updateHistoricVolChart() {
                     if (file.array === data || file.array === volSurfData || file.array === historicVolData) {
                         document.getElementById('surface-error').textContent = `Error loading data for ${selectedTicker}: ${error.message}`;
                         document.getElementById('surface-error').style.display = 'block';
+                    } else if (file.array === hedgeData) {
+                        document.getElementById('hedge-error').textContent = `Error loading hedge data: ${error.message}`;
+                        document.getElementById('hedge-error').style.display = 'block';
                     }
                     return Promise.resolve();
                 })
             );
             await Promise.all(batchPromises);
+        }
+        // Process hedge data to separate main and stats tables
+        if (hedgeData.length > 0) {
+            hedgeStatsData = [];
+            const mainColumns = ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+            const statsColumns = ['Stats', 'Barclay Hedge Fund Index_1', 'Convertible Arbitrage Index_1', 'Distressed Securities Index_1', 'Equity Long Short Index_1', 'Merger Arbitrage Index_1', 'Global Macro Index_1'];
+            // Parse percentage strings and validate dates
+            const mainData = [];
+            const statsData = [];
+            hedgeData.forEach(row => {
+                const parsedRow = {};
+                Object.keys(row).forEach(key => {
+                    if (key !== 'Date' && key !== 'Stats') {
+                        const value = row[key];
+                        if (typeof value === 'string' && value.endsWith('%')) {
+                            parsedRow[key] = parseFloat(value.replace('%', '')) / 100;
+                        } else {
+                            parsedRow[key] = value;
+                        }
+                    } else {
+                        parsedRow[key] = row[key];
+                    }
+                });
+                if (parsedRow.Date && parseDate(parsedRow.Date)) {
+                    const mainRow = {};
+                    mainColumns.forEach(col => {
+                        mainRow[col] = parsedRow[col];
+                    });
+                    if (Object.values(mainRow).some(val => val !== undefined && val !== null)) {
+                        mainData.push(mainRow);
+                    }
+                }
+                if (parsedRow.Stats && ['Total', 'Max Gain', 'Max DD', 'Positive', 'Negative', 'Mean Positive', 'Mean Negative'].includes(parsedRow.Stats)) {
+                    const statsRow = {};
+                    statsColumns.forEach(col => {
+                        const mappedCol = col === 'Stats' ? col : col.replace('_1', '');
+                        statsRow[col] = parsedRow[mappedCol];
+                    });
+                    if (Object.values(statsRow).some(val => val !== undefined && val !== null)) {
+                        statsData.push(statsRow);
+                    }
+                }
+            });
+            hedgeData.splice(0, hedgeData.length, ...mainData);
+            hedgeStatsData.splice(0, hedgeStatsData.length, ...statsData);
+            console.log('Hedge data split:', { mainData: mainData.slice(0, 5), statsData });
         }
         await loadTradingEconomicsData(timestamp);
         const tickerDatalist = document.getElementById('ticker-datalist');
@@ -2124,7 +2229,9 @@ function updateHistoricVolChart() {
             sharesGainersData: sharesGainersData.slice(0, 5),
             sharesLosersData: sharesLosersData.slice(0, 5),
             volSurfData: volSurfData.slice(0, 5),
-            historicVolData: historicVolData.slice(0, 5)
+            historicVolData: historicVolData.slice(0, 5),
+            hedgeData: hedgeData.slice(0, 5),
+            hedgeStatsData: hedgeStatsData.slice(0, 5)
         });
         document.getElementById('historic-error').style.display = 'none';
         return Promise.resolve();
@@ -2157,11 +2264,14 @@ function updateHistoricVolChart() {
         sharesLosersData = [];
         volSurfData = [];
         historicVolData = [];
+        hedgeData = [];
+        hedgeStatsData = [];
         document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
         document.getElementById('historic-error').style.display = 'block';
         return Promise.resolve();
     }
 }
+
 		function populateTableDropdowns() {
     try {
         const sections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
@@ -2639,7 +2749,7 @@ function updateHistoricVolChart() {
         const table = document.getElementById('ranking-table');
         table.innerHTML = '';
         if (rankingData.length === 0) {
-            table.innerHTML = '<tr><td colspan="31">No ranking data available</td></tr>';
+            table.innerHTML = '<tr><td colspan="35">No ranking data available</td></tr>';
             console.warn('No ranking data for ranking table');
             return;
         }
@@ -2656,7 +2766,9 @@ function updateHistoricVolChart() {
             'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
             'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
             'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-            'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts'
+            'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
+            'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
         ];
         const displayNameMap = {
             'Realised Volatility 30d (%)': 'RVol\n30d (%)',
@@ -2680,7 +2792,11 @@ function updateHistoricVolChart() {
             'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
             'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
             'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
-            'Num Contracts': 'Num\nContracts'
+            'Num Contracts': 'Num\nContracts',
+            'One_Yr_ATM_Rel_Error_Call (%)': '1yr ATM\nError Call (%)',
+            'P90_Rel_Error_Call (%)': 'P90 Error\nCall (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)': '1yr ATM\nError Put (%)',
+            'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)'
         };
         columns.forEach((col, index) => {
             const th = document.createElement('th');
@@ -2717,7 +2833,9 @@ function updateHistoricVolChart() {
                     'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Weighted IV 3m 1d (%)',
                     'Weighted IV 3m 1w (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'OI 1d (%)', 'OI 1w (%)'
+                    'OI 1d (%)', 'OI 1w (%)',
+                    'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
+                    'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
                 ].includes(col);
                 cell.style.color = isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A'
                     ? (parseFloat(item[col]) < 0 ? 'var(--highlight-negative)' : parseFloat(item[col]) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
@@ -2728,10 +2846,10 @@ function updateHistoricVolChart() {
         console.log('Ranking table updated successfully');
     } catch (error) {
         console.error('Error updating ranking table:', error);
-        document.getElementById('ranking-table').innerHTML = '<tr><td colspan="31">Error loading ranking data</td></tr>';
+        document.getElementById('ranking-table').innerHTML = '<tr><td colspan="35">Error loading ranking data</td></tr>';
     }
 }
-    
+		
         function updateSelectedTickerSummary() {
     try {
         const selectedTicker = document.getElementById('ticker-search').value.toUpperCase() || 'COIN';
@@ -2739,7 +2857,7 @@ function updateHistoricVolChart() {
         table.innerHTML = '';
         const selectedRow = rankingData.find(item => item.Ticker === selectedTicker);
         if (!selectedRow) {
-            table.innerHTML = '<tr><td colspan="31">No ranking data for selected ticker</td></tr>';
+            table.innerHTML = '<tr><td colspan="35">No ranking data for selected ticker</td></tr>';
             console.warn('No ranking data for selected ticker:', selectedTicker);
             return;
         }
@@ -2756,7 +2874,9 @@ function updateHistoricVolChart() {
             'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
             'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
             'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-            'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts'
+            'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
+            'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
         ];
         const displayNameMap = {
             'Realised Volatility 30d (%)': 'RVol\n30d (%)',
@@ -2780,7 +2900,11 @@ function updateHistoricVolChart() {
             'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
             'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
             'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
-            'Num Contracts': 'Num\nContracts'
+            'Num Contracts': 'Num\nContracts',
+            'One_Yr_ATM_Rel_Error_Call (%)': '1yr ATM\nError Call (%)',
+            'P90_Rel_Error_Call (%)': 'P90 Error\nCall (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)': '1yr ATM\nError Put (%)',
+            'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)'
         };
         columns.forEach((col, index) => {
             const th = document.createElement('th');
@@ -2813,7 +2937,9 @@ function updateHistoricVolChart() {
                 'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Weighted IV 3m 1d (%)',
                 'Weighted IV 3m 1w (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                 'Rvol100d - Weighted IV', 'Volume 1d (%)', 'Volume 1w (%)',
-                'OI 1d (%)', 'OI 1w (%)'
+                'OI 1d (%)', 'OI 1w (%)',
+                'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
+                'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
             ].includes(col);
             cell.style.color = isPercentChange && Number.isFinite(parseFloat(selectedRow[col])) && selectedRow[col] !== 'N/A'
                 ? (parseFloat(selectedRow[col]) < 0 ? 'var(--highlight-negative)' : parseFloat(selectedRow[col]) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
@@ -2823,7 +2949,7 @@ function updateHistoricVolChart() {
         console.log('Selected ticker summary table updated for:', selectedTicker);
     } catch (error) {
         console.error('Error updating selected ticker summary table:', error);
-        document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="31">Error loading selected ticker data</td></tr>';
+        document.getElementById('selected-ticker-table').innerHTML = '<tr><td colspan="35">Error loading selected ticker data</td></tr>';
     }
 }
     
@@ -4252,7 +4378,7 @@ function updateHistoricChart() {
         if (existingTable) existingTable.remove();
         const table = document.createElement('table');
         table.className = 'stats-table';
-        table.style.display = canvasId === 'historic-price-chart' ? 'table' : (statsTablesVisible ? 'table' : 'none');
+        table.style.display = canvasId === 'historic-price-chart' || canvasId === 'hedge-chart' ? 'table' : (statsTablesVisible ? 'table' : 'none');
         const thead = table.createTHead();
         const headerRow = thead.insertRow();
         ['Label', 'Last', 'Min', 'Max', 'Mean', 'SD', 'SD Change'].forEach(text => {
@@ -4316,11 +4442,9 @@ function updateHistoricChart() {
         });
         const showTickerSummary = sectionId === 'volatility' && ['volatility-overview', 'volatility-plots', 'volatility-surface', 'volatility-historic'].includes(subSectionId);
         document.getElementById('selected-ticker-summary').style.display = showTickerSummary ? 'block' : 'none';
-
         document.querySelectorAll('.sidebar a:not(.sub-tab)').forEach(link => {
             link.classList.toggle('active', link.getAttribute('href').substring(1) === sectionId);
         });
-
         if (sectionId === 'macro') {
             const subSections = ['bonds', 'commodities', 'stocks', 'currencies', 'crypto', 'shares'];
             const selectedSub = subSectionId || 'macro-bonds';
@@ -4332,7 +4456,7 @@ function updateHistoricChart() {
             });
             updateTradingEconomicsTables();
         } else if (sectionId === 'indices') {
-            const subSections = ['overview', 'stock', 'price-comparisons'];
+            const subSections = ['overview', 'stock', 'price-comparisons', 'hedge'];
             const selectedSub = subSectionId || 'indices-overview';
             document.querySelectorAll('#indices > div').forEach(div => {
                 div.style.display = div.id === selectedSub ? (div.id === 'indices-overview' ? 'block' : 'block') : 'none';
@@ -4348,6 +4472,10 @@ function updateHistoricChart() {
                 updateKurtosisChart();
             } else if (selectedSub === 'indices-price-comparisons') {
                 updateNormalizedTable();
+            } else if (selectedSub === 'indices-hedge') {
+                updateHedgeTable();
+                if (hedgeChartVisible) updateHedgeChart();
+                populateHedgeStrategies();
             }
         } else if (sectionId === 'volatility') {
             const subSections = ['overview', 'plots', 'ranking', 'data-table', 'historic'];
@@ -4579,7 +4707,8 @@ function updateHistoricChart() {
             { canvasId: 'volume-chart', selectId: 'ticker-search' },
             { canvasId: 'open-interest-chart', selectId: 'ticker-search' },
             { canvasId: 'historic-price-chart', selectId: null },
-            { canvasId: 'historic-vol-chart', selectId: 'historic-vol-metric-select' } // Added
+            { canvasId: 'historic-vol-chart', selectId: 'historic-vol-metric-select' },
+            { canvasId: 'hedge-chart', selectId: 'hedge-strategy-select' }
         ];
         chartConfigs.forEach(config => {
             const canvas = document.getElementById(config.canvasId);
@@ -4626,9 +4755,24 @@ function updateHistoricChart() {
         document.getElementById('skew-max-expiry').addEventListener('change', updateSkewVsExpiry);
         document.getElementById('skew-metric-select').addEventListener('change', updateSkewVsExpiry);
         document.getElementById('kurtosis-type-select').addEventListener('change', updateKurtosisChart);
-        document.getElementById('historic-vol-metric-select').addEventListener('change', updateHistoricVolChart); // Added
-        document.getElementById('historic-vol-start-date').addEventListener('change', updateHistoricVolChart); // Added
-        document.getElementById('historic-vol-end-date').addEventListener('change', updateHistoricVolChart); // Added
+        document.getElementById('historic-vol-metric-select').addEventListener('change', updateHistoricVolChart);
+        document.getElementById('historic-vol-start-date').addEventListener('change', updateHistoricVolChart);
+        document.getElementById('historic-vol-end-date').addEventListener('change', updateHistoricVolChart);
+        document.getElementById('hedge-strategy-select').addEventListener('change', () => {
+            console.log('Hedge strategy select changed to:', Array.from(document.getElementById('hedge-strategy-select').selectedOptions).map(opt => opt.value));
+            updateHedgeChart();
+            updateHedgeTable();
+        });
+        document.getElementById('hedge-start-date').addEventListener('change', () => {
+            console.log('Hedge start date changed:', document.getElementById('hedge-start-date').value);
+            updateHedgeChart();
+            updateHedgeTable();
+        });
+        document.getElementById('hedge-end-date').addEventListener('change', () => {
+            console.log('Hedge end date changed:', document.getElementById('hedge-end-date').value);
+            updateHedgeChart();
+            updateHedgeTable();
+        });
     } catch (error) {
         console.error('Error adding keyboard navigation:', error);
         document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
@@ -4668,6 +4812,322 @@ function updateHistoricChart() {
             }
         }
 
+function populateHedgeStrategies() {
+    try {
+        const strategySelect = document.getElementById('hedge-strategy-select');
+        strategySelect.innerHTML = '';
+        const strategies = hedgeData.length > 0 ? Object.keys(hedgeData[0]).filter(key => key !== 'Date') : [
+            'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index',
+            'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'
+        ];
+        if (strategies.length === 0) {
+            strategySelect.innerHTML = '<option value="">No strategies available</option>';
+            console.warn('No strategies available for hedge dropdown');
+            return;
+        }
+        strategies.forEach(strategy => {
+            const option = document.createElement('option');
+            option.value = strategy;
+            option.textContent = strategy;
+            option.selected = true; // Default to all selected
+            strategySelect.appendChild(option);
+        });
+        console.log('Hedge strategies populated:', strategies);
+        if (hedgeChartVisible) updateHedgeChart();
+        updateHedgeTable();
+    } catch (error) {
+        console.error('Error populating hedge strategies:', error);
+        document.getElementById('hedge-error').textContent = `Error populating strategies: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
+
+function updateHedgeTable() {
+    try {
+        const table = document.getElementById('hedge-table');
+        table.innerHTML = '';
+        const startInput = document.getElementById('hedge-start-date').value;
+        const endInput = document.getElementById('hedge-end-date').value;
+        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date))));
+        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date))));
+        const filteredData = hedgeData.filter(item => {
+            const itemDate = parseDate(item.Date);
+            return itemDate && itemDate >= startDate && itemDate <= endDate;
+        });
+        if (filteredData.length === 0) {
+            table.innerHTML = '<tr><td colspan="7">No hedge data available</td></tr>';
+            console.warn('No hedge data available for table, date range:', startDate, endDate);
+            document.getElementById('hedge-error').textContent = 'No hedge data available for selected date range';
+            document.getElementById('hedge-error').style.display = 'block';
+            return;
+        }
+        const thead = document.createElement('thead');
+        const headerRow = thead.insertRow();
+        const columns = ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+        columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.textContent = col.replace(/ Index/, '');
+            th.dataset.column = col;
+            th.dataset.order = 'desc';
+            th.addEventListener('click', () => sortTable('hedge-table', index));
+            headerRow.appendChild(th);
+        });
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        filteredData.forEach(item => {
+            const row = tbody.insertRow();
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                let value = item[col];
+                if (col === 'Date') {
+                    value = value ? parseDate(value).toLocaleDateString('en-GB') : 'N/A';
+                } else if (Number.isFinite(value)) {
+                    value = (value * 100).toFixed(2) + '%';
+                } else {
+                    value = value || 'N/A';
+                }
+                cell.textContent = value;
+                cell.style.color = col !== 'Date' && Number.isFinite(parseFloat(value)) && value !== 'N/A'
+                    ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
+                    : 'var(--text-color)';
+            });
+        });
+        table.appendChild(tbody);
+        document.getElementById('hedge-error').style.display = 'none';
+        console.log('Hedge table updated, rows:', filteredData.length, 'columns:', columns);
+        if (statsTablesVisible) updateHedgeStatsTable();
+    } catch (error) {
+        console.error('Error updating hedge table:', error);
+        document.getElementById('hedge-error').textContent = `Error updating table: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
+
+function updateHedgeStatsTable() {
+    try {
+        const container = document.getElementById('hedge-table').parentNode;
+        let statsTable = container.querySelector('.stats-table');
+        if (!statsTable) {
+            statsTable = document.createElement('table');
+            statsTable.className = 'stats-table';
+            container.appendChild(statsTable);
+        }
+        statsTable.innerHTML = '';
+        if (hedgeStatsData.length === 0) {
+            statsTable.innerHTML = '<tr><td colspan="7">No stats data available</td></tr>';
+            console.warn('No hedge stats data available');
+            document.getElementById('hedge-error').textContent = 'No stats data available';
+            document.getElementById('hedge-error').style.display = 'block';
+            return;
+        }
+        const thead = document.createElement('thead');
+        const headerRow = thead.insertRow();
+        const columns = ['Stats', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+        columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.textContent = col.replace(/ Index/, '');
+            th.dataset.column = col;
+            th.dataset.order = 'desc';
+            th.addEventListener('click', () => sortTable('hedge-table-stats', index));
+            headerRow.appendChild(th);
+        });
+        statsTable.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        const statsOrder = ['Total', 'Max Gain', 'Max DD', 'Positive', 'Negative', 'Mean Positive', 'Mean Negative'];
+        const orderedStatsData = statsOrder.map(stat => hedgeStatsData.find(row => row.Stats === stat)).filter(row => row);
+        orderedStatsData.forEach(item => {
+            const row = tbody.insertRow();
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                let value = item[col === 'Stats' ? 'Stats' : col + '_1']; // Map to stats column with _1 suffix
+                if (col === 'Stats') {
+                    value = value || 'N/A';
+                } else if (Number.isFinite(value)) {
+                    value = (value * 100).toFixed(2) + '%';
+                } else {
+                    value = value || 'N/A';
+                }
+                cell.textContent = value;
+                cell.style.color = col !== 'Stats' && Number.isFinite(parseFloat(value)) && value !== 'N/A'
+                    ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
+                    : 'var(--text-color)';
+            });
+        });
+        statsTable.appendChild(tbody);
+        statsTable.id = 'hedge-table-stats';
+        statsTable.style.display = statsTablesVisible ? 'table' : 'none';
+        console.log('Hedge stats table updated, rows:', orderedStatsData.length);
+        document.getElementById('hedge-error').style.display = 'none';
+    } catch (error) {
+        console.error('Error updating hedge stats table:', error);
+        document.getElementById('hedge-error').textContent = `Error updating stats table: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
+
+function updateHedgeChart() {
+    try {
+        const startInput = document.getElementById('hedge-start-date').value;
+        const endInput = document.getElementById('hedge-end-date').value;
+        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date))));
+        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date))));
+        const strategySelect = document.getElementById('hedge-strategy-select');
+        const selectedStrategies = Array.from(strategySelect.selectedOptions).map(opt => opt.value);
+        const filteredData = hedgeData.filter(item => {
+            const itemDate = parseDate(item.Date);
+            return itemDate && itemDate >= startDate && itemDate <= endDate;
+        });
+        if (filteredData.length === 0) {
+            if (hedgeChart) hedgeChart.destroy();
+            document.getElementById('hedge-error').textContent = 'No data available for chart';
+            document.getElementById('hedge-error').style.display = 'block';
+            console.warn('No data for hedge chart, date range:', startDate, endDate);
+            return;
+        }
+        const strategies = selectedStrategies.length > 0 ? selectedStrategies : (filteredData.length > 0 ? Object.keys(filteredData[0]).filter(key => key !== 'Date') : [
+            'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index',
+            'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'
+        ]);
+        const colors = ['#FFA500', '#00FF00', '#FF0000', '#26A69A', '#800080', '#00FFFF'];
+        const datasets = strategies.map((strategy, idx) => ({
+            label: strategy.replace(/ Index/, ''),
+            data: filteredData.map(item => ({
+                x: parseDate(item.Date),
+                y: Number.isFinite(parseFloat(item[strategy])) ? parseFloat(item[strategy]) * 100 : null
+            })).filter(point => point.y !== null),
+            borderColor: colors[idx % colors.length],
+            backgroundColor: colors[idx % colors.length].replace(')', ', 0.2)'),
+            pointRadius: 0,
+            fill: false,
+            showLine: true
+        }));
+        if (datasets.every(ds => ds.data.length === 0)) {
+            if (hedgeChart) hedgeChart.destroy();
+            document.getElementById('hedge-error').textContent = 'No valid data points for selected strategies';
+            document.getElementById('hedge-error').style.display = 'block';
+            console.warn('All datasets empty for hedge chart, strategies:', strategies);
+            return;
+        }
+        if (hedgeChart) hedgeChart.destroy();
+        const canvas = document.getElementById('hedge-chart');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Canvas context not available for hedge-chart');
+        }
+        canvas.style.display = 'block';
+        canvas.style.width = '100%';
+        canvas.style.height = '400px';
+        hedgeChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                plugins: {
+                    legend: { labels: { color: getThemeColor() } }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'month' },
+                        title: { display: true, text: 'Date', color: getThemeColor() },
+                        min: startDate,
+                        max: endDate,
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() }
+                    },
+                    y: {
+                        title: { display: true, text: 'Returns (%)', color: getThemeColor() },
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() },
+                        beginAtZero: false
+                    }
+                },
+                backgroundColor: document.body.getAttribute('data-theme') === 'light' ? '#F5F7FA' : '#1A1A2E',
+                maintainAspectRatio: false
+            }
+        });
+        document.getElementById('hedge-error').style.display = 'none';
+        createStatsTable(hedgeChart, 'hedge-chart');
+        console.log('Hedge chart updated, strategies:', strategies, 'date range:', startDate.toISOString(), endDate.toISOString());
+    } catch (error) {
+        console.error('Error updating hedge chart:', error);
+        document.getElementById('hedge-error').textContent = `Error rendering chart: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
+
+function exportHedgeData() {
+    try {
+        const table = document.getElementById('hedge-table');
+        const startInput = document.getElementById('hedge-start-date').value;
+        const endInput = document.getElementById('hedge-end-date').value;
+        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date))));
+        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date))));
+        const filteredData = hedgeData.filter(item => {
+            const itemDate = parseDate(item.Date);
+            return itemDate && itemDate >= startDate && itemDate <= endDate;
+        });
+        if (filteredData.length === 0) {
+            console.warn('No data to export for hedge table');
+            document.getElementById('hedge-error').textContent = 'No data available to export';
+            document.getElementById('hedge-error').style.display = 'block';
+            return;
+        }
+        const columns = ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+        const wsData = [
+            columns,
+            ...filteredData.map(item => columns.map(col => {
+                const value = item[col];
+                return col === 'Date' ? (value ? parseDate(value).toLocaleDateString('en-CA') : 'N/A') : Number.isFinite(value) ? (value * 100).toFixed(2) + '%' : value || 'N/A';
+            }))
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Hedge');
+        XLSX.write(wb, `Hedge_Strategies_${new Date().toISOString().split('T')[0]}.xlsx`);
+        console.log('Hedge data exported successfully, rows:', filteredData.length);
+    } catch (error) {
+        console.error('Error exporting hedge data:', error);
+        document.getElementById('hedge-error').textContent = `Error exporting data: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
+
+function toggleHedgeTable() {
+    try {
+        hedgeTableVisible = !hedgeTableVisible;
+        const table = document.getElementById('hedge-table');
+        table.style.display = hedgeTableVisible ? 'table' : 'none';
+        document.querySelector('#indices-hedge .toggle-button[onclick="toggleHedgeTable()"]').textContent = hedgeTableVisible ? 'Hide Data' : 'Show Data';
+        if (hedgeTableVisible) updateHedgeTable();
+        console.log(`Hedge table visibility set to: ${hedgeTableVisible}`);
+    } catch (error) {
+        console.error('Error in toggleHedgeTable:', error);
+        document.getElementById('hedge-error').textContent = `Error toggling table: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
+function toggleHedgeChart() {
+    try {
+        hedgeChartVisible = !hedgeChartVisible;
+        const chart = document.getElementById('hedge-chart');
+        chart.style.display = hedgeChartVisible ? 'block' : 'none';
+        document.querySelector('#indices-hedge .toggle-button[onclick="toggleHedgeChart()"]').textContent = hedgeChartVisible ? 'Hide Plot' : 'Show Plot';
+        if (hedgeChartVisible) {
+            updateHedgeChart();
+            chart.style.width = '100%';
+            chart.style.height = '400px';
+            const ctx = chart.getContext('2d');
+            if (ctx && hedgeChart) {
+                hedgeChart.resize();
+            }
+        }
+        console.log('Hedge chart visibility toggled:', hedgeChartVisible);
+    } catch (error) {
+        console.error('Error toggling hedge chart:', error);
+        document.getElementById('hedge-error').textContent = `Error toggling chart: ${error.message}`;
+        document.getElementById('hedge-error').style.display = 'block';
+    }
+}
 document.addEventListener('DOMContentLoaded', () => {
     try {
         if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined' || typeof XLSX === 'undefined') {
@@ -4767,7 +5227,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('Loading initial data with timestamp:', timestamp);
                     await loadData(timestamp);
                     await loadWisesheetsData();
-                    await loadHistoricVolData(timestamp, defaultTicker); // Added
+                    await loadHistoricVolData(timestamp, defaultTicker);
+                    // Set hedge date inputs
+                    if (hedgeData.length > 0) {
+                        const minDate = new Date(Math.min(...hedgeData.map(item => parseDate(item.Date))));
+                        const maxDate = new Date(Math.max(...hedgeData.map(item => parseDate(item.Date))));
+                        document.getElementById('hedge-start-date').value = minDate.toISOString().split('T')[0];
+                        document.getElementById('hedge-end-date').value = maxDate.toISOString().split('T')[0];
+                    } else {
+                        document.getElementById('hedge-start-date').value = '2020-01-01';
+                        document.getElementById('hedge-end-date').value = '2025-09-17';
+                    }
                     updateDropdowns();
                     document.querySelector('#volatility-link').classList.add('active');
                     document.querySelector('#volatility-sub-menu').classList.add('active');
@@ -4784,7 +5254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
-                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
+                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN');
                         updateDropdowns();
                         const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                         const sectionId = currentSection ? currentSection.id : 'volatility';
@@ -4803,7 +5273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
-                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
+                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN');
                         updateDropdowns();
                         const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                         const sectionId = currentSection ? currentSection.id : 'volatility';
@@ -4823,7 +5293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (await validateTimestamp(timestamp)) {
                         await loadData(timestamp);
                         await loadWisesheetsData();
-                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
+                        await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN');
                         updateDropdowns();
                         const currentSection = document.querySelector('.overview-grid[style*="grid"], .volatility-grid[style*="grid"], .volatility-surface-grid[style*="grid"], .trading-economics-grid[style*="grid"], .chart-container[style*="block"]');
                         const sectionId = currentSection ? currentSection.id : 'volatility';
@@ -4890,7 +5360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (await validateTimestamp(timestamp)) {
                             await loadData(timestamp);
                             await loadWisesheetsData();
-                            await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN'); // Added
+                            await loadHistoricVolData(timestamp, tickerSearch.value.toUpperCase() || 'COIN');
                             updateDropdowns();
                             updateSection(mainSection, targetSubId);
                         } else {
