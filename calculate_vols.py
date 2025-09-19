@@ -9,8 +9,8 @@ from scipy.optimize import NonlinearConstraint, Bounds
 from scipy.stats import norm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import warnings
-warnings.filterWarnings("ignore", category=FutureWarning)
-warnings.filterWarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 # Treasury yield functions
 FALLBACK_YIELDS = {
     '1 Mo': 0.0518, '2 Mo': 0.0522, '3 Mo': 0.0506, '6 Mo': 0.0468,
