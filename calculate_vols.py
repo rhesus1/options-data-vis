@@ -34,7 +34,7 @@ def get_dividend_yield(ticker):
 def fetch_treasury_yields(date_str=None, use_latest_if_missing=True):
     if date_str is None:
         date_str = datetime.now().strftime('%Y-%m-%d')
-    target_date = pd.to_datetime(date_str)
+    target_date = pd.to_datetime(date_str).tz_localize(None)  # Remove timezone
     try:
         import yfinance as yf
         tnx = yf.Ticker("^TNX")
@@ -43,7 +43,7 @@ def fetch_treasury_yields(date_str=None, use_latest_if_missing=True):
         if hist.empty:
             print(f"DEBUG: No treasury yield data for {date_str}, using fallback yields")
             return FALLBACK_YIELDS
-        hist.index = pd.to_datetime(hist.index)
+        hist.index = pd.to_datetime(hist.index).tz_localize(None)  # Remove timezone from index
         if target_date in hist.index:
             row = hist.loc[target_date]
         elif use_latest_if_missing:
@@ -218,7 +218,8 @@ def compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_
     smoothed_temp = np.clip(smoothed_temp, 0.01, 5.0)
     try:
         atm_point = np.array([[1.0], [1.0]])
-        atm_iv_temp = global_vol_model_hyp(atm_point, *params_full)[0, 0]
+        atm_iv_temp = global_vol_model_hyp(atm_point, *params_full)
+        atm_iv_temp = float(atm_iv_temp) if isinstance(atm_iv_temp, (np.ndarray, float)) else np.nan
     except Exception as e:
         print(f"DEBUG: Failed to compute ATM IV for {ticker} ({option_type}): {e}")
         atm_iv_temp = np.nan
@@ -509,10 +510,10 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
         print(f"{ticker} (Call): 1yr ATM rel error = nan% (closest: T=nan, M=nan), P90 rel error (ATM-norm) = nan% (n_valid=0, reason: IV calculation failed)")
         print(f"{ticker} (Put): 1yr ATM rel error = nan% (closest: T=nan, M=nan), P90 rel error (ATM-norm) = nan% (n_valid=0, reason: IV calculation failed)")
         return None, None
-    # Check IV calculation results
     valid_iv_mask = df['IV_mid'].notna() & (df['IV_mid'] > 0)
     if not valid_iv_mask.any():
-        print(f"DEBUG: No valid IVs for {ticker}: {df['IV_status'].value_counts().to_dict()}")
+        status_counts = df['IV_status'].value_counts().to_dict()
+        print(f"DEBUG: No valid IVs for {ticker}: {status_counts}")
         print(f"{ticker} (Call): 1yr ATM rel error = nan% (closest: T=nan, M=nan), P90 rel error (ATM-norm) = nan% (n_valid=0, reason: no valid IVs)")
         print(f"{ticker} (Put): 1yr ATM rel error = nan% (closest: T=nan, M=nan), P90 rel error (ATM-norm) = nan% (n_valid=0, reason: no valid IVs)")
         return None, None
@@ -583,14 +584,19 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
                     exp_max_s, exp_min_l = x
                     p90 = compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model)
                     return p90
-                res = minimize(objective, initial_guess, method='SLSQP', bounds=bounds_obj, constraints=[con], options={'maxiter': 10, 'disp': False})
-                if res.success and res.fun < np.inf:
-                    best_exp_max_short = res.x[0]
-                    best_exp_min_long = res.x[1]
-                else:
+                try:
+                    res = minimize(objective, initial_guess, method='SLSQP', bounds=bounds_obj, constraints=[con], options={'maxiter': 10, 'disp': False})
+                    if res.success and res.fun < np.inf:
+                        best_exp_max_short = res.x[0]
+                        best_exp_min_long = res.x[1]
+                    else:
+                        best_exp_max_short = max(df_type['Years_to_Expiry'].min() + 0.3, 0.3)
+                        best_exp_min_long = min(df_type['Years_to_Expiry'].max() - 0.3, 1.8)
+                        print(f"DEBUG: P90 optimization failed for {ticker} ({option_type}), using fallback: exp_max_short={best_exp_max_short:.3f}, exp_min_long={best_exp_min_long:.3f}")
+                except Exception as e:
                     best_exp_max_short = max(df_type['Years_to_Expiry'].min() + 0.3, 0.3)
                     best_exp_min_long = min(df_type['Years_to_Expiry'].max() - 0.3, 1.8)
-                    print(f"DEBUG: P90 optimization failed for {ticker} ({option_type}), using fallback: exp_max_short={best_exp_max_short:.3f}, exp_min_long={best_exp_min_long:.3f}")
+                    print(f"DEBUG: P90 optimization error for {ticker} ({option_type}): {e}, using fallback: exp_max_short={best_exp_max_short:.3f}, exp_min_long={best_exp_min_long:.3f}")
                 params_short, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_short, exp_max=best_exp_max_short,
                                                   mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
                                                   model=model, option_type=option_type, p0=None, do_plot=False, max_nfev=20000, max_iterations=3)
@@ -621,7 +627,7 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
         if params is not None:
             try:
                 atm_iv = global_vol_model_hyp(np.array([[1.0], [1.0]]), *params)
-                atm_iv = float(atm_iv.item()) if isinstance(atm_iv, np.ndarray) else float(atm_iv)
+                atm_iv = float(atm_iv) if isinstance(atm_iv, (np.ndarray, float)) else np.nan
                 if np.isnan(atm_iv) or atm_iv <= 0.01:
                     atm_iv = np.nan
             except Exception as e:
@@ -633,8 +639,8 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
                                                 abs((df_type['IV_mid'] - df_type['Smoothed_IV']) / atm_iv) * 100,
                                                 np.nan)
         atm_candidates = df_type[
-            (abs(df_type['Years_to_Expiry'] - 1) <= 0.5) &  # Increased to 0.5
-            (abs(df_type['Moneyness'] - 1) <= 0.1)      # Increased to 0.1
+            (abs(df_type['Years_to_Expiry'] - 1) <= 0.5) &  # Within ~6 months
+            (abs(df_type['Moneyness'] - 1) <= 0.1)      # Within 10% moneyness
         ].copy()
         one_yr_atm_residual = np.nan
         atm_dist_t = np.nan
