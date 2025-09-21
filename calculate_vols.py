@@ -196,10 +196,8 @@ def _compute_iv_for_row(args):
     return T, r, market_price, iv_bs, iv_binomial
 
 def calculate_iv_binomial(options_df, yields_dict, q=0, default_r=0.05, max_workers=None, binomial_steps=100):
-    print(f"DEBUG: Starting IV calculation")
     options_df = options_df.copy()
     if len(options_df) == 0:
-        print(f"DEBUG: Empty options DataFrame")
         return options_df
     rows = [row.to_dict() for _, row in options_df.iterrows()]
     results = []
@@ -211,7 +209,7 @@ def calculate_iv_binomial(options_df, yields_dict, q=0, default_r=0.05, max_work
             try:
                 T, r, market_price, iv_bs, iv_binomial = future.result()
                 results.append((idx, T, r, market_price, iv_bs, iv_binomial))
-            except Exception as e:
+            except Exception:
                 results.append((idx, np.nan, default_r, np.nan, np.nan, np.nan))
     results.sort(key=lambda x: x[0])
     for idx, T, r, market_price, iv_bs, iv_binomial in results:
@@ -220,7 +218,6 @@ def calculate_iv_binomial(options_df, yields_dict, q=0, default_r=0.05, max_work
         options_df.at[idx, 'market_price'] = market_price
         options_df.at[idx, 'IV_mid'] = iv_bs
         options_df.at[idx, 'IV_mid_binomial'] = iv_binomial
-    print(f"DEBUG: Completed IV calculation")
     return options_df
 
 # Volatility surface fitting
@@ -243,33 +240,11 @@ MODEL_CONFIG = {
     }
 }
 
-def compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model):
-    print(f"DEBUG: Starting P90 computation for {ticker} ({option_type})")
-    if exp_max_s + 0.05 >= exp_min_l:
-        print(f"DEBUG: Invalid expiry range for {ticker} ({option_type})")
-        return np.inf
-    params_short, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_short, exp_max=exp_max_s,
-                                      mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
-                                      model=model, option_type=option_type, p0=None, do_plot=False, max_nfev=20000, max_iterations=3)
-    if params_short is None:
-        print(f"DEBUG: Short-term fit failed for {ticker} ({option_type})")
-        return np.inf
-    p0_long = params_short
-    params_long, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_l, exp_max=exp_max_long,
-                                     mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
-                                     model=model, option_type=option_type, p0=p0_long, do_plot=False, max_nfev=20000, max_iterations=3)
-    p0_full = params_long if params_long is not None else p0_long
-    params_full, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_full, exp_max=exp_max_full,
-                                     mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
-                                     model=model, option_type=option_type, p0=p0_full, do_plot=False, max_nfev=20000, max_iterations=3)
-    if params_full is None:
-        print(f"DEBUG: Full fit failed for {ticker} ({option_type})")
-        return np.inf
+def compute_p90(params_full, df_type, ticker, option_type):
     valid_temp_mask = (df_type['Moneyness'].notna()) & (df_type['Years_to_Expiry'] > 0) & (df_type['IV_mid'].notna()) & (df_type['IV_mid'] > 0)
     valid_temp = df_type[valid_temp_mask]
     if len(valid_temp) == 0:
-        print(f"DEBUG: No valid data for P90 for {ticker} ({option_type})")
-        return np.inf
+        return np.nan
     x_temp = np.vstack((valid_temp['Moneyness'].values, valid_temp['Years_to_Expiry'].values))
     smoothed_temp = global_vol_model_hyp(x_temp, *params_full)
     smoothed_temp = np.clip(smoothed_temp, 0.01, 5.0)
@@ -281,19 +256,14 @@ def compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_
     if np.isnan(atm_iv_temp) or atm_iv_temp <= 0:
         atm_iv_temp = valid_temp['IV_mid'].median()
     if np.isnan(atm_iv_temp) or atm_iv_temp <= 0:
-        print(f"DEBUG: Invalid ATM IV for {ticker} ({option_type})")
-        return np.inf
+        return np.nan
     rel_errors = np.abs((valid_temp['IV_mid'].values - smoothed_temp) / atm_iv_temp) * 100
     valid_rel = rel_errors[~np.isnan(rel_errors)]
     if len(valid_rel) == 0:
-        print(f"DEBUG: No valid relative errors for {ticker} ({option_type})")
-        return np.inf
-    p90_temp = np.percentile(valid_rel, 90)
-    print(f"DEBUG: Completed P90 computation for {ticker} ({option_type})")
-    return p90_temp
+        return np.nan
+    return np.percentile(valid_rel, 90)
 
 def fit_vol_surface(df, ticker=None, exp_min=0.2, exp_max=np.inf, mon_min=0, mon_max=np.inf, extrap_tau=None, model='hyp', option_type='Call', p0=None, do_plot=False, max_nfev=20000, max_iterations=3):
-    print(f"DEBUG: Starting fit_vol_surface for {ticker} ({option_type})")
     df = df.copy()
     if model not in MODEL_CONFIG:
         raise ValueError(f"Model must be one of {list(MODEL_CONFIG.keys())}")
@@ -301,24 +271,23 @@ def fit_vol_surface(df, ticker=None, exp_min=0.2, exp_max=np.inf, mon_min=0, mon
             (df['Moneyness'] > mon_min) & (df['Moneyness'] < mon_max) & (df['IV_mid'].notna())]
     if ticker:
         df_ticker = df[df['Ticker'] == ticker]
-        if df_ticker.empty:
-            print(f"DEBUG: Empty data after filtering for {ticker} ({option_type})")
+        if df_ticker.empty or len(df_ticker) < 4:
+            print(f"{ticker} ({option_type}): P90 rel error (ATM-norm) = nan%")
             return None, None
         return fit_single_ticker(df_ticker, model, p0, max_nfev, max_iterations)
     else:
         results = {}
         for tick, group in df.groupby('Ticker'):
-            if group.empty:
+            if group.empty or len(group) < 4:
+                print(f"{tick} ({option_type}): P90 rel error (ATM-norm) = nan%")
                 results[tick] = (None, None)
                 continue
             results[tick] = fit_single_ticker(group, model, p0, max_nfev, max_iterations)
         return results
 
 def fit_single_ticker(df, model, p0=None, max_nfev=20000, max_iterations=3):
-    print(f"DEBUG: Starting fit_single_ticker")
     df = df.copy()
     if len(df) < 4:
-        print(f"DEBUG: Insufficient data points ({len(df)})")
         return None, None
     df.loc[:, 'SMI'] = 100 * (df['Ask'] - df['Bid']).clip(lower=0) / (df['Bid'] + df['Ask']).clip(lower=1e-6) / 2
     df.loc[:, 'weight'] = np.log(1 + df['Open Interest']) / df['SMI'].clip(lower=1e-6)
@@ -350,7 +319,6 @@ def fit_single_ticker(df, model, p0=None, max_nfev=20000, max_iterations=3):
         (df['SMI'] > 0)
     ]
     if len(df) < 4:
-        print(f"DEBUG: Insufficient data points after filtering ({len(df)})")
         return None, None
     df = df.sort_values(['Moneyness', 'Years_to_Expiry'])
     df = df.drop_duplicates(subset=['Moneyness', 'Years_to_Expiry'], keep='first')
@@ -400,18 +368,14 @@ def fit_single_ticker(df, model, p0=None, max_nfev=20000, max_iterations=3):
             IV_ref = 1.0
         res = (IV - model_func(xdata, *popt)) / IV_ref * 100
         residuals_sum = np.sum(w * res**2)
-        print(f"DEBUG: Completed fit_single_ticker")
         return popt, residuals_sum
-    except Exception as e:
-        print(f"DEBUG: Fit failed: {e}")
+    except Exception:
         return None, None
 
 def calculate_smoothed_iv(df, params_calls, params_puts, model='hyp'):
-    print(f"DEBUG: Starting calculate_smoothed_iv")
     df = df.copy()
     df['Smoothed_IV'] = np.nan
     if params_calls is None and params_puts is None:
-        print(f"DEBUG: No valid parameters for smoothed IV")
         return df
     model_func = MODEL_CONFIG['hyp']['func']
     valid_mask = (df['Moneyness'].notna()) & (df['Years_to_Expiry'] > 0)
@@ -425,34 +389,27 @@ def calculate_smoothed_iv(df, params_calls, params_puts, model='hyp'):
         x_puts = np.vstack((df.loc[put_mask, 'Moneyness'].values, df.loc[put_mask, 'Years_to_Expiry'].values))
         smoothed_puts = model_func(x_puts, *params_puts)
         df.loc[put_mask, 'Smoothed_IV'] = np.clip(smoothed_puts, 0, np.inf)
-    print(f"DEBUG: Completed calculate_smoothed_iv")
     return df
 
 def calculate_skew_slope_metrics(df, ticker, timestamp, r, q=0.0):
-    print(f"DEBUG: Starting calculate_skew_slope_metrics for {ticker}")
     vol_surf_file = f'data/{timestamp}/vol_surf/vol_surf.csv'
     if not os.path.exists(vol_surf_file):
-        print(f"DEBUG: No volatility surface file for {ticker}")
         return pd.DataFrame(), pd.DataFrame()
     try:
         vol_surf_df = pd.read_csv(vol_surf_file)
     except Exception:
-        print(f"DEBUG: Error reading volatility surface file for {ticker}")
         return pd.DataFrame(), pd.DataFrame()
     vol_surf_df = vol_surf_df[vol_surf_df['Ticker'] == ticker]
     if vol_surf_df.empty:
-        print(f"DEBUG: No volatility surface parameters for {ticker}")
         return pd.DataFrame(), pd.DataFrame()
     call_params = vol_surf_df[vol_surf_df['Option_Type'] == 'Call']
     put_params = vol_surf_df[vol_surf_df['Option_Type'] == 'Put']
     if call_params.empty or put_params.empty:
-        print(f"DEBUG: Missing call or put parameters for {ticker}")
         return pd.DataFrame(), pd.DataFrame()
     call_params = call_params.iloc[0][['a0', 'a1', 'b0', 'b1', 'm0', 'm1', 'rho0', 'rho1', 'sigma0', 'sigma1', 'c']].values
     put_params = put_params.iloc[0][['a0', 'a1', 'b0', 'b1', 'm0', 'm1', 'rho0', 'rho1', 'sigma0', 'sigma1', 'c']].values
     S = (df['Bid Stock'].iloc[0] + df['Ask Stock'].iloc[0]) / 2
     if S <= 0:
-        print(f"DEBUG: Invalid stock price for {ticker}")
         return pd.DataFrame(), pd.DataFrame()
     moneyness_levels = [0.7, 0.8, 0.9]
     T_values = np.arange(0.1, 5.1, 0.1)
@@ -528,31 +485,37 @@ def calculate_skew_slope_metrics(df, ticker, timestamp, r, q=0.0):
         skew_file = os.path.join(skew_dir, f'skew_metrics_yfinance_{ticker}.csv')
         skew_metrics_df.to_csv(skew_file, index=False)
     if not slope_metrics_df.empty:
-        slope_file = os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv')
+        slope_file = os.path.join(slope_dir, f'skew_metrics_yfinance_{ticker}.csv')
         slope_metrics_df.to_csv(slope_file, index=False)
-    print(f"DEBUG: Completed calculate_skew_slope_metrics for {ticker}")
     return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau):
-    print(f"DEBUG: Starting processing for ticker {ticker}")
     data_file = f'data/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv'
     raw_file = f'data/{timestamp}/raw_yfinance/raw_yfinance_{ticker}.csv'
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     processed_dir = f'data/{timestamp}/processed_yfinance'
     vol_surf_dir = f'data/{timestamp}/vol_surf'
     if not os.path.exists(data_file) or not os.path.exists(raw_file):
-        print(f"DEBUG: Missing files for {ticker}")
+        print(f"{ticker} (Call): P90 rel error (ATM-norm) = nan%")
+        print(f"{ticker} (Put): P90 rel error (ATM-norm) = nan%")
         return None, None
-    print(f"DEBUG: Loading data for {ticker}")
     df = pd.read_csv(data_file, parse_dates=['Expiry'])
     if df.empty:
-        print(f"DEBUG: Empty data for {ticker}")
+        print(f"{ticker} (Call): P90 rel error (ATM-norm) = nan%")
+        print(f"{ticker} (Put): P90 rel error (ATM-norm) = nan%")
         return None, None
-    print(f"DEBUG: Fetching dividend yield for {ticker}")
+    # Early check for insufficient data
+    for option_type in ['Call', 'Put']:
+        df_type = df[df['Type'] == option_type].copy()
+        df_type = df_type[(df_type['Years_to_Expiry'] > 0) & (df_type['Moneyness'] > 0) & (df_type['IV_mid'].notna())]
+        if len(df_type) < 4:
+            print(f"{ticker} ({option_type}): P90 rel error (ATM-norm) = nan%")
+            if option_type == 'Put':
+                return None, None
+            continue
     q = get_dividend_yield(ticker)
     rvol100d = np.nan
     if os.path.exists(historic_file):
-        print(f"DEBUG: Loading historic file for {ticker}")
         historic_df = pd.read_csv(historic_file, parse_dates=['Date'])
         if not historic_df.empty and 'Realised_Vol_Close_100' in historic_df.columns:
             rvol100d = historic_df['Realised_Vol_Close_100'].iloc[-1] / 100
@@ -563,9 +526,9 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
     df['Last Stock Price'] = S
     df = calculate_iv_binomial(df, yields_dict, q=q, default_r=0.05, max_workers=None, binomial_steps=100)
     if df.empty:
-        print(f"DEBUG: IV calculation failed for {ticker}")
+        print(f"{ticker} (Call): P90 rel error (ATM-norm) = nan%")
+        print(f"{ticker} (Put): P90 rel error (ATM-norm) = nan%")
         return None, None
-    print(f"DEBUG: Computing additional fields for {ticker}")
     df['Forward'] = df['Last Stock Price'] * np.exp((df['r'] - q) * df['Years_to_Expiry'])
     df['Moneyness'] = df['Strike'] / df['Forward']
     df['LogMoneyness'] = np.log(df['Moneyness'].where(df['Moneyness'] > 0, np.nan))
@@ -581,7 +544,6 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
     best_exp_min_long_puts = None
     ticker_metrics = []
     for option_type in ['Call', 'Put']:
-        print(f"DEBUG: Processing {option_type} options for {ticker}")
         df_type = df[df['Type'] == option_type].copy()
         if len(df_type) < 10:
             exp_max_short = max(df_type['Years_to_Expiry'].min() + 0.3, 0.3)
@@ -617,14 +579,29 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
             else:
                 median_expiry = df_type['Years_to_Expiry'].median()
                 initial_guess = [df_type['Years_to_Expiry'].quantile(0.25), df_type['Years_to_Expiry'].quantile(0.75)]
-                lb = [expiry_min + 0.01, median_expiry + 0.05]
-                ub = [median_expiry - 0.05, expiry_max - 0.01]
+                lb = [expiry_min + 0.02, median_expiry + 0.1]
+                ub = [median_expiry - 0.1, expiry_max - 0.02]
                 bounds_obj = Bounds(lb, ub)
-                con = NonlinearConstraint(lambda x: x[1] - x[0], 0.05, np.inf)
+                con = NonlinearConstraint(lambda x: x[1] - x[0], 0.1, np.inf)
                 def objective(x):
                     exp_max_s, exp_min_l = x
-                    return compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model)
-                res = minimize(objective, initial_guess, method='SLSQP', bounds=bounds_obj, constraints=[con], options={'maxiter': 10, 'disp': False})
+                    params_short, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_short, exp_max=exp_max_s,
+                                                      mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
+                                                      model=model, option_type=option_type, p0=None, do_plot=False, max_nfev=20000, max_iterations=3)
+                    if params_short is None:
+                        return np.inf
+                    p0_long = params_short
+                    params_long, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_l, exp_max=exp_max_long,
+                                                     mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
+                                                     model=model, option_type=option_type, p0=p0_long, do_plot=False, max_nfev=20000, max_iterations=3)
+                    p0_full = params_long if params_long is not None else p0_long
+                    params_full, _ = fit_vol_surface(df, ticker=ticker, exp_min=exp_min_full, exp_max=exp_max_full,
+                                                     mon_min=mon_min, mon_max=mon_max, extrap_tau=extrap_tau,
+                                                     model=model, option_type=option_type, p0=p0_full, do_plot=False, max_nfev=20000, max_iterations=3)
+                    if params_full is None:
+                        return np.inf
+                    return compute_p90(params_full, df_type, ticker, option_type)
+                res = minimize(objective, initial_guess, method='SLSQP', bounds=bounds_obj, constraints=[con], options={'maxiter': 5, 'disp': False})
                 if res.success and res.fun < np.inf:
                     best_exp_max_short = res.x[0]
                     best_exp_min_long = res.x[1]
@@ -652,8 +629,12 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
             residuals_puts = residuals
             best_exp_max_short_puts = exp_max_short if 'exp_max_short' in locals() else np.nan
             best_exp_min_long_puts = exp_min_long if 'exp_min_long' in locals() else np.nan
+        # Compute final P90 error
+        p90_rel_error = compute_p90(params, df_type, ticker, option_type) if params is not None else np.nan
+        if not np.isnan(p90_rel_error) and p90_rel_error > 1000:
+            p90_rel_error = np.nan
+        print(f"{ticker} ({option_type}): P90 rel error (ATM-norm) = {p90_rel_error:.2f}%")
         # Compute metrics
-        print(f"DEBUG: Computing metrics for {ticker} ({option_type})")
         valid_mask = (df['IV_mid'].notna() & df['Smoothed_IV'].notna() &
                       (df['IV_mid'] > 0) & (df['Smoothed_IV'] > 0))
         type_mask = df['Type'] == option_type
@@ -686,10 +667,6 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
             one_yr_atm_residual = df_type.at[closest_idx, 'rel_error_atm_pct']
             atm_dist_t = abs(df_type.at[closest_idx, 'Years_to_Expiry'] - 1)
             atm_dist_m = abs(df_type.at[closest_idx, 'Moneyness'] - 1)
-        p90_rel_error = df_type['rel_error_atm_pct'].quantile(0.9) if not df_type.empty else np.nan
-        if not np.isnan(p90_rel_error) and p90_rel_error > 1000:
-            p90_rel_error = np.nan
-        print(f"{ticker} ({option_type}): P90 rel error (ATM-norm) = {p90_rel_error:.2f}%")
         metrics_df = pd.DataFrame({
             'Ticker': [ticker],
             'Timestamp': [timestamp],
@@ -722,7 +699,6 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
     df['Call Local Vol'] = np.nan
     df['Put Local Vol'] = np.nan
     df = df.reindex(columns=output_columns, fill_value=np.nan)
-    print(f"DEBUG: Saving output for {ticker}")
     output_file = f'data/{timestamp}/processed_yfinance/processed_yfinance_{ticker}.csv'
     df.to_csv(output_file, index=False)
     df.to_json(f'data/{timestamp}/processed_yfinance/processed_yfinance_{ticker}.json', orient='records', date_format='iso')
@@ -746,17 +722,16 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
         param_dfs.append(param_df_puts)
     param_df = pd.concat(param_dfs, ignore_index=True) if param_dfs else pd.DataFrame()
     skew_metrics_df, slope_metrics_df = calculate_skew_slope_metrics(df, ticker, timestamp, r, q)
-    skew_file = f'data/{timestamp}/skew_metrics_yfinance/skew_metrics_yfinance_{ticker}.csv'
-    slope_file = f'data/{timestamp}/slope_metrics_yfinance/slope_metrics_yfinance_{ticker}.csv'
+    skew_file = os.path.join(skew_dir, f'skew_metrics_yfinance_{ticker}.csv')
+    slope_file = os.path.join(slope_dir, f'slope_metrics_yfinance_{ticker}.csv')
     skew_metrics_df.to_csv(skew_file, index=False)
     slope_metrics_df.to_csv(slope_file, index=False)
-    print(f"DEBUG: Completed processing for {ticker}")
     return pd.concat(ticker_metrics, ignore_index=True), param_df
 
 def process_volumes(timestamp):
-    print(f"DEBUG: Starting process_volumes for timestamp {timestamp}")
+    print(f"Starting process_volumes for timestamp {timestamp}")
     if not os.path.exists('tickers.txt'):
-        print("DEBUG: tickers.txt not found")
+        print(f"tickers.txt not found, skipping processing")
         return
     with open('tickers.txt', 'r') as f:
         tickers = [line.strip() for line in f if line.strip()]
@@ -773,11 +748,10 @@ def process_volumes(timestamp):
     extrap_tau = None
     all_metrics = []
     all_params = []
-    max_workers = 2  # Reduced to avoid overloading GitHub runner
-    print(f"DEBUG: Processing {len(tickers)} tickers with {max_workers} workers")
+    max_workers = 2
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(process_ticker, ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau): ticker for ticker in tickers}
-        for future in as_completed(futures, timeout=300):  # 5-minute timeout per ticker
+        for future in as_completed(futures, timeout=300):
             ticker = futures[future]
             try:
                 metrics_df, param_df = future.result()
@@ -786,9 +760,11 @@ def process_volumes(timestamp):
                 if not param_df.empty:
                     all_params.append(param_df)
             except TimeoutError:
-                print(f"DEBUG: Timeout processing ticker {ticker}")
-            except Exception as e:
-                print(f"DEBUG: Error processing ticker {ticker}: {e}")
+                print(f"{ticker} (Call): P90 rel error (ATM-norm) = nan%")
+                print(f"{ticker} (Put): P90 rel error (ATM-norm) = nan%")
+            except Exception:
+                print(f"{ticker} (Call): P90 rel error (ATM-norm) = nan%")
+                print(f"{ticker} (Put): P90 rel error (ATM-norm) = nan%")
     if all_metrics:
         all_metrics_df = pd.concat(all_metrics, ignore_index=True)
         metrics_file = f'data/{timestamp}/processed_yfinance/fit_metrics_yfinance_all.csv'
