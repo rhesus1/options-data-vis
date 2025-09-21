@@ -506,15 +506,18 @@ def calculate_skew_slope_metrics(df, ticker, timestamp, r, q=0.0):
     return skew_metrics_df, slope_metrics_df
 
 def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau):
+    print(f"DEBUG: Starting processing for ticker {ticker}")
     data_file = f'data/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv'
     raw_file = f'data/{timestamp}/raw_yfinance/raw_yfinance_{ticker}.csv'
     historic_file = f'data/{timestamp}/historic/historic_{ticker}.csv'
     processed_dir = f'data/{timestamp}/processed_yfinance'
     vol_surf_dir = f'data/{timestamp}/vol_surf'
     if not os.path.exists(data_file) or not os.path.exists(raw_file):
+        print(f"DEBUG: Missing files for {ticker}")
         return None, None
     df = pd.read_csv(data_file, parse_dates=['Expiry'])
     if df.empty:
+        print(f"DEBUG: Empty data for {ticker}")
         return None, None
     q = get_dividend_yield(ticker)
     rvol100d = np.nan
@@ -529,6 +532,7 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
     df['Last Stock Price'] = S
     df = calculate_iv_binomial(df, yields_dict, q=q, default_r=0.05, max_workers=None, binomial_steps=100)
     if df.empty:
+        print(f"DEBUG: IV calculation failed for {ticker}")
         return None, None
     df['Forward'] = df['Last Stock Price'] * np.exp((df['r'] - q) * df['Years_to_Expiry'])
     df['Moneyness'] = df['Strike'] / df['Forward']
@@ -714,7 +718,9 @@ def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max
     return pd.concat(ticker_metrics, ignore_index=True), param_df
 
 def process_volumes(timestamp):
+    print(f"DEBUG: Starting process_volumes for timestamp {timestamp}")
     if not os.path.exists('tickers.txt'):
+        print("DEBUG: tickers.txt not found")
         return
     with open('tickers.txt', 'r') as f:
         tickers = [line.strip() for line in f if line.strip()]
@@ -731,7 +737,8 @@ def process_volumes(timestamp):
     extrap_tau = None
     all_metrics = []
     all_params = []
-    max_workers = os.cpu_count() // 2 or 4
+    max_workers = 2  # Reduced to avoid overloading GitHub runner
+    print(f"DEBUG: Processing {len(tickers)} tickers with {max_workers} workers")
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_ticker, ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau) for ticker in tickers]
         for future in as_completed(futures):
@@ -742,7 +749,7 @@ def process_volumes(timestamp):
                 if not param_df.empty:
                     all_params.append(param_df)
             except Exception as e:
-                pass
+                print(f"DEBUG: Error processing ticker: {e}")
     if all_metrics:
         all_metrics_df = pd.concat(all_metrics, ignore_index=True)
         metrics_file = f'data/{timestamp}/processed_yfinance/fit_metrics_yfinance_all.csv'
