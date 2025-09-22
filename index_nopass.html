@@ -1026,32 +1026,51 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
             </div>
         </div>
 		<div id="strategy-performance" class="trading-economics-grid" style="display: none;">
-    <div id="strategy-performance-hedge" class="chart-container">
-        <h2>Hedge Fund Strategies</h2>
-        <div id="hedge-error" class="error-message" style="display: none;">No hedge data available</div>
-        <button class="toggle-button" onclick="toggleHedgeTable()">Show Data</button>
-        <button class="toggle-button" onclick="toggleHedgeChart()">Show Plot</button>
-        <div class="select-container">
-            <label for="hedge-start-date">Start Date: </label>
-            <input type="date" id="hedge-start-date">
-            <label for="hedge-end-date">End Date: </label>
-            <input type="date" id="hedge-end-date">
-            <button class="toggle-button" onclick="exportHedgeData()">Export to XLSX</button>
-        </div>
-        <div class="select-container">
-            <label for="hedge-strategy-select">Select Strategies to Compare (Multi): </label>
-            <select id="hedge-strategy-select" multiple style="width: 200px;">
-            </select>
-        </div>
-        <canvas id="hedge-chart" style="display: none;"></canvas>
-        <table id="hedge-table" class="trading-economics-table" style="display: none;"></table>
-    </div>
-</div>
+		    <h2>Strategy Performance</h2>
+		    <div id="strategy-performance-hedge" class="chart-container">
+		        <h3>Hedge Fund Strategies</h3>
+		        <div id="hedge-error" class="error-message" style="display: none;">No hedge data available</div>
+		        <button class="toggle-button" onclick="toggleHedgeTable()">Show Data</button>
+		        <button class="toggle-button" onclick="toggleHedgeChart()">Show Plot</button>
+		        <div class="select-container">
+		            <label for="hedge-start-date">Start Date: </label>
+		            <input type="date" id="hedge-start-date">
+		            <label for="hedge-end-date">End Date: </label>
+		            <input type="date" id="hedge-end-date">
+		            <button class="toggle-button" onclick="exportHedgeData()">Export to XLSX</button>
+		        </div>
+		        <div class="select-container">
+		            <label for="hedge-strategy-select">Select Strategies to Compare (Multi): </label>
+		            <select id="hedge-strategy-select" multiple style="width: 200px;">
+		            </select>
+		        </div>
+		        <canvas id="hedge-chart" style="display: none;"></canvas>
+		        <table id="hedge-table" class="trading-economics-table" style="display: none;"></table>
+		    </div>
+		    <div id="strategy-performance-summary" class="chart-container">
+		        <h3>Strategy Performance Summary</h3>
+		        <div id="strategy-summary-error" class="error-message" style="display: none;">No strategy summary data available</div>
+		        <button class="toggle-button" onclick="toggleStrategySummaryTable()">Show Data</button>
+		        <button class="toggle-button" onclick="exportStrategySummaryData()">Export to XLSX</button>
+		        <table id="strategy-summary-table" class="trading-economics-table" style="display: none;"></table>
+		    </div>
+		    <div id="strategy-performance-correlation" class="chart-container">
+		        <h3>Strategy Correlation</h3>
+		        <div id="strategy-correlation-error" class="error-message" style="display: none;">No correlation data available</div>
+		        <button class="toggle-button" onclick="toggleStrategyCorrelationTable()">Show Data</button>
+		        <button class="toggle-button" onclick="exportStrategyCorrelationData()">Export to XLSX</button>
+		        <table id="strategy-correlation-table" class="trading-economics-table" style="display: none;"></table>
+		    </div>
+		</div>
     </div>
     <script>
         function getThemeColor() {
             return document.body.getAttribute('data-theme') === 'light' ? '#1A1A2E' : '#FFFFFF';
         }    
+		let strategySummaryData = [];
+let strategyCorrelationData = [];
+let strategySummaryTableVisible = false;
+let strategyCorrelationTableVisible = false;
 	let hedgeData = [];
 let hedgeStatsData = [];
 let hedgeChart = null;
@@ -2077,6 +2096,8 @@ function updateHistoricVolChart() {
         historicVolData = [];
         hedgeData = [];
         hedgeStatsData = [];
+        strategySummaryData = [];
+        strategyCorrelationData = [];
         const checkFileExists = async (url) => {
             try {
                 const response = await fetch(url, { method: 'HEAD' });
@@ -2108,7 +2129,9 @@ function updateHistoricVolChart() {
             { url: `data/Events.csv`, array: eventsData },
             { url: `data/${timestamp}/vol_surf/vol_surf.csv`, array: volSurfData },
             { url: `data/Options_Historic/ATM_historical_${selectedTicker}.csv`, array: historicVolData },
-            { url: `data/BH_HF_Ret_Sept_25.csv`, array: hedgeData }
+            { url: `data/BH_HF_Ret_Sept_25.csv`, array: hedgeData },
+            { url: `data/tables/returns/summary_table.csv`, array: strategySummaryData },
+            { url: `data/tables/returns/correlation_table.csv`, array: strategyCorrelationData }
         ];
         const batchSize = 5;
         for (let i = 0; i < files.length; i += batchSize) {
@@ -2146,6 +2169,20 @@ function updateHistoricVolChart() {
                                     sample: file.array.slice(0, 5),
                                     columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
                                 });
+                            } else if (file.array === strategySummaryData) {
+                                console.log(`Strategy summary data loaded:`, {
+                                    url: file.url,
+                                    size: file.array.length,
+                                    sample: file.array.slice(0, 5),
+                                    columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
+                                });
+                            } else if (file.array === strategyCorrelationData) {
+                                console.log(`Strategy correlation data loaded:`, {
+                                    url: file.url,
+                                    size: file.array.length,
+                                    sample: file.array.slice(0, 5),
+                                    columns: file.array.length > 0 ? Object.keys(file.array[0]) : []
+                                });
                             }
                         });
                     } else {
@@ -2157,6 +2194,12 @@ function updateHistoricVolChart() {
                         } else if (file.array === hedgeData) {
                             document.getElementById('hedge-error').textContent = `Hedge data file not found`;
                             document.getElementById('hedge-error').style.display = 'block';
+                        } else if (file.array === strategySummaryData) {
+                            document.getElementById('strategy-summary-error').textContent = `Strategy summary data file not found`;
+                            document.getElementById('strategy-summary-error').style.display = 'block';
+                        } else if (file.array === strategyCorrelationData) {
+                            document.getElementById('strategy-correlation-error').textContent = `Strategy correlation data file not found`;
+                            document.getElementById('strategy-correlation-error').style.display = 'block';
                         }
                         return Promise.resolve();
                     }
@@ -2169,6 +2212,12 @@ function updateHistoricVolChart() {
                     } else if (file.array === hedgeData) {
                         document.getElementById('hedge-error').textContent = `Error loading hedge data: ${error.message}`;
                         document.getElementById('hedge-error').style.display = 'block';
+                    } else if (file.array === strategySummaryData) {
+                        document.getElementById('strategy-summary-error').textContent = `Error loading strategy summary data: ${error.message}`;
+                        document.getElementById('strategy-summary-error').style.display = 'block';
+                    } else if (file.array === strategyCorrelationData) {
+                        document.getElementById('strategy-correlation-error').textContent = `Error loading strategy correlation data: ${error.message}`;
+                        document.getElementById('strategy-correlation-error').style.display = 'block';
                     }
                     return Promise.resolve();
                 })
@@ -2281,7 +2330,9 @@ function updateHistoricVolChart() {
             volSurfData: volSurfData.slice(0, 5),
             historicVolData: historicVolData.slice(0, 5),
             hedgeData: hedgeData.slice(0, 5),
-            hedgeStatsData: hedgeStatsData.slice(0, 5)
+            hedgeStatsData: hedgeStatsData.slice(0, 5),
+            strategySummaryData: strategySummaryData.slice(0, 5),
+            strategyCorrelationData: strategyCorrelationData.slice(0, 5)
         });
         document.getElementById('historic-error').style.display = 'none';
         return Promise.resolve();
@@ -2316,6 +2367,8 @@ function updateHistoricVolChart() {
         historicVolData = [];
         hedgeData = [];
         hedgeStatsData = [];
+        strategySummaryData = [];
+        strategyCorrelationData = [];
         document.getElementById('historic-error').textContent = `Error loading data: ${error.message}`;
         document.getElementById('historic-error').style.display = 'block';
         return Promise.resolve();
@@ -2817,8 +2870,8 @@ function updateHistoricVolChart() {
             'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
             'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
             'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
-            'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
-            'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
+            'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)', 'Restricted_P90_Rel_Error_Call (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)', 'Restricted_P90_Rel_Error_Put (%)'
         ];
         const displayNameMap = {
             'Realised Volatility 30d (%)': 'RVol\n30d (%)',
@@ -2845,8 +2898,10 @@ function updateHistoricVolChart() {
             'Num Contracts': 'Num\nContracts',
             'One_Yr_ATM_Rel_Error_Call (%)': '1yr ATM\nError Call (%)',
             'P90_Rel_Error_Call (%)': 'P90 Error\nCall (%)',
+            'Restricted_P90_Rel_Error_Call (%)': 'Rest P90\nError Call (%)',
             'One_Yr_ATM_Rel_Error_Put (%)': '1yr ATM\nError Put (%)',
-            'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)'
+            'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)',
+            'Restricted_P90_Rel_Error_Put (%)': 'Rest P90\nError Put (%)'
         };
         columns.forEach((col, index) => {
             const th = document.createElement('th');
@@ -2883,9 +2938,10 @@ function updateHistoricVolChart() {
                     'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Weighted IV 3m 1d (%)',
                     'Weighted IV 3m 1w (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                     'Rvol100d - Weighted IV', 'Volume 1d (%)', 'Volume 1w (%)',
-                    'OI 1d (%)', 'OI 1w (%)',
-                    'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
-                    'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
+                    'OI 1d (%)', 'OI 1w (%)', 'One_Yr_ATM_Rel_Error_Call (%)',
+                    'P90_Rel_Error_Call (%)', 'Restricted_P90_Rel_Error_Call (%)',
+                    'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)',
+                    'Restricted_P90_Rel_Error_Put (%)'
                 ].includes(col);
                 cell.style.color = isPercentChange && Number.isFinite(parseFloat(item[col])) && item[col] !== 'N/A'
                     ? (parseFloat(item[col]) < 0 ? 'var(--highlight-negative)' : parseFloat(item[col]) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
@@ -2918,10 +2974,12 @@ function updateHistoricVolChart() {
             'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
             'Realised Volatility 100d 1w (%)',
             'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
-            'Volume', 'Open Interest', 'Num Contracts', 'P90_Rel_Error_Call (%)', 'P90_Rel_Error_Put (%)'
+            'Volume', 'Open Interest', 'Num Contracts',
+            'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)', 'Restricted_P90_Rel_Error_Call (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)', 'Restricted_P90_Rel_Error_Put (%)'
         ];
         const displayNameMap = {
-			'Rank': 'OI Rank',
+            'Rank': 'OI Rank',
             'Realised Volatility 100d (%)': 'RVol\n100d (%)',
             'Realised Volatility 100d 1d (%)': 'RVol\n100d 1d (%)',
             'Realised Volatility 100d 1w (%)': 'RVol\n100d 1w (%)',
@@ -2929,8 +2987,12 @@ function updateHistoricVolChart() {
             'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
             'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
             'Num Contracts': 'Num\nContracts',
+            'One_Yr_ATM_Rel_Error_Call (%)': '1yr ATM\nError Call (%)',
             'P90_Rel_Error_Call (%)': 'P90 Error\nCall (%)',
-            'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)'
+            'Restricted_P90_Rel_Error_Call (%)': 'Rest P90\nError Call (%)',
+            'One_Yr_ATM_Rel_Error_Put (%)': '1yr ATM\nError Put (%)',
+            'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)',
+            'Restricted_P90_Rel_Error_Put (%)': 'Rest P90\nError Put (%)'
         };
         columns.forEach((col, index) => {
             const th = document.createElement('th');
@@ -2960,9 +3022,9 @@ function updateHistoricVolChart() {
             cell.textContent = value;
             const isPercentChange = [
                 'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
-				'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
-                'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
-                'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
+                'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
+                'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)', 'Restricted_P90_Rel_Error_Call (%)',
+                'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)', 'Restricted_P90_Rel_Error_Put (%)'
             ].includes(col);
             cell.style.color = isPercentChange && Number.isFinite(parseFloat(selectedRow[col])) && selectedRow[col] !== 'N/A'
                 ? (parseFloat(selectedRow[col]) < 0 ? 'var(--highlight-negative)' : parseFloat(selectedRow[col]) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
@@ -4537,6 +4599,8 @@ function updateHistoricChart() {
             });
             updateHedgeTable();
             if (hedgeChartVisible) updateHedgeChart();
+            updateStrategySummaryTable();
+            updateStrategyCorrelationTable();
             populateHedgeStrategies();
         }
     } catch (error) {
@@ -4713,7 +4777,10 @@ function updateHistoricChart() {
         updateNormalizedTable();
         updateKurtosisChart();
         updateCallVolSurface();
-        updateHistoricVolChart(); // Added
+        updateHistoricVolChart();
+        updateHedgeTable();
+        updateStrategySummaryTable();
+        updateStrategyCorrelationTable();
     } catch (error) {
         console.error('Error updating charts:', error);
         document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
@@ -4799,6 +4866,39 @@ function updateHistoricChart() {
             updateHedgeChart();
             updateHedgeTable();
         });
+        // Add keyboard navigation for new strategy tables
+        const strategySummaryTable = document.getElementById('strategy-summary-table');
+        if (strategySummaryTable) {
+            strategySummaryTable.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    const headers = strategySummaryTable.querySelectorAll('th');
+                    let currentIndex = Array.from(headers).findIndex(th => document.activeElement === th);
+                    if (currentIndex === -1) currentIndex = 0;
+                    const newIndex = event.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1;
+                    if (newIndex >= 0 && newIndex < headers.length) {
+                        headers[newIndex].focus();
+                        sortTable('strategy-summary-table', newIndex);
+                    }
+                }
+            });
+        }
+        const strategyCorrelationTable = document.getElementById('strategy-correlation-table');
+        if (strategyCorrelationTable) {
+            strategyCorrelationTable.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    const headers = strategyCorrelationTable.querySelectorAll('th');
+                    let currentIndex = Array.from(headers).findIndex(th => document.activeElement === th);
+                    if (currentIndex === -1) currentIndex = 0;
+                    const newIndex = event.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1;
+                    if (newIndex >= 0 && newIndex < headers.length) {
+                        headers[newIndex].focus();
+                        sortTable('strategy-correlation-table', newIndex);
+                    }
+                }
+            });
+        }
     } catch (error) {
         console.error('Error adding keyboard navigation:', error);
         document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
@@ -5170,6 +5270,224 @@ function toggleHedgeChart() {
         }
     }
 }
+
+function updateStrategySummaryTable() {
+    try {
+        const table = document.getElementById('strategy-summary-table');
+        table.innerHTML = '';
+        if (strategySummaryData.length === 0) {
+            table.innerHTML = '<tr><td colspan="10">No strategy summary data available</td></tr>';
+            console.warn('No strategy summary data for table');
+            document.getElementById('strategy-summary-error').textContent = 'No strategy summary data available';
+            document.getElementById('strategy-summary-error').style.display = 'block';
+            return;
+        }
+        const thead = document.createElement('thead');
+        const headerRow = thead.insertRow();
+        const columns = [
+            'Strategy', 'Min Return', 'Max Return', 'Mean Return', 'Max Drawdown',
+            'Drawdown Length (months)', 'Recovery Time (months)', 'Positive/Negative Ratio',
+            'Mean Positive Return', 'Mean Negative Return'
+        ];
+        columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.textContent = col;
+            th.dataset.column = col;
+            th.dataset.order = 'desc';
+            th.addEventListener('click', () => sortTable('strategy-summary-table', index));
+            headerRow.appendChild(th);
+        });
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        strategySummaryData.forEach(item => {
+            const row = tbody.insertRow();
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                let value = item[col];
+                if (Number.isFinite(value)) {
+                    if (col.includes('Return') || col === 'Max Drawdown') {
+                        value = (value * 100).toFixed(2) + '%';
+                    } else if (col.includes('months')) {
+                        value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    } else {
+                        value = value.toFixed(2);
+                    }
+                } else {
+                    value = value || 'N/A';
+                }
+                cell.textContent = value;
+                cell.style.color = (col.includes('Return') || col === 'Max Drawdown') && Number.isFinite(parseFloat(value)) && value !== 'N/A'
+                    ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
+                    : 'var(--text-color)';
+            });
+        });
+        table.appendChild(tbody);
+        document.getElementById('strategy-summary-error').style.display = 'none';
+        console.log('Strategy summary table updated, rows:', strategySummaryData.length);
+    } catch (error) {
+        console.error('Error updating strategy summary table:', error);
+        document.getElementById('strategy-summary-table').innerHTML = '<tr><td colspan="10">Error loading strategy summary data</td></tr>';
+        document.getElementById('strategy-summary-error').textContent = `Error updating table: ${error.message}`;
+        document.getElementById('strategy-summary-error').style.display = 'block';
+    }
+}
+
+function updateStrategyCorrelationTable() {
+    try {
+        const table = document.getElementById('strategy-correlation-table');
+        table.innerHTML = '';
+        if (strategyCorrelationData.length === 0) {
+            table.innerHTML = '<tr><td colspan="10">No correlation data available</td></tr>';
+            console.warn('No correlation data for table');
+            document.getElementById('strategy-correlation-error').textContent = 'No correlation data available';
+            document.getElementById('strategy-correlation-error').style.display = 'block';
+            return;
+        }
+        const thead = document.createElement('thead');
+        const headerRow = thead.insertRow();
+        const columns = ['Strategy', ...strategyCorrelationData.map(item => item.Strategy)];
+        columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.textContent = col.replace(/ Index/, '');
+            th.dataset.column = col;
+            th.dataset.order = 'desc';
+            th.addEventListener('click', () => sortTable('strategy-correlation-table', index));
+            headerRow.appendChild(th);
+        });
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        strategyCorrelationData.forEach(item => {
+            const row = tbody.insertRow();
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                let value = col === 'Strategy' ? item[col] : item[col];
+                if (Number.isFinite(value)) {
+                    value = value.toFixed(4);
+                } else {
+                    value = value || 'N/A';
+                }
+                cell.textContent = value;
+                cell.style.color = col !== 'Strategy' && Number.isFinite(parseFloat(value)) && value !== 'N/A'
+                    ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
+                    : 'var(--text-color)';
+            });
+        });
+        table.appendChild(tbody);
+        document.getElementById('strategy-correlation-error').style.display = 'none';
+        console.log('Strategy correlation table updated, rows:', strategyCorrelationData.length);
+    } catch (error) {
+        console.error('Error updating strategy correlation table:', error);
+        document.getElementById('strategy-correlation-table').innerHTML = '<tr><td colspan="10">Error loading correlation data</td></tr>';
+        document.getElementById('strategy-correlation-error').textContent = `Error updating table: ${error.message}`;
+        document.getElementById('strategy-correlation-error').style.display = 'block';
+    }
+}
+
+function toggleStrategySummaryTable() {
+    try {
+        strategySummaryTableVisible = !strategySummaryTableVisible;
+        const table = document.getElementById('strategy-summary-table');
+        table.style.display = strategySummaryTableVisible ? 'table' : 'none';
+        document.querySelector('#strategy-performance-summary .toggle-button[onclick="toggleStrategySummaryTable()"]').textContent = strategySummaryTableVisible ? 'Hide Data' : 'Show Data';
+        if (strategySummaryTableVisible) updateStrategySummaryTable();
+        console.log(`Strategy summary table visibility set to: ${strategySummaryTableVisible}`);
+    } catch (error) {
+        console.error('Error toggling strategy summary table:', error);
+        document.getElementById('strategy-summary-error').textContent = `Error toggling table: ${error.message}`;
+        document.getElementById('strategy-summary-error').style.display = 'block';
+    }
+}
+
+function toggleStrategyCorrelationTable() {
+    try {
+        strategyCorrelationTableVisible = !strategyCorrelationTableVisible;
+        const table = document.getElementById('strategy-correlation-table');
+        table.style.display = strategyCorrelationTableVisible ? 'table' : 'none';
+        document.querySelector('#strategy-performance-correlation .toggle-button[onclick="toggleStrategyCorrelationTable()"]').textContent = strategyCorrelationTableVisible ? 'Hide Data' : 'Show Data';
+        if (strategyCorrelationTableVisible) updateStrategyCorrelationTable();
+        console.log(`Strategy correlation table visibility set to: ${strategyCorrelationTableVisible}`);
+    } catch (error) {
+        console.error('Error toggling strategy correlation table:', error);
+        document.getElementById('strategy-correlation-error').textContent = `Error toggling table: ${error.message}`;
+        document.getElementById('strategy-correlation-error').style.display = 'block';
+    }
+}
+
+function exportStrategySummaryData() {
+    try {
+        const table = document.getElementById('strategy-summary-table');
+        if (strategySummaryData.length === 0) {
+            console.warn('No data to export for strategy summary table');
+            document.getElementById('strategy-summary-error').textContent = 'No data available to export';
+            document.getElementById('strategy-summary-error').style.display = 'block';
+            return;
+        }
+        const columns = [
+            'Strategy', 'Min Return', 'Max Return', 'Mean Return', 'Max Drawdown',
+            'Drawdown Length (months)', 'Recovery Time (months)', 'Positive/Negative Ratio',
+            'Mean Positive Return', 'Mean Negative Return'
+        ];
+        const wsData = [
+            columns,
+            ...strategySummaryData.map(item => columns.map(col => {
+                let value = item[col];
+                if (Number.isFinite(value)) {
+                    if (col.includes('Return') || col === 'Max Drawdown') {
+                        return (value * 100).toFixed(2) + '%';
+                    } else if (col.includes('months')) {
+                        return parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    } else {
+                        return value.toFixed(2);
+                    }
+                }
+                return value || 'N/A';
+            }))
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Strategy Summary');
+        XLSX.write(wb, `Strategy_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
+        console.log('Strategy summary data exported successfully, rows:', strategySummaryData.length);
+    } catch (error) {
+        console.error('Error exporting strategy summary data:', error);
+        document.getElementById('strategy-summary-error').textContent = `Error exporting data: ${error.message}`;
+        document.getElementById('strategy-summary-error').style.display = 'block';
+    }
+}
+
+function exportStrategyCorrelationData() {
+    try {
+        const table = document.getElementById('strategy-correlation-table');
+        if (strategyCorrelationData.length === 0) {
+            console.warn('No data to export for strategy correlation table');
+            document.getElementById('strategy-correlation-error').textContent = 'No data available to export';
+            document.getElementById('strategy-correlation-error').style.display = 'block';
+            return;
+        }
+        const columns = ['Strategy', ...strategyCorrelationData.map(item => item.Strategy)];
+        const wsData = [
+            columns,
+            ...strategyCorrelationData.map(item => columns.map(col => {
+                let value = col === 'Strategy' ? item[col] : item[col];
+                if (Number.isFinite(value)) {
+                    return value.toFixed(4);
+                }
+                return value || 'N/A';
+            }))
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Strategy Correlation');
+        XLSX.write(wb, `Strategy_Correlation_${new Date().toISOString().split('T')[0]}.xlsx`);
+        console.log('Strategy correlation data exported successfully, rows:', strategyCorrelationData.length);
+    } catch (error) {
+        console.error('Error exporting strategy correlation data:', error);
+        document.getElementById('strategy-correlation-error').textContent = `Error exporting data: ${error.message}`;
+        document.getElementById('strategy-correlation-error').style.display = 'block';
+    }
+}
+
+		
 document.addEventListener('DOMContentLoaded', () => {
     try {
         if (typeof Chart === 'undefined' || typeof Plotly === 'undefined' || typeof Papa === 'undefined' || typeof XLSX === 'undefined') {
