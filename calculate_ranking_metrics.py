@@ -189,7 +189,7 @@ def get_prev_data(ts, days_back, source):
     if not prev_ts:
         print(f"get_prev_data: No previous timestamp found {days_back} days back from {ts}")
         return pd.DataFrame(), pd.DataFrame(columns=['Ticker', 'OI', 'Vol']), pd.DataFrame()
-    prev_ranking_path = f'data/{prev_ts}/tables/ranking/ranking{prefix}.csv'
+    prev_ranking_path = f'data/{prev_ts}/ranking/ranking{prefix}.csv'
     prev_option_path = f'data/{prev_ts}/option_totals.csv'
     prev_atm_path = f'data/{prev_ts}/atm_iv.csv'
     prev_ranking = pd.read_csv(prev_ranking_path) if os.path.exists(prev_ranking_path) else pd.DataFrame()
