@@ -1,0 +1,12 @@
+Ticker,Latest Close ($),Open ($),Low ($),High ($),Daily Volume,Close 1d (%),Close 1w (%),Realised Volatility 100d (%),Weighted IV (%),Weighted IV 1d (%),Weighted IV 1w (%),Volume 1d (%),Volume 1w (%),Open Interest,OI 1d (%),OI 1w (%),ATM 12m/3m Ratio,Volume Rank,Open Interest Rank,Close 1d (%)_Color,Close 1w (%)_Color,Weighted IV 1d (%)_Color,Weighted IV 1w (%)_Color,Volume 1d (%)_Color,Volume 1w (%)_Color,OI 1d (%)_Color,OI 1w (%)_Color
+OPEN,9.94,,,,"1,414,988",,,203.34,,,,,,"3,773,520",,,,2 of 11,6 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+LCID,20.5,,,,"112,309",,,82.43,,,,,,"3,042,443",,,,10 of 11,8 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+AAL,12.58,,,,"109,332",,,48.67,,,,,,"3,296,075",,,,11 of 11,7 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+BABA,162.48,,,,"274,284",,,43.35,,,,,,"1,970,326",,,,9 of 11,10 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+AMZN,231.23,,,,"816,935",,,29.04,,,,,,"4,253,922",,,,5 of 11,4 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+NIO,7.37,,,,"314,383",,,65.75,,,,,,"4,770,948",,,,8 of 11,2 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+TSLA,416.85,,,,"2,570,964",,,53.91,,,,,,"8,889,519",,,,1 of 11,1 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+COIN,343.13,,,,"461,552",,,72.45,,,,,,"1,409,585",,,,7 of 11,11 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+SOFI,28.11,,,,"839,862",,,45.75,,,,,,"4,190,581",,,,4 of 11,5 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+AMD,157.92,,,,"800,338",,,42.34,,,,,,"4,269,636",,,,6 of 11,3 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
+MSTR,349.12,,,,"999,338",,,49.4,,,,,,"2,924,266",,,,3 of 11,9 of 11,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF,#FFFFFF
