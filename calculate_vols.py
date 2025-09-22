@@ -1,4 +1,4 @@
-DEBUG = True  # Set to True to save plots
+DEBUG = False  # Set to True to save plots
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -792,7 +792,7 @@ def process_volumes(timestamp):
     max_workers = 2
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(process_ticker, ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau): ticker for ticker in tickers}
-        for future in as_completed(futures, timeout=300):
+        for future in as_completed(futures):  # Removed timeout=300
             ticker = futures[future]
             try:
                 metrics_df, param_df = future.result()
@@ -800,14 +800,6 @@ def process_volumes(timestamp):
                     all_metrics.append(metrics_df)
                 if not param_df.empty:
                     all_params.append(param_df)
-            except TimeoutError:
-                print(f"DEBUG: Timeout processing {ticker}")
-                print(f"{ticker} (Call): p90=nan%, short_max=nan, long_min=nan")
-                print(f"{ticker} (Call): Restricted P90 (moneyness 0.5-2.0, expiry 0.5-2.0) = nan%")
-                print(f"{ticker} (Call): One_Yr_ATM_Rel_Error = nan%")
-                print(f"{ticker} (Put): p90=nan%, short_max=nan, long_min=nan")
-                print(f"{ticker} (Put): Restricted P90 (moneyness 0.5-2.0, expiry 0.5-2.0) = nan%")
-                print(f"{ticker} (Put): One_Yr_ATM_Rel_Error = nan%")
             except Exception as e:
                 print(f"DEBUG: Error processing {ticker}: {e}")
                 print(f"{ticker} (Call): p90=nan%, short_max=nan, long_min=nan")
