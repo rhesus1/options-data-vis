@@ -2,3 +2,4 @@ data/*.csv filter=lfs diff=lfs merge=lfs -text
 data/historic_*.csv filter=lfs diff=lfs merge=lfs -text
 data/raw_*.csv filter=lfs diff=lfs merge=lfs -text
 data/raw_yfinance_*.csv filter=lfs diff=lfs merge=lfs -text
+data/BH_HF_Ret_Sept_25.csv !filter !diff !merge text
