@@ -7,6 +7,7 @@ from datetime import datetime
 import time
 import pyxlsb
 from tqdm import tqdm
+import yfinance as yf  # For fetching SPX data
 
 def load_data(timestamp, source, base_path="data"):
     """Load raw data files for a given timestamp and source."""
@@ -16,14 +17,12 @@ def load_data(timestamp, source, base_path="data"):
     ranking = None
     barclays = None
     try:
-        # Load company names
         if os.path.exists("company_names.txt"):
             print("Loading company_names.txt...", flush=True)
             company_names = pd.read_csv("company_names.txt", sep="\t")
             print(f"Loaded company_names.txt in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print("Warning: company_names.txt not found.", flush=True)
-        # Load ranking
         ranking_path = f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv"
         if os.path.exists(ranking_path):
             print(f"Loading ranking file: {ranking_path}...", flush=True)
@@ -45,7 +44,6 @@ def load_data(timestamp, source, base_path="data"):
             print(f"Loaded ranking file in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             raise FileNotFoundError(f"Ranking file not found: {ranking_path}")
-        # Load Barclays data
         barclays_path = f"{base_path}/BASE3-Credit & Equity Volatility Term Structures.xlsb"
         if os.path.exists(barclays_path):
             print(f"Loading Barclays data: {barclays_path}...", flush=True)
@@ -110,7 +108,9 @@ def generate_ranking_table(ranking, company_names):
         "Weighted IV 3m (%)", "Weighted IV 3m 1d (%)", "Weighted IV 3m 1w (%)",
         "ATM IV 3m (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
         "Rvol100d - Weighted IV", "Volume", "Volume 1d (%)", "Volume 1w (%)",
-        "Open Interest", "OI 1d (%)", "OI 1w (%)", "Num Contracts"
+        "Open Interest", "OI 1d (%)", "OI 1w (%)", "Num Contracts",
+        "One_Yr_ATM_Rel_Error_Call (%)", "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
+        "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)", "Restricted_P90_Rel_Error_Put (%)"
     ]
     for col in columns:
         if col not in ranking.columns:
@@ -137,7 +137,10 @@ def generate_ranking_table(ranking, company_names):
                    "Weighted IV 1d (%)", "Weighted IV 1w (%)", "Weighted IV 3m 1d (%)",
                    "Weighted IV 3m 1w (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
                    "Rvol100d - Weighted IV", "Volume 1d (%)", "Volume 1w (%)",
-                   "OI 1d (%)", "OI 1w (%)"]:
+                   "OI 1d (%)", "OI 1w (%)", "One_Yr_ATM_Rel_Error_Call (%)",
+                   "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
+                   "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)",
+                   "Restricted_P90_Rel_Error_Put (%)"]:
             ranking[color_col] = np.where(
                 pd.to_numeric(ranking[col], errors='coerce').notna(),
                 np.where(pd.to_numeric(ranking[col], errors='coerce') < 0, "#F87171",
@@ -148,7 +151,7 @@ def generate_ranking_table(ranking, company_names):
     ranking_no_colors = ranking[columns]
     print(f"Generated ranking table in {time.time() - start_time:.2f} seconds")
     return ranking[columns + color_columns], ranking_no_colors
-
+    
 def generate_stock_table(ranking, company_names, barclays):
     """Generate stock table with formatted values, colors, and Barclays data."""
     start_time = time.time()
@@ -162,7 +165,6 @@ def generate_stock_table(ranking, company_names, barclays):
         ).fillna("N/A")
     else:
         stock_data["Company Name"] = "N/A"
-    # Merge Barclays data
     if barclays is not None and not barclays.empty:
         stock_data = stock_data.merge(
             barclays[['Ticker', 'Debt Class', 'Spread 1Y', 'Spread 3Y', 'Spread 5Y']],
@@ -212,7 +214,7 @@ def generate_normalized_table(ranking):
     for col in columns:
         if col not in normalized_data.columns:
             normalized_data[col] = pd.NA if col != "Ticker" else "N/A"
-    for col in columns[1:]: # Skip Ticker
+    for col in columns[1:]:
         normalized_data[col] = np.where(
             normalized_data[col].notna() & (pd.to_numeric(normalized_data[col], errors='coerce') == pd.to_numeric(normalized_data[col], errors='coerce')),
             pd.to_numeric(normalized_data[col], errors='coerce').round(2),
@@ -275,13 +277,11 @@ def generate_summary_table(ranking, skew_data, tickers):
                     num_val = pd.to_numeric(value, errors='coerce')
                     value = round(num_val, 2) if pd.notna(num_val) else pd.NA
             row[metric["name"]] = value
-        # Add ATM ratio from skew data
         atm_ratio = pd.NA
         if not skew_data.empty and skew_data["Ticker"].isin([ticker]).any():
             atm_val = skew_data[skew_data["Ticker"] == ticker]["ATM_12m_3m_Ratio"].iloc[0]
             atm_ratio = round(pd.to_numeric(atm_val, errors='coerce'), 4) if pd.notna(atm_val) else pd.NA
         row["ATM 12m/3m Ratio"] = atm_ratio
-        # Add colors for percentage columns
         for metric in metrics:
             color_key = f"{metric['name']}_Color"
             row[color_key] = "#FFFFFF"
@@ -347,6 +347,117 @@ def generate_top_contracts_tables(processed_data, tickers, timestamp):
     print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds")
     return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
+def generate_returns_summary(base_path="data"):
+    """Generate summary table and correlation table from BH_HF_Ret_Sept_25.csv, adding SPX returns, Sharpe, and Sortino ratios."""
+    start_time = time.time()
+    file_path = os.path.join(base_path, "BH_HF_Ret_Sept_25.csv")
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")
+        return
+    # Load the CSV
+    df = pd.read_csv(file_path)
+    if 'Date' not in df.columns:
+        print("CSV must have a 'Date' column.")
+        return
+    # Convert Date to datetime
+    df['Date'] = pd.to_datetime(df['Date'], format='%b-%y')
+    df.set_index('Date', inplace=True)
+    # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
+    for col in df.columns:
+        if col != 'Date':
+            df[col] = df[col].str.rstrip('%').astype(float) / 100
+    # Fetch SPX data
+    min_date = df.index.min()
+    max_date = df.index.max()
+    try:
+        spx = yf.download('^GSPC', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
+        spx_monthly = spx['Adj Close'].resample('ME').last().pct_change()
+        spx_monthly.index = pd.to_datetime(spx_monthly.index)
+        spx_monthly = spx_monthly.reindex(df.index, method='nearest')
+        df['SPX'] = spx_monthly
+    except Exception as e:
+        print(f"Error fetching SPX data: {e}. Proceeding without SPX.")
+        df['SPX'] = np.nan
+    # Fetch 3-month T-Bill yield (^IRX) as risk-free rate
+    try:
+        tbill = yf.download('^IRX', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
+        # ^IRX is annualized yield in percent; convert to monthly decimal
+        rf_monthly = tbill['Close'] / 100 / 12
+        rf_monthly = rf_monthly.resample('ME').last()
+        rf_monthly = rf_monthly.reindex(df.index, method='nearest').fillna(method='ffill')
+        df['RiskFree'] = rf_monthly
+    except Exception as e:
+        print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.")
+        df['RiskFree'] = 0.04 / 12  # Fallback: 4% annual = 0.00333 monthly
+    # Ensure numeric data
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    strategies = df.columns.drop('RiskFree')  # Exclude RiskFree from strategies
+    summary = []
+    for strat in strategies:
+        rets = df[strat].dropna()
+        rf = df['RiskFree'].reindex(rets.index).dropna()
+        if len(rets) == 0 or len(rf) == 0:
+            continue
+        # Excess returns
+        excess_rets = rets - rf
+        # Basic statistics
+        min_r = round(rets.min(), 4)
+        max_r = round(rets.max(), 4)
+        mean_r = round(rets.mean(), 4)
+        # Positive and negative months
+        pos = rets[rets > 0]
+        neg = rets[rets < 0]
+        pos_neg_ratio = round(len(pos) / len(neg), 2) if len(neg) > 0 else np.inf
+        mean_pos = round(pos.mean(), 4) if len(pos) > 0 else np.nan
+        mean_neg = round(neg.mean(), 4) if len(neg) > 0 else np.nan
+        # Drawdown calculations
+        cumret = (1 + rets).cumprod()
+        cummax = cumret.cummax()
+        dd = (cumret / cummax) - 1
+        max_dd = round(dd.min(), 4)
+        trough_idx = dd.idxmin()
+        peak_idx = cummax.loc[:trough_idx].idxmax()
+        dd_length = (trough_idx - peak_idx).days // 30  # Approximate months
+        # Recovery time
+        peak_val = cummax.loc[peak_idx]
+        post_trough = cumret.loc[trough_idx:]
+        recovery_mask = post_trough >= peak_val
+        recovery_time = np.nan
+        if recovery_mask.any():
+            recovery_idx = post_trough[recovery_mask].index[0]
+            recovery_time = (recovery_idx - trough_idx).days // 30  # Approximate months
+        # Sharpe Ratio: (Mean excess return / Std dev of excess returns) * sqrt(12)
+        mean_excess = excess_rets.mean()
+        std_excess = excess_rets.std()
+        sharpe_ratio = round((mean_excess / std_excess) * np.sqrt(12), 4) if std_excess > 0 else np.nan
+        # Sortino Ratio: (Mean excess return / Downside deviation) * sqrt(12)
+        downside_rets = excess_rets[excess_rets < 0]
+        downside_std = downside_rets.std() if len(downside_rets) > 0 else np.nan
+        sortino_ratio = round((mean_excess / downside_std) * np.sqrt(12), 4) if downside_std > 0 else np.nan
+        summary.append({
+            'Strategy': strat,
+            'Min Return': min_r,
+            'Max Return': max_r,
+            'Mean Return': mean_r,
+            'Max Drawdown': max_dd,
+            'Drawdown Length (months)': dd_length,
+            'Recovery Time (months)': recovery_time,
+            'Positive/Negative Ratio': pos_neg_ratio if np.isfinite(pos_neg_ratio) else 'inf',
+            'Mean Positive Return': mean_pos,
+            'Mean Negative Return': mean_neg,
+            'Sharpe Ratio': sharpe_ratio,
+            'Sortino Ratio': sortino_ratio
+        })
+    summary_df = pd.DataFrame(summary)
+    # Save summary table
+    os.makedirs(os.path.join(base_path, "tables/returns"), exist_ok=True)
+    summary_df.to_csv(os.path.join(base_path, "tables/returns/summary_table.csv"), index=False)
+    # Correlation table
+    corr = df[strategies].corr().round(4)  # Exclude RiskFree from correlation
+    corr.to_csv(os.path.join(base_path, "tables/returns/correlation_table.csv"))
+    print(f"Generated returns summary and correlation tables in {time.time() - start_time:.2f} seconds")
+    
 def save_tables(timestamp, source, base_path="data"):
     """Generate and save all precomputed tables, including normalized table, and append IVOLs to historical data."""
     start_time = time.time()
@@ -355,7 +466,6 @@ def save_tables(timestamp, source, base_path="data"):
     if ranking is None or ranking.empty:
         print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
         return
-    # Load all ticker-specific data
     tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
     skew_data = pd.DataFrame()
@@ -365,19 +475,16 @@ def save_tables(timestamp, source, base_path="data"):
             processed_data = pd.concat([processed_data, processed], ignore_index=True)
         if not skew.empty:
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
-    # Generate tables
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     normalized_table, normalized_table_no_colors = generate_normalized_table(ranking)
     summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
     top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers, timestamp)
-    # Create directories
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/normalized", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/summary", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/contracts", exist_ok=True)
-    # Save tables
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
         ranking_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table.csv", index=False)
@@ -396,7 +503,6 @@ def save_tables(timestamp, source, base_path="data"):
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
         top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table.csv", index=False)
-    # Append IVOLs to historical data
     ivol_columns = [
         'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)'
     ]
@@ -413,10 +519,8 @@ def save_tables(timestamp, source, base_path="data"):
         historical_file = f"{base_path}/history/historic_{ticker}.csv"
         os.makedirs(os.path.dirname(historical_file), exist_ok=True)
         if os.path.exists(historical_file):
-            # Append to existing file without header
             historical_df.to_csv(historical_file, mode='a', header=False, index=False)
         else:
-            # Create new file with header
             historical_df.to_csv(historical_file, mode='w', header=True, index=False)
     print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
 
@@ -442,6 +546,8 @@ def main():
     sources = ['yfinance']
     for source in sources:
         save_tables(timestamp, source, base_path)
+    generate_returns_summary(base_path)
     print(f"Total execution time: {time.time() - start_time:.2f} seconds")
 
-main()
+if __name__ == "__main__":
+    main()
