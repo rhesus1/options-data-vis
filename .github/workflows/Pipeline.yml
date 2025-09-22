@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yfinance pandas numpy scipy joblib statsmodels tqdm pyxlsb selenium beautifulsoup4 webdriver-manager
+        pip install yfinance pandas numpy scipy joblib statsmodels tqdm pyxlsb selenium beautifulsoup4 webdriver-manager optuna
       continue-on-error: false
     - name: Create data directory
       run: mkdir -p data
