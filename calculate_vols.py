@@ -7,7 +7,7 @@ import os
 import json
 from scipy.optimize import brentq, least_squares
 from scipy.stats import norm
-from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import warnings
 import optuna
 import optuna.logging
@@ -164,7 +164,7 @@ def calculate_iv_binomial(options_df, yields_dict, q=0, default_r=0.05, max_work
         return options_df
     valid_mask = (options_df['Bid'] > 0) & (options_df['Ask'] > 0) & (options_df['Years_to_Expiry'] > 0.001) & \
                  (options_df['Last Stock Price'] > 0) & (options_df['Strike'] > 0) & \
-                 (options_df['Strike'] / options_df['Last Stock Price']).between(0.1, 5.0)
+                 (options_df['Strike'] / options_df['Last Stock Price']).between(0.5, 2.0)  # Tightened moneyness range
     options_df = options_df[valid_mask]
     if len(options_df) == 0:
         return options_df
@@ -188,7 +188,7 @@ def calculate_iv_binomial(options_df, yields_dict, q=0, default_r=0.05, max_work
         options_df.at[idx, 'IV_mid'] = iv_bs
         options_df.at[idx, 'IV_status'] = status
     return options_df
-
+    
 def calculate_smoothed_iv(df, params_calls, params_puts, model='hyp'):
     df = df.copy()
     df['Smoothed_IV'] = np.nan
@@ -228,7 +228,7 @@ def fit_single_ticker(df, model, p0=None, max_nfev=10000, max_iterations=3, tick
     df = df[
         (df['IV_mid'] > 0) & (df['IV_mid'] <= 5.0) &
         (df['weight'] > 0) & (df['Bid'] >= 0) & (df['Ask'] >= df['Bid']) &
-        (df['SMI'] > 0)
+        (df['SMI'] > 0) & (df['Moneyness'].between(0.5, 2.0))  # Tightened moneyness range
     ]
     if len(df) < 4:
         return None, None
@@ -355,21 +355,28 @@ def optimize_p90(df, df_type, ticker, option_type, exp_min_short, exp_max_long, 
     expiry_max = df_type['Years_to_Expiry'].max()
     median_expiry = df_type['Years_to_Expiry'].median()
     
+    # Check for valid range to avoid optuna ValueError
+    if median_expiry - expiry_min < 0.1:
+        best_exp_max_short = max(expiry_min + 0.3, 0.3)
+        best_exp_min_long = min(expiry_max - 0.3, 1.8)
+        print(f"{ticker} ({option_type}): p90=nan%, short_max={best_exp_max_short:.3f}, long_min={best_exp_min_long:.3f}")
+        return best_exp_max_short, best_exp_min_long
+    
     def objective(trial):
         exp_max_s = trial.suggest_float('exp_max_s', expiry_min + 0.05, median_expiry - 0.05)
         exp_min_l = trial.suggest_float('exp_min_l', median_expiry + 0.1, expiry_max - 0.05)
         if exp_min_l - exp_max_s < 0.1:
             return np.inf
         p90 = compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model)
-        penalty = 0.01 * (exp_max_s + exp_min_l)
+        penalty = 0.05 * (exp_max_s + exp_min_l)  # Increased penalty
         return p90 + penalty if np.isfinite(p90) else np.inf
 
     study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=8, timeout=60)
+    study.optimize(objective, n_trials=12, timeout=60)  # Increased trials
     if study.best_value < np.inf:
         best_exp_max_short = study.best_params['exp_max_s']
         best_exp_min_long = study.best_params['exp_min_l']
-        best_p90 = study.best_value - 0.01 * (best_exp_max_short + best_exp_min_long)
+        best_p90 = study.best_value - 0.05 * (best_exp_max_short + best_exp_min_long)
         print(f"{ticker} ({option_type}): p90={best_p90:.2f}%, short_max={best_exp_max_short:.3f}, long_min={best_exp_min_long:.3f}")
         return best_exp_max_short, best_exp_min_long
     best_exp_max_short = max(df_type['Years_to_Expiry'].min() + 0.3, 0.3)
@@ -755,7 +762,6 @@ def process_volumes(timestamp):
         return
     with open('tickers.txt', 'r') as f:
         tickers = [line.strip() for line in f if line.strip()]
-    #tickers = ['COIN']
     timestamp_dt = datetime.strptime(timestamp, '%Y%m%d_%H%M')
     timestamp_date = timestamp_dt.strftime('%Y-%m-%d')
     yields_dict = fetch_treasury_yields(timestamp_date)
@@ -769,10 +775,10 @@ def process_volumes(timestamp):
     extrap_tau = None
     all_metrics = []
     all_params = []
-    max_workers = 2
+    max_workers = 4  # Increased for better parallelization
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(process_ticker, ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau): ticker for ticker in tickers}
-        for future in as_completed(futures, timeout=300):
+        for future in as_completed(futures):  # Removed timeout
             ticker = futures[future]
             try:
                 metrics_df, param_df = future.result()
@@ -780,9 +786,6 @@ def process_volumes(timestamp):
                     all_metrics.append(metrics_df)
                 if not param_df.empty:
                     all_params.append(param_df)
-            except TimeoutError:
-                print(f"{ticker} (Call): p90=nan%, short_max=nan, long_min=nan")
-                print(f"{ticker} (Put): p90=nan%, short_max=nan, long_min=nan")
             except Exception as e:
                 print(f"{ticker} (Call): p90=nan%, short_max=nan, long_min=nan")
                 print(f"{ticker} (Put): p90=nan%, short_max=nan, long_min=nan")
@@ -811,5 +814,5 @@ def process_volumes(timestamp):
 
 if __name__ == '__main__':
     import sys
-    timestamp = sys.argv[1] if len(sys.argv) > 1 else '20250902_2137'
+    timestamp = sys.argv[1] if len(sys.argv) > 1 else '20250919_2126'
     process_volumes(timestamp)
