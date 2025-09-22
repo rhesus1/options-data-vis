@@ -318,7 +318,7 @@ def calculate_ranking_metrics(timestamp, sources):
                 rank_dict['Weighted IV 3m 1d (%)'] = ((weighted_iv_3m - prev_day_weighted_iv_3m) / prev_day_weighted_iv_3m * 100) if prev_day_weighted_iv_3m != 'N/A' and prev_day_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
                 rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_weighted_iv_3m * 100) if prev_week_weighted_iv_3m != 'N/A' and prev_week_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
                 prev_day_atm_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'ATM IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
-                prev_week_atm_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'ATM IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
+                prev_week_atm_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'ATM IV 3m (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
                 rank_dict['ATM IV 3m 1d (%)'] = ((atm_iv_3m - prev_day_atm_iv_3m) / prev_day_atm_iv_3m * 100) if prev_day_atm_iv_3m != 'N/A' and prev_day_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
                 rank_dict['ATM IV 3m 1w (%)'] = ((atm_iv_3m - prev_week_atm_iv_3m) / prev_week_atm_iv_3m * 100) if prev_week_atm_iv_3m != 'N/A' and prev_week_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
 
@@ -498,6 +498,12 @@ def calculate_ranking_metrics(timestamp, sources):
             ]
             df_ranking = pd.DataFrame(ranking)
             if not df_ranking.empty:
+                # Assign Rank before selecting columns
+                df_ranking['Rank'] = range(1, len(df_ranking) + 1)
+                # Ensure all columns in column_order are present
+                for col in column_order:
+                    if col not in df_ranking.columns:
+                        df_ranking[col] = 'N/A'
                 df_ranking = df_ranking[column_order]
                 df_ranking.replace('N/A', np.nan, inplace=True)
                 df_ranking.sort_values(by='Rvol 100d Percentile 2y (%)', ascending=False, na_position='last', inplace=True)
