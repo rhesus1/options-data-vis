@@ -23,6 +23,7 @@ def load_data(timestamp, source, base_path="data"):
             print(f"Loaded company_names.txt in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print("Warning: company_names.txt not found.", flush=True)
+        
         ranking_path = f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv"
         if os.path.exists(ranking_path):
             print(f"Loading ranking file: {ranking_path}...", flush=True)
@@ -43,7 +44,9 @@ def load_data(timestamp, source, base_path="data"):
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
             print(f"Loaded ranking file in {time.time() - start_time:.2f} seconds", flush=True)
         else:
-            raise FileNotFoundError(f"Ranking file not found: {ranking_path}")
+            print(f"Warning: Ranking file not found: {ranking_path}. Returning empty DataFrame.", flush=True)
+            ranking = pd.DataFrame()
+
         barclays_path = f"{base_path}/BASE3-Credit & Equity Volatility Term Structures.xlsb"
         if os.path.exists(barclays_path):
             print(f"Loading Barclays data: {barclays_path}...", flush=True)
@@ -59,11 +62,12 @@ def load_data(timestamp, source, base_path="data"):
             print(f"Loaded Barclays data in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print(f"Warning: Barclays data file not found: {barclays_path}", flush=True)
+        
         print(f"Loaded all data in {time.time() - start_time:.2f} seconds", flush=True)
         return company_names, ranking, barclays
-    except FileNotFoundError as e:
-        print(f"Error loading data file: {e}", flush=True)
-        return None, None, None
+    except Exception as e:
+        print(f"Error loading data: {e}", flush=True)
+        return company_names, ranking, barclays
 
 def load_ticker_data(ticker, timestamp, source, base_path="data"):
     """Load ticker-specific data."""
@@ -75,20 +79,24 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
         processed_path = f"{base_path}/{timestamp}/processed{prefix}/processed{prefix}_{ticker}.csv"
         if os.path.exists(processed_path):
             processed = pd.read_csv(processed_path)
+        else:
+            print(f"Warning: Processed data file not found for {ticker}: {processed_path}", flush=True)
         skew_path = f"{base_path}/{timestamp}/skew_metrics{prefix}/skew_metrics{prefix}_{ticker}.csv"
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
-        print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds")
+        else:
+            print(f"Warning: Skew metrics file not found for {ticker}: {skew_path}", flush=True)
+        print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds", flush=True)
         return ticker, processed, skew
     except Exception as e:
-        print(f"Error loading data for ticker {ticker}: {e}")
+        print(f"Error loading data for ticker {ticker}: {e}", flush=True)
         return ticker, pd.DataFrame(), pd.DataFrame()
 
 def generate_ranking_table(ranking, company_names):
     """Generate ranking table with formatted values and colors."""
     start_time = time.time()
     if ranking is None or ranking.empty:
-        print(f"No ranking data in {time.time() - start_time:.2f} seconds")
+        print(f"No ranking data in {time.time() - start_time:.2f} seconds", flush=True)
         return pd.DataFrame(), pd.DataFrame()
     ranking = ranking.copy()
     if company_names is not None and not company_names.empty:
@@ -149,14 +157,14 @@ def generate_ranking_table(ranking, company_names):
             )
     color_columns = [f"{col}_Color" for col in columns if col not in ["Rank", "Ticker", "Company Name"]]
     ranking_no_colors = ranking[columns]
-    print(f"Generated ranking table in {time.time() - start_time:.2f} seconds")
+    print(f"Generated ranking table in {time.time() - start_time:.2f} seconds", flush=True)
     return ranking[columns + color_columns], ranking_no_colors
-    
+
 def generate_stock_table(ranking, company_names, barclays):
     """Generate stock table with formatted values, colors, and Barclays data."""
     start_time = time.time()
     if ranking is None or ranking.empty:
-        print(f"No stock data in {time.time() - start_time:.2f} seconds")
+        print(f"No stock data in {time.time() - start_time:.2f} seconds", flush=True)
         return pd.DataFrame(), pd.DataFrame()
     stock_data = ranking.copy()
     if company_names is not None and not company_names.empty:
@@ -200,14 +208,14 @@ def generate_stock_table(ranking, company_names, barclays):
             )
     color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name", "Debt Class"]]
     stock_data_no_colors = stock_data[columns]
-    print(f"Generated stock table in {time.time() - start_time:.2f} seconds")
+    print(f"Generated stock table in {time.time() - start_time:.2f} seconds", flush=True)
     return stock_data[columns + color_columns], stock_data_no_colors
 
 def generate_normalized_table(ranking):
     """Generate normalized price table with formatted values."""
     start_time = time.time()
     if ranking is None or ranking.empty:
-        print(f"No normalized data in {time.time() - start_time:.2f} seconds")
+        print(f"No normalized data in {time.time() - start_time:.2f} seconds", flush=True)
         return pd.DataFrame(), pd.DataFrame()
     normalized_data = ranking.copy()
     columns = ["Ticker", "Normalized 3m", "Normalized 6m", "Normalized 1y"]
@@ -224,14 +232,14 @@ def generate_normalized_table(ranking):
         normalized_data[color_col] = "#FFFFFF"
     color_columns = [f"{col}_Color" for col in columns if col != "Ticker"]
     normalized_data_no_colors = normalized_data[columns]
-    print(f"Generated normalized table in {time.time() - start_time:.2f} seconds")
+    print(f"Generated normalized table in {time.time() - start_time:.2f} seconds", flush=True)
     return normalized_data[columns + color_columns], normalized_data_no_colors
 
 def generate_summary_table(ranking, skew_data, tickers):
     """Generate aggregated summary table for all tickers."""
     start_time = time.time()
     if ranking is None or ranking.empty:
-        print(f"No summary data in {time.time() - start_time:.2f} seconds")
+        print(f"No summary data in {time.time() - start_time:.2f} seconds", flush=True)
         return pd.DataFrame(), pd.DataFrame()
     total_tickers = len(tickers)
     volume_rank = ranking['Volume'].rank(ascending=False, na_option="bottom").astype(int)
@@ -263,6 +271,7 @@ def generate_summary_table(ranking, skew_data, tickers):
     for ticker in tickers:
         filtered_ranking = ranking[ranking["Ticker"] == ticker]
         if filtered_ranking.empty:
+            print(f"Warning: No ranking data for ticker {ticker}", flush=True)
             continue
         row = {"Ticker": ticker}
         for metric in metrics:
@@ -298,24 +307,25 @@ def generate_summary_table(ranking, skew_data, tickers):
                                                                                       "OI 1d (%)", "OI 1w (%)"]]
     result = pd.DataFrame(summary_data, columns=columns + color_columns)
     result_no_colors = pd.DataFrame(summary_data, columns=columns)
-    print(f"Generated summary table in {time.time() - start_time:.2f} seconds")
+    print(f"Generated summary table in {time.time() - start_time:.2f} seconds", flush=True)
     return result, result_no_colors
 
 def generate_top_contracts_tables(processed_data, tickers, timestamp):
     """Generate aggregated top 10 volume and open interest tables for each ticker in a single file."""
     start_time = time.time()
     if processed_data.empty or 'Ticker' not in processed_data.columns:
-        print(f"No contracts data in {time.time() - start_time:.2f} seconds")
+        print(f"No contracts data in {time.time() - start_time:.2f} seconds", flush=True)
         return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     timestamp_dt = datetime.strptime(timestamp, "%Y%m%d_%H%M")
     min_expiry_dt = (timestamp_dt + pd.DateOffset(months=3)).date()
     top_volume_list = []
     top_open_interest_list = []
     for ticker in tickers:
-        filtered = processed_data[processed_data["Ticker"] == ticker]
+        filtered = processed_data[processed_data["Ticker"] == ticker].copy()  # Create a copy to avoid SettingWithCopyWarning
         if filtered.empty:
+            print(f"Warning: No processed data for ticker {ticker}", flush=True)
             continue
-        filtered['Expiry_dt'] = pd.to_datetime(filtered['Expiry'], errors='coerce').dt.date
+        filtered.loc[:, 'Expiry_dt'] = pd.to_datetime(filtered['Expiry'], errors='coerce').dt.date
         long_term = filtered[filtered['Expiry_dt'] >= min_expiry_dt].drop(columns=['Expiry_dt'])
         top_volume = long_term[long_term["Volume"].notna()].sort_values("Volume", ascending=False).head(10)
         top_open_interest = long_term[long_term["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
@@ -344,7 +354,7 @@ def generate_top_contracts_tables(processed_data, tickers, timestamp):
         return df
     top_volume_table = format_table(top_volume_table)
     top_open_interest_table = format_table(top_open_interest_table)
-    print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds")
+    print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds", flush=True)
     return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
 def generate_returns_summary(base_path="data"):
@@ -352,121 +362,126 @@ def generate_returns_summary(base_path="data"):
     start_time = time.time()
     file_path = os.path.join(base_path, "BH_HF_Ret_Sept_25.csv")
     if not os.path.exists(file_path):
-        print(f"File not found: {file_path}")
+        print(f"Error: File not found: {file_path}", flush=True)
         return
-    # Load the CSV
-    df = pd.read_csv(file_path)
-    if 'Date' not in df.columns:
-        print("CSV must have a 'Date' column.")
-        return
-    # Convert Date to datetime
-    df['Date'] = pd.to_datetime(df['Date'], format='%b-%y')
-    df.set_index('Date', inplace=True)
-    # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
-    for col in df.columns:
-        if col != 'Date':
-            df[col] = df[col].str.rstrip('%').astype(float) / 100
-    # Fetch SPX data
-    min_date = df.index.min()
-    max_date = df.index.max()
     try:
-        spx = yf.download('^GSPC', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
-        spx_monthly = spx['Adj Close'].resample('ME').last().pct_change()
-        spx_monthly.index = pd.to_datetime(spx_monthly.index)
-        spx_monthly = spx_monthly.reindex(df.index, method='nearest')
-        df['SPX'] = spx_monthly
+        # Load the CSV
+        df = pd.read_csv(file_path)
+        if 'Date' not in df.columns:
+            print("Error: CSV must have a 'Date' column.", flush=True)
+            return
+        # Convert Date to datetime
+        df['Date'] = pd.to_datetime(df['Date'], format='%b-%y')
+        df.set_index('Date', inplace=True)
+        # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
+        for col in df.columns:
+            if col != 'Date':
+                df[col] = df[col].str.rstrip('%').astype(float) / 100
+        # Fetch SPX data
+        min_date = df.index.min()
+        max_date = df.index.max()
+        try:
+            spx = yf.download('^GSPC', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
+            spx_monthly = spx['Adj Close'].resample('ME').last().pct_change()
+            spx_monthly.index = pd.to_datetime(spx_monthly.index)
+            spx_monthly = spx_monthly.reindex(df.index, method='nearest')
+            df['SPX'] = spx_monthly
+        except Exception as e:
+            print(f"Error fetching SPX data: {e}. Proceeding without SPX.", flush=True)
+            df['SPX'] = np.nan
+        # Fetch 3-month T-Bill yield (^IRX) as risk-free rate
+        try:
+            tbill = yf.download('^IRX', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
+            # ^IRX is annualized yield in percent; convert to monthly decimal
+            rf_monthly = tbill['Close'] / 100 / 12
+            rf_monthly = rf_monthly.resample('ME').last()
+            rf_monthly = rf_monthly.reindex(df.index, method='nearest').fillna(method='ffill')
+            df['RiskFree'] = rf_monthly
+        except Exception as e:
+            print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.", flush=True)
+            df['RiskFree'] = 0.04 / 12  # Fallback: 4% annual = 0.00333 monthly
+        # Ensure numeric data
+        for col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        strategies = df.columns.drop('RiskFree')  # Exclude RiskFree from strategies
+        summary = []
+        for strat in strategies:
+            rets = df[strat].dropna()
+            rf = df['RiskFree'].reindex(rets.index).dropna()
+            if len(rets) == 0 or len(rf) == 0:
+                print(f"Warning: No valid returns data for strategy {strat}", flush=True)
+                continue
+            # Excess returns
+            excess_rets = rets - rf
+            # Basic statistics
+            min_r = round(rets.min(), 4)
+            max_r = round(rets.max(), 4)
+            mean_r = round(rets.mean(), 4)
+            # Positive and negative months
+            pos = rets[rets > 0]
+            neg = rets[rets < 0]
+            pos_neg_ratio = round(len(pos) / len(neg), 2) if len(neg) > 0 else np.inf
+            mean_pos = round(pos.mean(), 4) if len(pos) > 0 else np.nan
+            mean_neg = round(neg.mean(), 4) if len(neg) > 0 else np.nan
+            # Drawdown calculations
+            cumret = (1 + rets).cumprod()
+            cummax = cumret.cummax()
+            dd = (cumret / cummax) - 1
+            max_dd = round(dd.min(), 4)
+            trough_idx = dd.idxmin()
+            peak_idx = cummax.loc[:trough_idx].idxmax()
+            dd_length = (trough_idx - peak_idx).days // 30  # Approximate months
+            # Recovery time
+            peak_val = cummax.loc[peak_idx]
+            post_trough = cumret.loc[trough_idx:]
+            recovery_mask = post_trough >= peak_val
+            recovery_time = np.nan
+            if recovery_mask.any():
+                recovery_idx = post_trough[recovery_mask].index[0]
+                recovery_time = (recovery_idx - trough_idx).days // 30  # Approximate months
+            # Sharpe Ratio: (Mean excess return / Std dev of excess returns) * sqrt(12)
+            mean_excess = excess_rets.mean()
+            std_excess = excess_rets.std()
+            sharpe_ratio = round((mean_excess / std_excess) * np.sqrt(12), 4) if std_excess > 0 else np.nan
+            # Sortino Ratio: (Mean excess return / Downside deviation) * sqrt(12)
+            downside_rets = excess_rets[excess_rets < 0]
+            downside_std = downside_rets.std() if len(downside_rets) > 0 else np.nan
+            sortino_ratio = round((mean_excess / downside_std) * np.sqrt(12), 4) if downside_std > 0 else np.nan
+            summary.append({
+                'Strategy': strat,
+                'Min Return': min_r,
+                'Max Return': max_r,
+                'Mean Return': mean_r,
+                'Max Drawdown': max_dd,
+                'Drawdown Length (months)': dd_length,
+                'Recovery Time (months)': recovery_time,
+                'Positive/Negative Ratio': pos_neg_ratio if np.isfinite(pos_neg_ratio) else 'inf',
+                'Mean Positive Return': mean_pos,
+                'Mean Negative Return': mean_neg,
+                'Sharpe Ratio': sharpe_ratio,
+                'Sortino Ratio': sortino_ratio
+            })
+        summary_df = pd.DataFrame(summary)
+        # Save summary table
+        os.makedirs(os.path.join(base_path, "tables/returns"), exist_ok=True)
+        summary_df.to_csv(os.path.join(base_path, "tables/returns/summary_table.csv"), index=False)
+        # Correlation table
+        corr = df[strategies].corr().round(4)  # Exclude RiskFree from correlation
+        corr.to_csv(os.path.join(base_path, "tables/returns/correlation_table.csv"))
+        print(f"Generated returns summary and correlation tables in {time.time() - start_time:.2f} seconds", flush=True)
     except Exception as e:
-        print(f"Error fetching SPX data: {e}. Proceeding without SPX.")
-        df['SPX'] = np.nan
-    # Fetch 3-month T-Bill yield (^IRX) as risk-free rate
-    try:
-        tbill = yf.download('^IRX', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
-        # ^IRX is annualized yield in percent; convert to monthly decimal
-        rf_monthly = tbill['Close'] / 100 / 12
-        rf_monthly = rf_monthly.resample('ME').last()
-        rf_monthly = rf_monthly.reindex(df.index, method='nearest').fillna(method='ffill')
-        df['RiskFree'] = rf_monthly
-    except Exception as e:
-        print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.")
-        df['RiskFree'] = 0.04 / 12  # Fallback: 4% annual = 0.00333 monthly
-    # Ensure numeric data
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    strategies = df.columns.drop('RiskFree')  # Exclude RiskFree from strategies
-    summary = []
-    for strat in strategies:
-        rets = df[strat].dropna()
-        rf = df['RiskFree'].reindex(rets.index).dropna()
-        if len(rets) == 0 or len(rf) == 0:
-            continue
-        # Excess returns
-        excess_rets = rets - rf
-        # Basic statistics
-        min_r = round(rets.min(), 4)
-        max_r = round(rets.max(), 4)
-        mean_r = round(rets.mean(), 4)
-        # Positive and negative months
-        pos = rets[rets > 0]
-        neg = rets[rets < 0]
-        pos_neg_ratio = round(len(pos) / len(neg), 2) if len(neg) > 0 else np.inf
-        mean_pos = round(pos.mean(), 4) if len(pos) > 0 else np.nan
-        mean_neg = round(neg.mean(), 4) if len(neg) > 0 else np.nan
-        # Drawdown calculations
-        cumret = (1 + rets).cumprod()
-        cummax = cumret.cummax()
-        dd = (cumret / cummax) - 1
-        max_dd = round(dd.min(), 4)
-        trough_idx = dd.idxmin()
-        peak_idx = cummax.loc[:trough_idx].idxmax()
-        dd_length = (trough_idx - peak_idx).days // 30  # Approximate months
-        # Recovery time
-        peak_val = cummax.loc[peak_idx]
-        post_trough = cumret.loc[trough_idx:]
-        recovery_mask = post_trough >= peak_val
-        recovery_time = np.nan
-        if recovery_mask.any():
-            recovery_idx = post_trough[recovery_mask].index[0]
-            recovery_time = (recovery_idx - trough_idx).days // 30  # Approximate months
-        # Sharpe Ratio: (Mean excess return / Std dev of excess returns) * sqrt(12)
-        mean_excess = excess_rets.mean()
-        std_excess = excess_rets.std()
-        sharpe_ratio = round((mean_excess / std_excess) * np.sqrt(12), 4) if std_excess > 0 else np.nan
-        # Sortino Ratio: (Mean excess return / Downside deviation) * sqrt(12)
-        downside_rets = excess_rets[excess_rets < 0]
-        downside_std = downside_rets.std() if len(downside_rets) > 0 else np.nan
-        sortino_ratio = round((mean_excess / downside_std) * np.sqrt(12), 4) if downside_std > 0 else np.nan
-        summary.append({
-            'Strategy': strat,
-            'Min Return': min_r,
-            'Max Return': max_r,
-            'Mean Return': mean_r,
-            'Max Drawdown': max_dd,
-            'Drawdown Length (months)': dd_length,
-            'Recovery Time (months)': recovery_time,
-            'Positive/Negative Ratio': pos_neg_ratio if np.isfinite(pos_neg_ratio) else 'inf',
-            'Mean Positive Return': mean_pos,
-            'Mean Negative Return': mean_neg,
-            'Sharpe Ratio': sharpe_ratio,
-            'Sortino Ratio': sortino_ratio
-        })
-    summary_df = pd.DataFrame(summary)
-    # Save summary table
-    os.makedirs(os.path.join(base_path, "tables/returns"), exist_ok=True)
-    summary_df.to_csv(os.path.join(base_path, "tables/returns/summary_table.csv"), index=False)
-    # Correlation table
-    corr = df[strategies].corr().round(4)  # Exclude RiskFree from correlation
-    corr.to_csv(os.path.join(base_path, "tables/returns/correlation_table.csv"))
-    print(f"Generated returns summary and correlation tables in {time.time() - start_time:.2f} seconds")
-    
+        print(f"Error in generate_returns_summary: {e}", flush=True)
+
 def save_tables(timestamp, source, base_path="data"):
     """Generate and save all precomputed tables, including normalized table, and append IVOLs to historical data."""
     start_time = time.time()
     prefix = "_yfinance" if source == "yfinance" else ""
     company_names, ranking, barclays = load_data(timestamp, source, base_path)
     if ranking is None or ranking.empty:
-        print(f"Failed to load required data files (ranking is missing or empty). Skipping table generation in {time.time() - start_time:.2f} seconds")
-        return
-    tickers = ranking["Ticker"].unique()
+        print(f"Warning: No ranking data available for {timestamp}. Generating empty tables.", flush=True)
+        tickers = []
+    else:
+        tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
     skew_data = pd.DataFrame()
     for ticker in tqdm(tickers, desc="Loading ticker data"):
@@ -488,28 +503,47 @@ def save_tables(timestamp, source, base_path="data"):
     if not ranking_table.empty:
         ranking_table.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table{prefix}.csv", index=False)
         ranking_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/ranking/ranking_table.csv", index=False)
+        print(f"Saved ranking tables to {base_path}/{timestamp}/tables/ranking/", flush=True)
+    else:
+        print(f"Warning: Ranking table is empty for {timestamp}", flush=True)
     if not stock_table.empty:
         stock_table.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table{prefix}.csv", index=False)
         stock_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/stock/stock_table.csv", index=False)
+        print(f"Saved stock tables to {base_path}/{timestamp}/tables/stock/", flush=True)
+    else:
+        print(f"Warning: Stock table is empty for {timestamp}", flush=True)
     if not normalized_table.empty:
         normalized_table.to_csv(f"{base_path}/{timestamp}/tables/normalized/normalized_table{prefix}.csv", index=False)
         normalized_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/normalized/normalized_table.csv", index=False)
+        print(f"Saved normalized tables to {base_path}/{timestamp}/tables/normalized/", flush=True)
+    else:
+        print(f"Warning: Normalized table is empty for {timestamp}", flush=True)
     if not summary_table.empty:
         summary_table.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table{prefix}.csv", index=False)
         summary_table_no_colors.to_csv(f"{base_path}/{timestamp}/tables/summary/summary_table.csv", index=False)
+        print(f"Saved summary tables to {base_path}/{timestamp}/tables/summary/", flush=True)
+    else:
+        print(f"Warning: Summary table is empty for {timestamp}", flush=True)
     if not top_volume.empty:
         top_volume.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table{prefix}.csv", index=False)
         top_volume_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_volume_table.csv", index=False)
+        print(f"Saved top volume tables to {base_path}/{timestamp}/tables/contracts/", flush=True)
+    else:
+        print(f"Warning: Top volume table is empty for {timestamp}", flush=True)
     if not top_open_interest.empty:
         top_open_interest.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table{prefix}.csv", index=False)
         top_open_interest_no_colors.to_csv(f"{base_path}/{timestamp}/tables/contracts/top_open_interest_table.csv", index=False)
+        print(f"Saved top open interest tables to {base_path}/{timestamp}/tables/contracts/", flush=True)
+    else:
+        print(f"Warning: Top open interest table is empty for {timestamp}", flush=True)
     ivol_columns = [
         'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)'
     ]
     historical_columns = ['Timestamp', 'Ticker'] + ivol_columns
     for ticker in tickers:
-        ticker_data = ranking[ranking['Ticker'] == ticker]
+        ticker_data = ranking[ranking['Ticker'] == ticker] if ranking is not None and not ranking.empty else pd.DataFrame()
         if ticker_data.empty:
+            print(f"Warning: No ranking data for ticker {ticker} when appending IVOLs", flush=True)
             continue
         row = {'Timestamp': timestamp, 'Ticker': ticker}
         for col in ivol_columns:
@@ -522,7 +556,8 @@ def save_tables(timestamp, source, base_path="data"):
             historical_df.to_csv(historical_file, mode='a', header=False, index=False)
         else:
             historical_df.to_csv(historical_file, mode='w', header=True, index=False)
-    print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds")
+        print(f"Appended IVOLs for {ticker} to {historical_file}", flush=True)
+    print(f"Precomputed tables generation completed for {timestamp}, source {source} in {time.time() - start_time:.2f} seconds", flush=True)
 
 def main():
     start_time = time.time()
@@ -532,22 +567,22 @@ def main():
         with open(dates_file, 'r') as f:
             dates = json.load(f)
     except Exception as e:
-        print(f"Error loading dates.json: {e}")
+        print(f"Error loading dates.json: {e}", flush=True)
         return
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     if len(sys.argv) > 1:
         timestamp = sys.argv[1]
         if timestamp not in timestamps:
-            print(f"Provided timestamp {timestamp} not found in dates.json")
+            print(f"Provided timestamp {timestamp} not found in dates.json", flush=True)
             return
     else:
         timestamp = timestamps[-1]
-        print(f"No timestamp provided, using latest: {timestamp}")
+        print(f"No timestamp provided, using latest: {timestamp}", flush=True)
     sources = ['yfinance']
     for source in sources:
         save_tables(timestamp, source, base_path)
     generate_returns_summary(base_path)
-    print(f"Total execution time: {time.time() - start_time:.2f} seconds")
+    print(f"Total execution time: {time.time() - start_time:.2f} seconds", flush=True)
 
 if __name__ == "__main__":
     main()
