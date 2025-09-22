@@ -235,10 +235,12 @@ def calculate_ranking_metrics(timestamp, sources):
                     print(f"No historic data for ticker {ticker}")
                     continue
                 ticker_info = ticker_info_dict.get(ticker, {'marketCap': 'N/A'})
-                rank_dict = {'Ticker': ticker, 'Company Name': ticker_historic.get('Company Name', 'N/A').iloc[0]}
+                # Safely get Company Name
+                company_name = ticker_historic['Company Name'].iloc[0] if 'Company Name' in ticker_historic.columns and not ticker_historic.empty else 'N/A'
+                rank_dict = {'Ticker': ticker, 'Company Name': company_name}
                 # Add normalized columns if present
                 for period in ['3m', '6m', '1y']:
-                    rank_dict[f'Normalized {period}'] = ticker_historic.get(f'Normalized {period}', 'N/A').iloc[0]
+                    rank_dict[f'Normalized {period}'] = ticker_historic[f'Normalized {period}'].iloc[0] if f'Normalized {period}' in ticker_historic.columns and not ticker_historic.empty else 'N/A'
                 # Add price-related metrics
                 if not ticker_historic.empty and 'Close' in ticker_historic.columns:
                     current_close = ticker_historic['Close'].iloc[-1]
