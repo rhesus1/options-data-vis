@@ -1,4 +1,4 @@
-DEBUG = True  # Set to True to save plots
+DEBUG = False  # Set to True to save plots
 
 import pandas as pd
 import numpy as np
