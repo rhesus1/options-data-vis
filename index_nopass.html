@@ -669,6 +669,78 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
         padding: 8px;
     }
 }
+		.sharpe-sortino-table {
+    border-collapse: collapse;
+    width: auto;
+    max-width: 90%;
+    margin: 10px auto;
+    background-color: var(--container-bg);
+    font-size: clamp(10px, 2vw, 12px);
+    display: table;
+    table-layout: fixed;
+    line-height: 1.4;
+}
+
+.sharpe-sortino-table th,
+.sharpe-sortino-table td {
+    border: 1px solid var(--border-color);
+    padding: clamp(4px, 1vw, 6px);
+    text-align: center;
+    color: var(--text-color);
+    font-size: clamp(10px, 2vw, 12px);
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.sharpe-sortino-table th {
+    background-color: var(--header-bg);
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.sharpe-sortino-table th:hover {
+    background-color: #4B4B6F;
+}
+
+#strategy-correlation-heatmap {
+    width: 100% !important;
+    max-height: clamp(300px, 50vh, 400px);
+    min-height: clamp(250px, 40vh, 350px);
+    border-radius: 4px;
+    background-color: var(--container-bg) !important;
+}
+
+@media (max-width: 768px) {
+    .sharpe-sortino-table {
+        font-size: clamp(8px, 1.6vw, 10px);
+        max-width: 100%;
+    }
+    .sharpe-sortino-table th,
+    .sharpe-sortino-table td {
+        padding: clamp(3px, 0.8vw, 4px);
+        font-size: clamp(8px, 1.6vw, 10px);
+    }
+    #strategy-correlation-heatmap {
+        max-height: clamp(250px, 45vh, 350px);
+        min-height: clamp(200px, 35vh, 300px);
+    }
+}
+
+@media (max-width: 480px) {
+    .sharpe-sortino-table {
+        font-size: clamp(7px, 1.5vw, 9px);
+        max-width: 100%;
+    }
+    .sharpe-sortino-table th,
+    .sharpe-sortino-table td {
+        padding: clamp(2px, 0.6vw, 3px);
+        font-size: clamp(7px, 1.5vw, 9px);
+    }
+    #strategy-correlation-heatmap {
+        max-height: clamp(200px, 40vh, 300px);
+        min-height: clamp(180px, 30vh, 250px);
+    }
+}
 </style>
 </head>
 <body>
@@ -1054,12 +1126,23 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
 		        <button class="toggle-button" onclick="exportStrategySummaryData()">Export to XLSX</button>
 		        <table id="strategy-summary-table" class="trading-economics-table" style="display: none;"></table>
 		    </div>
+		    <div id="strategy-performance-sharpe-sortino" class="chart-container">
+		        <h3>Sharpe and Sortino Ratios</h3>
+		        <div id="sharpe-sortino-error" class="error-message" style="display: none;">No Sharpe/Sortino data available</div>
+		        <button class="toggle-button" onclick="toggleSharpeSortinoChart()">Show Plot</button>
+		        <button class="toggle-button" onclick="toggleSharpeSortinoTable()">Show Data</button>
+		        <button class="toggle-button" onclick="exportStrategySummaryData()">Export to XLSX</button>
+		        <canvas id="sharpe-sortino-chart" style="display: none;"></canvas>
+		        <table id="sharpe-sortino-table" class="sharpe-sortino-table" style="display: none;"></table>
+		    </div>
 		    <div id="strategy-performance-correlation" class="chart-container">
 		        <h3>Strategy Correlation</h3>
 		        <div id="strategy-correlation-error" class="error-message" style="display: none;">No correlation data available</div>
 		        <button class="toggle-button" onclick="toggleStrategyCorrelationTable()">Show Data</button>
+		        <button class="toggle-button" onclick="toggleStrategyCorrelationHeatmap()">Show Heatmap</button>
 		        <button class="toggle-button" onclick="exportStrategyCorrelationData()">Export to XLSX</button>
 		        <table id="strategy-correlation-table" class="trading-economics-table" style="display: none;"></table>
+		        <div id="strategy-correlation-heatmap" style="display: none; width: 100%; height: 400px;"></div>
 		    </div>
 		</div>
     </div>
@@ -1071,6 +1154,10 @@ body[data-theme="light"] #selected-ticker-table .selected-ticker-row td {
 let strategyCorrelationData = [];
 let strategySummaryTableVisible = false;
 let strategyCorrelationTableVisible = false;
+		let sharpeSortinoChart = null;
+let sharpeSortinoChartVisible = false;
+let sharpeSortinoTableVisible = false;
+let strategyCorrelationHeatmapVisible = false;
 	let hedgeData = [];
 let hedgeStatsData = [];
 let hedgeChart = null;
@@ -4601,6 +4688,9 @@ function updateHistoricChart() {
             if (hedgeChartVisible) updateHedgeChart();
             updateStrategySummaryTable();
             updateStrategyCorrelationTable();
+            if (sharpeSortinoChartVisible) updateSharpeSortinoChart();
+            if (sharpeSortinoTableVisible) updateSharpeSortinoTable();
+            if (strategyCorrelationHeatmapVisible) updateStrategyCorrelationHeatmap();
             populateHedgeStrategies();
         }
     } catch (error) {
@@ -4781,6 +4871,8 @@ function updateHistoricChart() {
         updateHedgeTable();
         updateStrategySummaryTable();
         updateStrategyCorrelationTable();
+        updateSharpeSortinoChart();
+        updateStrategyCorrelationHeatmap();
     } catch (error) {
         console.error('Error updating charts:', error);
         document.getElementById('historic-error').textContent = `Error updating charts: ${error.message}`;
@@ -4899,6 +4991,22 @@ function updateHistoricChart() {
                 }
             });
         }
+		const sharpeSortinoTable = document.getElementById('sharpe-sortino-table');
+		if (sharpeSortinoTable) {
+		    sharpeSortinoTable.addEventListener('keydown', (event) => {
+		        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+		            event.preventDefault();
+		            const headers = sharpeSortinoTable.querySelectorAll('th');
+		            let currentIndex = Array.from(headers).findIndex(th => document.activeElement === th);
+		            if (currentIndex === -1) currentIndex = 0;
+		            const newIndex = event.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1;
+		            if (newIndex >= 0 && newIndex < headers.length) {
+		                headers[newIndex].focus();
+		                sortTable('sharpe-sortino-table', newIndex);
+		            }
+		        }
+		    });
+		}
     } catch (error) {
         console.error('Error adding keyboard navigation:', error);
         document.getElementById('historic-error').textContent = `Error setting up keyboard navigation: ${error.message}`;
@@ -5276,7 +5384,7 @@ function updateStrategySummaryTable() {
         const table = document.getElementById('strategy-summary-table');
         table.innerHTML = '';
         if (strategySummaryData.length === 0) {
-            table.innerHTML = '<tr><td colspan="10">No strategy summary data available</td></tr>';
+            table.innerHTML = '<tr><td colspan="12">No strategy summary data available</td></tr>';
             console.warn('No strategy summary data for table');
             document.getElementById('strategy-summary-error').textContent = 'No strategy summary data available';
             document.getElementById('strategy-summary-error').style.display = 'block';
@@ -5287,7 +5395,7 @@ function updateStrategySummaryTable() {
         const columns = [
             'Strategy', 'Min Return', 'Max Return', 'Mean Return', 'Max Drawdown',
             'Drawdown Length (months)', 'Recovery Time (months)', 'Positive/Negative Ratio',
-            'Mean Positive Return', 'Mean Negative Return'
+            'Mean Positive Return', 'Mean Negative Return', 'Sharpe Ratio', 'Sortino Ratio'
         ];
         columns.forEach((col, index) => {
             const th = document.createElement('th');
@@ -5326,7 +5434,7 @@ function updateStrategySummaryTable() {
         console.log('Strategy summary table updated, rows:', strategySummaryData.length);
     } catch (error) {
         console.error('Error updating strategy summary table:', error);
-        document.getElementById('strategy-summary-table').innerHTML = '<tr><td colspan="10">Error loading strategy summary data</td></tr>';
+        document.getElementById('strategy-summary-table').innerHTML = '<tr><td colspan="12">Error loading strategy summary data</td></tr>';
         document.getElementById('strategy-summary-error').textContent = `Error updating table: ${error.message}`;
         document.getElementById('strategy-summary-error').style.display = 'block';
     }
@@ -5370,6 +5478,13 @@ function updateStrategyCorrelationTable() {
                 cell.style.color = col !== 'Strategy' && Number.isFinite(parseFloat(value)) && value !== 'N/A'
                     ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
                     : 'var(--text-color)';
+                // Apply background color based on correlation value
+                if (col !== 'Strategy' && Number.isFinite(parseFloat(value)) && value !== 'N/A') {
+                    const intensity = Math.abs(value);
+                    const r = parseFloat(value) < 0 ? Math.floor(255 * intensity) : 0;
+                    const g = parseFloat(value) > 0 ? Math.floor(255 * intensity) : 0;
+                    cell.style.backgroundColor = `rgba(${r}, ${g}, 0, ${intensity * 0.3})`;
+                }
             });
         });
         table.appendChild(tbody);
@@ -5403,7 +5518,8 @@ function toggleStrategyCorrelationTable() {
         strategyCorrelationTableVisible = !strategyCorrelationTableVisible;
         const table = document.getElementById('strategy-correlation-table');
         table.style.display = strategyCorrelationTableVisible ? 'table' : 'none';
-        document.querySelector('#strategy-performance-correlation .toggle-button[onclick="toggleStrategyCorrelationTable()"]').textContent = strategyCorrelationTableVisible ? 'Hide Data' : 'Show Data';
+        const container = document.getElementById('strategy-performance-correlation');
+        container.querySelector('.toggle-button[onclick="toggleStrategyCorrelationTable()"]').textContent = strategyCorrelationTableVisible ? 'Hide Data' : 'Show Data';
         if (strategyCorrelationTableVisible) updateStrategyCorrelationTable();
         console.log(`Strategy correlation table visibility set to: ${strategyCorrelationTableVisible}`);
     } catch (error) {
@@ -5425,7 +5541,7 @@ function exportStrategySummaryData() {
         const columns = [
             'Strategy', 'Min Return', 'Max Return', 'Mean Return', 'Max Drawdown',
             'Drawdown Length (months)', 'Recovery Time (months)', 'Positive/Negative Ratio',
-            'Mean Positive Return', 'Mean Negative Return'
+            'Mean Positive Return', 'Mean Negative Return', 'Sharpe Ratio', 'Sortino Ratio'
         ];
         const wsData = [
             columns,
@@ -5487,6 +5603,275 @@ function exportStrategyCorrelationData() {
     }
 }
 
+function updateSharpeSortinoChart() {
+    try {
+        const canvas = document.getElementById('sharpe-sortino-chart');
+        const errorDiv = document.getElementById('sharpe-sortino-error');
+        errorDiv.style.display = 'none';
+        if (strategySummaryData.length === 0) {
+            if (sharpeSortinoChart) sharpeSortinoChart.destroy();
+            errorDiv.textContent = 'No data available for Sharpe/Sortino chart';
+            errorDiv.style.display = 'block';
+            console.warn('No strategy summary data for Sharpe/Sortino chart');
+            return;
+        }
+        const strategies = strategySummaryData.map(item => item.Strategy);
+        const sharpeRatios = strategySummaryData.map(item => Number.isFinite(parseFloat(item['Sharpe Ratio'])) ? parseFloat(item['Sharpe Ratio']) : null).filter(v => v !== null);
+        const sortinoRatios = strategySummaryData.map(item => Number.isFinite(parseFloat(item['Sortino Ratio'])) ? parseFloat(item['Sortino Ratio']) : null).filter(v => v !== null);
+        if (sharpeRatios.length === 0 && sortinoRatios.length === 0) {
+            if (sharpeSortinoChart) sharpeSortinoChart.destroy();
+            errorDiv.textContent = 'No valid Sharpe or Sortino ratios available';
+            errorDiv.style.display = 'block';
+            console.warn('No valid Sharpe/Sortino data points');
+            return;
+        }
+        const datasets = [
+            {
+                label: 'Sharpe Ratio',
+                data: sharpeRatios,
+                backgroundColor: 'var(--highlight-positive)',
+                borderColor: 'var(--highlight-positive)',
+                borderWidth: 1
+            },
+            {
+                label: 'Sortino Ratio',
+                data: sortinoRatios,
+                backgroundColor: '#3B82F6',
+                borderColor: '#3B82F6',
+                borderWidth: 1
+            }
+        ];
+        if (sharpeSortinoChart) sharpeSortinoChart.destroy();
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Canvas context not available for sharpe-sortino-chart');
+        }
+        canvas.style.display = 'block';
+        canvas.style.width = '100%';
+        canvas.style.height = '400px';
+        sharpeSortinoChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: strategies,
+                datasets: datasets
+            },
+            options: {
+                plugins: {
+                    legend: { labels: { color: getThemeColor() } },
+                    title: { display: true, text: 'Sharpe and Sortino Ratios by Strategy', color: getThemeColor() }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Strategy', color: getThemeColor() },
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() }
+                    },
+                    y: {
+                        title: { display: true, text: 'Ratio', color: getThemeColor() },
+                        beginAtZero: true,
+                        grid: { display: false },
+                        ticks: { color: getThemeColor() }
+                    }
+                },
+                backgroundColor: document.body.getAttribute('data-theme') === 'light' ? '#F5F7FA' : '#1A1A2E',
+                maintainAspectRatio: false
+            }
+        });
+        document.getElementById('sharpe-sortino-error').style.display = 'none';
+        console.log('Sharpe/Sortino chart updated, strategies:', strategies);
+    } catch (error) {
+        console.error('Error updating Sharpe/Sortino chart:', error);
+        document.getElementById('sharpe-sortino-error').textContent = `Error rendering chart: ${error.message}`;
+        document.getElementById('sharpe-sortino-error').style.display = 'block';
+    }
+}
+
+function toggleSharpeSortinoChart() {
+    try {
+        sharpeSortinoChartVisible = !sharpeSortinoChartVisible;
+        const chart = document.getElementById('sharpe-sortino-chart');
+        chart.style.display = sharpeSortinoChartVisible ? 'block' : 'none';
+        const toggleButton = document.querySelector('#strategy-performance-sharpe-sortino .toggle-button[onclick="toggleSharpeSortinoChart()"]');
+        if (!toggleButton) throw new Error('Toggle button for Sharpe/Sortino chart not found');
+        toggleButton.textContent = sharpeSortinoChartVisible ? 'Hide Plot' : 'Show Plot';
+        if (sharpeSortinoChartVisible) {
+            const ctx = chart.getContext('2d');
+            if (!ctx) throw new Error('Canvas context not available for sharpe-sortino-chart');
+            chart.style.width = '100%';
+            chart.style.height = '400px';
+            updateSharpeSortinoChart();
+            if (sharpeSortinoChart) {
+                sharpeSortinoChart.resize();
+                console.log('Sharpe/Sortino chart resized after toggle');
+            }
+        }
+        console.log('Sharpe/Sortino chart visibility toggled:', sharpeSortinoChartVisible);
+    } catch (error) {
+        console.error('Error toggling Sharpe/Sortino chart:', error);
+        document.getElementById('sharpe-sortino-error').textContent = `Error toggling chart: ${error.message}`;
+        document.getElementById('sharpe-sortino-error').style.display = 'block';
+    }
+}
+
+function toggleSharpeSortinoTable() {
+    try {
+        sharpeSortinoTableVisible = !sharpeSortinoTableVisible;
+        const table = document.getElementById('sharpe-sortino-table');
+        table.style.display = sharpeSortinoTableVisible ? 'table' : 'none';
+        const toggleButton = document.querySelector('#strategy-performance-sharpe-sortino .toggle-button[onclick="toggleSharpeSortinoTable()"]');
+        if (!toggleButton) throw new Error('Toggle button for Sharpe/Sortino table not found');
+        toggleButton.textContent = sharpeSortinoTableVisible ? 'Hide Data' : 'Show Data';
+        if (sharpeSortinoTableVisible) updateSharpeSortinoTable();
+        console.log(`Sharpe/Sortino table visibility set to: ${sharpeSortinoTableVisible}`);
+    } catch (error) {
+        console.error('Error toggling Sharpe/Sortino table:', error);
+        document.getElementById('sharpe-sortino-error').textContent = `Error toggling table: ${error.message}`;
+        document.getElementById('sharpe-sortino-error').style.display = 'block';
+    }
+}
+
+function updateSharpeSortinoTable() {
+    try {
+        const table = document.getElementById('sharpe-sortino-table');
+        table.innerHTML = '';
+        if (strategySummaryData.length === 0) {
+            table.innerHTML = '<tr><td colspan="3">No Sharpe/Sortino data available</td></tr>';
+            console.warn('No strategy summary data for Sharpe/Sortino table');
+            document.getElementById('sharpe-sortino-error').textContent = 'No Sharpe/Sortino data available';
+            document.getElementById('sharpe-sortino-error').style.display = 'block';
+            return;
+        }
+        const thead = document.createElement('thead');
+        const headerRow = thead.insertRow();
+        const columns = ['Strategy', 'Sharpe Ratio', 'Sortino Ratio'];
+        columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.textContent = col;
+            th.dataset.column = col;
+            th.dataset.order = 'desc';
+            th.addEventListener('click', () => sortTable('sharpe-sortino-table', index));
+            headerRow.appendChild(th);
+        });
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        strategySummaryData.forEach(item => {
+            const row = tbody.insertRow();
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                let value = item[col];
+                if (Number.isFinite(value)) {
+                    value = value.toFixed(2);
+                } else {
+                    value = value || 'N/A';
+                }
+                cell.textContent = value;
+                cell.style.color = (col === 'Sharpe Ratio' || col === 'Sortino Ratio') && Number.isFinite(parseFloat(value)) && value !== 'N/A'
+                    ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
+                    : 'var(--text-color)';
+            });
+        });
+        table.appendChild(tbody);
+        document.getElementById('sharpe-sortino-error').style.display = 'none';
+        console.log('Sharpe/Sortino table updated, rows:', strategySummaryData.length);
+    } catch (error) {
+        console.error('Error updating Sharpe/Sortino table:', error);
+        document.getElementById('sharpe-sortino-table').innerHTML = '<tr><td colspan="3">Error loading Sharpe/Sortino data</td></tr>';
+        document.getElementById('sharpe-sortino-error').textContent = `Error updating table: ${error.message}`;
+        document.getElementById('sharpe-sortino-error').style.display = 'block';
+    }
+}
+
+		function updateStrategyCorrelationHeatmap() {
+    try {
+        const container = document.getElementById('strategy-correlation-heatmap');
+        if (strategyCorrelationData.length === 0) {
+            Plotly.purge('strategy-correlation-heatmap');
+            document.getElementById('strategy-correlation-error').textContent = 'No correlation data available for heatmap';
+            document.getElementById('strategy-correlation-error').style.display = 'block';
+            console.warn('No correlation data for heatmap');
+            return;
+        }
+        const strategies = strategyCorrelationData.map(item => item.Strategy);
+        const zValues = strategyCorrelationData.map(item => 
+            strategies.map(strategy => Number.isFinite(item[strategy]) ? parseFloat(item[strategy]) : null)
+        );
+        const data = [{
+            z: zValues,
+            x: strategies.map(s => s.replace(/ Index/, '')),
+            y: strategies.map(s => s.replace(/ Index/, '')),
+            type: 'heatmap',
+            colorscale: [
+                [0, 'rgb(255, 0, 0)'], // Negative correlations (red)
+                [0.5, 'rgb(255, 255, 255)'], // Zero correlation (white)
+                [1, 'rgb(0, 255, 0)'] // Positive correlations (green)
+            ],
+            showscale: true,
+            colorbar: {
+                title: 'Correlation',
+                titleside: 'right',
+                titlefont: { color: getThemeColor() },
+                tickfont: { color: getThemeColor() }
+            },
+            zmin: -1,
+            zmax: 1
+        }];
+        const layout = {
+            title: { 
+                text: 'Strategy Correlation Heatmap', 
+                font: { color: getThemeColor(), size: 16 },
+                y: 0.95,
+                x: 0.5,
+                xanchor: 'center'
+            },
+            xaxis: {
+                title: { text: 'Strategy', color: getThemeColor() },
+                tickangle: 45,
+                tickfont: { color: getThemeColor() },
+                showgrid: false
+            },
+            yaxis: {
+                title: { text: 'Strategy', color: getThemeColor() },
+                tickfont: { color: getThemeColor() },
+                showgrid: false
+            },
+            margin: { l: 100, r: 50, b: 100, t: 60 },
+            autosize: true,
+            height: 400,
+            paper_bgcolor: 'var(--container-bg)',
+            plot_bgcolor: 'var(--container-bg)'
+        };
+        Plotly.newPlot('strategy-correlation-heatmap', data, layout, { responsive: true });
+        Plotly.Plots.resize('strategy-correlation-heatmap');
+        document.getElementById('strategy-correlation-error').style.display = 'none';
+        console.log('Strategy correlation heatmap updated, strategies:', strategies);
+    } catch (error) {
+        console.error('Error updating strategy correlation heatmap:', error);
+        Plotly.purge('strategy-correlation-heatmap');
+        document.getElementById('strategy-correlation-error').textContent = `Error rendering heatmap: ${error.message}`;
+        document.getElementById('strategy-correlation-error').style.display = 'block';
+    }
+}
+
+function toggleStrategyCorrelationHeatmap() {
+    try {
+        strategyCorrelationHeatmapVisible = !strategyCorrelationHeatmapVisible;
+        const container = document.getElementById('strategy-correlation-heatmap');
+        container.style.display = strategyCorrelationHeatmapVisible ? 'block' : 'none';
+        const toggleButton = document.querySelector('#strategy-performance-correlation .toggle-button[onclick="toggleStrategyCorrelationHeatmap()"]');
+        if (!toggleButton) throw new Error('Toggle button for correlation heatmap not found');
+        toggleButton.textContent = strategyCorrelationHeatmapVisible ? 'Hide Heatmap' : 'Show Heatmap';
+        if (strategyCorrelationHeatmapVisible) {
+            updateStrategyCorrelationHeatmap();
+            Plotly.Plots.resize('strategy-correlation-heatmap');
+            console.log('Correlation heatmap resized after toggle');
+        }
+        console.log('Strategy correlation heatmap visibility toggled:', strategyCorrelationHeatmapVisible);
+    } catch (error) {
+        console.error('Error toggling strategy correlation heatmap:', error);
+        document.getElementById('strategy-correlation-error').textContent = `Error toggling heatmap: ${error.message}`;
+        document.getElementById('strategy-correlation-error').style.display = 'block';
+    }
+}
 		
 document.addEventListener('DOMContentLoaded', () => {
     try {
