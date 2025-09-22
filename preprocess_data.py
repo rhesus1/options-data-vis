@@ -331,8 +331,12 @@ def generate_top_contracts_tables(processed_data, tickers, timestamp):
         top_open_interest = long_term[long_term["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
         if not top_volume.empty:
             top_volume_list.append(top_volume)
+        else:
+            print(f"Warning: No top volume data for ticker {ticker}", flush=True)
         if not top_open_interest.empty:
             top_open_interest_list.append(top_open_interest)
+        else:
+            print(f"Warning: No top open interest data for ticker {ticker}", flush=True)
     top_volume_table = pd.concat(top_volume_list, ignore_index=True) if top_volume_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     top_open_interest_table = pd.concat(top_open_interest_list, ignore_index=True) if top_open_interest_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
     def format_table(df):
@@ -364,32 +368,38 @@ def generate_returns_summary(base_path="data"):
     if not os.path.exists(file_path):
         print(f"Error: File not found: {file_path}", flush=True)
         return
+    print(f"Loading BH_HF_Ret_Sept_25.csv...", flush=True)
     try:
         # Load the CSV
         df = pd.read_csv(file_path)
+        print(f"Loaded CSV with shape: {df.shape}", flush=True)
         if 'Date' not in df.columns:
             print("Error: CSV must have a 'Date' column.", flush=True)
             return
-        # Convert Date to datetime
+        print("Converting Date to datetime...", flush=True)
         df['Date'] = pd.to_datetime(df['Date'], format='%b-%y')
         df.set_index('Date', inplace=True)
         # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
         for col in df.columns:
             if col != 'Date':
+                print(f"Converting column {col} to numeric...", flush=True)
                 df[col] = df[col].str.rstrip('%').astype(float) / 100
         # Fetch SPX data
         min_date = df.index.min()
         max_date = df.index.max()
+        print(f"Fetching SPX data from {min_date} to {max_date}...", flush=True)
         try:
             spx = yf.download('^GSPC', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
             spx_monthly = spx['Adj Close'].resample('ME').last().pct_change()
             spx_monthly.index = pd.to_datetime(spx_monthly.index)
             spx_monthly = spx_monthly.reindex(df.index, method='nearest')
             df['SPX'] = spx_monthly
+            print("SPX data fetched successfully.", flush=True)
         except Exception as e:
             print(f"Error fetching SPX data: {e}. Proceeding without SPX.", flush=True)
             df['SPX'] = np.nan
         # Fetch 3-month T-Bill yield (^IRX) as risk-free rate
+        print(f"Fetching T-Bill data from {min_date} to {max_date}...", flush=True)
         try:
             tbill = yf.download('^IRX', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
             # ^IRX is annualized yield in percent; convert to monthly decimal
@@ -397,15 +407,17 @@ def generate_returns_summary(base_path="data"):
             rf_monthly = rf_monthly.resample('ME').last()
             rf_monthly = rf_monthly.reindex(df.index, method='nearest').fillna(method='ffill')
             df['RiskFree'] = rf_monthly
+            print("T-Bill data fetched successfully.", flush=True)
         except Exception as e:
             print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.", flush=True)
             df['RiskFree'] = 0.04 / 12  # Fallback: 4% annual = 0.00333 monthly
         # Ensure numeric data
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-        strategies = df.columns.drop('RiskFree')  # Exclude RiskFree from strategies
+        strategies = df.columns.drop('RiskFree', errors='ignore')  # Exclude RiskFree from strategies
         summary = []
         for strat in strategies:
+            print(f"Processing strategy {strat}...", flush=True)
             rets = df[strat].dropna()
             rf = df['RiskFree'].reindex(rets.index).dropna()
             if len(rets) == 0 or len(rf) == 0:
@@ -488,8 +500,12 @@ def save_tables(timestamp, source, base_path="data"):
         _, processed, skew = load_ticker_data(ticker, timestamp, source, base_path)
         if not processed.empty:
             processed_data = pd.concat([processed_data, processed], ignore_index=True)
+        else:
+            print(f"Warning: No processed data for ticker {ticker}", flush=True)
         if not skew.empty:
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
+        else:
+            print(f"Warning: No skew data for ticker {ticker}", flush=True)
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     normalized_table, normalized_table_no_colors = generate_normalized_table(ranking)
