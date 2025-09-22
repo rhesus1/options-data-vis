@@ -377,7 +377,10 @@ def generate_returns_summary(base_path="data"):
             print("Error: CSV must have a 'Date' column.", flush=True)
             return
         print("Converting Date to datetime...", flush=True)
-        df['Date'] = pd.to_datetime(df['Date'], format='%b-%y')
+        df['Date'] = pd.to_datetime(df['Date'], format='%b-%y', errors='coerce')
+        if df['Date'].isna().any():
+            print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format.", flush=True)
+            return
         df.set_index('Date', inplace=True)
         # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
         for col in df.columns:
@@ -476,10 +479,14 @@ def generate_returns_summary(base_path="data"):
         summary_df = pd.DataFrame(summary)
         # Save summary table
         os.makedirs(os.path.join(base_path, "tables/returns"), exist_ok=True)
-        summary_df.to_csv(os.path.join(base_path, "tables/returns/summary_table.csv"), index=False)
+        summary_file = os.path.join(base_path, "tables/returns/summary_table.csv")
+        summary_df.to_csv(summary_file, index=False)
+        print(f"Saved returns summary table to {summary_file}", flush=True)
         # Correlation table
         corr = df[strategies].corr().round(4)  # Exclude RiskFree from correlation
-        corr.to_csv(os.path.join(base_path, "tables/returns/correlation_table.csv"))
+        corr_file = os.path.join(base_path, "tables/returns/correlation_table.csv")
+        corr.to_csv(corr_file)
+        print(f"Saved correlation table to {corr_file}", flush=True)
         print(f"Generated returns summary and correlation tables in {time.time() - start_time:.2f} seconds", flush=True)
     except Exception as e:
         print(f"Error in generate_returns_summary: {e}", flush=True)
