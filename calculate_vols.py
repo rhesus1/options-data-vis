@@ -1,3 +1,4 @@
+# Debug flag to enable saving volatility surface plots
 DEBUG = False  # Set to True to save plots
 
 import pandas as pd
@@ -16,6 +17,7 @@ import plotly.graph_objects as go
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
+
 # Treasury yield functions
 FALLBACK_YIELDS = {
     '1 Mo': 0.0518, '2 Mo': 0.0522, '3 Mo': 0.0506, '6 Mo': 0.0468,
@@ -213,25 +215,52 @@ def calculate_smoothed_iv(df, params_calls, params_puts, model='hyp'):
         pass
     return df
 
-def fit_single_ticker(df, model, p0=None, max_nfev=10000, max_iterations=3, ticker=None, option_type='Call'):
+def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, ticker=None, option_type='Call'):
     df = df.copy()
     if len(df) < 4:
         return None, None
     df.loc[:, 'SMI'] = 100 * (df['Ask'] - df['Bid']).clip(lower=0) / (df['Bid'] + df['Ask']).clip(lower=1e-6) / 2
     df.loc[:, 'weight'] = np.log(1 + df['Open Interest'].clip(lower=0)) / df['SMI'].clip(lower=1e-6)
+    
+    # Enhanced outlier detection
     sigma_m = 0.6
     sigma_t = 0.6 * (df['Years_to_Expiry'].max() - df['Years_to_Expiry'].min()) if df['Years_to_Expiry'].max() > df['Years_to_Expiry'].min() else 1.0
     moneyness_dist = (df['Moneyness'] - 1.0)**2 / (2 * sigma_m**2)
     expiry_dist = (df['Years_to_Expiry'] - df['Years_to_Expiry'].median())**2 / (2 * sigma_t**2)
     df.loc[:, 'dist_weight'] = np.exp(-(moneyness_dist + expiry_dist))
     df.loc[:, 'weight'] *= df['dist_weight']
+    
+    # Filter by open interest and SMI to remove low-liquidity options
+    df = df[(df['Open Interest'] > 10) & (df['SMI'] < 50)]
+    
+    # IQR-based outlier detection within expiry groups
+    df['is_outlier'] = False
+    df = df[df['IV_mid'] <= 5.0]  # Pre-filter extreme IVs
+    for _, group in df.groupby('Years_to_Expiry'):
+        if len(group) < 3:
+            continue
+        Q1 = group['IV_mid'].quantile(0.25)
+        Q3 = group['IV_mid'].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        outliers = group[(group['IV_mid'] < lower_bound) | (group['IV_mid'] > upper_bound)].index
+        df.loc[outliers, 'is_outlier'] = True
+    df.loc[df['is_outlier'], 'weight'] *= 0.01  # Downweight outliers
+    
+    # Final filtering
     df = df[
-        (df['IV_mid'] > 0) & (df['IV_mid'] <= 5.0) &
-        (df['weight'] > 0) & (df['Bid'] >= 0) & (df['Ask'] >= df['Bid']) &
-        (df['SMI'] > 0) & (df['Moneyness'].between(0.5, 2.0))  # Tightened moneyness range
+        (df['IV_mid'] > 0) &
+        (df['weight'] > 0) &
+        (df['Bid'] >= 0) &
+        (df['Ask'] >= df['Bid']) &
+        (df['SMI'] > 0) &
+        (df['Moneyness'].between(0.5, 2.0)) &
+        (df['Years_to_Expiry'].between(0.5, 2.0))  # Match restricted P90 range
     ]
-    if len(df) < 4:
+    if len(df) < 10:  # Stricter minimum data points
         return None, None
+    
     df = df.sort_values(['Moneyness', 'Years_to_Expiry']).drop_duplicates(subset=['Moneyness', 'Years_to_Expiry'], keep='first')
     M = df['Moneyness'].values
     tau = df['Years_to_Expiry'].values
@@ -240,12 +269,14 @@ def fit_single_ticker(df, model, p0=None, max_nfev=10000, max_iterations=3, tick
     xdata = np.vstack((M, tau))
     IV_all = IV
     w_all = w
+    
     model_config = MODEL_CONFIG[model]
     model_func = model_config['func']
     if p0 is None:
         p0 = model_config['p0']
     bounds = ([0, -np.inf, 0, -np.inf, -np.inf, -np.inf, -0.95, -0.95, 0.05, -np.inf, 0],
               [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 0.95, 0.95, np.inf, np.inf, np.inf])
+    
     try:
         def residuals(params):
             return np.sqrt(w_all) * (model_func(xdata, *params) - IV_all)
@@ -363,20 +394,20 @@ def optimize_p90(df, df_type, ticker, option_type, exp_min_short, exp_max_long, 
         return best_exp_max_short, best_exp_min_long
     
     def objective(trial):
-        exp_max_s = trial.suggest_float('exp_max_s', expiry_min + 0.05, median_expiry - 0.05)
-        exp_min_l = trial.suggest_float('exp_min_l', median_expiry + 0.1, expiry_max - 0.05)
+        exp_max_s = trial.suggest_float('exp_max_s', max(expiry_min + 0.05, 0.5), min(median_expiry - 0.05, 1.0))
+        exp_min_l = trial.suggest_float('exp_min_l', max(median_expiry + 0.1, 1.0), min(expiry_max - 0.05, 2.0))
         if exp_min_l - exp_max_s < 0.1:
             return np.inf
         p90 = compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model)
-        penalty = 0.05 * (exp_max_s + exp_min_l)  # Increased penalty
+        penalty = 0.1 * (exp_max_s + exp_min_l)  # Stronger penalty
         return p90 + penalty if np.isfinite(p90) else np.inf
-
+    
     study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=12, timeout=60)  # Increased trials
+    study.optimize(objective, n_trials=20, timeout=90)  # Increased trials and timeout
     if study.best_value < np.inf:
         best_exp_max_short = study.best_params['exp_max_s']
         best_exp_min_long = study.best_params['exp_min_l']
-        best_p90 = study.best_value - 0.05 * (best_exp_max_short + best_exp_min_long)
+        best_p90 = study.best_value - 0.1 * (best_exp_max_short + best_exp_min_long)
         print(f"{ticker} ({option_type}): p90={best_p90:.2f}%, short_max={best_exp_max_short:.3f}, long_min={best_exp_min_long:.3f}")
         return best_exp_max_short, best_exp_min_long
     best_exp_max_short = max(df_type['Years_to_Expiry'].min() + 0.3, 0.3)
@@ -595,71 +626,6 @@ def calculate_skew_slope_metrics(df, ticker, timestamp, r, q=0.0):
         slope_file = os.path.join(slope_dir, f'skew_metrics_yfinance_{ticker}.csv')
         slope_metrics_df.to_csv(slope_file, index=False)
     return skew_metrics_df, slope_metrics_df
-
-def plot_vol_surface(df, params, ticker, option_type, timestamp):
-    plots_dir = f'data/{timestamp}/plots'
-    os.makedirs(plots_dir, exist_ok=True)
-    
-    # Filter valid data points for plotting
-    valid_mask = (df['Moneyness'].notna()) & (df['Years_to_Expiry'] > 0.001) & \
-                 (df['IV_mid'].notna()) & (df['IV_mid'] > 0) & (df['Type'] == option_type)
-    df_plot = df[valid_mask].copy()
-    
-    if df_plot.empty or params is None:
-        print(f"DEBUG: No valid data or parameters for {ticker} ({option_type}) plot")
-        return
-    
-    # Create meshgrid for surface
-    m_min, m_max = df_plot['Moneyness'].min(), df_plot['Moneyness'].max()
-    t_min, t_max = df_plot['Years_to_Expiry'].min(), df_plot['Years_to_Expiry'].max()
-    m_grid = np.linspace(max(0.1, m_min), min(5.0, m_max), 50)
-    t_grid = np.linspace(max(0.001, t_min), min(t_max, 5.0), 50)
-    M, T = np.meshgrid(m_grid, t_grid)
-    X = np.vstack((M.ravel(), T.ravel()))
-    
-    # Compute fitted volatility surface
-    Z = global_vol_model_hyp(X, *params)
-    Z = np.clip(Z, 0.01, 5.0).reshape(M.shape)
-    
-    # Create Plotly 3D surface plot
-    fig = go.Figure()
-    
-    # Add surface
-    fig.add_trace(go.Surface(
-        x=M, y=T, z=Z,
-        colorscale='Viridis',
-        opacity=0.7,
-        name='Fitted Surface',
-        showscale=True
-    ))
-    
-    # Add scatter points for data
-    fig.add_trace(go.Scatter3d(
-        x=df_plot['Moneyness'],
-        y=df_plot['Years_to_Expiry'],
-        z=df_plot['IV_mid'],
-        mode='markers',
-        marker=dict(size=5, color='red', symbol='circle'),
-        name='Data Points'
-    ))
-    
-    # Update layout
-    fig.update_layout(
-        title=f'Volatility Surface - {ticker} ({option_type})',
-        scene=dict(
-            xaxis_title='Moneyness (K/F)',
-            yaxis_title='Years to Expiry',
-            zaxis_title='Implied Volatility'
-        ),
-        showlegend=True,
-        width=800,
-        height=600
-    )
-    
-    # Save plot as HTML
-    plot_file = os.path.join(plots_dir, f'vol_surface_{ticker}_{option_type.lower()}.html')
-    fig.write_html(plot_file)
-    print(f"Saved volatility surface plot for {ticker} ({option_type}) to {plot_file}")
     
 def process_ticker(ticker, timestamp, yields_dict, model, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau):
     data_file = f'data/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv'
