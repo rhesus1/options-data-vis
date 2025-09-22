@@ -294,6 +294,34 @@ def calculate_ranking_metrics(timestamp, sources):
                 for period in ['3m', '6m', '1y']:
                     rank_dict[f'Normalized {period}'] = ticker_historic[f'Normalized {period}'].iloc[0] if f'Normalized {period}' in ticker_historic.columns and not ticker_historic.empty else 'N/A'
 
+                summary_path = f"data/{timestamp}/tables/summary/summary_table{prefix}.csv"
+                summary = pd.read_csv(summary_path) if os.path.exists(summary_path) else pd.DataFrame()
+                weighted_iv = 'N/A'
+                weighted_iv_3m = 'N/A'
+                atm_iv_3m = 'N/A'
+                if not summary.empty and 'Ticker' in summary.columns:
+                    ticker_summary = summary[summary['Ticker'] == ticker]
+                    weighted_iv = ticker_summary['Weighted IV (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV (%)' in ticker_summary.columns else 'N/A'
+                    weighted_iv_3m = ticker_summary['Weighted IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV 3m (%)' in ticker_summary.columns else 'N/A'
+                    atm_iv_3m = ticker_summary['ATM IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'ATM IV 3m (%)' in ticker_summary.columns else 'N/A'
+                rank_dict['Weighted IV (%)'] = weighted_iv
+                rank_dict['Weighted IV 3m (%)'] = weighted_iv_3m
+                rank_dict['ATM IV 3m (%)'] = atm_iv_3m
+                prev_day_ranking, _, _ = get_prev_data(timestamp, 1, source)
+                prev_week_ranking, _, _ = get_prev_data(timestamp, 7, source)
+                prev_day_weighted_iv = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['Weighted IV (%)'].iloc[0] if not prev_day_ranking.empty and 'Weighted IV (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
+                prev_week_weighted_iv = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['Weighted IV (%)'].iloc[0] if not prev_week_ranking.empty and 'Weighted IV (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
+                rank_dict['Weighted IV 1d (%)'] = ((weighted_iv - prev_day_weighted_iv) / prev_day_weighted_iv * 100) if prev_day_weighted_iv != 'N/A' and prev_day_weighted_iv != 0 and weighted_iv != 'N/A' else 'N/A'
+                rank_dict['Weighted IV 1w (%)'] = ((weighted_iv - prev_week_weighted_iv) / prev_week_weighted_iv * 100) if prev_week_weighted_iv != 'N/A' and prev_week_weighted_iv != 0 and weighted_iv != 'N/A' else 'N/A'
+                prev_day_weighted_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['Weighted IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'Weighted IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
+                prev_week_weighted_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['Weighted IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'Weighted IV 3m (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
+                rank_dict['Weighted IV 3m 1d (%)'] = ((weighted_iv_3m - prev_day_weighted_iv_3m) / prev_day_weighted_iv_3m * 100) if prev_day_weighted_iv_3m != 'N/A' and prev_day_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
+                rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_weighted_iv_3m * 100) if prev_week_weighted_iv_3m != 'N/A' and prev_week_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
+                prev_day_atm_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'ATM IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
+                prev_week_atm_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'ATM IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
+                rank_dict['ATM IV 3m 1d (%)'] = ((atm_iv_3m - prev_day_atm_iv_3m) / prev_day_atm_iv_3m * 100) if prev_day_atm_iv_3m != 'N/A' and prev_day_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
+                rank_dict['ATM IV 3m 1w (%)'] = ((atm_iv_3m - prev_week_atm_iv_3m) / prev_week_atm_iv_3m * 100) if prev_week_atm_iv_3m != 'N/A' and prev_week_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
+
                 if not ticker_historic.empty and 'Close' in ticker_historic.columns:
                     latest_historic = ticker_historic.sort_values('Date').iloc[-1:]
                     current_close = latest_historic['Close'].iloc[0] if 'Close' in latest_historic.columns else 'N/A'
@@ -395,40 +423,11 @@ def calculate_ranking_metrics(timestamp, sources):
                         rank_dict[f'Rvol {rvol_type}d Percentile 2y (%)'] = 'N/A'
                         rank_dict[f'Rvol {rvol_type}d Z-Score Percentile 2y (%)'] = 'N/A'
 
-                summary_path = f"data/{timestamp}/tables/summary/summary_table{prefix}.csv"
-                summary = pd.read_csv(summary_path) if os.path.exists(summary_path) else pd.DataFrame()
-                if not summary.empty and 'Ticker' in summary.columns:
-                    ticker_summary = summary[summary['Ticker'] == ticker]
-                    weighted_iv = ticker_summary['Weighted IV (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV (%)' in ticker_summary.columns else 'N/A'
-                    weighted_iv_3m = ticker_summary['Weighted IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV 3m (%)' in ticker_summary.columns else 'N/A'
-                    atm_iv_3m = ticker_summary['ATM IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'ATM IV 3m (%)' in ticker_summary.columns else 'N/A'
-                    rank_dict['Weighted IV (%)'] = weighted_iv
-                    rank_dict['Weighted IV 3m (%)'] = weighted_iv_3m
-                    rank_dict['ATM IV 3m (%)'] = atm_iv_3m
-                    prev_day_ranking, _, _ = get_prev_data(timestamp, 1, source)
-                    prev_week_ranking, _, _ = get_prev_data(timestamp, 7, source)
-                    prev_day_weighted_iv = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['Weighted IV (%)'].iloc[0] if not prev_day_ranking.empty and 'Weighted IV (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
-                    prev_week_weighted_iv = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['Weighted IV (%)'].iloc[0] if not prev_week_ranking.empty and 'Weighted IV (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
-                    rank_dict['Weighted IV 1d (%)'] = ((weighted_iv - prev_day_weighted_iv) / prev_day_weighted_iv * 100) if prev_day_weighted_iv != 'N/A' and prev_day_weighted_iv != 0 and weighted_iv != 'N/A' else 'N/A'
-                    rank_dict['Weighted IV 1w (%)'] = ((weighted_iv - prev_week_weighted_iv) / prev_week_weighted_iv * 100) if prev_week_weighted_iv != 'N/A' and prev_week_weighted_iv != 0 and weighted_iv != 'N/A' else 'N/A'
-                    prev_day_weighted_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['Weighted IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'Weighted IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
-                    prev_week_weighted_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['Weighted IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'Weighted IV 3m (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
-                    rank_dict['Weighted IV 3m 1d (%)'] = ((weighted_iv_3m - prev_day_weighted_iv_3m) / prev_day_weighted_iv_3m * 100) if prev_day_weighted_iv_3m != 'N/A' and prev_day_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
-                    rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_weighted_iv_3m * 100) if prev_week_weighted_iv_3m != 'N/A' and prev_week_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
-                    prev_day_atm_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'ATM IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
-                    prev_week_atm_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'ATM IV 3m (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
-                    rank_dict['ATM IV 3m 1d (%)'] = ((atm_iv_3m - prev_day_atm_iv_3m) / prev_day_atm_iv_3m * 100) if prev_day_atm_iv_3m != 'N/A' and prev_day_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
-                    rank_dict['ATM IV 3m 1w (%)'] = ((atm_iv_3m - prev_week_atm_iv_3m) / prev_week_atm_iv_3m * 100) if prev_week_atm_iv_3m != 'N/A' and prev_week_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
+                if 'Realised_Vol_Close_100' in ticker_historic.columns and not ticker_historic.empty:
+                    current_vol = ticker_historic['Realised_Vol_Close_100'].iloc[-1]
+                    rank_dict['Rvol100d - Weighted IV'] = (current_vol - (weighted_iv * 100)) if current_vol != 'N/A' and not pd.isna(current_vol) and weighted_iv != 'N/A' and not pd.isna(weighted_iv) else 'N/A'
                 else:
-                    rank_dict['Weighted IV (%)'] = 'N/A'
-                    rank_dict['Weighted IV 3m (%)'] = 'N/A'
-                    rank_dict['ATM IV 3m (%)'] = 'N/A'
-                    rank_dict['Weighted IV 1d (%)'] = 'N/A'
-                    rank_dict['Weighted IV 1w (%)'] = 'N/A'
-                    rank_dict['Weighted IV 3m 1d (%)'] = 'N/A'
-                    rank_dict['Weighted IV 3m 1w (%)'] = 'N/A'
-                    rank_dict['ATM IV 3m 1d (%)'] = 'N/A'
-                    rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
+                    rank_dict['Rvol100d - Weighted IV'] = 'N/A'
 
                 cleaned_path = f"data/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv"
                 total_notional = np.nan
@@ -480,11 +479,6 @@ def calculate_ranking_metrics(timestamp, sources):
                 rank_dict['P90_Rel_Error_Put (%)'] = ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Put']['P90_Rel_Error_%'].iloc[0] if not ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Put'].empty else 'N/A'
                 rank_dict['Restricted_P90_Rel_Error_Put (%)'] = ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Put']['Restricted_P90_Rel_Error_%'].iloc[0] if not ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Put'].empty else 'N/A'
 
-                if 'Realised_Vol_Close_100' in ticker_historic.columns and not ticker_historic.empty:
-                    current_vol = ticker_historic['Realised_Vol_Close_100'].iloc[-1]
-                    rank_dict['Rvol100d - Weighted IV'] = (current_vol - (weighted_iv * 100)) if current_vol != 'N/A' and not pd.isna(current_vol) and weighted_iv != 'N/A' and not pd.isna(weighted_iv) else 'N/A'
-                else:
-                    rank_dict['Rvol100d - Weighted IV'] = 'N/A'
                 ranking.append(rank_dict)
 
             column_order = [
