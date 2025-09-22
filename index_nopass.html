@@ -5112,36 +5112,51 @@ function toggleHedgeTable() {
     try {
         hedgeTableVisible = !hedgeTableVisible;
         const table = document.getElementById('hedge-table');
+        if (!table) throw new Error('Hedge table element not found');
         table.style.display = hedgeTableVisible ? 'table' : 'none';
-        document.querySelector('#indices-hedge .toggle-button[onclick="toggleHedgeTable()"]').textContent = hedgeTableVisible ? 'Hide Data' : 'Show Data';
+        const toggleButton = document.querySelector('#strategy-performance-hedge .toggle-button[onclick="toggleHedgeTable()"]');
+        if (!toggleButton) throw new Error('Toggle button for hedge table not found');
+        toggleButton.textContent = hedgeTableVisible ? 'Hide Data' : 'Show Data';
         if (hedgeTableVisible) updateHedgeTable();
         console.log(`Hedge table visibility set to: ${hedgeTableVisible}`);
     } catch (error) {
         console.error('Error in toggleHedgeTable:', error);
-        document.getElementById('hedge-error').textContent = `Error toggling table: ${error.message}`;
-        document.getElementById('hedge-error').style.display = 'block';
+        const errorDiv = document.getElementById('hedge-error');
+        if (errorDiv) {
+            errorDiv.textContent = `Error toggling table: ${error.message}`;
+            errorDiv.style.display = 'block';
+        }
     }
 }
+
 function toggleHedgeChart() {
     try {
         hedgeChartVisible = !hedgeChartVisible;
         const chart = document.getElementById('hedge-chart');
+        if (!chart) throw new Error('Hedge chart canvas not found');
         chart.style.display = hedgeChartVisible ? 'block' : 'none';
-        document.querySelector('#indices-hedge .toggle-button[onclick="toggleHedgeChart()"]').textContent = hedgeChartVisible ? 'Hide Plot' : 'Show Plot';
+        const toggleButton = document.querySelector('#strategy-performance-hedge .toggle-button[onclick="toggleHedgeChart()"]');
+        if (!toggleButton) throw new Error('Toggle button for hedge chart not found');
+        toggleButton.textContent = hedgeChartVisible ? 'Hide Plot' : 'Show Plot';
         if (hedgeChartVisible) {
-            updateHedgeChart();
+            const ctx = chart.getContext('2d');
+            if (!ctx) throw new Error('Canvas context not available for hedge-chart');
             chart.style.width = '100%';
             chart.style.height = '400px';
-            const ctx = chart.getContext('2d');
-            if (ctx && hedgeChart) {
+            updateHedgeChart();
+            if (hedgeChart) {
                 hedgeChart.resize();
+                console.log('Hedge chart resized after toggle');
             }
         }
         console.log('Hedge chart visibility toggled:', hedgeChartVisible);
     } catch (error) {
         console.error('Error toggling hedge chart:', error);
-        document.getElementById('hedge-error').textContent = `Error toggling chart: ${error.message}`;
-        document.getElementById('hedge-error').style.display = 'block';
+        const errorDiv = document.getElementById('hedge-error');
+        if (errorDiv) {
+            errorDiv.textContent = `Error toggling chart: ${error.message}`;
+            errorDiv.style.display = 'block';
+        }
     }
 }
 document.addEventListener('DOMContentLoaded', () => {
