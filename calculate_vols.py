@@ -215,19 +215,27 @@ def calculate_smoothed_iv(df, params_calls, params_puts, model='hyp'):
         pass
     return df
 
-def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, ticker=None, option_type='Call'):
+def fit_single_ticker(df, model, p0=None, max_nfev=20000, max_iterations=10, ticker=None, option_type='Call'):
     df = df.copy()
     if len(df) < 4:
         return None, None
     df.loc[:, 'SMI'] = 100 * (df['Ask'] - df['Bid']).clip(lower=0) / (df['Bid'] + df['Ask']).clip(lower=1e-6) / 2
     df.loc[:, 'weight'] = np.log(1 + df['Open Interest'].clip(lower=0)) / df['SMI'].clip(lower=1e-6)
     
-    # Liquidity and spread filters
-    df = df[(df['Open Interest'] > 10) & (df['SMI'] < 50) & (df['Ask'] - df['Bid'] < 0.5 * df['Last Stock Price'])]
+    # Relaxed liquidity filters to include more data
+    df = df[(df['Open Interest'] > 5) & (df['SMI'] < 100) & (df['Ask'] - df['Bid'] < 1.0 * df['Last Stock Price'])]
     
-    # IQR-based outlier detection within expiry groups
+    # Robust outlier detection with MAD for IVs
+    median_iv = df['IV_mid'].median()
+    mad = np.median(np.abs(df['IV_mid'] - median_iv))
+    lower_bound = median_iv - 3 * mad
+    upper_bound = median_iv + 3 * mad
+    outliers = (df['IV_mid'] < lower_bound) | (df['IV_mid'] > upper_bound)
+    df.loc[outliers, 'weight'] *= 0.01  # Downweight outliers
+    
+    # Grouped IQR detection for expiry groups
     df['is_outlier'] = False
-    df = df[df['IV_mid'] <= 5.0]  # Pre-filter extreme IVs
+    df = df[df['IV_mid'] <= 3.0]  # Lower upper IV cap for better fit
     for _, group in df.groupby('Years_to_Expiry'):
         if len(group) < 3:
             continue
@@ -238,26 +246,26 @@ def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, tick
         upper_bound = Q3 + 1.5 * IQR
         outliers = group[(group['IV_mid'] < lower_bound) | (group['IV_mid'] > upper_bound)].index
         df.loc[outliers, 'is_outlier'] = True
-    df.loc[df['is_outlier'], 'weight'] *= 0.01  # Downweight outliers
+    df.loc[df['is_outlier'], 'weight'] *= 0.01
     
-    # Final filtering with relaxed expiry range
+    # Final filtering with relaxed expiry and moneyness
     df = df[
         (df['IV_mid'] > 0) &
         (df['weight'] > 0) &
         (df['Bid'] >= 0) &
         (df['Ask'] >= df['Bid']) &
         (df['SMI'] > 0) &
-        (df['Moneyness'].between(0.5, 2.0)) &
-        (df['Years_to_Expiry'].between(0.01, 2.0))  # Relaxed to include shorter expiries
+        (df['Moneyness'].between(0.7, 1.3)) &  # Tighter moneyness for better ATM focus
+        (df['Years_to_Expiry'].between(0.01, 3.0))  # Extended expiry to include more data
     ]
-    if len(df) < 6:  # Reduced minimum data points
+    if len(df) < 4:
         return None, None
     
-    # Weighting based on moneyness and expiry proximity
-    sigma_m = 0.6
-    sigma_t = 0.6 * (df['Years_to_Expiry'].max() - df['Years_to_Expiry'].min()) if df['Years_to_Expiry'].max() > df['Years_to_Expiry'].min() else 1.0
+    # Enhanced weighting for ATM and medium-term
+    sigma_m = 0.3  # Tighter for ATM focus
+    sigma_t = 0.5  # Focus on medium-term
     moneyness_dist = (df['Moneyness'] - 1.0)**2 / (2 * sigma_m**2)
-    expiry_dist = (df['Years_to_Expiry'] - df['Years_to_Expiry'].median())**2 / (2 * sigma_t**2)
+    expiry_dist = (df['Years_to_Expiry'] - 1.0)**2 / (2 * sigma_t**2)  # Bias towards 1-year expiry
     df.loc[:, 'dist_weight'] = np.exp(-(moneyness_dist + expiry_dist))
     df.loc[:, 'weight'] *= df['dist_weight']
     
@@ -302,7 +310,6 @@ def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, tick
         return popt, current_residuals
     except Exception:
         return None, None
-
     
 def compute_p90_restricted(df, params, ticker, option_type):
     # Filter data for restricted ranges: moneyness 0.5-2.0, expiry 0.5-2.0
@@ -395,27 +402,28 @@ def optimize_p90(df, df_type, ticker, option_type, exp_min_short, exp_max_long, 
         return best_exp_max_short, best_exp_min_long
     
     def objective(trial):
-        # Dynamic bounds to avoid ValueError
-        exp_max_s = trial.suggest_float('exp_max_s', expiry_min + 0.05, min(median_expiry - 0.05, 1.0))
+        # Dynamic bounds focusing on restricted range
+        exp_max_s = trial.suggest_float('exp_max_s', max(expiry_min + 0.05, 0.3), min(median_expiry - 0.05, 0.8))
         exp_min_l = trial.suggest_float('exp_min_l', max(median_expiry + 0.1, exp_max_s + 0.1), min(expiry_max - 0.05, 2.0))
         if exp_min_l - exp_max_s < 0.1:
             return np.inf
         p90 = compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model)
-        penalty = 0.1 * (exp_max_s + exp_min_l)
+        penalty = 0.2 * (exp_max_s + exp_min_l)  # Stronger penalty for tighter fit
         return p90 + penalty if np.isfinite(p90) else np.inf
     
     study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=15, timeout=90)  # Balanced trials and timeout
+    study.optimize(objective, n_trials=20, timeout=120)  # Increased trials and timeout
     if study.best_value < np.inf:
         best_exp_max_short = study.best_params['exp_max_s']
         best_exp_min_long = study.best_params['exp_min_l']
-        best_p90 = study.best_value - 0.1 * (best_exp_max_short + best_exp_min_long)
+        best_p90 = study.best_value - 0.2 * (best_exp_max_short + best_exp_min_long)
         print(f"{ticker} ({option_type}): p90={best_p90:.2f}%, short_max={best_exp_max_short:.3f}, long_min={best_exp_min_long:.3f}")
         return best_exp_max_short, best_exp_min_long
     best_exp_max_short = max(df_type['Years_to_Expiry'].min() + 0.3, 0.3)
     best_exp_min_long = min(df_type['Years_to_Expiry'].max() - 0.3, 1.8)
     print(f"{ticker} ({option_type}): p90=nan%, short_max={best_exp_max_short:.3f}, long_min={best_exp_min_long:.3f}")
     return best_exp_max_short, best_exp_min_long
+
 
 # Volatility surface fitting
 def global_vol_model_hyp(x, a0, a1, b0, b1, m0, m1, rho0, rho1, sigma0, sigma1, c):
