@@ -2876,51 +2876,27 @@ function updateHistoricVolChart() {
         const thead = document.createElement('thead');
         const headerRow = thead.insertRow();
         const columns = [
-            'Rank', 'Ticker', 'Latest Close', 'Realised Volatility 30d (%)',
+            'Rank', 'Latest Close',
             'Realised Volatility 100d (%)', 'Realised Volatility 100d 1d (%)',
-            'Realised Volatility 100d 1w (%)', 'Min Realised Volatility 100d (2y)',
-            'Max Realised Volatility 100d (2y)', 'Mean Realised Volatility 100d (2y)',
-            'Rvol 100d Percentile 2y (%)', 'Rvol 100d Z-Score Percentile 2y (%)',
-            'Realised Volatility 180d (%)', 'Realised Volatility 252d (%)',
-            'Weighted IV (%)', 'Weighted IV 1d (%)', 'Weighted IV 1w (%)',
-            'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)', 'Weighted IV 3m 1w (%)',
+            'Realised Volatility 100d 1w (%)',
             'ATM IV 3m (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
-            'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)', 'Volume 1w (%)',
-            'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
-            'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
-            'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
+            'Volume', 'Open Interest', 'Num Contracts', 'P90_Rel_Error_Call (%)', 'P90_Rel_Error_Put (%)'
         ];
         const displayNameMap = {
-            'Realised Volatility 30d (%)': 'RVol\n30d (%)',
+			'Rank': 'OI Rank',
             'Realised Volatility 100d (%)': 'RVol\n100d (%)',
             'Realised Volatility 100d 1d (%)': 'RVol\n100d 1d (%)',
             'Realised Volatility 100d 1w (%)': 'RVol\n100d 1w (%)',
-            'Min Realised Volatility 100d (2y)': 'Min RVol\n100d (2y)',
-            'Max Realised Volatility 100d (2y)': 'Max RVol\n100d (2y)',
-            'Mean Realised Volatility 100d (2y)': 'Mean RVol\n100d (2y)',
-            'Rvol 100d Percentile 2y (%)': 'RVol 100d\nPercentile 2y (%)',
-            'Rvol 100d Z-Score Percentile 2y (%)': 'RVol 100d\nZ-Score\nPercentile 2y (%)',
-            'Realised Volatility 180d (%)': 'RVol\n180d (%)',
-            'Realised Volatility 252d (%)': 'RVol\n252d (%)',
-            'Weighted IV (%)': 'WIVol\n(%)',
-            'Weighted IV 1d (%)': 'WIVol\n1d (%)',
-            'Weighted IV 1w (%)': 'WIVol\n1w (%)',
-            'Weighted IV 3m (%)': 'WIVol\n3m (%)',
-            'Weighted IV 3m 1d (%)': 'WIVol\n3m 1d (%)',
-            'Weighted IV 3m 1w (%)': 'WIVol\n3m 1w (%)',
             'ATM IV 3m (%)': 'ATM IVol\n3m (%)',
             'ATM IV 3m 1d (%)': 'ATM IVol\n3m 1d (%)',
             'ATM IV 3m 1w (%)': 'ATM IVol\n3m 1w (%)',
-            'Rvol100d - Weighted IV': 'RVol100d -\nWIVol',
             'Num Contracts': 'Num\nContracts',
-            'One_Yr_ATM_Rel_Error_Call (%)': '1yr ATM\nError Call (%)',
             'P90_Rel_Error_Call (%)': 'P90 Error\nCall (%)',
-            'One_Yr_ATM_Rel_Error_Put (%)': '1yr ATM\nError Put (%)',
             'P90_Rel_Error_Put (%)': 'P90 Error\nPut (%)'
         };
         columns.forEach((col, index) => {
             const th = document.createElement('th');
-            th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/Weighted IV/g, 'WIVol').replace(/IV/g, 'IVol').replace(/ /g, '\n');
+            th.textContent = displayNameMap[col] || col.replace(/Realised Volatility/g, 'RVol').replace(/IV/g, 'IVol').replace(/ /g, '\n');
             th.dataset.column = col;
             th.dataset.order = 'desc';
             headerRow.appendChild(th);
@@ -2946,10 +2922,7 @@ function updateHistoricVolChart() {
             cell.textContent = value;
             const isPercentChange = [
                 'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
-                'Weighted IV 1d (%)', 'Weighted IV 1w (%)', 'Weighted IV 3m 1d (%)',
-                'Weighted IV 3m 1w (%)', 'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
-                'Rvol100d - Weighted IV', 'Volume 1d (%)', 'Volume 1w (%)',
-                'OI 1d (%)', 'OI 1w (%)',
+				'ATM IV 3m 1d (%)', 'ATM IV 3m 1w (%)',
                 'One_Yr_ATM_Rel_Error_Call (%)', 'P90_Rel_Error_Call (%)',
                 'One_Yr_ATM_Rel_Error_Put (%)', 'P90_Rel_Error_Put (%)'
             ].includes(col);
