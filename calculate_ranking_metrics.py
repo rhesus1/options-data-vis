@@ -34,7 +34,7 @@ def calculate_atm_iv(ticker_processed, current_price, current_dt, timestamp, opt
     if os.path.exists(vol_surf_file):
         try:
             vol_surf_df = pd.read_csv(vol_surf_file)
-            vol_surf_df = vol_surf_df[vol_surf_df['Ticker'] == ticker]
+            vol_surf_df = vol_surf_df[vol_surf_df['Ticker'] == ticker] if 'Ticker' in vol_surf_df.columns else pd.DataFrame()
             if not vol_surf_df.empty:
                 params = vol_surf_df[vol_surf_df['Option_Type'] == option_type]
                 if params.empty and option_type == 'Call':
@@ -123,7 +123,7 @@ def get_option_totals(ts, prefix):
         except Exception as e:
             print(f"get_option_totals: Error reading {file}: {e}")
             totals.append({'Ticker': ticker, 'OI': 0, 'Vol': 0})
-    return pd.DataFrame(totals)
+    return pd.DataFrame(totals, columns=['Ticker', 'OI', 'Vol'])
 
 def load_historic_data(ts):
     if ts is None:
@@ -164,16 +164,20 @@ def load_historic_data(ts):
     if dfs:
         historic_df = pd.concat(dfs, ignore_index=True)
         return historic_df
-    return pd.DataFrame()
+    return pd.DataFrame(columns=required_columns)
 
 def get_prev_data(ts, days_back, source):
     prefix = "_yfinance" if source == "yfinance" else ""
     dates_file = 'data/dates.json'
     if not os.path.exists(dates_file):
         print(f"get_prev_data: dates.json not found")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-    with open(dates_file, 'r') as f:
-        dates = json.load(f)
+        return pd.DataFrame(), pd.DataFrame(columns=['Ticker', 'OI', 'Vol']), pd.DataFrame()
+    try:
+        with open(dates_file, 'r') as f:
+            dates = json.load(f)
+    except Exception as e:
+        print(f"get_prev_data: Error reading dates.json: {e}")
+        return pd.DataFrame(), pd.DataFrame(columns=['Ticker', 'OI', 'Vol']), pd.DataFrame()
     timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
     ts_dt = datetime.strptime(ts, "%Y%m%d_%H%M")
     prev_ts = None
@@ -184,12 +188,19 @@ def get_prev_data(ts, days_back, source):
             break
     if not prev_ts:
         print(f"get_prev_data: No previous timestamp found {days_back} days back from {ts}")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(columns=['Ticker', 'OI', 'Vol']), pd.DataFrame()
     prev_ranking_path = f'data/{prev_ts}/tables/ranking/ranking{prefix}.csv'
     prev_option_path = f'data/{prev_ts}/option_totals.csv'
     prev_atm_path = f'data/{prev_ts}/atm_iv.csv'
     prev_ranking = pd.read_csv(prev_ranking_path) if os.path.exists(prev_ranking_path) else pd.DataFrame()
-    prev_option = pd.read_csv(prev_option_path) if os.path.exists(prev_option_path) else pd.DataFrame()
+    try:
+        prev_option = pd.read_csv(prev_option_path) if os.path.exists(prev_option_path) else pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
+        if not prev_option.empty and 'Ticker' not in prev_option.columns:
+            print(f"get_prev_data: 'Ticker' column missing in {prev_option_path}, returning empty DataFrame with correct columns")
+            prev_option = pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
+    except Exception as e:
+        print(f"get_prev_data: Error reading {prev_option_path}: {e}")
+        prev_option = pd.DataFrame(columns=['Ticker', 'OI', 'Vol'])
     prev_atm = pd.read_csv(prev_atm_path) if os.path.exists(prev_atm_path) else pd.DataFrame()
     return prev_ranking, prev_option, prev_atm
 
@@ -221,8 +232,12 @@ def calculate_ranking_metrics(timestamp, sources):
             if not os.path.exists(dates_file):
                 print(f"calculate_ranking_metrics: dates.json not found")
                 return
-            with open(dates_file, 'r') as f:
-                dates = json.load(f)
+            try:
+                with open(dates_file, 'r') as f:
+                    dates = json.load(f)
+            except Exception as e:
+                print(f"calculate_ranking_metrics: Error reading dates.json: {e}")
+                return
             timestamps = sorted(dates, key=lambda x: datetime.strptime(x, "%Y%m%d_%H%M"))
             prev_day_ts = None
             prev_week_ts = None
@@ -243,8 +258,13 @@ def calculate_ranking_metrics(timestamp, sources):
             if not os.path.exists(tickers_file):
                 print(f"tickers.txt not found, skipping ranking metrics calculation")
                 return
-            with open(tickers_file, 'r') as f:
-                tickers = [line.strip() for line in f if line.strip()]
+            try:
+                with open(tickers_file, 'r') as f:
+                    tickers = [line.strip() for line in f if line.strip()]
+            except Exception as e:
+                print(f"Error reading tickers.txt: {e}")
+                return
+
             for ticker in tickers:
                 try:
                     yf_ticker = yf.Ticker(ticker)
@@ -262,7 +282,7 @@ def calculate_ranking_metrics(timestamp, sources):
                     print(f"Error reading {vol_surf_file}: {e}")
 
             for ticker in tickers:
-                ticker_historic = historic[historic['Ticker'] == ticker]
+                ticker_historic = historic[historic['Ticker'] == ticker] if not historic.empty else pd.DataFrame()
                 ticker_historic_full = ticker_historic.sort_values('Date') if not ticker_historic.empty else pd.DataFrame()
                 if ticker_historic.empty:
                     print(f"No historic data for ticker {ticker}")
@@ -376,12 +396,12 @@ def calculate_ranking_metrics(timestamp, sources):
                         rank_dict[f'Rvol {rvol_type}d Z-Score Percentile 2y (%)'] = 'N/A'
 
                 summary_path = f"data/{timestamp}/tables/summary/summary_table{prefix}.csv"
-                summary = pd.read_csv(summary_path) if os.path.exists(summary_path) else None
-                if summary is not None:
+                summary = pd.read_csv(summary_path) if os.path.exists(summary_path) else pd.DataFrame()
+                if not summary.empty and 'Ticker' in summary.columns:
                     ticker_summary = summary[summary['Ticker'] == ticker]
-                    weighted_iv = ticker_summary['Weighted IV (%)'].iloc[0] if not ticker_summary.empty else 'N/A'
-                    weighted_iv_3m = ticker_summary['Weighted IV 3m (%)'].iloc[0] if not ticker_summary.empty else 'N/A'
-                    atm_iv_3m = ticker_summary['ATM IV 3m (%)'].iloc[0] if not ticker_summary.empty else 'N/A'
+                    weighted_iv = ticker_summary['Weighted IV (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV (%)' in ticker_summary.columns else 'N/A'
+                    weighted_iv_3m = ticker_summary['Weighted IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV 3m (%)' in ticker_summary.columns else 'N/A'
+                    atm_iv_3m = ticker_summary['ATM IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'ATM IV 3m (%)' in ticker_summary.columns else 'N/A'
                     rank_dict['Weighted IV (%)'] = weighted_iv
                     rank_dict['Weighted IV 3m (%)'] = weighted_iv_3m
                     rank_dict['ATM IV 3m (%)'] = atm_iv_3m
@@ -389,16 +409,16 @@ def calculate_ranking_metrics(timestamp, sources):
                     prev_week_ranking, _, _ = get_prev_data(timestamp, 7, source)
                     prev_day_weighted_iv = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['Weighted IV (%)'].iloc[0] if not prev_day_ranking.empty and 'Weighted IV (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
                     prev_week_weighted_iv = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['Weighted IV (%)'].iloc[0] if not prev_week_ranking.empty and 'Weighted IV (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
-                    rank_dict['Weighted IV 1d (%)'] = ((weighted_iv - prev_day_weighted_iv) / prev_day_weighted_iv * 100) if prev_day_weighted_iv != 'N/A' and prev_day_weighted_iv != 0 else 'N/A'
-                    rank_dict['Weighted IV 1w (%)'] = ((weighted_iv - prev_week_weighted_iv) / prev_week_weighted_iv * 100) if prev_week_weighted_iv != 'N/A' and prev_week_weighted_iv != 0 else 'N/A'
+                    rank_dict['Weighted IV 1d (%)'] = ((weighted_iv - prev_day_weighted_iv) / prev_day_weighted_iv * 100) if prev_day_weighted_iv != 'N/A' and prev_day_weighted_iv != 0 and weighted_iv != 'N/A' else 'N/A'
+                    rank_dict['Weighted IV 1w (%)'] = ((weighted_iv - prev_week_weighted_iv) / prev_week_weighted_iv * 100) if prev_week_weighted_iv != 'N/A' and prev_week_weighted_iv != 0 and weighted_iv != 'N/A' else 'N/A'
                     prev_day_weighted_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['Weighted IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'Weighted IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
                     prev_week_weighted_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['Weighted IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'Weighted IV 3m (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
-                    rank_dict['Weighted IV 3m 1d (%)'] = ((weighted_iv_3m - prev_day_weighted_iv_3m) / prev_day_weighted_iv_3m * 100) if prev_day_weighted_iv_3m != 'N/A' and prev_day_weighted_iv_3m != 0 else 'N/A'
-                    rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_weighted_iv_3m * 100) if prev_week_weighted_iv_3m != 'N/A' and prev_week_weighted_iv_3m != 0 else 'N/A'
+                    rank_dict['Weighted IV 3m 1d (%)'] = ((weighted_iv_3m - prev_day_weighted_iv_3m) / prev_day_weighted_iv_3m * 100) if prev_day_weighted_iv_3m != 'N/A' and prev_day_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
+                    rank_dict['Weighted IV 3m 1w (%)'] = ((weighted_iv_3m - prev_week_weighted_iv_3m) / prev_week_weighted_iv_3m * 100) if prev_week_weighted_iv_3m != 'N/A' and prev_week_weighted_iv_3m != 0 and weighted_iv_3m != 'N/A' else 'N/A'
                     prev_day_atm_iv_3m = prev_day_ranking[prev_day_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_day_ranking.empty and 'ATM IV 3m (%)' in prev_day_ranking.columns and ticker in prev_day_ranking['Ticker'].values else 'N/A'
                     prev_week_atm_iv_3m = prev_week_ranking[prev_week_ranking['Ticker'] == ticker]['ATM IV 3m (%)'].iloc[0] if not prev_week_ranking.empty and 'ATM IV 3m (%)' in prev_week_ranking.columns and ticker in prev_week_ranking['Ticker'].values else 'N/A'
-                    rank_dict['ATM IV 3m 1d (%)'] = ((atm_iv_3m - prev_day_atm_iv_3m) / prev_day_atm_iv_3m * 100) if prev_day_atm_iv_3m != 'N/A' and prev_day_atm_iv_3m != 0 else 'N/A'
-                    rank_dict['ATM IV 3m 1w (%)'] = ((atm_iv_3m - prev_week_atm_iv_3m) / prev_week_atm_iv_3m * 100) if prev_week_atm_iv_3m != 'N/A' and prev_week_atm_iv_3m != 0 else 'N/A'
+                    rank_dict['ATM IV 3m 1d (%)'] = ((atm_iv_3m - prev_day_atm_iv_3m) / prev_day_atm_iv_3m * 100) if prev_day_atm_iv_3m != 'N/A' and prev_day_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
+                    rank_dict['ATM IV 3m 1w (%)'] = ((atm_iv_3m - prev_week_atm_iv_3m) / prev_week_atm_iv_3m * 100) if prev_week_atm_iv_3m != 'N/A' and prev_week_atm_iv_3m != 0 and atm_iv_3m != 'N/A' else 'N/A'
                 else:
                     rank_dict['Weighted IV (%)'] = 'N/A'
                     rank_dict['Weighted IV 3m (%)'] = 'N/A'
@@ -411,35 +431,37 @@ def calculate_ranking_metrics(timestamp, sources):
                     rank_dict['ATM IV 3m 1w (%)'] = 'N/A'
 
                 cleaned_path = f"data/{timestamp}/cleaned_yfinance/cleaned_yfinance_{ticker}.csv"
-                total_notional = 0
+                total_notional = np.nan
                 if os.path.exists(cleaned_path):
                     try:
                         cleaned = pd.read_csv(cleaned_path)
-                        cleaned['Mid'] = (cleaned['Bid'] + cleaned['Ask']) / 2
-                        total_notional = (cleaned['Mid'] * cleaned['Volume'] * 100).sum()
+                        if 'Bid' in cleaned.columns and 'Ask' in cleaned.columns and 'Volume' in cleaned.columns:
+                            cleaned['Mid'] = (cleaned['Bid'] + cleaned['Ask']) / 2
+                            total_notional = (cleaned['Mid'] * cleaned['Volume'] * 100).sum()
+                        else:
+                            print(f"Error calculating options notional for {ticker}: Missing Bid, Ask, or Volume columns")
                     except Exception as e:
                         print(f"Error calculating options notional for {ticker}: {e}")
-                        total_notional = 0
                 market_cap = ticker_info.get('marketCap', 'N/A')
-                notional_pct = ((total_notional / market_cap) * 100) if market_cap != 'N/A' and market_cap != 0 else 'N/A'
+                notional_pct = ((total_notional / market_cap) * 100) if market_cap != 'N/A' and market_cap != 0 and not np.isnan(total_notional) else 'N/A'
                 rank_dict['Options Notional (% Market Cap)'] = notional_pct
 
-                ticker_option = option_totals[option_totals['Ticker'] == ticker]
+                ticker_option = option_totals[option_totals['Ticker'] == ticker] if not option_totals.empty and 'Ticker' in option_totals.columns else pd.DataFrame()
                 if not ticker_option.empty:
-                    rank_dict['Volume'] = ticker_option['Vol'].iloc[0]
-                    rank_dict['Open Interest'] = ticker_option['OI'].iloc[0]
-                    prev_day_option, _, _ = get_prev_data(timestamp, 1, source)
-                    prev_week_option, _, _ = get_prev_data(timestamp, 7, source)
-                    prev_day_option_ticker = prev_day_option[prev_day_option['Ticker'] == ticker]
-                    prev_week_option_ticker = prev_week_option[prev_week_option['Ticker'] == ticker]
-                    prev_day_volume = prev_day_option_ticker['Vol'].iloc[0] if not prev_day_option_ticker.empty else 'N/A'
-                    prev_week_volume = prev_week_option_ticker['Vol'].iloc[0] if not prev_week_option_ticker.empty else 'N/A'
-                    prev_day_oi = prev_day_option_ticker['OI'].iloc[0] if not prev_day_option_ticker.empty else 'N/A'
-                    prev_week_oi = prev_week_option_ticker['OI'].iloc[0] if not prev_week_option_ticker.empty else 'N/A'
-                    rank_dict['Volume 1d (%)'] = ((rank_dict['Volume'] - prev_day_volume) / prev_day_volume * 100) if prev_day_volume != 'N/A' and prev_day_volume != 0 else 'N/A'
-                    rank_dict['Volume 1w (%)'] = ((rank_dict['Volume'] - prev_week_volume) / prev_week_volume * 100) if prev_week_volume != 'N/A' and prev_week_volume != 0 else 'N/A'
-                    rank_dict['OI 1d (%)'] = ((rank_dict['Open Interest'] - prev_day_oi) / prev_day_oi * 100) if prev_day_oi != 'N/A' and prev_day_oi != 0 else 'N/A'
-                    rank_dict['OI 1w (%)'] = ((rank_dict['Open Interest'] - prev_week_oi) / prev_week_oi * 100) if prev_week_oi != 'N/A' and prev_week_oi != 0 else 'N/A'
+                    rank_dict['Volume'] = ticker_option['Vol'].iloc[0] if 'Vol' in ticker_option.columns else 'N/A'
+                    rank_dict['Open Interest'] = ticker_option['OI'].iloc[0] if 'OI' in ticker_option.columns else 'N/A'
+                    prev_day_ranking, prev_day_option, _ = get_prev_data(timestamp, 1, source)
+                    prev_week_ranking, prev_week_option, _ = get_prev_data(timestamp, 7, source)
+                    prev_day_option_ticker = prev_day_option[prev_day_option['Ticker'] == ticker] if not prev_day_option.empty and 'Ticker' in prev_day_option.columns else pd.DataFrame()
+                    prev_week_option_ticker = prev_week_option[prev_week_option['Ticker'] == ticker] if not prev_week_option.empty and 'Ticker' in prev_week_option.columns else pd.DataFrame()
+                    prev_day_volume = prev_day_option_ticker['Vol'].iloc[0] if not prev_day_option_ticker.empty and 'Vol' in prev_day_option_ticker.columns else 'N/A'
+                    prev_week_volume = prev_week_option_ticker['Vol'].iloc[0] if not prev_week_option_ticker.empty and 'Vol' in prev_week_option_ticker.columns else 'N/A'
+                    prev_day_oi = prev_day_option_ticker['OI'].iloc[0] if not prev_day_option_ticker.empty and 'OI' in prev_day_option_ticker.columns else 'N/A'
+                    prev_week_oi = prev_week_option_ticker['OI'].iloc[0] if not prev_week_option_ticker.empty and 'OI' in prev_week_option_ticker.columns else 'N/A'
+                    rank_dict['Volume 1d (%)'] = ((rank_dict['Volume'] - prev_day_volume) / prev_day_volume * 100) if prev_day_volume != 'N/A' and prev_day_volume != 0 and rank_dict['Volume'] != 'N/A' else 'N/A'
+                    rank_dict['Volume 1w (%)'] = ((rank_dict['Volume'] - prev_week_volume) / prev_week_volume * 100) if prev_week_volume != 'N/A' and prev_week_volume != 0 and rank_dict['Volume'] != 'N/A' else 'N/A'
+                    rank_dict['OI 1d (%)'] = ((rank_dict['Open Interest'] - prev_day_oi) / prev_day_oi * 100) if prev_day_oi != 'N/A' and prev_day_oi != 0 and rank_dict['Open Interest'] != 'N/A' else 'N/A'
+                    rank_dict['OI 1w (%)'] = ((rank_dict['Open Interest'] - prev_week_oi) / prev_week_oi * 100) if prev_week_oi != 'N/A' and prev_week_oi != 0 and rank_dict['Open Interest'] != 'N/A' else 'N/A'
                 else:
                     rank_dict['Volume'] = 'N/A'
                     rank_dict['Open Interest'] = 'N/A'
@@ -448,17 +470,9 @@ def calculate_ranking_metrics(timestamp, sources):
                     rank_dict['OI 1d (%)'] = 'N/A'
                     rank_dict['OI 1w (%)'] = 'N/A'
 
-                if os.path.exists(cleaned_path):
-                    try:
-                        cleaned = pd.read_csv(cleaned_path)
-                        rank_dict['Num Contracts'] = len(cleaned)
-                    except Exception as e:
-                        print(f"Error counting contracts for {ticker}: {e}")
-                        rank_dict['Num Contracts'] = 'N/A'
-                else:
-                    rank_dict['Num Contracts'] = 'N/A'
+                rank_dict['Num Contracts'] = len(pd.read_csv(cleaned_path)) if os.path.exists(cleaned_path) else 'N/A'
 
-                ticker_vol_surf = vol_surf_df[vol_surf_df['Ticker'] == ticker]
+                ticker_vol_surf = vol_surf_df[vol_surf_df['Ticker'] == ticker] if not vol_surf_df.empty and 'Ticker' in vol_surf_df.columns else pd.DataFrame()
                 rank_dict['One_Yr_ATM_Rel_Error_Call (%)'] = ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Call']['One_Yr_ATM_Rel_Error_%'].iloc[0] if not ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Call'].empty else 'N/A'
                 rank_dict['P90_Rel_Error_Call (%)'] = ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Call']['P90_Rel_Error_%'].iloc[0] if not ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Call'].empty else 'N/A'
                 rank_dict['Restricted_P90_Rel_Error_Call (%)'] = ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Call']['Restricted_P90_Rel_Error_%'].iloc[0] if not ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Call'].empty else 'N/A'
@@ -468,7 +482,7 @@ def calculate_ranking_metrics(timestamp, sources):
 
                 if 'Realised_Vol_Close_100' in ticker_historic.columns and not ticker_historic.empty:
                     current_vol = ticker_historic['Realised_Vol_Close_100'].iloc[-1]
-                    rank_dict['Rvol100d - Weighted IV'] = (current_vol - (weighted_iv * 100)) if current_vol != 'N/A' and not pd.isna(current_vol) and weighted_iv != 'N/A' and not np.isnan(weighted_iv) else 'N/A'
+                    rank_dict['Rvol100d - Weighted IV'] = (current_vol - (weighted_iv * 100)) if current_vol != 'N/A' and not pd.isna(current_vol) and weighted_iv != 'N/A' and not pd.isna(weighted_iv) else 'N/A'
                 else:
                     rank_dict['Rvol100d - Weighted IV'] = 'N/A'
                 ranking.append(rank_dict)
@@ -504,7 +518,6 @@ def calculate_ranking_metrics(timestamp, sources):
                 print(f"No ranking data generated for timestamp {timestamp}")
     except Exception as e:
         print(f"Error calculating ranking metrics: {e}")
-        raise
 
 def main():
     data_dir = 'data'
