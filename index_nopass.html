@@ -636,40 +636,40 @@
 <body>
     <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
     <div class="sidebar hidden">
-        <img src="logo.webp" alt="Fourier Asset Management" class="sidebar-logo">
-        <div class="header">Fourier Toolbox</div>
-        <select id="date-select"></select>
-        <select id="time-select"></select>
-        <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
-        <datalist id="ticker-datalist"></datalist>
-        <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
-        <button class="toggle-button" onclick="toggleTheme()">Toggle Light/Dark Mode</button>
-        <a href="#macro" id="macro-link">Macro</a>
-        <div class="sub-menu hidden" id="macro-sub-menu">
-            <a href="#macro-bonds" class="sub-tab">Bonds</a>
-            <a href="#macro-commodities" class="sub-tab">Commodities</a>
-            <a href="#macro-stocks" class="sub-tab">Stocks</a>
-            <a href="#macro-currencies" class="sub-tab">Currencies</a>
-            <a href="#macro-crypto" class="sub-tab">Crypto</a>
-            <a href="#macro-shares" class="sub-tab">Shares</a>
-        </div>
-        <a href="#indices">Indices</a>
-        <div class="sub-menu hidden" id="indices-sub-menu">
-    	    <a href="#indices-overview" class="sub-tab">Wisesheets</a>
-    	    <a href="#indices-stock" class="sub-tab">Yahoo Finance</a>
-    	    <a href="#indices-price-comparisons" class="sub-tab">Price Comparisons</a>
-   	    <a href="#indices-hedge" class="sub-tab">Hedge</a>
+	    <img src="logo.webp" alt="Fourier Asset Management" class="sidebar-logo">
+	    <div class="header">Fourier Toolbox</div>
+	    <select id="date-select"></select>
+	    <select id="time-select"></select>
+	    <input type="text" id="ticker-search" list="ticker-datalist" placeholder="Search Ticker...">
+	    <datalist id="ticker-datalist"></datalist>
+	    <button class="toggle-button" onclick="toggleStatsTables()">Show Stats Tables</button>
+	    <button class="toggle-button" onclick="toggleTheme()">Toggle Light/Dark Mode</button>
+	    <a href="#macro" id="macro-link">Macro</a>
+	    <div class="sub-menu hidden" id="macro-sub-menu">
+	        <a href="#macro-bonds" class="sub-tab">Bonds</a>
+	        <a href="#macro-commodities" class="sub-tab">Commodities</a>
+	        <a href="#macro-stocks" class="sub-tab">Stocks</a>
+	        <a href="#macro-currencies" class="sub-tab">Currencies</a>
+	        <a href="#macro-crypto" class="sub-tab">Crypto</a>
+	        <a href="#macro-shares" class="sub-tab">Shares</a>
+	    </div>
+	    <a href="#indices">Indices</a>
+	    <div class="sub-menu hidden" id="indices-sub-menu">
+	        <a href="#indices-overview" class="sub-tab">Wisesheets</a>
+	        <a href="#indices-stock" class="sub-tab">Yahoo Finance</a>
+	        <a href="#indices-price-comparisons" class="sub-tab">Price Comparisons</a>
+	    </div>
+	    <a href="#volatility" id="volatility-link">Volatility</a>
+	    <div class="sub-menu hidden" id="volatility-sub-menu">
+	        <a href="#volatility-overview" class="sub-tab">Overview</a>
+	        <a href="#volatility-plots" class="sub-tab">Volatility Plots</a>
+	        <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
+	        <a href="#volatility-ranking" class="sub-tab">Ranking</a>
+	        <a href="#volatility-data-table" class="sub-tab">Data Table</a>
+	        <a href="#volatility-historic" class="sub-tab">Historic</a>
+	    </div>
+	    <a href="#strategy-performance">Strategy Performance</a>
 	</div>
-        <a href="#volatility" id="volatility-link">Volatility</a>
-        <div class="sub-menu hidden" id="volatility-sub-menu">
-    <a href="#volatility-overview" class="sub-tab">Overview</a>
-    <a href="#volatility-plots" class="sub-tab">Volatility Plots</a>
-    <a href="#volatility-surface" class="sub-tab">Volatility Surface</a>
-    <a href="#volatility-ranking" class="sub-tab">Ranking</a>
-    <a href="#volatility-data-table" class="sub-tab">Data Table</a>
-    <a href="#volatility-historic" class="sub-tab">Historic</a>
-</div>
-    </div>
     <div class="main-content">
         <div class="ticker-display" id="ticker-display">N/A</div>
         <div id="selected-ticker-summary" class="chart-container" style="display: none;">
@@ -812,26 +812,6 @@
                 <button class="toggle-button" onclick="togglePriceComparisonsTable()">Show Data</button>
                 <table id="normalized-table" class="normalized-table" style="display: none;"></table>
             </div>
-	    <div id="indices-hedge" class="chart-container" style="display: none;">
-    <h2>Hedge Fund Strategies</h2>
-    <div id="hedge-error" class="error-message" style="display: none;">No hedge data available</div>
-    <button class="toggle-button" onclick="toggleHedgeTable()">Show Data</button>
-    <button class="toggle-button" onclick="toggleHedgeChart()">Show Plot</button>
-    <div class="select-container">
-        <label for="hedge-start-date">Start Date: </label>
-        <input type="date" id="hedge-start-date">
-        <label for="hedge-end-date">End Date: </label>
-        <input type="date" id="hedge-end-date">
-        <button class="toggle-button" onclick="exportHedgeData()">Export to XLSX</button>
-    </div>
-    <div class="select-container">
-        <label for="hedge-strategy-select">Select Strategies to Compare (Multi): </label>
-        <select id="hedge-strategy-select" multiple style="width: 200px;">
-        </select>
-    </div>
-    <canvas id="hedge-chart" style="display: none;"></canvas>
-    <table id="hedge-table" class="trading-economics-table" style="display: none;"></table>
-</div>
         </div>
         <div id="volatility" class="volatility-grid" style="display: none;">
             <div id="volatility-overview" class="overview-grid" style="display: none;">
@@ -1007,6 +987,28 @@
                 <div id="surface-error" class="error-message" style="display: none;">No data available</div>
             </div>
         </div>
+		<div id="strategy-performance" class="trading-economics-grid" style="display: none;">
+    <div id="strategy-performance-hedge" class="chart-container">
+        <h2>Hedge Fund Strategies</h2>
+        <div id="hedge-error" class="error-message" style="display: none;">No hedge data available</div>
+        <button class="toggle-button" onclick="toggleHedgeTable()">Show Data</button>
+        <button class="toggle-button" onclick="toggleHedgeChart()">Show Plot</button>
+        <div class="select-container">
+            <label for="hedge-start-date">Start Date: </label>
+            <input type="date" id="hedge-start-date">
+            <label for="hedge-end-date">End Date: </label>
+            <input type="date" id="hedge-end-date">
+            <button class="toggle-button" onclick="exportHedgeData()">Export to XLSX</button>
+        </div>
+        <div class="select-container">
+            <label for="hedge-strategy-select">Select Strategies to Compare (Multi): </label>
+            <select id="hedge-strategy-select" multiple style="width: 200px;">
+            </select>
+        </div>
+        <canvas id="hedge-chart" style="display: none;"></canvas>
+        <table id="hedge-table" class="trading-economics-table" style="display: none;"></table>
+    </div>
+</div>
     </div>
     <script>
         function getThemeColor() {
@@ -1108,7 +1110,7 @@ let hedgeTableVisible = false;
 
 	function parseDate(dateStr) {
     if (!dateStr || dateStr === '########') return null;
-    // Try DD/MM/YYYY format (e.g., "01/04/2021")
+    // Handle DD/MM/YYYY (e.g., "01/04/2021")
     let match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (match) {
         const day = parseInt(match[1], 10);
@@ -1117,14 +1119,23 @@ let hedgeTableVisible = false;
         const date = new Date(year, month, day);
         return isNaN(date.getTime()) ? null : date;
     }
-    // Try MMM-YY format (e.g., "Jan-21")
+    // Handle YYYY-MM-DD (e.g., "2021-04-01")
+    match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+        const year = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10) - 1;
+        const day = parseInt(match[3], 10);
+        const date = new Date(year, month, day);
+        return isNaN(date.getTime()) ? null : date;
+    }
+    // Handle MMM-YY (e.g., "Jan-21")
     match = dateStr.match(/^([A-Za-z]{3})-(\d{2})$/);
     if (match) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const month = monthNames.indexOf(match[1]);
-        const year = parseInt(match[2], 10) + 2000; // Assume 21 means 2021
+        const year = parseInt(match[2], 10) + 2000;
         if (month === -1) return null;
-        const date = new Date(year, month, 1); // Use first day of the month
+        const date = new Date(year, month, 1);
         return isNaN(date.getTime()) ? null : date;
     }
     console.warn(`Unrecognized date format: ${dateStr}`);
@@ -4436,7 +4447,7 @@ function updateHistoricChart() {
         function updateSection(sectionId, subSectionId) {
     try {
         console.log('Updating section:', sectionId, 'subSection:', subSectionId);
-        const sections = ['macro', 'indices', 'volatility', 'volatility-surface'];
+        const sections = ['macro', 'indices', 'volatility', 'volatility-surface', 'strategy-performance'];
         sections.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.style.display = id === sectionId ? 'grid' : 'none';
@@ -4457,7 +4468,7 @@ function updateHistoricChart() {
             });
             updateTradingEconomicsTables();
         } else if (sectionId === 'indices') {
-            const subSections = ['overview', 'stock', 'price-comparisons', 'hedge'];
+            const subSections = ['overview', 'stock', 'price-comparisons'];
             const selectedSub = subSectionId || 'indices-overview';
             document.querySelectorAll('#indices > div').forEach(div => {
                 div.style.display = div.id === selectedSub ? (div.id === 'indices-overview' ? 'block' : 'block') : 'none';
@@ -4473,10 +4484,6 @@ function updateHistoricChart() {
                 updateKurtosisChart();
             } else if (selectedSub === 'indices-price-comparisons') {
                 updateNormalizedTable();
-            } else if (selectedSub === 'indices-hedge') {
-                updateHedgeTable();
-                if (hedgeChartVisible) updateHedgeChart();
-                populateHedgeStrategies();
             }
         } else if (sectionId === 'volatility') {
             const subSections = ['overview', 'plots', 'ranking', 'data-table', 'historic'];
@@ -4513,6 +4520,13 @@ function updateHistoricChart() {
             });
             updateCallVolSurface();
             if (showTickerSummary) updateSelectedTickerSummary();
+        } else if (sectionId === 'strategy-performance') {
+            document.querySelectorAll('#strategy-performance > div').forEach(div => {
+                div.style.display = 'block';
+            });
+            updateHedgeTable();
+            if (hedgeChartVisible) updateHedgeChart();
+            populateHedgeStrategies();
         }
     } catch (error) {
         console.error('Error updating section:', error);
@@ -4849,8 +4863,8 @@ function updateHedgeTable() {
         table.innerHTML = '';
         const startInput = document.getElementById('hedge-start-date').value;
         const endInput = document.getElementById('hedge-end-date').value;
-        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date))));
-        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date))));
+        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date) || new Date())));
+        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date) || new Date())));
         const filteredData = hedgeData.filter(item => {
             const itemDate = parseDate(item.Date);
             return itemDate && itemDate >= startDate && itemDate <= endDate;
@@ -4881,7 +4895,8 @@ function updateHedgeTable() {
                 const cell = row.insertCell();
                 let value = item[col];
                 if (col === 'Date') {
-                    value = value ? parseDate(value).toLocaleDateString('en-GB') : 'N/A';
+                    const parsedDate = parseDate(value);
+                    value = parsedDate ? parsedDate.toLocaleDateString('en-GB') : 'N/A';
                 } else if (Number.isFinite(value)) {
                     value = (value * 100).toFixed(2) + '%';
                 } else {
@@ -4970,8 +4985,8 @@ function updateHedgeChart() {
     try {
         const startInput = document.getElementById('hedge-start-date').value;
         const endInput = document.getElementById('hedge-end-date').value;
-        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date))));
-        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date))));
+        const startDate = startInput ? new Date(startInput) : new Date(Math.min(...hedgeData.map(item => parseDate(item.Date) || new Date())));
+        const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date) || new Date())));
         const strategySelect = document.getElementById('hedge-strategy-select');
         const selectedStrategies = Array.from(strategySelect.selectedOptions).map(opt => opt.value);
         const filteredData = hedgeData.filter(item => {
