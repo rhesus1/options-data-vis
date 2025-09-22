@@ -509,7 +509,7 @@ def calculate_ranking_metrics(timestamp, sources):
                 df_ranking.sort_values(by='Rvol 100d Percentile 2y (%)', ascending=False, na_position='last', inplace=True)
                 df_ranking['Rank'] = range(1, len(df_ranking) + 1)
                 df_ranking = df_ranking.fillna('N/A')
-                ranking_dir = f'data/{timestamp}/tables/ranking'
+                ranking_dir = f'data/{timestamp}/ranking'
                 os.makedirs(ranking_dir, exist_ok=True)
                 output_file = f'{ranking_dir}/ranking{prefix}.csv'
                 df_ranking.to_csv(output_file, index=False)
