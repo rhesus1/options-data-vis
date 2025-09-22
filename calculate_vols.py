@@ -222,16 +222,8 @@ def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, tick
     df.loc[:, 'SMI'] = 100 * (df['Ask'] - df['Bid']).clip(lower=0) / (df['Bid'] + df['Ask']).clip(lower=1e-6) / 2
     df.loc[:, 'weight'] = np.log(1 + df['Open Interest'].clip(lower=0)) / df['SMI'].clip(lower=1e-6)
     
-    # Enhanced outlier detection
-    sigma_m = 0.6
-    sigma_t = 0.6 * (df['Years_to_Expiry'].max() - df['Years_to_Expiry'].min()) if df['Years_to_Expiry'].max() > df['Years_to_Expiry'].min() else 1.0
-    moneyness_dist = (df['Moneyness'] - 1.0)**2 / (2 * sigma_m**2)
-    expiry_dist = (df['Years_to_Expiry'] - df['Years_to_Expiry'].median())**2 / (2 * sigma_t**2)
-    df.loc[:, 'dist_weight'] = np.exp(-(moneyness_dist + expiry_dist))
-    df.loc[:, 'weight'] *= df['dist_weight']
-    
-    # Filter by open interest and SMI to remove low-liquidity options
-    df = df[(df['Open Interest'] > 10) & (df['SMI'] < 50)]
+    # Liquidity and spread filters
+    df = df[(df['Open Interest'] > 10) & (df['SMI'] < 50) & (df['Ask'] - df['Bid'] < 0.5 * df['Last Stock Price'])]
     
     # IQR-based outlier detection within expiry groups
     df['is_outlier'] = False
@@ -248,7 +240,7 @@ def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, tick
         df.loc[outliers, 'is_outlier'] = True
     df.loc[df['is_outlier'], 'weight'] *= 0.01  # Downweight outliers
     
-    # Final filtering
+    # Final filtering with relaxed expiry range
     df = df[
         (df['IV_mid'] > 0) &
         (df['weight'] > 0) &
@@ -256,10 +248,18 @@ def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, tick
         (df['Ask'] >= df['Bid']) &
         (df['SMI'] > 0) &
         (df['Moneyness'].between(0.5, 2.0)) &
-        (df['Years_to_Expiry'].between(0.5, 2.0))  # Match restricted P90 range
+        (df['Years_to_Expiry'].between(0.01, 2.0))  # Relaxed to include shorter expiries
     ]
-    if len(df) < 10:  # Stricter minimum data points
+    if len(df) < 6:  # Reduced minimum data points
         return None, None
+    
+    # Weighting based on moneyness and expiry proximity
+    sigma_m = 0.6
+    sigma_t = 0.6 * (df['Years_to_Expiry'].max() - df['Years_to_Expiry'].min()) if df['Years_to_Expiry'].max() > df['Years_to_Expiry'].min() else 1.0
+    moneyness_dist = (df['Moneyness'] - 1.0)**2 / (2 * sigma_m**2)
+    expiry_dist = (df['Years_to_Expiry'] - df['Years_to_Expiry'].median())**2 / (2 * sigma_t**2)
+    df.loc[:, 'dist_weight'] = np.exp(-(moneyness_dist + expiry_dist))
+    df.loc[:, 'weight'] *= df['dist_weight']
     
     df = df.sort_values(['Moneyness', 'Years_to_Expiry']).drop_duplicates(subset=['Moneyness', 'Years_to_Expiry'], keep='first')
     M = df['Moneyness'].values
@@ -302,6 +302,7 @@ def fit_single_ticker(df, model, p0=None, max_nfev=15000, max_iterations=5, tick
         return popt, current_residuals
     except Exception:
         return None, None
+
     
 def compute_p90_restricted(df, params, ticker, option_type):
     # Filter data for restricted ranges: moneyness 0.5-2.0, expiry 0.5-2.0
@@ -386,24 +387,25 @@ def optimize_p90(df, df_type, ticker, option_type, exp_min_short, exp_max_long, 
     expiry_max = df_type['Years_to_Expiry'].max()
     median_expiry = df_type['Years_to_Expiry'].median()
     
-    # Check for valid range to avoid optuna ValueError
-    if median_expiry - expiry_min < 0.1:
+    # Handle narrow or short expiry ranges
+    if median_expiry < 0.55 or median_expiry - expiry_min < 0.1:
         best_exp_max_short = max(expiry_min + 0.3, 0.3)
         best_exp_min_long = min(expiry_max - 0.3, 1.8)
         print(f"{ticker} ({option_type}): p90=nan%, short_max={best_exp_max_short:.3f}, long_min={best_exp_min_long:.3f}")
         return best_exp_max_short, best_exp_min_long
     
     def objective(trial):
-        exp_max_s = trial.suggest_float('exp_max_s', max(expiry_min + 0.05, 0.5), min(median_expiry - 0.05, 1.0))
-        exp_min_l = trial.suggest_float('exp_min_l', max(median_expiry + 0.1, 1.0), min(expiry_max - 0.05, 2.0))
+        # Dynamic bounds to avoid ValueError
+        exp_max_s = trial.suggest_float('exp_max_s', expiry_min + 0.05, min(median_expiry - 0.05, 1.0))
+        exp_min_l = trial.suggest_float('exp_min_l', max(median_expiry + 0.1, exp_max_s + 0.1), min(expiry_max - 0.05, 2.0))
         if exp_min_l - exp_max_s < 0.1:
             return np.inf
         p90 = compute_p90(exp_max_s, exp_min_l, df, df_type, ticker, option_type, exp_min_short, exp_max_long, exp_min_full, exp_max_full, mon_min, mon_max, extrap_tau, model)
-        penalty = 0.1 * (exp_max_s + exp_min_l)  # Stronger penalty
+        penalty = 0.1 * (exp_max_s + exp_min_l)
         return p90 + penalty if np.isfinite(p90) else np.inf
     
     study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=20, timeout=90)  # Increased trials and timeout
+    study.optimize(objective, n_trials=15, timeout=90)  # Balanced trials and timeout
     if study.best_value < np.inf:
         best_exp_max_short = study.best_params['exp_max_s']
         best_exp_min_long = study.best_params['exp_min_l']
