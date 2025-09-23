@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os
 import glob
 from scipy.stats import norm
@@ -80,6 +80,16 @@ def calculate_atm_iv(ticker_processed, current_price, current_dt, timestamp, opt
     except Exception as e:
         print(f"calculate_atm_iv: Error processing data for {ticker}: {e}")
         return np.nan
+def calculate_weighted_iv(ticker_processed):
+    if ticker_processed.empty or 'IV_mid' not in ticker_processed.columns or 'Open Interest' not in ticker_processed.columns or 'Years_to_Expiry' not in ticker_processed.columns:
+        return np.nan, np.nan
+    valid = ticker_processed[(ticker_processed['IV_mid'] > 0) & (ticker_processed['Open Interest'] > 0) & (ticker_processed['Years_to_Expiry'] > 0.001)]
+    if valid.empty:
+        return np.nan, np.nan
+    weighted_iv_all = (valid['IV_mid'] * valid['Open Interest']).sum() / valid['Open Interest'].sum()
+    valid_3m = valid[(valid['Years_to_Expiry'] > 0.15) & (valid['Years_to_Expiry'] < 0.35)]
+    weighted_iv_3m = (valid_3m['IV_mid'] * valid_3m['Open Interest']).sum() / valid_3m['Open Interest'].sum() if not valid_3m.empty else np.nan
+    return weighted_iv_all, weighted_iv_3m
 def get_option_totals(ts, prefix):
     if ts is None:
         print(f"get_option_totals: No timestamp provided")
@@ -153,6 +163,15 @@ def load_historic_data(ts):
         historic_df = pd.concat(dfs, ignore_index=True)
         return historic_df
     return pd.DataFrame(columns=required_columns)
+def load_company_names():
+    tickers_file = 'company_names.txt'
+    if os.path.exists(tickers_file):
+        try:
+            company_names = pd.read_csv(tickers_file, sep="\t")
+            return company_names.set_index('Ticker')['Company Name'].to_dict()
+        except Exception as e:
+            print(f"Error reading company_names.txt: {e}")
+    return {}
 def load_skew_slope_metrics(ts, ticker, prefix="_yfinance"):
     skew_dir = f'data/{ts}/skew_metrics_yfinance'
     slope_dir = f'data/{ts}/slope_metrics_yfinance'
@@ -268,6 +287,7 @@ def calculate_ranking_metrics(timestamp, sources):
             except Exception as e:
                 print(f"Error reading tickers.txt: {e}")
                 return
+            company_names_map = load_company_names()
             for ticker in tickers:
                 try:
                     yf_ticker = yf.Ticker(ticker)
@@ -289,22 +309,17 @@ def calculate_ranking_metrics(timestamp, sources):
                     print(f"No historic data for ticker {ticker}")
                     continue
                 ticker_info = ticker_info_dict.get(ticker, {'marketCap': np.nan})
-                company_name = ticker_historic['Company Name'].iloc[0] if 'Company Name' in ticker_historic.columns and not ticker_historic.empty else np.nan
+                company_name = company_names_map.get(ticker, np.nan)
                 rank_dict = {'Ticker': ticker, 'Company Name': company_name}
                 for period in ['3m', '6m', '1y']:
                     rank_dict[f'Normalized {period}'] = ticker_historic[f'Normalized {period}'].iloc[0] if f'Normalized {period}' in ticker_historic.columns and not ticker_historic.empty else np.nan
-                summary_path = f"data/{timestamp}/tables/summary/summary_table{prefix}.csv"
-                summary = pd.read_csv(summary_path) if os.path.exists(summary_path) else pd.DataFrame()
-                weighted_iv = np.nan
-                weighted_iv_3m = np.nan
-                atm_iv_3m = np.nan
-                if not summary.empty and 'Ticker' in summary.columns:
-                    ticker_summary = summary[summary['Ticker'] == ticker]
-                    weighted_iv = ticker_summary['Weighted IV (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV (%)' in ticker_summary.columns else np.nan
-                    weighted_iv_3m = ticker_summary['Weighted IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'Weighted IV 3m (%)' in ticker_summary.columns else np.nan
-                    atm_iv_3m = ticker_summary['ATM IV 3m (%)'].iloc[0] if not ticker_summary.empty and 'ATM IV 3m (%)' in ticker_summary.columns else np.nan
+                processed_path = f"data/{timestamp}/processed_yfinance/processed_yfinance_{ticker}.csv"
+                ticker_processed = pd.read_csv(processed_path) if os.path.exists(processed_path) else pd.DataFrame()
+                weighted_iv, weighted_iv_3m = calculate_weighted_iv(ticker_processed)
                 rank_dict['Weighted IV (%)'] = weighted_iv
                 rank_dict['Weighted IV 3m (%)'] = weighted_iv_3m
+                current_price = ticker_historic['Close'].iloc[-1] if not ticker_historic.empty and 'Close' in ticker_historic.columns else np.nan
+                atm_iv_3m = calculate_atm_iv(ticker_processed, current_price, current_dt, timestamp)
                 rank_dict['ATM IV 3m (%)'] = atm_iv_3m
                 prev_day_ranking, _, _ = get_prev_data(timestamp, 1, source)
                 prev_week_ranking, _, _ = get_prev_data(timestamp, 7, source)
@@ -470,20 +485,15 @@ def calculate_ranking_metrics(timestamp, sources):
                 rank_dict['Restricted_P90_Rel_Error_Put (%)'] = ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Put']['Restricted_P90_Rel_Error_%'].iloc[0] if not ticker_vol_surf[ticker_vol_surf['Option_Type'] == 'Put'].empty else np.nan
                 skew_df, slope_df = load_skew_slope_metrics(timestamp, ticker, prefix)
                 if not skew_df.empty:
-                    skew_90_3m = skew_df[skew_df['T'].round(2) == 0.25]['Skew_90_Moneyness'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    skew_80_3m = skew_df[skew_df['T'].round(2) == 0.25]['Skew_80_Moneyness'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    skew_70_3m = skew_df[skew_df['T'].round(2) == 0.25]['Skew_70_Moneyness'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    skew_90_vol_3m = skew_df[skew_df['T'].round(2) == 0.25]['Skew_90_Moneyness_Vol'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    skew_80_vol_3m = skew_df[skew_df['T'].round(2) == 0.25]['Skew_80_Moneyness_Vol'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    skew_70_vol_3m = skew_df[skew_df['T'].round(2) == 0.25]['Skew_70_Moneyness_Vol'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    atm_ratio = skew_df[skew_df['T'].round(2) == 0.25]['ATM_12m_3m_Ratio'].iloc[0] if not skew_df[skew_df['T'].round(2) == 0.25].empty else np.nan
-                    rank_dict['Skew_90_Moneyness_3m'] = skew_90_3m
-                    rank_dict['Skew_80_Moneyness_3m'] = skew_80_3m
-                    rank_dict['Skew_70_Moneyness_3m'] = skew_70_3m
-                    rank_dict['Skew_90_Moneyness_Vol_3m'] = skew_90_vol_3m
-                    rank_dict['Skew_80_Moneyness_Vol_3m'] = skew_80_vol_3m
-                    rank_dict['Skew_70_Moneyness_Vol_3m'] = skew_70_vol_3m
-                    rank_dict['ATM_12m_3m_Ratio'] = atm_ratio
+                    closest_skew_idx = (skew_df['T'] - 0.25).abs().argmin()
+                    closest_skew_row = skew_df.iloc[closest_skew_idx]
+                    rank_dict['Skew_90_Moneyness_3m'] = closest_skew_row['Skew_90_Moneyness'] if 'Skew_90_Moneyness' in closest_skew_row else np.nan
+                    rank_dict['Skew_80_Moneyness_3m'] = closest_skew_row['Skew_80_Moneyness'] if 'Skew_80_Moneyness' in closest_skew_row else np.nan
+                    rank_dict['Skew_70_Moneyness_3m'] = closest_skew_row['Skew_70_Moneyness'] if 'Skew_70_Moneyness' in closest_skew_row else np.nan
+                    rank_dict['Skew_90_Moneyness_Vol_3m'] = closest_skew_row['Skew_90_Moneyness_Vol'] if 'Skew_90_Moneyness_Vol' in closest_skew_row else np.nan
+                    rank_dict['Skew_80_Moneyness_Vol_3m'] = closest_skew_row['Skew_80_Moneyness_Vol'] if 'Skew_80_Moneyness_Vol' in closest_skew_row else np.nan
+                    rank_dict['Skew_70_Moneyness_Vol_3m'] = closest_skew_row['Skew_70_Moneyness_Vol'] if 'Skew_70_Moneyness_Vol' in closest_skew_row else np.nan
+                    rank_dict['ATM_12m_3m_Ratio'] = closest_skew_row['ATM_12m_3m_Ratio'] if 'ATM_12m_3m_Ratio' in closest_skew_row else np.nan
                 else:
                     rank_dict['Skew_90_Moneyness_3m'] = np.nan
                     rank_dict['Skew_80_Moneyness_3m'] = np.nan
@@ -493,12 +503,14 @@ def calculate_ranking_metrics(timestamp, sources):
                     rank_dict['Skew_70_Moneyness_Vol_3m'] = np.nan
                     rank_dict['ATM_12m_3m_Ratio'] = np.nan
                 if not slope_df.empty:
-                    slope_call_90_3m = slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Call')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Call')].empty else np.nan
-                    slope_put_90_3m = slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Put')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Put')].empty else np.nan
-                    slope_call_80_3m = slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Call')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Call')].empty else np.nan
-                    slope_put_80_3m = slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Put')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Put')].empty else np.nan
-                    slope_call_70_3m = slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Call')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Call')].empty else np.nan
-                    slope_put_70_3m = slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Put')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'].round(2) == 0.25) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Put')].empty else np.nan
+                    closest_slope_idx = (slope_df['T'] - 0.25).abs().argmin()
+                    closest_slope_df = slope_df.iloc[closest_slope_idx:closest_slope_idx+1] if slope_df['T'].iloc[closest_slope_idx] == slope_df['T'].iloc[closest_slope_idx] else pd.DataFrame()
+                    slope_call_90_3m = slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Call')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Call')].empty else np.nan
+                    slope_put_90_3m = slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Put')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.9) & (slope_df['Type'] == 'Put')].empty else np.nan
+                    slope_call_80_3m = slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Call')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Call')].empty else np.nan
+                    slope_put_80_3m = slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Put')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.8) & (slope_df['Type'] == 'Put')].empty else np.nan
+                    slope_call_70_3m = slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Call')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Call')].empty else np.nan
+                    slope_put_70_3m = slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Put')]['IV_Slope'].iloc[0] if not slope_df[(slope_df['T'] == closest_slope_df['T'].iloc[0]) & (slope_df['Moneyness'] == 0.7) & (slope_df['Type'] == 'Put')].empty else np.nan
                     rank_dict['IV_Slope_Call_90_3m'] = slope_call_90_3m
                     rank_dict['IV_Slope_Put_90_3m'] = slope_put_90_3m
                     rank_dict['IV_Slope_Call_80_3m'] = slope_call_80_3m
