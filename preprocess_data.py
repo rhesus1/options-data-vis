@@ -49,6 +49,8 @@ def load_data(timestamp, source, base_path="data"):
             for col in numeric_cols:
                 if col in ranking.columns:
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
+                    if ranking[col].isna().all():
+                        print(f"Warning: Column {col} in ranking file is all NaN", flush=True)
             print(f"Loaded ranking file with {len(ranking)} rows in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print(f"Warning: Ranking file not found: {ranking_path}. Returning empty DataFrame.", flush=True)
@@ -123,6 +125,7 @@ def generate_ranking_table(ranking, company_names):
             company_names.set_index("Ticker")["Company Name"].to_dict()
         ).fillna(np.nan)
     else:
+        print("Warning: No company names provided", flush=True)
         ranking["Company Name"] = np.nan
     columns = [
         "Rank", "Ticker", "Company Name", "Latest Close", "Realised Volatility 30d (%)",
@@ -204,6 +207,7 @@ def generate_stock_table(ranking, company_names, barclays):
             company_names.set_index("Ticker")["Company Name"].to_dict()
         ).fillna(np.nan)
     else:
+        print("Warning: No company names provided for stock table", flush=True)
         stock_data["Company Name"] = np.nan
     if barclays is not None and not barclays.empty:
         stock_data = stock_data.merge(
@@ -673,6 +677,7 @@ def main():
     print(f"Starting generate_returns_summary for BH_HF_Ret_Sept_25.csv...", flush=True)
     try:
         generate_returns_summary(base_path)
+        print("generate_returns_summary completed successfully", flush=True)
     except Exception as e:
         print(f"Error executing generate_returns_summary: {e}", flush=True)
     print(f"Total execution time: {time.time() - start_time:.2f} seconds", flush=True)
