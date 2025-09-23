@@ -1,3 +1,4 @@
+# fetch_data.py (updated)
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -5,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 import os
 import json
-from scipy.stats import kurtosis
+import sqlite3
 
 def fetch_option_data_yfinance(ticker):
     print(f"Fetching option data for {ticker} from yfinance...")
@@ -52,82 +53,22 @@ def fetch_option_data_yfinance(ticker):
     yfinance_df = yfinance_df[columns]
     return yfinance_df
 
-def fetch_historic_data(ticker, historic_dir):
-    print(f"Fetching historic data for {ticker}...")
-   
-    # Persistent history folder
-    persistent_history_dir = 'data/history'
-    os.makedirs(persistent_history_dir, exist_ok=True)
-    persistent_hist_file = f'{persistent_history_dir}/historic_{ticker}.csv'
-   
-    # Load existing persistent history if available
-    hist = pd.DataFrame()
+def fetch_historic_data_raw(ticker, conn):
+    print(f"Fetching raw historic data for {ticker}...")
+    
+    # Get last date from DB
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(Date) FROM historic WHERE Ticker = ?", (ticker,))
+    last_date_result = cursor.fetchone()[0]
     start_date = None
-    if os.path.exists(persistent_hist_file):
-        try:
-            hist = pd.read_csv(persistent_hist_file)
-            hist['Ticker'] = ticker  # Always set Ticker to ensure it's present
-            # Ensure 'Date' column exists and is datetime
-            if 'Date' in hist.columns:
-                hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
-                # Drop rows with invalid dates
-                hist = hist.dropna(subset=['Date'])
-                # Check for duplicate 'Date' columns
-                date_cols = [col for col in hist.columns if col.lower() == 'date']
-                if len(date_cols) > 1:
-                    print(f"Warning: Multiple 'Date' columns found for {ticker}, keeping the first.")
-                    hist = hist.loc[:, ~hist.columns.duplicated()]
-                if not hist.empty:
-                    last_date = hist['Date'].max().date()
-                    today = datetime.now().date()
-                    next_date = (datetime.combine(last_date, datetime.min.time()) + timedelta(days=1)).date()
-                    if next_date <= today:
-                        start_date = (datetime.combine(next_date, datetime.min.time())).strftime('%Y-%m-%d')
-                    else:
-                        print(f"Warning: Computed start_date {next_date} is after today; fetching full history.")
-                        start_date = None
-                else:
-                    start_date = None
-            else:
-                print(f"Warning: No 'Date' column in {persistent_hist_file}, treating as empty.")
-                hist = pd.DataFrame()
-                start_date = None
-        except Exception as e:
-            print(f"Error loading {persistent_hist_file}: {e}")
-            hist = pd.DataFrame()
-            start_date = None
-    else:
-        start_date = None
-   
-    # Define columns here so always available
-    columns = [
-        'Ticker', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume',
-        'Realised_Vol_Close_30', 'Realised_Vol_Close_60', 'Realised_Vol_Close_100',
-        'Realised_Vol_Close_180', 'Realised_Vol_Close_252',
-        'Vol_of_Vol_100d', 'Vol_of_Vol_100d_Percentile',
-        'Kurtosis_Close_100d', 'Kurtosis_Returns_100d'
-    ]
-   
-    # Prepare hist with all columns if it exists
-    if not hist.empty and 'Date' in hist.columns:
-        hist['Date'] = pd.to_datetime(hist['Date'], errors='coerce')
-        hist = hist.dropna(subset=['Date'])
-        hist['Date'] = hist['Date'].dt.tz_localize(None)
-        hist['Ticker'] = ticker  # Ensure Ticker is set
-        # Add missing columns with NaN
-        for col in columns:
-            if col not in hist.columns:
-                hist[col] = np.nan
-        hist = hist[columns]
-        # Sort by Date
-        hist = hist.sort_values('Date').reset_index(drop=True)
-    else:
-        hist = pd.DataFrame(columns=columns)
-        hist['Ticker'] = ticker
-   
+    if last_date_result:
+        last_date = datetime.strptime(last_date_result, '%Y-%m-%d').date()
+        next_date = (datetime.combine(last_date, datetime.min.time()) + timedelta(days=1)).date()
+        today = datetime.now().date()
+        if next_date <= today:
+            start_date = next_date.strftime('%Y-%m-%d')
+    
     stock = yf.Ticker(ticker)
-   
-    # Fetch new data (incremental if start_date exists)
     new_hist = pd.DataFrame()
     try:
         if start_date:
@@ -136,88 +77,56 @@ def fetch_historic_data(ticker, historic_dir):
             new_hist = stock.history(period='max')
     except Exception as e:
         print(f"Error fetching history for {ticker}: {e}")
-        new_hist = pd.DataFrame()
-   
+        return
+    
     if not new_hist.empty:
         new_hist = new_hist[['Open', 'High', 'Low', 'Close', 'Volume']]
-        # Strip timezone from index and reset to make Date a column
         new_hist.index = pd.to_datetime(new_hist.index).tz_localize(None)
         new_hist = new_hist.reset_index()
         new_hist = new_hist.rename(columns={'index': 'Date'})
-       
-        # Combine with existing history if hist has data
-        if not hist.empty:
-            # Concatenate and remove duplicates
-            hist = pd.concat([hist, new_hist], ignore_index=True)
-            hist = hist.drop_duplicates(subset=['Date'], keep='last')
-            hist = hist.sort_values('Date').reset_index(drop=True)
-        else:
-            new_hist['Ticker'] = ticker
-            hist = new_hist
-       
-        # Recompute derived columns
-        hist['Log_Return_Close'] = np.log(hist['Close'] / hist['Close'].shift(1))
-        hist['Realised_Vol_Close_30'] = hist['Log_Return_Close'].rolling(window=30).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_60'] = hist['Log_Return_Close'].rolling(window=60).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_100'] = hist['Log_Return_Close'].rolling(window=100).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_180'] = hist['Log_Return_Close'].rolling(window=180).std() * np.sqrt(252) * 100
-        hist['Realised_Vol_Close_252'] = hist['Log_Return_Close'].rolling(window=252).std() * np.sqrt(252) * 100
-       
-        # Calculate Vol of Vol and Percentile
-        vol_series = hist['Realised_Vol_Close_100'].copy()
-        hist['Vol_of_Vol_100d'] = vol_series.rolling(window=100, min_periods=100).std().round(2)
-        hist['Vol_of_Vol_100d_Percentile'] = vol_series.rolling(window=100, min_periods=100).apply(
-            lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100 if len(x.dropna()) >= 100 else np.nan, raw=False
-        ).round(2)
-       
-        # Calculate Kurtosis
-        hist['Kurtosis_Close_100d'] = hist['Close'].rolling(window=100, min_periods=100).apply(
-            lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
-        ).round(2)
-        hist['Kurtosis_Returns_100d'] = hist['Log_Return_Close'].rolling(window=100, min_periods=100).apply(
-            lambda x: kurtosis(x.dropna(), nan_policy='omit') if len(x.dropna()) >= 100 else np.nan, raw=False
-        ).round(2)
-       
-        hist = hist[columns]
-       
-        # Format Date as string for saving
-        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
-       
-        # Save to persistent and timestamped directories
-        hist.to_csv(persistent_hist_file, index=False)
-        hist_filename = f'{historic_dir}/historic_{ticker}.csv'
-        hist.to_csv(hist_filename, index=False)
-        print(f"Historic data for {ticker} saved to {hist_filename} (rows: {len(hist)})")
+        new_hist['Date'] = new_hist['Date'].dt.strftime('%Y-%m-%d')
+        new_hist['Ticker'] = ticker
+        # Insert new rows only (ignore existing dates)
+        new_hist.to_sql('historic', conn, if_exists='append', index=False)
+        # But since we have PRIMARY KEY, duplicates are ignored
+        print(f"Inserted/appended {len(new_hist)} new raw historic rows for {ticker}")
     else:
-        if hist.empty:
-            print(f"No historic data available for {ticker}")
-            return pd.DataFrame()
-        # No new data, but use/save existing hist
-        hist['Date'] = hist['Date'].dt.strftime('%Y-%m-%d')
-        hist_filename = f'{historic_dir}/historic_{ticker}.csv'
-        hist.to_csv(hist_filename, index=False)
-        print(f"Historic data for {ticker} saved to {hist_filename} (rows: {len(hist)})")
-   
-    return hist
+        print(f"No new historic data for {ticker}")
+
 def main():
     with open('tickers.txt', 'r') as file:
         tickers = [line.strip() for line in file if line.strip()]
     print(f"Number of tickers: {len(tickers)}")
+    
+    # Ensure data dir
+    os.makedirs('data', exist_ok=True)
+    
+    # Connect to DBs (create if not exist)
+    historic_conn = sqlite3.connect('data/historic.db')
+    options_conn = sqlite3.connect('data/options_raw.db')
+    
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    base_dir = f'data/{timestamp}'
-    raw_yfinance_dir = f'{base_dir}/raw_yfinance'
-    historic_dir = f'{base_dir}/historic'
-    os.makedirs(raw_yfinance_dir, exist_ok=True)
-    os.makedirs(historic_dir, exist_ok=True)
+    fetch_date = datetime.now().strftime('%Y-%m-%d')
+    
     for ticker in tickers:
+        # Fetch raw options and insert with fetch_date
         yfinance_df = fetch_option_data_yfinance(ticker)
         if not yfinance_df.empty:
-            yfinance_filename = f'{raw_yfinance_dir}/raw_yfinance_{ticker}.csv'
-            yfinance_df.to_csv(yfinance_filename, index=False)
-            print(f"yfinance raw data for {ticker} saved to {yfinance_filename}")
-        df_hist = fetch_historic_data(ticker, historic_dir) # Pass historic_dir
+            yfinance_df['Fetch_Date'] = fetch_date
+            yfinance_df = yfinance_df.rename(columns={'Contract Name': 'Contract_Name', 'Open Interest': 'Open_Interest'})
+            yfinance_df.to_sql('raw_options', options_conn, if_exists='append', index=False)
+            print(f"Raw options for {ticker} appended to DB (rows: {len(yfinance_df)})")
+        
+        # Fetch raw historic (only missing)
+        fetch_historic_data_raw(ticker, historic_conn)
+        
         time.sleep(1)
-    # Update dates.json with the new timestamp
+    
+    # Close connections
+    historic_conn.close()
+    options_conn.close()
+    
+    # Update dates.json
     dates_file = 'data/dates.json'
     if os.path.exists(dates_file):
         with open(dates_file, 'r') as f:
@@ -229,5 +138,8 @@ def main():
         dates.sort(reverse=True)
         with open(dates_file, 'w') as f:
             json.dump(dates, f)
+    
+    print("Fetch complete. Raw data appended to databases.")
 
-main()
+if __name__ == "__main__":
+    main()
