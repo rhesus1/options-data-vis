@@ -150,6 +150,7 @@ def generate_ranking_table(ranking, company_names):
     ranking['Open Interest Numeric'] = pd.to_numeric(ranking['Open Interest'], errors='coerce').fillna(0)
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
+    color_data = {}
     for col in columns:
         if col in ["Volume", "Open Interest", "Num Contracts"]:
             ranking[col] = np.where(
@@ -164,26 +165,28 @@ def generate_ranking_table(ranking, company_names):
                 np.nan
             )
         color_col = f"{col}_Color"
-        ranking[color_col] = "#FFFFFF"
-        if col in [
-            "Realised Volatility 100d 1d (%)", "Realised Volatility 100d 1w (%)",
-            "Weighted IV 1d (%)", "Weighted IV 1w (%)", "Weighted IV 3m 1d (%)",
-            "Weighted IV 3m 1w (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
-            "Rvol100d - Weighted IV", "Volume 1d (%)", "Volume 1w (%)",
-            "OI 1d (%)", "OI 1w (%)", "One_Yr_ATM_Rel_Error_Call (%)",
-            "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
-            "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)",
-            "Restricted_P90_Rel_Error_Put (%)",
-            "IV_Slope_Call_90_3m", "IV_Slope_Put_90_3m",
-            "IV_Slope_Call_80_3m", "IV_Slope_Put_80_3m",
-            "IV_Slope_Call_70_3m", "IV_Slope_Put_70_3m"
-        ]:
-            ranking[color_col] = np.where(
-                pd.to_numeric(ranking[col], errors='coerce').notna(),
-                np.where(pd.to_numeric(ranking[col], errors='coerce') < 0, "#F87171",
-                         np.where(pd.to_numeric(ranking[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
-                "#FFFFFF"
-            )
+        color_data[color_col] = np.where(
+            pd.to_numeric(ranking[col], errors='coerce').notna() & (
+                col in [
+                    "Realised Volatility 100d 1d (%)", "Realised Volatility 100d 1w (%)",
+                    "Weighted IV 1d (%)", "Weighted IV 1w (%)", "Weighted IV 3m 1d (%)",
+                    "Weighted IV 3m 1w (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
+                    "Rvol100d - Weighted IV", "Volume 1d (%)", "Volume 1w (%)",
+                    "OI 1d (%)", "OI 1w (%)", "One_Yr_ATM_Rel_Error_Call (%)",
+                    "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
+                    "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)",
+                    "Restricted_P90_Rel_Error_Put (%)",
+                    "IV_Slope_Call_90_3m", "IV_Slope_Put_90_3m",
+                    "IV_Slope_Call_80_3m", "IV_Slope_Put_80_3m",
+                    "IV_Slope_Call_70_3m", "IV_Slope_Put_70_3m"
+                ]
+            ),
+            np.where(pd.to_numeric(ranking[col], errors='coerce') < 0, "#F87171",
+                     np.where(pd.to_numeric(ranking[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
+            "#FFFFFF"
+        )
+    color_df = pd.DataFrame(color_data, index=ranking.index)
+    ranking = pd.concat([ranking, color_df], axis=1)
     color_columns = [f"{col}_Color" for col in columns if col not in ["Rank", "Ticker", "Company Name"]]
     ranking_no_colors = ranking[columns]
     print(f"Generated ranking table in {time.time() - start_time:.2f} seconds", flush=True)
@@ -212,12 +215,13 @@ def generate_stock_table(ranking, company_names, barclays):
         "Ticker", "Company Name", "Latest Open", "Latest Close", "Latest High",
         "Latest Low", "Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
         "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)",
-        "Debt Class", "Spread 1Y", "Spread F3Y", "Spread 5Y"
+        "Debt Class", "Spread 1Y", "Spread 3Y", "Spread 5Y"
     ]
     for col in columns:
         if col not in stock_data.columns:
             stock_data[col] = np.nan if col not in ["Ticker", "Company Name", "Debt Class"] else "N/A"
     stock_data = stock_data.sort_values("Latest Close", ascending=False, key=lambda x: pd.to_numeric(x, errors='coerce'))
+    color_data = {}
     for col in columns:
         if col not in ["Ticker", "Company Name", "Debt Class"]:
             stock_data[col] = np.where(
@@ -226,15 +230,17 @@ def generate_stock_table(ranking, company_names, barclays):
                 np.nan
             )
         color_col = f"{col}_Color"
-        stock_data[color_col] = "#FFFFFF"
-        if col in ["Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
-                   "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)"]:
-            stock_data[color_col] = np.where(
-                pd.to_numeric(stock_data[col], errors='coerce').notna(),
-                np.where(pd.to_numeric(stock_data[col], errors='coerce') < 0, "#F87171",
-                         np.where(pd.to_numeric(stock_data[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
-                "#FFFFFF"
-            )
+        color_data[color_col] = np.where(
+            pd.to_numeric(stock_data[col], errors='coerce').notna() & (
+                col in ["Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
+                        "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)"]
+            ),
+            np.where(pd.to_numeric(stock_data[col], errors='coerce') < 0, "#F87171",
+                     np.where(pd.to_numeric(stock_data[col], errors='coerce') > 0, "#10B981", "#FFFFFF")),
+            "#FFFFFF"
+        )
+    color_df = pd.DataFrame(color_data, index=stock_data.index)
+    stock_data = pd.concat([stock_data, color_df], axis=1)
     color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name", "Debt Class"]]
     stock_data_no_colors = stock_data[columns]
     print(f"Generated stock table in {time.time() - start_time:.2f} seconds", flush=True)
@@ -251,6 +257,7 @@ def generate_normalized_table(ranking):
     for col in columns:
         if col not in normalized_data.columns:
             normalized_data[col] = np.nan if col != "Ticker" else "N/A"
+    color_data = {}
     for col in columns[1:]:
         normalized_data[col] = np.where(
             normalized_data[col].notna(),
@@ -258,7 +265,9 @@ def generate_normalized_table(ranking):
             np.nan
         )
         color_col = f"{col}_Color"
-        normalized_data[color_col] = "#FFFFFF"
+        color_data[color_col] = "#FFFFFF"
+    color_df = pd.DataFrame(color_data, index=normalized_data.index)
+    normalized_data = pd.concat([normalized_data, color_df], axis=1)
     color_columns = [f"{col}_Color" for col in columns if col != "Ticker"]
     normalized_data_no_colors = normalized_data[columns]
     print(f"Generated normalized table in {time.time() - start_time:.2f} seconds", flush=True)
@@ -319,7 +328,7 @@ def generate_summary_table(ranking, skew_data, slope_data, tickers):
             if metric["key"] in ["Volume Rank", "Open Interest Rank"]:
                 value = rank_map.get(ticker, {}).get(metric["key"], "N/A")
             else:
-                value = filtered_ranking[metric["key"]].iloc[0] if metric["key"] in filtered_ranking.columns and not filtered_ranking[metric["key"]].empty else np.nan
+                value = filtered_ranking[metric["key"]].iloc[0] if metric["key"] in filtered_ranking.columns and not filtered_ranking[metric["key"]].isna().any() else np.nan
                 if metric["key"] in ["Volume", "Open Interest"]:
                     num_val = pd.to_numeric(value, errors='coerce')
                     value = f"{int(num_val):,}" if pd.notna(num_val) and num_val > 0 else "N/A"
@@ -356,57 +365,6 @@ def generate_summary_table(ranking, skew_data, slope_data, tickers):
     print(f"Generated summary table in {time.time() - start_time:.2f} seconds", flush=True)
     return result, result_no_colors
 
-def generate_top_contracts_tables(processed_data, tickers, timestamp):
-    """Generate aggregated top 10 volume and open interest tables for each ticker in a single file."""
-    start_time = time.time()
-    if processed_data.empty or 'Ticker' not in processed_data.columns:
-        print(f"No contracts data in {time.time() - start_time:.2f} seconds", flush=True)
-        return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-    timestamp_dt = datetime.strptime(timestamp, "%Y%m%d_%H%M")
-    min_expiry_dt = (timestamp_dt + pd.DateOffset(months=3)).date()
-    top_volume_list = []
-    top_open_interest_list = []
-    for ticker in tickers:
-        filtered = processed_data[processed_data["Ticker"] == ticker].copy()
-        if filtered.empty:
-            print(f"Warning: No processed data for ticker {ticker}", flush=True)
-            continue
-        filtered.loc[:, 'Expiry_dt'] = pd.to_datetime(filtered['Expiry'], errors='coerce').dt.date
-        long_term = filtered[filtered['Expiry_dt'] >= min_expiry_dt].drop(columns=['Expiry_dt'])
-        top_volume = long_term[long_term["Volume"].notna()].sort_values("Volume", ascending=False).head(10)
-        top_open_interest = long_term[long_term["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
-        if not top_volume.empty:
-            top_volume_list.append(top_volume)
-        else:
-            print(f"Warning: No top volume data for ticker {ticker}", flush=True)
-        if not top_open_interest.empty:
-            top_open_interest_list.append(top_open_interest)
-        else:
-            print(f"Warning: No top open interest data for ticker {ticker}", flush=True)
-    top_volume_table = pd.concat(top_volume_list, ignore_index=True) if top_volume_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-    top_open_interest_table = pd.concat(top_open_interest_list, ignore_index=True) if top_open_interest_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-    def format_table(df):
-        if df.empty:
-            return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
-        required_cols = ["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]
-        df = df[required_cols].copy() if all(col in df.columns for col in required_cols) else pd.DataFrame(columns=required_cols)
-        df["Strike"] = np.where(df["Strike"].notna(), pd.to_numeric(df["Strike"], errors='coerce').round(2), np.nan)
-        df["Expiry"] = np.where(df["Expiry"].notna(), pd.to_datetime(df["Expiry"]).dt.strftime("%d/%m/%Y"), "N/A")
-        df["Type"] = df["Type"].fillna("N/A")
-        df["Bid"] = np.where(df["Bid"].notna(), pd.to_numeric(df["Bid"], errors='coerce').round(2), np.nan)
-        df["Ask"] = np.where(df["Ask"].notna(), pd.to_numeric(df["Ask"], errors='coerce').round(2), np.nan)
-        df["Volume"] = np.where(df["Volume"].notna() & pd.to_numeric(df["Volume"], errors='coerce').notna(),
-                               pd.to_numeric(df["Volume"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
-                               "N/A")
-        df["Open Interest"] = np.where(df["Open Interest"].notna() & pd.to_numeric(df["Open Interest"], errors='coerce').notna(),
-                                     pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
-                                     "N/A")
-        return df
-    top_volume_table = format_table(top_volume_table)
-    top_open_interest_table = format_table(top_open_interest_table)
-    print(f"Generated contracts tables in {time.time() - start_time:.2f} seconds", flush=True)
-    return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
-
 def generate_returns_summary(base_path="data"):
     """Generate summary table and correlation table from BH_HF_Ret_Sept_25.csv, adding SPX returns, Sharpe, and Sortino ratios."""
     start_time = time.time()
@@ -429,13 +387,24 @@ def generate_returns_summary(base_path="data"):
             print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format (e.g., 'Jan-23').", flush=True)
             return
         df.set_index('Date', inplace=True)
-        # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
+        # Convert columns to numeric, handling both percentage strings and numeric values
         for col in df.columns:
-            if col != 'Date':
-                print(f"Converting column {col} to numeric...", flush=True)
-                df[col] = pd.to_numeric(df[col].str.rstrip('%'), errors='coerce') / 100
-                if df[col].isna().all():
-                    print(f"Warning: Column {col} contains no valid numeric data after conversion.", flush=True)
+            print(f"Converting column {col} to numeric...", flush=True)
+            if df[col].dtype == object:
+                try:
+                    # Try to strip '%' if column is string
+                    df[col] = df[col].str.rstrip('%')
+                    df[col] = pd.to_numeric(df[col], errors='coerce') / 100
+                except AttributeError:
+                    # If .str fails, column is likely already numeric or invalid
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            else:
+                # Column is already numeric, assume it's in decimal form
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            if df[col].isna().all():
+                print(f"Warning: Column {col} contains no valid numeric data after conversion.", flush=True)
+        # Drop columns with all NaN values
+        df = df.dropna(axis=1, how='all')
         # Fetch SPX data
         min_date = df.index.min()
         max_date = df.index.max()
@@ -626,7 +595,7 @@ def save_tables(timestamp, source, base_path="data"):
             continue
         row = {'Timestamp': timestamp, 'Ticker': ticker}
         for col in ivol_columns:
-            value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].empty else np.nan
+            value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].isna().any() else np.nan
             row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else np.nan
         historical_df = pd.DataFrame([row], columns=historical_columns)
         historical_file = f"{base_path}/history/historic_{ticker}.csv"
