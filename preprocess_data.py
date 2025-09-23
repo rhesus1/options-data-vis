@@ -79,11 +79,13 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
         processed_path = f"{base_path}/{timestamp}/processed{prefix}/processed{prefix}_{ticker}.csv"
         if os.path.exists(processed_path):
             processed = pd.read_csv(processed_path)
+            print(f"Loaded processed data for {ticker}: {processed_path}", flush=True)
         else:
             print(f"Warning: Processed data file not found for {ticker}: {processed_path}", flush=True)
-        skew_path = f"{base_path}/{timestamp}/skew_metrics{prefix}/skew_metrics{prefix}_{ticker}.csv"
+        skew_path = f"{base_path}/{timestamp}/processed{prefix}/skew_metrics{prefix}_{ticker}.csv"
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
+            print(f"Loaded skew metrics for {ticker}: {skew_path}", flush=True)
         else:
             print(f"Warning: Skew metrics file not found for {ticker}: {skew_path}", flush=True)
         print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds", flush=True)
@@ -321,7 +323,7 @@ def generate_top_contracts_tables(processed_data, tickers, timestamp):
     top_volume_list = []
     top_open_interest_list = []
     for ticker in tickers:
-        filtered = processed_data[processed_data["Ticker"] == ticker].copy()  # Create a copy to avoid SettingWithCopyWarning
+        filtered = processed_data[processed_data["Ticker"] == ticker].copy()
         if filtered.empty:
             print(f"Warning: No processed data for ticker {ticker}", flush=True)
             continue
@@ -365,8 +367,9 @@ def generate_returns_summary(base_path="data"):
     """Generate summary table and correlation table from BH_HF_Ret_Sept_25.csv, adding SPX returns, Sharpe, and Sortino ratios."""
     start_time = time.time()
     file_path = os.path.join(base_path, "BH_HF_Ret_Sept_25.csv")
+    print(f"Checking for BH_HF_Ret_Sept_25.csv at {file_path}...", flush=True)
     if not os.path.exists(file_path):
-        print(f"Error: File not found: {file_path}", flush=True)
+        print(f"Error: File not found: {file_path}. Skipping returns summary generation.", flush=True)
         return
     print(f"Loading BH_HF_Ret_Sept_25.csv...", flush=True)
     try:
@@ -379,14 +382,16 @@ def generate_returns_summary(base_path="data"):
         print("Converting Date to datetime...", flush=True)
         df['Date'] = pd.to_datetime(df['Date'], format='%b-%y', errors='coerce')
         if df['Date'].isna().any():
-            print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format.", flush=True)
+            print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format (e.g., 'Jan-23').", flush=True)
             return
         df.set_index('Date', inplace=True)
         # Convert percentage strings to decimals (e.g., "1.05%" to 0.0105)
         for col in df.columns:
             if col != 'Date':
                 print(f"Converting column {col} to numeric...", flush=True)
-                df[col] = df[col].str.rstrip('%').astype(float) / 100
+                df[col] = pd.to_numeric(df[col].str.rstrip('%'), errors='coerce') / 100
+                if df[col].isna().all():
+                    print(f"Warning: Column {col} contains no valid numeric data after conversion.", flush=True)
         # Fetch SPX data
         min_date = df.index.min()
         max_date = df.index.max()
@@ -405,7 +410,6 @@ def generate_returns_summary(base_path="data"):
         print(f"Fetching T-Bill data from {min_date} to {max_date}...", flush=True)
         try:
             tbill = yf.download('^IRX', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
-            # ^IRX is annualized yield in percent; convert to monthly decimal
             rf_monthly = tbill['Close'] / 100 / 12
             rf_monthly = rf_monthly.resample('ME').last()
             rf_monthly = rf_monthly.reindex(df.index, method='nearest').fillna(method='ffill')
@@ -417,7 +421,7 @@ def generate_returns_summary(base_path="data"):
         # Ensure numeric data
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-        strategies = df.columns.drop('RiskFree', errors='ignore')  # Exclude RiskFree from strategies
+        strategies = df.columns.drop('RiskFree', errors='ignore')
         summary = []
         for strat in strategies:
             print(f"Processing strategy {strat}...", flush=True)
@@ -445,7 +449,7 @@ def generate_returns_summary(base_path="data"):
             max_dd = round(dd.min(), 4)
             trough_idx = dd.idxmin()
             peak_idx = cummax.loc[:trough_idx].idxmax()
-            dd_length = (trough_idx - peak_idx).days // 30  # Approximate months
+            dd_length = (trough_idx - peak_idx).days // 30
             # Recovery time
             peak_val = cummax.loc[peak_idx]
             post_trough = cumret.loc[trough_idx:]
@@ -453,12 +457,12 @@ def generate_returns_summary(base_path="data"):
             recovery_time = np.nan
             if recovery_mask.any():
                 recovery_idx = post_trough[recovery_mask].index[0]
-                recovery_time = (recovery_idx - trough_idx).days // 30  # Approximate months
-            # Sharpe Ratio: (Mean excess return / Std dev of excess returns) * sqrt(12)
+                recovery_time = (recovery_idx - trough_idx).days // 30
+            # Sharpe Ratio
             mean_excess = excess_rets.mean()
             std_excess = excess_rets.std()
             sharpe_ratio = round((mean_excess / std_excess) * np.sqrt(12), 4) if std_excess > 0 else np.nan
-            # Sortino Ratio: (Mean excess return / Downside deviation) * sqrt(12)
+            # Sortino Ratio
             downside_rets = excess_rets[excess_rets < 0]
             downside_std = downside_rets.std() if len(downside_rets) > 0 else np.nan
             sortino_ratio = round((mean_excess / downside_std) * np.sqrt(12), 4) if downside_std > 0 else np.nan
@@ -477,13 +481,11 @@ def generate_returns_summary(base_path="data"):
                 'Sortino Ratio': sortino_ratio
             })
         summary_df = pd.DataFrame(summary)
-        # Save summary table
         os.makedirs(os.path.join(base_path, "tables/returns"), exist_ok=True)
         summary_file = os.path.join(base_path, "tables/returns/summary_table.csv")
         summary_df.to_csv(summary_file, index=False)
         print(f"Saved returns summary table to {summary_file}", flush=True)
-        # Correlation table
-        corr = df[strategies].corr().round(4)  # Exclude RiskFree from correlation
+        corr = df[strategies].corr().round(4)
         corr_file = os.path.join(base_path, "tables/returns/correlation_table.csv")
         corr.to_csv(corr_file)
         print(f"Saved correlation table to {corr_file}", flush=True)
@@ -603,8 +605,13 @@ def main():
         print(f"No timestamp provided, using latest: {timestamp}", flush=True)
     sources = ['yfinance']
     for source in sources:
+        print(f"Starting table generation for source {source}...", flush=True)
         save_tables(timestamp, source, base_path)
-    generate_returns_summary(base_path)
+    print(f"Starting generate_returns_summary for BH_HF_Ret_Sept_25.csv...", flush=True)
+    try:
+        generate_returns_summary(base_path)
+    except Exception as e:
+        print(f"Error executing generate_returns_summary: {e}", flush=True)
     print(f"Total execution time: {time.time() - start_time:.2f} seconds", flush=True)
 
 if __name__ == "__main__":
