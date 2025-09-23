@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date timestamp to process (e.g., 20250812_2111)'
+        description: 'Date timestamp to process (e.g., 20250919_2126)'
         required: true
         type: string
 jobs:
@@ -23,8 +23,21 @@ jobs:
     - name: Create data directory
       run: mkdir -p data
     - name: Run force preprocess data script
-      run: python force_preprocess_data.py ${{ inputs.date }}
+      run: |
+        python force_preprocess_data.py ${{ inputs.date }} || echo "Script failed, continuing to check for files"
+    - name: Check for output files
+      id: check_files
+      run: |
+        if [ -f "data/${{ inputs.date }}/tables/ranking/ranking_table.csv" ] && \
+           [ -f "data/${{ inputs.date }}/tables/stock/stock_table.csv" ] && \
+           [ -f "data/${{ inputs.date }}/tables/summary/summary_table.csv" ]; then
+          echo "files_exist=true" >> $GITHUB_OUTPUT
+        else
+          echo "files_exist=false" >> $GITHUB_OUTPUT
+          echo "Warning: Some output files are missing" >&2
+        fi
     - name: Commit and push updated data
+      if: steps.check_files.outputs.files_exist == 'true'
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
@@ -32,6 +45,7 @@ jobs:
         git commit -m "Force update precomputed tables for ${{ inputs.date }}" || echo "No changes to commit"
         git push
     - name: Send email with precomputed tables
+      if: steps.check_files.outputs.files_exist == 'true'
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
