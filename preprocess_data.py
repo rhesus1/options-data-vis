@@ -438,23 +438,24 @@ def generate_returns_summary(base_path="data"):
         print("Converting Date to datetime...", flush=True)
         df['Date'] = pd.to_datetime(df['Date'], format='%b-%y', errors='coerce')
         if df['Date'].isna().any():
-            print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format (e.g., 'Jan-23').", flush=True)
+            print("Error: Some dates could not be parsed. Ensure 'Date' column in 'MMM-YY' format (e.g., 'Jan-23').", flush=True)
             return
         df.set_index('Date', inplace=True)
-        # Convert columns to numeric, handling both percentage strings and numeric values
         for col in df.columns:
             print(f"Converting column {col} to numeric...", flush=True)
             if df[col].dtype == object:
                 try:
-                    df[col] = df[col].str.rstrip('%')
-                    df[col] = pd.to_numeric(df[col], errors='coerce') / 100
+                    if df[col].str.contains('%').any():
+                        df[col] = df[col].str.rstrip('%')
+                        df[col] = pd.to_numeric(df[col], errors='coerce') / 100
+                    else:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
                 except AttributeError:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
             else:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
             if df[col].isna().all():
                 print(f"Warning: Column {col} contains no valid numeric data after conversion.", flush=True)
-        # Drop columns with all NaN values (e.g., Unnamed: 7)
         df = df.dropna(axis=1, how='all')
         min_date = df.index.min()
         max_date = df.index.max()
@@ -480,7 +481,6 @@ def generate_returns_summary(base_path="data"):
         except Exception as e:
             print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.", flush=True)
             df['RiskFree'] = 0.04 / 12
-        # Ensure numeric data
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         strategies = df.columns.drop('RiskFree', errors='ignore')
