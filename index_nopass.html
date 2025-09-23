@@ -2227,6 +2227,7 @@ function updateHistoricVolChart() {
                 checkFileExists(file.url).then(exists => {
                     if (exists) {
                         return fetchWithErrorHandling(file.url, file.array).then(() => {
+                            console.log(`Loaded ${file.url}, size: ${file.array.length}, columns:`, file.array.length > 0 ? Object.keys(file.array[0]) : []);
                             if (file.array === data) {
                                 console.log(`Processed data for ${selectedTicker}:`, {
                                     url: file.url,
@@ -2314,48 +2315,27 @@ function updateHistoricVolChart() {
         // Process hedge data to separate main and stats tables
         if (hedgeData.length > 0) {
             hedgeStatsData = [];
-            const mainColumns = ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
-            const statsColumns = ['Stats', 'Barclay Hedge Fund Index_1', 'Convertible Arbitrage Index_1', 'Distressed Securities Index_1', 'Equity Long Short Index_1', 'Merger Arbitrage Index_1', 'Global Macro Index_1'];
+            const mainColumns = Object.keys(hedgeData[0]).filter(col => col !== 'SPX' && col !== 'RiskFree');
+            console.log('Hedge data columns:', mainColumns);
             // Parse percentage strings and validate dates
-            const mainData = [];
-            const statsData = [];
-            hedgeData.forEach(row => {
+            const mainData = hedgeData.map(row => {
                 const parsedRow = {};
                 Object.keys(row).forEach(key => {
-                    if (key !== 'Date' && key !== 'Stats') {
+                    if (key !== 'Date') {
                         const value = row[key];
                         if (typeof value === 'string' && value.endsWith('%')) {
                             parsedRow[key] = parseFloat(value.replace('%', '')) / 100;
                         } else {
-                            parsedRow[key] = value;
+                            parsedRow[key] = Number.isFinite(parseFloat(value)) ? parseFloat(value) : value;
                         }
                     } else {
                         parsedRow[key] = row[key];
                     }
                 });
-                if (parsedRow.Date && parseDate(parsedRow.Date)) {
-                    const mainRow = {};
-                    mainColumns.forEach(col => {
-                        mainRow[col] = parsedRow[col];
-                    });
-                    if (Object.values(mainRow).some(val => val !== undefined && val !== null)) {
-                        mainData.push(mainRow);
-                    }
-                }
-                if (parsedRow.Stats && ['Total', 'Max Gain', 'Max DD', 'Positive', 'Negative', 'Mean Positive', 'Mean Negative'].includes(parsedRow.Stats)) {
-                    const statsRow = {};
-                    statsColumns.forEach(col => {
-                        const mappedCol = col === 'Stats' ? col : col.replace('_1', '');
-                        statsRow[col] = parsedRow[mappedCol];
-                    });
-                    if (Object.values(statsRow).some(val => val !== undefined && val !== null)) {
-                        statsData.push(statsRow);
-                    }
-                }
-            });
+                return parsedRow;
+            }).filter(row => row.Date && parseDate(row.Date));
             hedgeData.splice(0, hedgeData.length, ...mainData);
-            hedgeStatsData.splice(0, hedgeStatsData.length, ...statsData);
-            console.log('Hedge data split:', { mainData: mainData.slice(0, 5), statsData });
+            console.log('Hedge data processed:', { mainData: mainData.slice(0, 5) });
         }
         await loadTradingEconomicsData(timestamp);
         const tickerDatalist = document.getElementById('ticker-datalist');
@@ -5086,7 +5066,11 @@ function updateHedgeTable() {
         const endDate = endInput ? new Date(endInput) : new Date(Math.max(...hedgeData.map(item => parseDate(item.Date) || new Date())));
         const filteredData = hedgeData.filter(item => {
             const itemDate = parseDate(item.Date);
-            return itemDate && itemDate >= startDate && itemDate <= endDate;
+            if (!itemDate) {
+                console.warn('Invalid date in hedge data:', item.Date);
+                return false;
+            }
+            return itemDate >= startDate && itemDate <= endDate;
         });
         if (filteredData.length === 0) {
             table.innerHTML = '<tr><td colspan="7">No hedge data available</td></tr>';
@@ -5097,7 +5081,8 @@ function updateHedgeTable() {
         }
         const thead = document.createElement('thead');
         const headerRow = thead.insertRow();
-        const columns = ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+        const columns = filteredData[0] ? Object.keys(filteredData[0]).filter(col => col !== 'SPX' && col !== 'RiskFree') : ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+        console.log('Hedge table columns:', columns);
         columns.forEach((col, index) => {
             const th = document.createElement('th');
             th.textContent = col.replace(/ Index/, '');
@@ -5117,7 +5102,7 @@ function updateHedgeTable() {
                     const parsedDate = parseDate(value);
                     value = parsedDate ? parsedDate.toLocaleDateString('en-GB') : 'N/A';
                 } else if (Number.isFinite(value)) {
-                    value = (value * 100).toFixed(2) + '%';
+                    value = (value * 100).toFixed(2) + '%'; // Convert decimal to percentage
                 } else {
                     value = value || 'N/A';
                 }
@@ -5133,11 +5118,12 @@ function updateHedgeTable() {
         if (statsTablesVisible) updateHedgeStatsTable();
     } catch (error) {
         console.error('Error updating hedge table:', error);
+        document.getElementById('hedge-table').innerHTML = '<tr><td colspan="7">Error loading hedge data</td></tr>';
         document.getElementById('hedge-error').textContent = `Error updating table: ${error.message}`;
         document.getElementById('hedge-error').style.display = 'block';
     }
 }
-
+		
 function updateHedgeStatsTable() {
     try {
         const container = document.getElementById('hedge-table').parentNode;
@@ -5397,6 +5383,13 @@ function updateStrategySummaryTable() {
             'Drawdown Length (months)', 'Recovery Time (months)', 'Positive/Negative Ratio',
             'Mean Positive Return', 'Mean Negative Return', 'Sharpe Ratio', 'Sortino Ratio'
         ];
+        // Verify all columns exist
+        const missingColumns = columns.filter(col => !strategySummaryData[0].hasOwnProperty(col));
+        if (missingColumns.length > 0) {
+            console.warn('Missing columns in strategy summary data:', missingColumns);
+            document.getElementById('strategy-summary-error').textContent = `Missing columns: ${missingColumns.join(', ')}`;
+            document.getElementById('strategy-summary-error').style.display = 'block';
+        }
         columns.forEach((col, index) => {
             const th = document.createElement('th');
             th.textContent = col;
@@ -5414,24 +5407,26 @@ function updateStrategySummaryTable() {
                 let value = item[col];
                 if (Number.isFinite(value)) {
                     if (col.includes('Return') || col === 'Max Drawdown') {
-                        value = (value * 100).toFixed(2) + '%';
+                        value = (value * 100).toFixed(2) + '%'; // Convert decimal to percentage
                     } else if (col.includes('months')) {
                         value = parseInt(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    } else if (col === 'Positive/Negative Ratio') {
+                        value = value === 'inf' ? '∞' : Number(value).toFixed(2);
                     } else {
-                        value = value.toFixed(2);
+                        value = Number(value).toFixed(2);
                     }
                 } else {
-                    value = value || 'N/A';
+                    value = value === 'inf' ? '∞' : value || 'N/A';
                 }
                 cell.textContent = value;
-                cell.style.color = (col.includes('Return') || col === 'Max Drawdown') && Number.isFinite(parseFloat(value)) && value !== 'N/A'
+                cell.style.color = (col.includes('Return') || col === 'Max Drawdown' || col === 'Sharpe Ratio' || col === 'Sortino Ratio') && Number.isFinite(parseFloat(value)) && value !== 'N/A'
                     ? (parseFloat(value) < 0 ? 'var(--highlight-negative)' : parseFloat(value) > 0 ? 'var(--highlight-positive)' : 'var(--text-color)')
                     : 'var(--text-color)';
             });
         });
         table.appendChild(tbody);
         document.getElementById('strategy-summary-error').style.display = 'none';
-        console.log('Strategy summary table updated, rows:', strategySummaryData.length);
+        console.log('Strategy summary table updated, rows:', strategySummaryData.length, 'columns:', Object.keys(strategySummaryData[0]));
     } catch (error) {
         console.error('Error updating strategy summary table:', error);
         document.getElementById('strategy-summary-table').innerHTML = '<tr><td colspan="12">Error loading strategy summary data</td></tr>';
@@ -5744,6 +5739,13 @@ function updateSharpeSortinoTable() {
         const thead = document.createElement('thead');
         const headerRow = thead.insertRow();
         const columns = ['Strategy', 'Sharpe Ratio', 'Sortino Ratio'];
+        // Verify columns exist
+        const missingColumns = columns.filter(col => !strategySummaryData[0].hasOwnProperty(col));
+        if (missingColumns.length > 0) {
+            console.warn('Missing columns in Sharpe/Sortino data:', missingColumns);
+            document.getElementById('sharpe-sortino-error').textContent = `Missing columns: ${missingColumns.join(', ')}`;
+            document.getElementById('sharpe-sortino-error').style.display = 'block';
+        }
         columns.forEach((col, index) => {
             const th = document.createElement('th');
             th.textContent = col;
@@ -5760,9 +5762,9 @@ function updateSharpeSortinoTable() {
                 const cell = row.insertCell();
                 let value = item[col];
                 if (Number.isFinite(value)) {
-                    value = value.toFixed(2);
+                    value = Number(value).toFixed(2);
                 } else {
-                    value = value || 'N/A';
+                    value = value === 'inf' ? '∞' : value || 'N/A';
                 }
                 cell.textContent = value;
                 cell.style.color = (col === 'Sharpe Ratio' || col === 'Sortino Ratio') && Number.isFinite(parseFloat(value)) && value !== 'N/A'
@@ -5772,7 +5774,7 @@ function updateSharpeSortinoTable() {
         });
         table.appendChild(tbody);
         document.getElementById('sharpe-sortino-error').style.display = 'none';
-        console.log('Sharpe/Sortino table updated, rows:', strategySummaryData.length);
+        console.log('Sharpe/Sortino table updated, rows:', strategySummaryData.length, 'columns:', columns);
     } catch (error) {
         console.error('Error updating Sharpe/Sortino table:', error);
         document.getElementById('sharpe-sortino-table').innerHTML = '<tr><td colspan="3">Error loading Sharpe/Sortino data</td></tr>';
