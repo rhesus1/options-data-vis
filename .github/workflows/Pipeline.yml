@@ -1,7 +1,7 @@
 name: Process Options Data Pipeline
 on:
-  schedule:
-    - cron: '0 21 * * 1-5' # Daily at 10:00 PM BST (9:00 PM UTC)
+  #schedule:
+  #  - cron: '0 21 * * 1-5' # Daily at 10:00 PM BST (9:00 PM UTC)
   workflow_dispatch: # Manual trigger option
     inputs:
       timestamp:
