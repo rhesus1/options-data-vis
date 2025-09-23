@@ -441,21 +441,20 @@ def generate_returns_summary(base_path="data"):
             print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format (e.g., 'Jan-23').", flush=True)
             return
         df.set_index('Date', inplace=True)
+        # Convert columns to numeric, handling both percentage strings and numeric values
         for col in df.columns:
             print(f"Converting column {col} to numeric...", flush=True)
             if df[col].dtype == object:
                 try:
-                    if df[col].str.contains('%').any():
-                        df[col] = df[col].str.rstrip('%')
-                        df[col] = pd.to_numeric(df[col], errors='coerce') / 100
-                    else:
-                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                    df[col] = df[col].str.rstrip('%')
+                    df[col] = pd.to_numeric(df[col], errors='coerce') / 100
                 except AttributeError:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
             else:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
             if df[col].isna().all():
                 print(f"Warning: Column {col} contains no valid numeric data after conversion.", flush=True)
+        # Drop columns with all NaN values (e.g., Unnamed: 7)
         df = df.dropna(axis=1, how='all')
         min_date = df.index.min()
         max_date = df.index.max()
@@ -481,6 +480,7 @@ def generate_returns_summary(base_path="data"):
         except Exception as e:
             print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.", flush=True)
             df['RiskFree'] = 0.04 / 12
+        # Ensure numeric data
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         strategies = df.columns.drop('RiskFree', errors='ignore')
@@ -544,6 +544,9 @@ def generate_returns_summary(base_path="data"):
         corr_file = os.path.join(base_path, "tables/returns/correlation_table.csv")
         corr.to_csv(corr_file, index=True)
         print(f"Saved correlation table to {corr_file}", flush=True)
+        updated_file_path = os.path.join(base_path, "BH_HF_Ret_Sept_25_updated.csv")
+        df.to_csv(updated_file_path, index=True)
+        print(f"Saved updated BH_HF_Ret_Sept_25.csv with SPX data to {updated_file_path}", flush=True)
         print(f"Generated returns summary and correlation tables in {time.time() - start_time:.2f} seconds", flush=True)
     except Exception as e:
         print(f"Error in generate_returns_summary: {e}", flush=True)
