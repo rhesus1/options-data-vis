@@ -7,50 +7,57 @@ import os
 import json
 from scipy.stats import kurtosis
 
+
 def fetch_option_data_yfinance(ticker):
-    print(f"Fetching option data for {ticker} from yfinance...")
-    stock = yf.Ticker(ticker)
-    option_data = []
-    expiries = stock.options
-    last_stock_price = stock.info.get('regularMarketPrice', stock.info.get('lastPrice', None))
-    bid_stock = stock.info.get('bid', None)
-    ask_stock = stock.info.get('ask', None)
-    for expiry in expiries:
-        chain = stock.option_chain(expiry)
-        calls = chain.calls
-        puts = chain.puts
-        calls['Type'] = 'Call'
-        puts['Type'] = 'Put'
-        calls['Expiry'] = expiry
-        puts['Expiry'] = expiry
-        calls['Ticker'] = ticker
-        puts['Ticker'] = ticker
-        calls['Last Stock Price'] = last_stock_price
-        puts['Last Stock Price'] = last_stock_price
-        calls['Bid Stock'] = bid_stock
-        puts['Bid Stock'] = bid_stock
-        calls['Ask Stock'] = ask_stock
-        puts['Ask Stock'] = ask_stock
-        calls['Moneyness'] = last_stock_price / calls['strike'] if last_stock_price else np.nan
-        puts['Moneyness'] = puts['strike'] / last_stock_price if last_stock_price else np.nan
-        option_data.append(calls)
-        option_data.append(puts)
-    if not option_data:
+    try:
+        print(f"Fetching option data for {ticker} from yfinance...")
+        stock = yf.Ticker(ticker)
+        option_data = []
+        expiries = stock.options
+        last_stock_price = stock.info.get('regularMarketPrice', stock.info.get('lastPrice', None))
+        bid_stock = stock.info.get('bid', None)
+        ask_stock = stock.info.get('ask', None)
+        for expiry in expiries:
+            chain = stock.option_chain(expiry)
+            calls = chain.calls
+            puts = chain.puts
+            calls['Type'] = 'Call'
+            puts['Type'] = 'Put'
+            calls['Expiry'] = expiry
+            puts['Expiry'] = expiry
+            calls['Ticker'] = ticker
+            puts['Ticker'] = ticker
+            calls['Last Stock Price'] = last_stock_price
+            puts['Last Stock Price'] = last_stock_price
+            calls['Bid Stock'] = bid_stock
+            puts['Bid Stock'] = bid_stock
+            calls['Ask Stock'] = ask_stock
+            puts['Ask Stock'] = ask_stock
+            calls['Moneyness'] = last_stock_price / calls['strike'] if last_stock_price else np.nan
+            puts['Moneyness'] = puts['strike'] / last_stock_price if last_stock_price else np.nan
+            option_data.append(calls)
+            option_data.append(puts)
+        if not option_data:
+            print(f"No option data for {ticker}")
+            return pd.DataFrame()
+        yfinance_df = pd.concat(option_data, ignore_index=True)
+        columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Implied Volatility', 'Last Stock Price', 'Bid Stock', 'Ask Stock', 'Moneyness']
+        yfinance_df = yfinance_df.rename(columns={
+            'contractSymbol': 'Contract Name',
+            'strike': 'Strike',
+            'bid': 'Bid',
+            'ask': 'Ask',
+            'volume': 'Volume',
+            'openInterest': 'Open Interest',
+            'impliedVolatility': 'Implied Volatility'
+        })
+        yfinance_df['Strike'] = (yfinance_df['Strike'] / 0.01) * 0.01
+        yfinance_df = yfinance_df[columns]
+        return yfinance_df
+    except Exception as e:
+        print(f"Error fetching option data for {ticker}: {e}")
         return pd.DataFrame()
-    yfinance_df = pd.concat(option_data, ignore_index=True)
-    columns = ['Ticker', 'Contract Name', 'Type', 'Expiry', 'Strike', 'Bid', 'Ask', 'Volume', 'Open Interest', 'Implied Volatility', 'Last Stock Price', 'Bid Stock', 'Ask Stock', 'Moneyness']
-    yfinance_df = yfinance_df.rename(columns={
-        'contractSymbol': 'Contract Name',
-        'strike': 'Strike',
-        'bid': 'Bid',
-        'ask': 'Ask',
-        'volume': 'Volume',
-        'openInterest': 'Open Interest',
-        'impliedVolatility': 'Implied Volatility'
-    })
-    yfinance_df['Strike'] = (yfinance_df['Strike'] / 0.01) * 0.01
-    yfinance_df = yfinance_df[columns]
-    return yfinance_df
+
 
 def fetch_historic_data(ticker, historic_dir):
     print(f"Fetching historic data for {ticker}...")
