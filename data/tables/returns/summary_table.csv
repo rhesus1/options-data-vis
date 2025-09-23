@@ -1,0 +1,7 @@
+Strategy,Min Return,Max Return,Mean Return,Max Drawdown,Drawdown Length (months),Recovery Time (months),Positive/Negative Ratio,Mean Positive Return,Mean Negative Return,Sharpe Ratio,Sortino Ratio
+Barclay Hedge Fund Index,-0.0394,0.0382,0.005,-0.1151,11,15,1.55,0.0167,-0.013,0.4832,0.8079
+Convertible Arbitrage Index,-0.0148,0.0334,0.0047,-0.048,6,11,2.73,0.0089,-0.0067,0.7928,1.3826
+Distressed Securities Index,-0.0266,0.0366,0.0046,-0.0985,17,18,2.38,0.0121,-0.0128,0.4524,0.716
+Equity Long Short Index,-0.0273,0.0508,0.0063,-0.0388,8,7,1.8,0.0137,-0.0071,0.9311,1.7262
+Merger Arbitrage Index,-0.012,0.0359,0.0041,-0.0245,3,4,2.73,0.0078,-0.0059,0.5827,1.1975
+Global Macro Index,-0.0249,0.0492,0.0061,-0.0268,2,7,1.43,0.0155,-0.0073,0.8449,2.0129

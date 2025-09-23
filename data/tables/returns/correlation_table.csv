@@ -1,0 +1,8 @@
+,Barclay Hedge Fund Index,Convertible Arbitrage Index,Distressed Securities Index,Equity Long Short Index,Merger Arbitrage Index,Global Macro Index,SPX
+Barclay Hedge Fund Index,1.0,0.6563,0.4624,0.83,0.6053,0.6698,
+Convertible Arbitrage Index,0.6563,1.0,0.4652,0.5236,0.7084,0.3885,
+Distressed Securities Index,0.4624,0.4652,1.0,0.5115,0.4298,0.5024,
+Equity Long Short Index,0.83,0.5236,0.5115,1.0,0.5382,0.6708,
+Merger Arbitrage Index,0.6053,0.7084,0.4298,0.5382,1.0,0.4269,
+Global Macro Index,0.6698,0.3885,0.5024,0.6708,0.4269,1.0,
+SPX,,,,,,,
