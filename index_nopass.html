@@ -5081,7 +5081,7 @@ function updateHedgeTable() {
         }
         const thead = document.createElement('thead');
         const headerRow = thead.insertRow();
-        const columns = filteredData[0] ? Object.keys(filteredData[0]).filter(col => col !== 'SPX' && col !== 'RiskFree') : ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index'];
+        const columns = filteredData[0] ? Object.keys(filteredData[0]).filter(col => col !== 'RiskFree') : ['Date', 'Barclay Hedge Fund Index', 'Convertible Arbitrage Index', 'Distressed Securities Index', 'Equity Long Short Index', 'Merger Arbitrage Index', 'Global Macro Index', 'SPX'];
         console.log('Hedge table columns:', columns);
         columns.forEach((col, index) => {
             const th = document.createElement('th');
@@ -5448,10 +5448,10 @@ function updateStrategyCorrelationTable() {
         }
         const thead = document.createElement('thead');
         const headerRow = thead.insertRow();
-        const columns = ['Strategy', ...strategyCorrelationData.map(item => item.Strategy)];
+        const columns = strategyCorrelationData[0] ? Object.keys(strategyCorrelationData[0]) : [];
         columns.forEach((col, index) => {
             const th = document.createElement('th');
-            th.textContent = col.replace(/ Index/, '');
+            th.textContent = col ? col.replace(/ Index/, '') : 'N/A'; // Check if col is defined before replace
             th.dataset.column = col;
             th.dataset.order = 'desc';
             th.addEventListener('click', () => sortTable('strategy-correlation-table', index));
