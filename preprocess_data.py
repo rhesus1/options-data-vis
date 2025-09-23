@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 import pyxlsb
 from tqdm import tqdm
-import yfinance as yf  # For fetching SPX data
+import yfinance as yf
 
 def load_data(timestamp, source, base_path="data"):
     """Load raw data files for a given timestamp and source."""
@@ -20,7 +20,7 @@ def load_data(timestamp, source, base_path="data"):
         if os.path.exists("company_names.txt"):
             print("Loading company_names.txt...", flush=True)
             company_names = pd.read_csv("company_names.txt", sep="\t")
-            print(f"Loaded company_names.txt in {time.time() - start_time:.2f} seconds", flush=True)
+            print(f"Loaded company_names.txt with {len(company_names)} entries in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print("Warning: company_names.txt not found.", flush=True)
 
@@ -49,7 +49,7 @@ def load_data(timestamp, source, base_path="data"):
             for col in numeric_cols:
                 if col in ranking.columns:
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
-            print(f"Loaded ranking file in {time.time() - start_time:.2f} seconds", flush=True)
+            print(f"Loaded ranking file with {len(ranking)} rows in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print(f"Warning: Ranking file not found: {ranking_path}. Returning empty DataFrame.", flush=True)
             ranking = pd.DataFrame()
@@ -66,7 +66,7 @@ def load_data(timestamp, source, base_path="data"):
             else:
                 print(f"Warning: Barclays data missing required columns: {required_cols}", flush=True)
                 barclays = None
-            print(f"Loaded Barclays data in {time.time() - start_time:.2f} seconds", flush=True)
+            print(f"Loaded Barclays data with {len(barclays) if barclays is not None else 0} rows in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print(f"Warning: Barclays data file not found: {barclays_path}", flush=True)
 
@@ -87,21 +87,21 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
         processed_path = f"{base_path}/{timestamp}/processed{prefix}/processed{prefix}_{ticker}.csv"
         if os.path.exists(processed_path):
             processed = pd.read_csv(processed_path)
-            print(f"Loaded processed data for {ticker}: {processed_path}", flush=True)
+            print(f"Loaded processed data for {ticker}: {processed_path} with {len(processed)} rows", flush=True)
         else:
             print(f"Warning: Processed data file not found for {ticker}: {processed_path}", flush=True)
 
         skew_path = f"{base_path}/{timestamp}/skew_metrics{prefix}/skew_metrics{prefix}_{ticker}.csv"
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
-            print(f"Loaded skew metrics for {ticker}: {skew_path}", flush=True)
+            print(f"Loaded skew metrics for {ticker}: {skew_path} with {len(skew)} rows", flush=True)
         else:
             print(f"Warning: Skew metrics file not found for {ticker}: {skew_path}", flush=True)
 
         slope_path = f"{base_path}/{timestamp}/slope_metrics{prefix}/slope_metrics{prefix}_{ticker}.csv"
         if os.path.exists(slope_path):
             slope = pd.read_csv(slope_path)
-            print(f"Loaded slope metrics for {ticker}: {slope_path}", flush=True)
+            print(f"Loaded slope metrics for {ticker}: {slope_path} with {len(slope)} rows", flush=True)
         else:
             print(f"Warning: Slope metrics file not found for {ticker}: {slope_path}", flush=True)
 
@@ -189,7 +189,7 @@ def generate_ranking_table(ranking, company_names):
     ranking = pd.concat([ranking, color_df], axis=1)
     color_columns = [f"{col}_Color" for col in columns if col not in ["Rank", "Ticker", "Company Name"]]
     ranking_no_colors = ranking[columns]
-    print(f"Generated ranking table in {time.time() - start_time:.2f} seconds", flush=True)
+    print(f"Generated ranking table with {len(ranking)} rows in {time.time() - start_time:.2f} seconds", flush=True)
     return ranking[columns + color_columns], ranking_no_colors
 
 def generate_stock_table(ranking, company_names, barclays):
@@ -243,7 +243,7 @@ def generate_stock_table(ranking, company_names, barclays):
     stock_data = pd.concat([stock_data, color_df], axis=1)
     color_columns = [f"{col}_Color" for col in columns if col not in ["Ticker", "Company Name", "Debt Class"]]
     stock_data_no_colors = stock_data[columns]
-    print(f"Generated stock table in {time.time() - start_time:.2f} seconds", flush=True)
+    print(f"Generated stock table with {len(stock_data)} rows in {time.time() - start_time:.2f} seconds", flush=True)
     return stock_data[columns + color_columns], stock_data_no_colors
 
 def generate_normalized_table(ranking):
@@ -270,7 +270,7 @@ def generate_normalized_table(ranking):
     normalized_data = pd.concat([normalized_data, color_df], axis=1)
     color_columns = [f"{col}_Color" for col in columns if col != "Ticker"]
     normalized_data_no_colors = normalized_data[columns]
-    print(f"Generated normalized table in {time.time() - start_time:.2f} seconds", flush=True)
+    print(f"Generated normalized table with {len(normalized_data)} rows in {time.time() - start_time:.2f} seconds", flush=True)
     return normalized_data[columns + color_columns], normalized_data_no_colors
 
 def generate_summary_table(ranking, skew_data, slope_data, tickers):
@@ -362,8 +362,59 @@ def generate_summary_table(ranking, skew_data, slope_data, tickers):
     ]]
     result = pd.DataFrame(summary_data, columns=columns + color_columns)
     result_no_colors = pd.DataFrame(summary_data, columns=columns)
-    print(f"Generated summary table in {time.time() - start_time:.2f} seconds", flush=True)
+    print(f"Generated summary table with {len(result)} rows in {time.time() - start_time:.2f} seconds", flush=True)
     return result, result_no_colors
+
+def generate_top_contracts_tables(processed_data, tickers, timestamp):
+    """Generate aggregated top 10 volume and open interest tables for each ticker in a single file."""
+    start_time = time.time()
+    if processed_data.empty or 'Ticker' not in processed_data.columns:
+        print(f"No contracts data in {time.time() - start_time:.2f} seconds", flush=True)
+        return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]), pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+    timestamp_dt = datetime.strptime(timestamp, "%Y%m%d_%H%M")
+    min_expiry_dt = (timestamp_dt + pd.DateOffset(months=3)).date()
+    top_volume_list = []
+    top_open_interest_list = []
+    for ticker in tickers:
+        filtered = processed_data[processed_data["Ticker"] == ticker].copy()
+        if filtered.empty:
+            print(f"Warning: No processed data for ticker {ticker}", flush=True)
+            continue
+        filtered.loc[:, 'Expiry_dt'] = pd.to_datetime(filtered['Expiry'], errors='coerce').dt.date
+        long_term = filtered[filtered['Expiry_dt'] >= min_expiry_dt].drop(columns=['Expiry_dt'])
+        top_volume = long_term[long_term["Volume"].notna()].sort_values("Volume", ascending=False).head(10)
+        top_open_interest = long_term[long_term["Open Interest"].notna()].sort_values("Open Interest", ascending=False).head(10)
+        if not top_volume.empty:
+            top_volume_list.append(top_volume)
+        else:
+            print(f"Warning: No top volume data for ticker {ticker}", flush=True)
+        if not top_open_interest.empty:
+            top_open_interest_list.append(top_open_interest)
+        else:
+            print(f"Warning: No top open interest data for ticker {ticker}", flush=True)
+    top_volume_table = pd.concat(top_volume_list, ignore_index=True) if top_volume_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+    top_open_interest_table = pd.concat(top_open_interest_list, ignore_index=True) if top_open_interest_list else pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+    def format_table(df):
+        if df.empty:
+            return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
+        required_cols = ["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]
+        df = df[required_cols].copy() if all(col in df.columns for col in required_cols) else pd.DataFrame(columns=required_cols)
+        df["Strike"] = np.where(df["Strike"].notna(), pd.to_numeric(df["Strike"], errors='coerce').round(2), np.nan)
+        df["Expiry"] = np.where(df["Expiry"].notna(), pd.to_datetime(df["Expiry"]).dt.strftime("%d/%m/%Y"), "N/A")
+        df["Type"] = df["Type"].fillna("N/A")
+        df["Bid"] = np.where(df["Bid"].notna(), pd.to_numeric(df["Bid"], errors='coerce').round(2), np.nan)
+        df["Ask"] = np.where(df["Ask"].notna(), pd.to_numeric(df["Ask"], errors='coerce').round(2), np.nan)
+        df["Volume"] = np.where(df["Volume"].notna() & pd.to_numeric(df["Volume"], errors='coerce').notna(),
+                               pd.to_numeric(df["Volume"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
+                               "N/A")
+        df["Open Interest"] = np.where(df["Open Interest"].notna() & pd.to_numeric(df["Open Interest"], errors='coerce').notna(),
+                                     pd.to_numeric(df["Open Interest"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
+                                     "N/A")
+        return df
+    top_volume_table = format_table(top_volume_table)
+    top_open_interest_table = format_table(top_open_interest_table)
+    print(f"Generated contracts tables with {len(top_volume_table)} volume rows and {len(top_open_interest_table)} OI rows in {time.time() - start_time:.2f} seconds", flush=True)
+    return top_volume_table, top_open_interest_table, top_volume_table, top_open_interest_table
 
 def generate_returns_summary(base_path="data"):
     """Generate summary table and correlation table from BH_HF_Ret_Sept_25.csv, adding SPX returns, Sharpe, and Sortino ratios."""
@@ -375,7 +426,6 @@ def generate_returns_summary(base_path="data"):
         return
     print(f"Loading BH_HF_Ret_Sept_25.csv...", flush=True)
     try:
-        # Load the CSV
         df = pd.read_csv(file_path)
         print(f"Loaded CSV with shape: {df.shape}", flush=True)
         if 'Date' not in df.columns:
@@ -387,25 +437,22 @@ def generate_returns_summary(base_path="data"):
             print("Error: Some dates could not be parsed. Ensure 'Date' column is in 'MMM-YY' format (e.g., 'Jan-23').", flush=True)
             return
         df.set_index('Date', inplace=True)
-        # Convert columns to numeric, handling both percentage strings and numeric values
         for col in df.columns:
             print(f"Converting column {col} to numeric...", flush=True)
             if df[col].dtype == object:
                 try:
-                    # Try to strip '%' if column is string
-                    df[col] = df[col].str.rstrip('%')
-                    df[col] = pd.to_numeric(df[col], errors='coerce') / 100
+                    if df[col].str.contains('%').any():
+                        df[col] = df[col].str.rstrip('%')
+                        df[col] = pd.to_numeric(df[col], errors='coerce') / 100
+                    else:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
                 except AttributeError:
-                    # If .str fails, column is likely already numeric or invalid
                     df[col] = pd.to_numeric(df[col], errors='coerce')
             else:
-                # Column is already numeric, assume it's in decimal form
                 df[col] = pd.to_numeric(df[col], errors='coerce')
             if df[col].isna().all():
                 print(f"Warning: Column {col} contains no valid numeric data after conversion.", flush=True)
-        # Drop columns with all NaN values
         df = df.dropna(axis=1, how='all')
-        # Fetch SPX data
         min_date = df.index.min()
         max_date = df.index.max()
         print(f"Fetching SPX data from {min_date} to {max_date}...", flush=True)
@@ -419,7 +466,6 @@ def generate_returns_summary(base_path="data"):
         except Exception as e:
             print(f"Error fetching SPX data: {e}. Proceeding without SPX.", flush=True)
             df['SPX'] = np.nan
-        # Fetch 3-month T-Bill yield (^IRX) as risk-free rate
         print(f"Fetching T-Bill data from {min_date} to {max_date}...", flush=True)
         try:
             tbill = yf.download('^IRX', start=min_date - pd.DateOffset(months=1), end=max_date + pd.DateOffset(months=1))
@@ -430,8 +476,7 @@ def generate_returns_summary(base_path="data"):
             print("T-Bill data fetched successfully.", flush=True)
         except Exception as e:
             print(f"Error fetching T-Bill data: {e}. Using fallback risk-free rate of 4% annual.", flush=True)
-            df['RiskFree'] = 0.04 / 12  # Fallback: 4% annual = 0.00333 monthly
-        # Ensure numeric data
+            df['RiskFree'] = 0.04 / 12
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         strategies = df.columns.drop('RiskFree', errors='ignore')
@@ -443,19 +488,15 @@ def generate_returns_summary(base_path="data"):
             if len(rets) == 0 or len(rf) == 0:
                 print(f"Warning: No valid returns data for strategy {strat}", flush=True)
                 continue
-            # Excess returns
             excess_rets = rets - rf
-            # Basic statistics
             min_r = round(rets.min(), 4)
             max_r = round(rets.max(), 4)
             mean_r = round(rets.mean(), 4)
-            # Positive and negative months
             pos = rets[rets > 0]
             neg = rets[rets < 0]
             pos_neg_ratio = round(len(pos) / len(neg), 2) if len(neg) > 0 else np.inf
             mean_pos = round(pos.mean(), 4) if len(pos) > 0 else np.nan
             mean_neg = round(neg.mean(), 4) if len(neg) > 0 else np.nan
-            # Drawdown calculations
             cumret = (1 + rets).cumprod()
             cummax = cumret.cummax()
             dd = (cumret / cummax) - 1
@@ -463,7 +504,6 @@ def generate_returns_summary(base_path="data"):
             trough_idx = dd.idxmin()
             peak_idx = cummax.loc[:trough_idx].idxmax()
             dd_length = (trough_idx - peak_idx).days // 30
-            # Recovery time
             peak_val = cummax.loc[peak_idx]
             post_trough = cumret.loc[trough_idx:]
             recovery_mask = post_trough >= peak_val
@@ -471,11 +511,9 @@ def generate_returns_summary(base_path="data"):
             if recovery_mask.any():
                 recovery_idx = post_trough[recovery_mask].index[0]
                 recovery_time = (recovery_idx - trough_idx).days // 30
-            # Sharpe Ratio
             mean_excess = excess_rets.mean()
             std_excess = excess_rets.std()
             sharpe_ratio = round((mean_excess / std_excess) * np.sqrt(12), 4) if std_excess > 0 else np.nan
-            # Sortino Ratio
             downside_rets = excess_rets[excess_rets < 0]
             downside_std = downside_rets.std() if len(downside_rets) > 0 else np.nan
             sortino_ratio = round((mean_excess / downside_std) * np.sqrt(12), 4) if downside_std > 0 else np.nan
@@ -516,6 +554,7 @@ def save_tables(timestamp, source, base_path="data"):
         tickers = []
     else:
         tickers = ranking["Ticker"].unique()
+        print(f"Processing {len(tickers)} tickers: {tickers}", flush=True)
     processed_data = pd.DataFrame()
     skew_data = pd.DataFrame()
     slope_data = pd.DataFrame()
