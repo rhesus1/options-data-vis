@@ -23,22 +23,29 @@ def load_data(timestamp, source, base_path="data"):
             print(f"Loaded company_names.txt in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print("Warning: company_names.txt not found.", flush=True)
-        
+
         ranking_path = f"{base_path}/{timestamp}/ranking/ranking{prefix}.csv"
         if os.path.exists(ranking_path):
             print(f"Loading ranking file: {ranking_path}...", flush=True)
             ranking = pd.read_csv(ranking_path)
-            numeric_cols = ['Latest Close', 'Realised Volatility 30d (%)', 'Realised Volatility 100d (%)',
-                           'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
-                           'Min Realised Volatility 100d (2y)', 'Max Realised Volatility 100d (2y)',
-                           'Mean Realised Volatility 100d (2y)', 'Rvol 100d Percentile 2y (%)',
-                           'Rvol 100d Z-Score Percentile 2y (%)', 'Realised Volatility 180d (%)',
-                           'Realised Volatility 252d (%)', 'Weighted IV (%)', 'Weighted IV 1d (%)',
-                           'Weighted IV 1w (%)', 'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)',
-                           'Weighted IV 3m 1w (%)', 'ATM IV 3m (%)', 'ATM IV 3m 1d (%)',
-                           'ATM IV 3m 1w (%)', 'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)',
-                           'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
-                           'Normalized 3m', 'Normalized 6m', 'Normalized 1y']
+            numeric_cols = [
+                'Latest Close', 'Realised Volatility 30d (%)', 'Realised Volatility 100d (%)',
+                'Realised Volatility 100d 1d (%)', 'Realised Volatility 100d 1w (%)',
+                'Min Realised Volatility 100d (2y)', 'Max Realised Volatility 100d (2y)',
+                'Mean Realised Volatility 100d (2y)', 'Rvol 100d Percentile 2y (%)',
+                'Rvol 100d Z-Score Percentile 2y (%)', 'Realised Volatility 180d (%)',
+                'Realised Volatility 252d (%)', 'Weighted IV (%)', 'Weighted IV 1d (%)',
+                'Weighted IV 1w (%)', 'Weighted IV 3m (%)', 'Weighted IV 3m 1d (%)',
+                'Weighted IV 3m 1w (%)', 'ATM IV 3m (%)', 'ATM IV 3m 1d (%)',
+                'ATM IV 3m 1w (%)', 'Rvol100d - Weighted IV', 'Volume', 'Volume 1d (%)',
+                'Volume 1w (%)', 'Open Interest', 'OI 1d (%)', 'OI 1w (%)', 'Num Contracts',
+                'Normalized 3m', 'Normalized 6m', 'Normalized 1y',
+                'Skew_90_Moneyness_3m', 'Skew_80_Moneyness_3m', 'Skew_70_Moneyness_3m',
+                'Skew_90_Moneyness_Vol_3m', 'Skew_80_Moneyness_Vol_3m', 'Skew_70_Moneyness_Vol_3m',
+                'ATM_12m_3m_Ratio', 'IV_Slope_Call_90_3m', 'IV_Slope_Put_90_3m',
+                'IV_Slope_Call_80_3m', 'IV_Slope_Put_80_3m', 'IV_Slope_Call_70_3m',
+                'IV_Slope_Put_70_3m'
+            ]
             for col in numeric_cols:
                 if col in ranking.columns:
                     ranking[col] = pd.to_numeric(ranking[col], errors='coerce')
@@ -62,7 +69,7 @@ def load_data(timestamp, source, base_path="data"):
             print(f"Loaded Barclays data in {time.time() - start_time:.2f} seconds", flush=True)
         else:
             print(f"Warning: Barclays data file not found: {barclays_path}", flush=True)
-        
+
         print(f"Loaded all data in {time.time() - start_time:.2f} seconds", flush=True)
         return company_names, ranking, barclays
     except Exception as e:
@@ -75,6 +82,7 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
     prefix = "_yfinance" if source == "yfinance" else ""
     processed = pd.DataFrame()
     skew = pd.DataFrame()
+    slope = pd.DataFrame()
     try:
         processed_path = f"{base_path}/{timestamp}/processed{prefix}/processed{prefix}_{ticker}.csv"
         if os.path.exists(processed_path):
@@ -82,17 +90,26 @@ def load_ticker_data(ticker, timestamp, source, base_path="data"):
             print(f"Loaded processed data for {ticker}: {processed_path}", flush=True)
         else:
             print(f"Warning: Processed data file not found for {ticker}: {processed_path}", flush=True)
-        skew_path = f"{base_path}/{timestamp}/processed{prefix}/skew_metrics{prefix}_{ticker}.csv"
+
+        skew_path = f"{base_path}/{timestamp}/skew_metrics{prefix}/skew_metrics{prefix}_{ticker}.csv"
         if os.path.exists(skew_path):
             skew = pd.read_csv(skew_path)
             print(f"Loaded skew metrics for {ticker}: {skew_path}", flush=True)
         else:
             print(f"Warning: Skew metrics file not found for {ticker}: {skew_path}", flush=True)
+
+        slope_path = f"{base_path}/{timestamp}/slope_metrics{prefix}/slope_metrics{prefix}_{ticker}.csv"
+        if os.path.exists(slope_path):
+            slope = pd.read_csv(slope_path)
+            print(f"Loaded slope metrics for {ticker}: {slope_path}", flush=True)
+        else:
+            print(f"Warning: Slope metrics file not found for {ticker}: {slope_path}", flush=True)
+
         print(f"Loaded data for ticker {ticker} in {time.time() - start_time:.2f} seconds", flush=True)
-        return ticker, processed, skew
+        return ticker, processed, skew, slope
     except Exception as e:
         print(f"Error loading data for ticker {ticker}: {e}", flush=True)
-        return ticker, pd.DataFrame(), pd.DataFrame()
+        return ticker, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 def generate_ranking_table(ranking, company_names):
     """Generate ranking table with formatted values and colors."""
@@ -104,9 +121,9 @@ def generate_ranking_table(ranking, company_names):
     if company_names is not None and not company_names.empty:
         ranking["Company Name"] = ranking["Ticker"].map(
             company_names.set_index("Ticker")["Company Name"].to_dict()
-        ).fillna("N/A")
+        ).fillna(np.nan)
     else:
-        ranking["Company Name"] = "N/A"
+        ranking["Company Name"] = np.nan
     columns = [
         "Rank", "Ticker", "Company Name", "Latest Close", "Realised Volatility 30d (%)",
         "Realised Volatility 100d (%)", "Realised Volatility 100d 1d (%)",
@@ -120,37 +137,47 @@ def generate_ranking_table(ranking, company_names):
         "Rvol100d - Weighted IV", "Volume", "Volume 1d (%)", "Volume 1w (%)",
         "Open Interest", "OI 1d (%)", "OI 1w (%)", "Num Contracts",
         "One_Yr_ATM_Rel_Error_Call (%)", "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
-        "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)", "Restricted_P90_Rel_Error_Put (%)"
+        "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)", "Restricted_P90_Rel_Error_Put (%)",
+        "Skew_90_Moneyness_3m", "Skew_80_Moneyness_3m", "Skew_70_Moneyness_3m",
+        "Skew_90_Moneyness_Vol_3m", "Skew_80_Moneyness_Vol_3m", "Skew_70_Moneyness_Vol_3m",
+        "ATM_12m_3m_Ratio", "IV_Slope_Call_90_3m", "IV_Slope_Put_90_3m",
+        "IV_Slope_Call_80_3m", "IV_Slope_Put_80_3m", "IV_Slope_Call_70_3m",
+        "IV_Slope_Put_70_3m"
     ]
     for col in columns:
         if col not in ranking.columns:
-            ranking[col] = pd.NA if col not in ["Rank", "Ticker", "Company Name"] else "N/A"
+            ranking[col] = np.nan if col not in ["Rank", "Ticker", "Company Name"] else "N/A"
     ranking['Open Interest Numeric'] = pd.to_numeric(ranking['Open Interest'], errors='coerce').fillna(0)
     ranking["Rank"] = ranking['Open Interest Numeric'].rank(ascending=False, na_option="bottom").astype(int)
     ranking = ranking.drop('Open Interest Numeric', axis=1)
     for col in columns:
         if col in ["Volume", "Open Interest", "Num Contracts"]:
             ranking[col] = np.where(
-                ranking[col].notna() & (pd.to_numeric(ranking[col], errors='coerce') > 0) & (pd.to_numeric(ranking[col], errors='coerce').notna()),
+                ranking[col].notna() & (pd.to_numeric(ranking[col], errors='coerce') > 0),
                 pd.to_numeric(ranking[col], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) else "N/A"),
                 "N/A"
             )
         elif col not in ["Rank", "Ticker", "Company Name"]:
             ranking[col] = np.where(
-                ranking[col].notna() & (pd.to_numeric(ranking[col], errors='coerce') == pd.to_numeric(ranking[col], errors='coerce')),
+                ranking[col].notna(),
                 pd.to_numeric(ranking[col], errors='coerce').round(2),
-                pd.NA
+                np.nan
             )
         color_col = f"{col}_Color"
         ranking[color_col] = "#FFFFFF"
-        if col in ["Realised Volatility 100d 1d (%)", "Realised Volatility 100d 1w (%)",
-                   "Weighted IV 1d (%)", "Weighted IV 1w (%)", "Weighted IV 3m 1d (%)",
-                   "Weighted IV 3m 1w (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
-                   "Rvol100d - Weighted IV", "Volume 1d (%)", "Volume 1w (%)",
-                   "OI 1d (%)", "OI 1w (%)", "One_Yr_ATM_Rel_Error_Call (%)",
-                   "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
-                   "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)",
-                   "Restricted_P90_Rel_Error_Put (%)"]:
+        if col in [
+            "Realised Volatility 100d 1d (%)", "Realised Volatility 100d 1w (%)",
+            "Weighted IV 1d (%)", "Weighted IV 1w (%)", "Weighted IV 3m 1d (%)",
+            "Weighted IV 3m 1w (%)", "ATM IV 3m 1d (%)", "ATM IV 3m 1w (%)",
+            "Rvol100d - Weighted IV", "Volume 1d (%)", "Volume 1w (%)",
+            "OI 1d (%)", "OI 1w (%)", "One_Yr_ATM_Rel_Error_Call (%)",
+            "P90_Rel_Error_Call (%)", "Restricted_P90_Rel_Error_Call (%)",
+            "One_Yr_ATM_Rel_Error_Put (%)", "P90_Rel_Error_Put (%)",
+            "Restricted_P90_Rel_Error_Put (%)",
+            "IV_Slope_Call_90_3m", "IV_Slope_Put_90_3m",
+            "IV_Slope_Call_80_3m", "IV_Slope_Put_80_3m",
+            "IV_Slope_Call_70_3m", "IV_Slope_Put_70_3m"
+        ]:
             ranking[color_col] = np.where(
                 pd.to_numeric(ranking[col], errors='coerce').notna(),
                 np.where(pd.to_numeric(ranking[col], errors='coerce') < 0, "#F87171",
@@ -172,9 +199,9 @@ def generate_stock_table(ranking, company_names, barclays):
     if company_names is not None and not company_names.empty:
         stock_data["Company Name"] = stock_data["Ticker"].map(
             company_names.set_index("Ticker")["Company Name"].to_dict()
-        ).fillna("N/A")
+        ).fillna(np.nan)
     else:
-        stock_data["Company Name"] = "N/A"
+        stock_data["Company Name"] = np.nan
     if barclays is not None and not barclays.empty:
         stock_data = stock_data.merge(
             barclays[['Ticker', 'Debt Class', 'Spread 1Y', 'Spread 3Y', 'Spread 5Y']],
@@ -185,18 +212,18 @@ def generate_stock_table(ranking, company_names, barclays):
         "Ticker", "Company Name", "Latest Open", "Latest Close", "Latest High",
         "Latest Low", "Open 1d (%)", "Open 1w (%)", "Close 1d (%)", "Close 1w (%)",
         "High 1d (%)", "High 1w (%)", "Low 1d (%)", "Low 1w (%)",
-        "Debt Class", "Spread 1Y", "Spread 3Y", "Spread 5Y"
+        "Debt Class", "Spread 1Y", "Spread F3Y", "Spread 5Y"
     ]
     for col in columns:
         if col not in stock_data.columns:
-            stock_data[col] = pd.NA if col not in ["Ticker", "Company Name", "Debt Class"] else "N/A"
+            stock_data[col] = np.nan if col not in ["Ticker", "Company Name", "Debt Class"] else "N/A"
     stock_data = stock_data.sort_values("Latest Close", ascending=False, key=lambda x: pd.to_numeric(x, errors='coerce'))
     for col in columns:
         if col not in ["Ticker", "Company Name", "Debt Class"]:
             stock_data[col] = np.where(
-                stock_data[col].notna() & (pd.to_numeric(stock_data[col], errors='coerce') == pd.to_numeric(stock_data[col], errors='coerce')),
+                stock_data[col].notna(),
                 pd.to_numeric(stock_data[col], errors='coerce').round(2),
-                pd.NA
+                np.nan
             )
         color_col = f"{col}_Color"
         stock_data[color_col] = "#FFFFFF"
@@ -223,12 +250,12 @@ def generate_normalized_table(ranking):
     columns = ["Ticker", "Normalized 3m", "Normalized 6m", "Normalized 1y"]
     for col in columns:
         if col not in normalized_data.columns:
-            normalized_data[col] = pd.NA if col != "Ticker" else "N/A"
+            normalized_data[col] = np.nan if col != "Ticker" else "N/A"
     for col in columns[1:]:
         normalized_data[col] = np.where(
-            normalized_data[col].notna() & (pd.to_numeric(normalized_data[col], errors='coerce') == pd.to_numeric(normalized_data[col], errors='coerce')),
+            normalized_data[col].notna(),
             pd.to_numeric(normalized_data[col], errors='coerce').round(2),
-            pd.NA
+            np.nan
         )
         color_col = f"{col}_Color"
         normalized_data[color_col] = "#FFFFFF"
@@ -237,7 +264,7 @@ def generate_normalized_table(ranking):
     print(f"Generated normalized table in {time.time() - start_time:.2f} seconds", flush=True)
     return normalized_data[columns + color_columns], normalized_data_no_colors
 
-def generate_summary_table(ranking, skew_data, tickers):
+def generate_summary_table(ranking, skew_data, slope_data, tickers):
     """Generate aggregated summary table for all tickers."""
     start_time = time.time()
     if ranking is None or ranking.empty:
@@ -266,6 +293,18 @@ def generate_summary_table(ranking, skew_data, tickers):
         {"name": "OI 1d (%)", "key": "OI 1d (%)"},
         {"name": "OI 1w (%)", "key": "OI 1w (%)"},
         {"name": "ATM 12m/3m Ratio", "key": "ATM_12m_3m_Ratio"},
+        {"name": "Skew 90 Moneyness 3m", "key": "Skew_90_Moneyness_3m"},
+        {"name": "Skew 80 Moneyness 3m", "key": "Skew_80_Moneyness_3m"},
+        {"name": "Skew 70 Moneyness 3m", "key": "Skew_70_Moneyness_3m"},
+        {"name": "Skew 90 Moneyness Vol 3m", "key": "Skew_90_Moneyness_Vol_3m"},
+        {"name": "Skew 80 Moneyness Vol 3m", "key": "Skew_80_Moneyness_Vol_3m"},
+        {"name": "Skew 70 Moneyness Vol 3m", "key": "Skew_70_Moneyness_Vol_3m"},
+        {"name": "IV Slope Call 90 3m", "key": "IV_Slope_Call_90_3m"},
+        {"name": "IV Slope Put 90 3m", "key": "IV_Slope_Put_90_3m"},
+        {"name": "IV Slope Call 80 3m", "key": "IV_Slope_Call_80_3m"},
+        {"name": "IV Slope Put 80 3m", "key": "IV_Slope_Put_80_3m"},
+        {"name": "IV Slope Call 70 3m", "key": "IV_Slope_Call_70_3m"},
+        {"name": "IV Slope Put 70 3m", "key": "IV_Slope_Put_70_3m"},
         {"name": "Volume Rank", "key": "Volume Rank"},
         {"name": "Open Interest Rank", "key": "Open Interest Rank"}
     ]
@@ -280,33 +319,38 @@ def generate_summary_table(ranking, skew_data, tickers):
             if metric["key"] in ["Volume Rank", "Open Interest Rank"]:
                 value = rank_map.get(ticker, {}).get(metric["key"], "N/A")
             else:
-                value = filtered_ranking[metric["key"]].iloc[0] if metric["key"] in filtered_ranking.columns and not filtered_ranking[metric["key"]].empty else pd.NA
+                value = filtered_ranking[metric["key"]].iloc[0] if metric["key"] in filtered_ranking.columns and not filtered_ranking[metric["key"]].empty else np.nan
                 if metric["key"] in ["Volume", "Open Interest"]:
                     num_val = pd.to_numeric(value, errors='coerce')
                     value = f"{int(num_val):,}" if pd.notna(num_val) and num_val > 0 else "N/A"
                 else:
                     num_val = pd.to_numeric(value, errors='coerce')
-                    value = round(num_val, 2) if pd.notna(num_val) else pd.NA
+                    value = round(num_val, 2) if pd.notna(num_val) else np.nan
             row[metric["name"]] = value
-        atm_ratio = pd.NA
-        if not skew_data.empty and skew_data["Ticker"].isin([ticker]).any():
-            atm_val = skew_data[skew_data["Ticker"] == ticker]["ATM_12m_3m_Ratio"].iloc[0]
-            atm_ratio = round(pd.to_numeric(atm_val, errors='coerce'), 4) if pd.notna(atm_val) else pd.NA
-        row["ATM 12m/3m Ratio"] = atm_ratio
         for metric in metrics:
             color_key = f"{metric['name']}_Color"
             row[color_key] = "#FFFFFF"
-            if metric["key"] in ["Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
-                                "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
-                                "OI 1d (%)", "OI 1w (%)"]:
+            if metric["key"] in [
+                "Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
+                "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
+                "OI 1d (%)", "OI 1w (%)",
+                "IV_Slope_Call_90_3m", "IV_Slope_Put_90_3m",
+                "IV_Slope_Call_80_3m", "IV_Slope_Put_80_3m",
+                "IV_Slope_Call_70_3m", "IV_Slope_Put_70_3m"
+            ]:
                 num_val = pd.to_numeric(row[metric["name"]], errors='coerce')
                 if pd.notna(num_val):
                     row[color_key] = "#F87171" if num_val < 0 else "#10B981" if num_val > 0 else "#FFFFFF"
         summary_data.append(row)
     columns = ["Ticker"] + [metric["name"] for metric in metrics]
-    color_columns = [f"{metric['name']}_Color" for metric in metrics if metric["key"] in ["Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
-                                                                                      "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
-                                                                                      "OI 1d (%)", "OI 1w (%)"]]
+    color_columns = [f"{metric['name']}_Color" for metric in metrics if metric["key"] in [
+        "Close 1d (%)", "Close 1w (%)", "Weighted IV 1d (%)",
+        "Weighted IV 1w (%)", "Volume 1d (%)", "Volume 1w (%)",
+        "OI 1d (%)", "OI 1w (%)",
+        "IV_Slope_Call_90_3m", "IV_Slope_Put_90_3m",
+        "IV_Slope_Call_80_3m", "IV_Slope_Put_80_3m",
+        "IV_Slope_Call_70_3m", "IV_Slope_Put_70_3m"
+    ]]
     result = pd.DataFrame(summary_data, columns=columns + color_columns)
     result_no_colors = pd.DataFrame(summary_data, columns=columns)
     print(f"Generated summary table in {time.time() - start_time:.2f} seconds", flush=True)
@@ -346,11 +390,11 @@ def generate_top_contracts_tables(processed_data, tickers, timestamp):
             return pd.DataFrame(columns=["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"])
         required_cols = ["Ticker", "Strike", "Expiry", "Type", "Bid", "Ask", "Volume", "Open Interest"]
         df = df[required_cols].copy() if all(col in df.columns for col in required_cols) else pd.DataFrame(columns=required_cols)
-        df["Strike"] = np.where(df["Strike"].notna(), pd.to_numeric(df["Strike"], errors='coerce').round(2), pd.NA)
+        df["Strike"] = np.where(df["Strike"].notna(), pd.to_numeric(df["Strike"], errors='coerce').round(2), np.nan)
         df["Expiry"] = np.where(df["Expiry"].notna(), pd.to_datetime(df["Expiry"]).dt.strftime("%d/%m/%Y"), "N/A")
         df["Type"] = df["Type"].fillna("N/A")
-        df["Bid"] = np.where(df["Bid"].notna(), pd.to_numeric(df["Bid"], errors='coerce').round(2), pd.NA)
-        df["Ask"] = np.where(df["Ask"].notna(), pd.to_numeric(df["Ask"], errors='coerce').round(2), pd.NA)
+        df["Bid"] = np.where(df["Bid"].notna(), pd.to_numeric(df["Bid"], errors='coerce').round(2), np.nan)
+        df["Ask"] = np.where(df["Ask"].notna(), pd.to_numeric(df["Ask"], errors='coerce').round(2), np.nan)
         df["Volume"] = np.where(df["Volume"].notna() & pd.to_numeric(df["Volume"], errors='coerce').notna(),
                                pd.to_numeric(df["Volume"], errors='coerce').map(lambda x: f"{int(x):,}" if pd.notna(x) and x > 0 else "N/A"),
                                "N/A")
@@ -487,7 +531,7 @@ def generate_returns_summary(base_path="data"):
         print(f"Saved returns summary table to {summary_file}", flush=True)
         corr = df[strategies].corr().round(4)
         corr_file = os.path.join(base_path, "tables/returns/correlation_table.csv")
-        corr.to_csv(corr_file)
+        corr.to_csv(corr_file, index=True)
         print(f"Saved correlation table to {corr_file}", flush=True)
         print(f"Generated returns summary and correlation tables in {time.time() - start_time:.2f} seconds", flush=True)
     except Exception as e:
@@ -505,8 +549,9 @@ def save_tables(timestamp, source, base_path="data"):
         tickers = ranking["Ticker"].unique()
     processed_data = pd.DataFrame()
     skew_data = pd.DataFrame()
+    slope_data = pd.DataFrame()
     for ticker in tqdm(tickers, desc="Loading ticker data"):
-        _, processed, skew = load_ticker_data(ticker, timestamp, source, base_path)
+        _, processed, skew, slope = load_ticker_data(ticker, timestamp, source, base_path)
         if not processed.empty:
             processed_data = pd.concat([processed_data, processed], ignore_index=True)
         else:
@@ -515,10 +560,14 @@ def save_tables(timestamp, source, base_path="data"):
             skew_data = pd.concat([skew_data, skew], ignore_index=True)
         else:
             print(f"Warning: No skew data for ticker {ticker}", flush=True)
+        if not slope.empty:
+            slope_data = pd.concat([slope_data, slope], ignore_index=True)
+        else:
+            print(f"Warning: No slope data for ticker {ticker}", flush=True)
     ranking_table, ranking_table_no_colors = generate_ranking_table(ranking, company_names)
     stock_table, stock_table_no_colors = generate_stock_table(ranking, company_names, barclays)
     normalized_table, normalized_table_no_colors = generate_normalized_table(ranking)
-    summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, tickers)
+    summary_table, summary_table_no_colors = generate_summary_table(ranking, skew_data, slope_data, tickers)
     top_volume, top_open_interest, top_volume_no_colors, top_open_interest_no_colors = generate_top_contracts_tables(processed_data, tickers, timestamp)
     os.makedirs(f"{base_path}/{timestamp}/tables/ranking", exist_ok=True)
     os.makedirs(f"{base_path}/{timestamp}/tables/stock", exist_ok=True)
@@ -562,7 +611,12 @@ def save_tables(timestamp, source, base_path="data"):
     else:
         print(f"Warning: Top open interest table is empty for {timestamp}", flush=True)
     ivol_columns = [
-        'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)'
+        'Weighted IV (%)', 'Weighted IV 3m (%)', 'ATM IV 3m (%)',
+        'Skew_90_Moneyness_3m', 'Skew_80_Moneyness_3m', 'Skew_70_Moneyness_3m',
+        'Skew_90_Moneyness_Vol_3m', 'Skew_80_Moneyness_Vol_3m', 'Skew_70_Moneyness_Vol_3m',
+        'ATM_12m_3m_Ratio', 'IV_Slope_Call_90_3m', 'IV_Slope_Put_90_3m',
+        'IV_Slope_Call_80_3m', 'IV_Slope_Put_80_3m', 'IV_Slope_Call_70_3m',
+        'IV_Slope_Put_70_3m'
     ]
     historical_columns = ['Timestamp', 'Ticker'] + ivol_columns
     for ticker in tickers:
@@ -572,8 +626,8 @@ def save_tables(timestamp, source, base_path="data"):
             continue
         row = {'Timestamp': timestamp, 'Ticker': ticker}
         for col in ivol_columns:
-            value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].empty else pd.NA
-            row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else pd.NA
+            value = ticker_data[col].iloc[0] if col in ticker_data.columns and not ticker_data[col].empty else np.nan
+            row[col] = round(pd.to_numeric(value, errors='coerce'), 2) if pd.notna(value) else np.nan
         historical_df = pd.DataFrame([row], columns=historical_columns)
         historical_file = f"{base_path}/history/historic_{ticker}.csv"
         os.makedirs(os.path.dirname(historical_file), exist_ok=True)
@@ -607,6 +661,7 @@ def main():
     for source in sources:
         print(f"Starting table generation for source {source}...", flush=True)
         save_tables(timestamp, source, base_path)
+        print(f"Precomputed tables generated for {timestamp}, source {source}", flush=True)
     print(f"Starting generate_returns_summary for BH_HF_Ret_Sept_25.csv...", flush=True)
     try:
         generate_returns_summary(base_path)
