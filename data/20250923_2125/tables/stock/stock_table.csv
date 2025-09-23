@@ -1,0 +1,13 @@
+Ticker,Company Name,Latest Open,Latest Close,Latest High,Latest Low,Open 1d (%),Open 1w (%),Close 1d (%),Close 1w (%),High 1d (%),High 1w (%),Low 1d (%),Low 1w (%),Debt Class,Spread 1Y,Spread 3Y,Spread 5Y
+TSLA,"Tesla, Inc.",,425.85,,,,,,,,,,,SENIOR_NORE_14,24.5,45.62,70.22
+MSTR,MicroStrategy Incorporated,,327.78,,,,,,,,,,,,,,
+COIN,"Coinbase Global, Inc.",,320.07,,,,,,,,,,,,,,
+AMZN,"Amazon.com, Inc.",,220.71,,,,,,,,,,,SENIOR_NORE_14,10.95,18.0,25.18
+BABA,Alibaba Group Holding Limited,,163.08,,,,,,,,,,,,,,
+AMD,"Advanced Micro Devices, Inc.",,160.9,,,,,,,,,,,SENIOR_NORE_14,12.76,24.48,35.93
+AMD,"Advanced Micro Devices, Inc.",,160.9,,,,,,,,,,,SENIOR_NORE,15.9,29.6,42.83
+SOFI,"SoFi Technologies, Inc.",,29.09,,,,,,,,,,,,,,
+LCID,"Lucid Group, Inc.",,22.24,,,,,,,,,,,,,,
+AAL,"American Airlines Group, Inc.",,12.19,,,,,,,,,,,SENIOR_NORE_14,170.33,420.94,545.95
+OPEN,Opendoor Technologies Inc.,,7.09,,,,,,,,,,,,,,
+NIO,NIO Inc.,,6.93,,,,,,,,,,,,,,
