@@ -1,0 +1,412 @@
+Ticker,Company Name,Latest Open,Latest Close,Latest High,Latest Low,Open 1d (%),Open 1w (%),Close 1d (%),Close 1w (%),High 1d (%),High 1w (%),Low 1d (%),Low 1w (%),Debt Class,Spread 1Y,Spread 3Y,Spread 5Y
+BKNG,Booking Holdings Inc.,,5444.44,,,,,,,,,,,,,,
+AXON,"Axon Enterprise, Inc.",,774.53,,,,,,,,,,,,,,
+SPOT,Spotify Technology S.A.,,734.92,,,,,,,,,,,,,,
+TYL,"Tyler Technologies, Inc.",,534.32,,,,,,,,,,,,,,
+HUBS,"HubSpot, Inc.",,518.84,,,,,,,,,,,,,,
+MSFT,Microsoft Corporation,,517.93,,,,,,,,,,,SENIOR_NORE_14,8.18,12.06,20.76
+CYBR,CyberArk Software Ltd.,,490.64,,,,,,,,,,,,,,
+ALNY,"Alnylam Pharmaceuticals, Inc.",,453.56,,,,,,,,,,,,,,
+TSLA,"Tesla, Inc.",,442.79,,,,,,,,,,,SENIOR_NORE_14,24.5,45.62,70.22
+CMI,Cummins Inc.,,423.64,,,,,,,,,,,SENIOR_NORE_14,12.35,26.32,48.9
+CMI,Cummins Inc.,,423.64,,,,,,,,,,,SENIOR_NORE,12.35,26.32,48.9
+AVGO,Broadcom Inc.,,344.94,,,,,,,,,,,SENIOR_NORE,19.03,49.96,97.77
+AVGO,Broadcom Inc.,,344.94,,,,,,,,,,,SENIOR_NORE_14,19.02,49.92,97.76
+AVGO,Broadcom Inc.,,344.94,,,,,,,,,,,SENIOR_NORE_14,10.1,20.55,33.77
+V,Visa Inc.,,341.61,,,,,,,,,,,,,,
+IDCC,"InterDigital, Inc.",,334.81,,,,,,,,,,,,,,
+PODD,Insulet Corporation,,330.84,,,,,,,,,,,,,,
+RCL,Royal Caribbean Cruises Ltd.,,328.6,,,,,,,,,,,SENIOR_NORE,60.0,103.58,152.63
+RCL,Royal Caribbean Cruises Ltd.,,328.6,,,,,,,,,,,SENIOR_NORE_14,24.49,50.22,72.76
+MDB,"MongoDB, Inc.",,323.43,,,,,,,,,,,,,,
+MSTR,MicroStrategy Incorporated,,323.31,,,,,,,,,,,,,,
+COIN,"Coinbase Global, Inc.",,321.77,,,,,,,,,,,,,,
+JPM,JPMorgan Chase & Co.,,314.78,,,,,,,,,,,SENIOR_NORE,20.22,28.94,38.68
+JPM,JPMorgan Chase & Co.,,314.78,,,,,,,,,,,SENIOR_NORE_14,20.22,28.94,38.68
+NVMI,Nova Ltd.,,309.59,,,,,,,,,,,,,,
+ZS,"Zscaler, Inc.",,294.27,,,,,,,,,,,,,,
+IBM,International Business Machines Corporation,,266.4,,,,,,,,,,,SENIOR_NORE,11.76,23.98,37.92
+IBM,International Business Machines Corporation,,266.4,,,,,,,,,,,SENIOR_NORE_14,11.05,22.42,36.28
+BURL,"Burlington Stores, Inc.",,263.11,,,,,,,,,,,,,,
+CHTR,"Charter Communications, Inc.",,262.55,,,,,,,,,,,SENIOR_NORE_14,37.57,90.49,157.81
+CHTR,"Charter Communications, Inc.",,262.55,,,,,,,,,,,SENIOR_NORE_14,51.75,117.53,191.14
+CHTR,"Charter Communications, Inc.",,262.55,,,,,,,,,,,SENIOR_NORE,50.04,120.51,198.89
+CHTR,"Charter Communications, Inc.",,262.55,,,,,,,,,,,SENIOR_NORE,37.57,90.49,157.81
+TTWO,"Take-Two Interactive Software, Inc.",,250.85,,,,,,,,,,,SENIOR_NORE_14,17.0,45.17,75.22
+GWRE,"Guidewire Software, Inc.",,244.77,,,,,,,,,,,,,,
+NET,"Cloudflare, Inc.",,225.94,,,,,,,,,,,,,,
+RH,RH,,224.7,,,,,,,,,,,,,,
+ABBV,AbbVie Inc.,,222.47,,,,,,,,,,,SENIOR_NORE_14,10.56,28.2,47.14
+EXPE,"Expedia Group, Inc.",,222.43,,,,,,,,,,,SENIOR_NORE,11.21,31.44,57.43
+EXPE,"Expedia Group, Inc.",,222.43,,,,,,,,,,,SENIOR_NORE_14,10.3,29.96,55.34
+STX,Seagate Technology Holdings plc,,221.23,,,,,,,,,,,SENIOR_NORE_14,21.0,67.2,135.5
+STX,Seagate Technology Holdings plc,,221.23,,,,,,,,,,,SENIOR_NORE_14,31.05,76.64,147.13
+AMZN,"Amazon.com, Inc.",,220.21,,,,,,,,,,,SENIOR_NORE_14,10.95,18.0,25.18
+BA,Boeing Company (The),,215.65,,,,,,,,,,,SENIOR_NORE_14,23.76,41.24,60.73
+BA,Boeing Company (The),,215.65,,,,,,,,,,,SENIOR_NORE,13.43,18.6,25.72
+BA,Boeing Company (The),,215.65,,,,,,,,,,,SENIOR_NORE_14,13.43,18.55,25.61
+BA,Boeing Company (The),,215.65,,,,,,,,,,,SENIOR_NORE,37.85,65.43,91.08
+PANW,"Palo Alto Networks, Inc.",,208.19,,,,,,,,,,,,,,
+GTLS,"Chart Industries, Inc.",,199.49,,,,,,,,,,,,,,
+ASND,Ascendis Pharma A/S,,197.68,,,,,,,,,,,,,,
+SE,Sea Limited,,192.76,,,,,,,,,,,,,,
+PI,"Impinj, Inc.",,191.6,,,,,,,,,,,,,,
+WIX,Wix.com Ltd.,,182.12,,,,,,,,,,,,,,
+HCI,"HCI Group, Inc.",,181.27,,,,,,,,,,,,,,
+NTRA,"Natera, Inc.",,181.11,,,,,,,,,,,,,,
+BABA,Alibaba Group Holding Limited,,176.44,,,,,,,,,,,,,,
+IRTC,"iRhythm Technologies, Inc.",,175.02,,,,,,,,,,,,,,
+AEIS,"Advanced Energy Industries, Inc.",,174.35,,,,,,,,,,,,,,
+CABO,"Cable One, Inc.",,169.19,,,,,,,,,,,,,,
+LITE,Lumentum Holdings Inc.,,168.73,,,,,,,,,,,,,,
+WELL,Welltower Inc.,,165.19,,,,,,,,,,,,,,
+NRG,"NRG Energy, Inc.",,164.36,,,,,,,,,,,SENIOR_NORE,42.08,86.44,140.88
+NRG,"NRG Energy, Inc.",,164.36,,,,,,,,,,,SENIOR_NORE_14,46.89,93.52,134.31
+NRG,"NRG Energy, Inc.",,164.36,,,,,,,,,,,SENIOR_NORE_14,35.14,66.69,98.4
+LYV,"Live Nation Entertainment, Inc.",,163.72,,,,,,,,,,,,,,
+AMD,"Advanced Micro Devices, Inc.",,160.88,,,,,,,,,,,SENIOR_NORE_14,12.76,24.48,35.93
+AMD,"Advanced Micro Devices, Inc.",,160.88,,,,,,,,,,,SENIOR_NORE,15.9,29.6,42.83
+RTX,RTX Corporation,,158.24,,,,,,,,,,,SENIOR_NORE,3.94,9.18,15.08
+RTX,RTX Corporation,,158.24,,,,,,,,,,,SENIOR_NORE_14,3.76,8.97,14.96
+MMM,3M Company,,156.6,,,,,,,,,,,SENIOR_NORE_14,13.71,40.99,50.84
+CVX,Chevron Corporation,,156.21,,,,,,,,,,,SENIOR_NORE,10.89,23.04,36.54
+CVX,Chevron Corporation,,156.21,,,,,,,,,,,SENIOR_NORE_14,11.63,25.24,38.64
+NICE,NICE Ltd.,,153.44,,,,,,,,,,,,,,
+SHOP,Shopify Inc.,,153.3,,,,,,,,,,,,,,
+MTN,"Vail Resorts, Inc.",,146.84,,,,,,,,,,,,,,
+INSM,Insmed Incorporated,,144.76,,,,,,,,,,,,,,
+PEP,"PepsiCo, Inc.",,141.76,,,,,,,,,,,SENIOR_NORE_14,7.44,17.64,34.51
+LRN,"Stride, Inc.",,141.71,,,,,,,,,,,,,,
+DDOG,"Datadog, Inc.",,138.82,,,,,,,,,,,,,,
+AWK,"American Water Works Company, Inc.",,135.06,,,,,,,,,,,,,,
+MIDD,Middleby Corporation,,134.85,,,,,,,,,,,,,,
+PDD,PDD Holdings Inc.,,129.47,,,,,,,,,,,,,,
+MKSI,"MKS Instruments, Inc.",,128.62,,,,,,,,,,,,,,
+JAZZ,Jazz Pharmaceuticals plc,,128.3,,,,,,,,,,,,,,
+MTSI,"MACOM Technology Solutions Holdings, Inc.",,127.12,,,,,,,,,,,,,,
+ABNB,"Airbnb, Inc.",,127.04,,,,,,,,,,,,,,
+RGEN,Repligen Corporation,,122.3,,,,,,,,,,,,,,
+TMDX,"TransMedics Group, Inc.",,122.29,,,,,,,,,,,,,,
+DUK,Duke Energy Corporation,,121.08,,,,,,,,,,,SENIOR_NORE_14,7.01,13.9,23.73
+DUK,Duke Energy Corporation,,121.08,,,,,,,,,,,SENIOR_NORE_14,2.12,4.98,8.9
+DUK,Duke Energy Corporation,,121.08,,,,,,,,,,,SENIOR_NORE,7.25,13.0,21.75
+DUK,Duke Energy Corporation,,121.08,,,,,,,,,,,SENIOR_NORE,2.13,5.04,9.03
+ITRI,"Itron, Inc.",,120.63,,,,,,,,,,,,,,
+NSIT,"Insight Enterprises, Inc.",,119.07,,,,,,,,,,,,,,
+DIS,Walt Disney Company (The),,113.76,,,,,,,,,,,SENIOR_NORE_14,11.83,20.5,29.7
+DIS,Walt Disney Company (The),,113.76,,,,,,,,,,,SENIOR_NORE,8.86,19.35,34.58
+DIS,Walt Disney Company (The),,113.76,,,,,,,,,,,SENIOR_NORE_14,9.11,20.37,35.47
+DIS,Walt Disney Company (The),,113.76,,,,,,,,,,,SENIOR_NORE,11.83,20.5,29.7
+XOM,Exxon Mobil Corporation,,112.82,,,,,,,,,,,SENIOR_NORE_14,9.71,15.37,22.87
+XOM,Exxon Mobil Corporation,,112.82,,,,,,,,,,,SENIOR_NORE,10.23,16.31,24.23
+WEC,"WEC Energy Group, Inc.",,110.12,,,,,,,,,,,,,,
+GVA,Granite Construction Incorporated,,110.0,,,,,,,,,,,,,,
+WDC,Western Digital Corporation,,106.63,,,,,,,,,,,,,,
+PATK,Patriot Battery Metals Inc.,,106.02,,,,,,,,,,,,,,
+POST,"Post Holdings, Inc.",,103.75,,,,,,,,,,,,,,
+FWONK,Formula One Group,,103.67,,,,,,,,,,,,,,
+ITGR,Integer Holdings Corporation,,103.31,,,,,,,,,,,,,,
+MMYT,MakeMyTrip Limited,,101.84,,,,,,,,,,,,,,
+SHAK,Shake Shack Inc.,,99.62,,,,,,,,,,,,,,
+FRT,Federal Realty Investment Trust,,99.62,,,,,,,,,,,,,,
+UBER,"Uber Technologies, Inc.",,98.51,,,,,,,,,,,SENIOR_NORE_14,13.54,25.43,47.44
+CAMT,Camtek Ltd.,,97.61,,,,,,,,,,,,,,
+LCII,LCI Industries,,97.44,,,,,,,,,,,,,,
+OKTA,"Okta, Inc.",,93.37,,,,,,,,,,,,,,
+ORA,"Ormat Technologies, Inc.",,92.49,,,,,,,,,,,,,,
+AFRM,"Affirm Holdings, Inc.",,92.18,,,,,,,,,,,,,,
+SO,Southern Company (The),,91.8,,,,,,,,,,,SENIOR_NORE_14,13.33,26.07,35.71
+W,Wayfair Inc.,,89.31,,,,,,,,,,,,,,
+EEFT,"Euronet Worldwide, Inc.",,89.21,,,,,,,,,,,,,,
+TGT,Target Corporation,,88.13,,,,,,,,,,,SENIOR_NORE_14,13.71,28.7,43.26
+TGT,Target Corporation,,88.13,,,,,,,,,,,SENIOR_NORE,12.09,26.23,39.29
+FOUR,"Shift4 Payments, Inc.",,86.89,,,,,,,,,,,,,,
+Z,"Zillow Group, Inc.",,86.74,,,,,,,,,,,,,,
+GPN,Global Payments Inc.,,86.55,,,,,,,,,,,,,,
+BE,Bloom Energy Corporation,,84.93,,,,,,,,,,,,,,
+MMSI,"Merit Medical Systems, Inc.",,83.56,,,,,,,,,,,,,,
+GKOS,Glaukos Corporation,,83.47,,,,,,,,,,,,,,
+PSN,Parsons Corporation,,81.9,,,,,,,,,,,,,,
+MRK,"Merck & Co., Inc.",,81.51,,,,,,,,,,,SENIOR_NORE_14,6.72,15.77,29.95
+ATI,ATI Inc.,,80.73,,,,,,,,,,,,,,
+WK,Workiva Inc.,,79.66,,,,,,,,,,,,,,
+TCOM,Trip.com Group Limited,,78.52,,,,,,,,,,,,,,
+QTWO,"Q2 Holdings, Inc.",,78.18,,,,,,,,,,,,,,
+HALO,"Halozyme Therapeutics, Inc.",,77.81,,,,,,,,,,,,,,
+NTNX,"Nutanix, Inc.",,77.09,,,,,,,,,,,,,,
+XYZ,"Block, Inc. (formerly Square; ticker often stylized, but XYZ may be a placeholder)",,77.03,,,,,,,,,,,,,,
+VAC,Marriott Vacations Worldwide Corporation,,76.32,,,,,,,,,,,,,,
+AKAM,"Akamai Technologies, Inc.",,76.28,,,,,,,,,,,,,,
+MTH,Meritage Homes Corporation,,75.44,,,,,,,,,,,,,,
+TREE,"LendingTree, Inc.",,74.53,,,,,,,,,,,,,,
+MIRM,"Mirum Pharmaceuticals, Inc.",,74.38,,,,,,,,,,,,,,
+MP,MP Materials Corp.,,73.22,,,,,,,,,,,,,,
+MLAB,"Mesa Laboratories, Inc.",,73.14,,,,,,,,,,,,,,
+SATS,EchoStar Corporation,,72.47,,,,,,,,,,,,,,
+EVRG,"Evergy, Inc.",,72.29,,,,,,,,,,,,,,
+NEE,"NextEra Energy, Inc.",,71.08,,,,,,,,,,,SENIOR_NORE_14,22.88,41.38,63.25
+NEE,"NextEra Energy, Inc.",,71.08,,,,,,,,,,,SENIOR_NORE_14,25.21,46.45,84.47
+NKE,"NIKE, Inc.",,70.89,,,,,,,,,,,SENIOR_NORE_14,12.03,32.52,61.74
+SHEL,Shell plc,,70.79,,,,,,,,,,,,,,
+CMS,CMS Energy Corporation,,70.12,,,,,,,,,,,,,,
+DAY,"Dayforce, Inc.",,68.8,,,,,,,,,,,,,,
+UPST,"Upstart Holdings, Inc.",,67.89,,,,,,,,,,,,,,
+DXCM,"DexCom, Inc.",,67.45,,,,,,,,,,,,,,
+VTR,"Ventas, Inc.",,67.13,,,,,,,,,,,,,,
+CSGS,"CSG Systems International, Inc.",,66.14,,,,,,,,,,,,,,
+MCHP,Microchip Technology Incorporated,,65.15,,,,,,,,,,,SENIOR_NORE_14,59.74,76.85,95.45
+ETSY,"Etsy, Inc.",,64.99,,,,,,,,,,,,,,
+CHEF,"Chefs' Warehouse, Inc. (The)",,64.93,,,,,,,,,,,,,,
+LNT,Alliant Energy Corporation,,64.17,,,,,,,,,,,,,,
+BFH,"Bread Financial Holdings, Inc.",,63.46,,,,,,,,,,,,,,
+JOYY,JOYY Inc.,,62.63,,,,,,,,,,,,,,
+IONS,"Ionis Pharmaceuticals, Inc.",,61.01,,,,,,,,,,,,,,
+SMTC,Semtech Corporation,,60.87,,,,,,,,,,,,,,
+PTCT,"PTC Therapeutics, Inc.",,60.48,,,,,,,,,,,,,,
+SPHR,Sphere Entertainment Co.,,59.71,,,,,,,,,,,,,,
+PEGA,"Pegasystems, Inc.",,59.68,,,,,,,,,,,,,,
+GH,"Guardant Health, Inc.",,59.15,,,,,,,,,,,,,,
+VRNS,"Varonis Systems, Inc.",,58.06,,,,,,,,,,,,,,
+GMED,"Globus Medical, Inc.",,55.91,,,,,,,,,,,,,,
+ALRM,"Alarm.com Holdings, Inc.",,55.33,,,,,,,,,,,,,,
+LIVN,LivaNova PLC,,55.0,,,,,,,,,,,,,,
+CAKE,Cheesecake Factory Incorporated (The),,54.58,,,,,,,,,,,,,,
+BMRN,BioMarin Pharmaceutical Inc.,,54.36,,,,,,,,,,,,,,
+XMTR,"Xometry, Inc.",,53.81,,,,,,,,,,,,,,
+EXAS,Exact Sciences Corporation,,53.32,,,,,,,,,,,,,,
+BL,"BlackLine, Inc.",,53.01,,,,,,,,,,,,,,
+BSY,"Bentley Systems, Incorporated",,52.82,,,,,,,,,,,,,,
+SPB,"Spectrum Brands, Inc.",,52.64,,,,,,,,,,,,,,
+BBIO,"BridgeBio Pharma, Inc.",,52.37,,,,,,,,,,,,,,
+BILL,"BILL Holdings, Inc.",,52.34,,,,,,,,,,,,,,
+FRPT,"FarPointe Data, Inc.",,51.4,,,,,,,,,,,,,,
+ON,ON Semiconductor Corporation,,51.07,,,,,,,,,,,SENIOR_NORE_14,56.52,157.19,211.89
+HAE,Haemonetics Corporation,,50.6,,,,,,,,,,,,,,
+LNTH,"Lantheus Holdings, Inc.",,50.41,,,,,,,,,,,,,,
+CNMD,CONMED Corporation,,50.01,,,,,,,,,,,,,,
+EQT,EQT Corporation,,49.19,,,,,,,,,,,SENIOR_NORE_14,31.16,57.87,88.78
+EQT,EQT Corporation,,49.19,,,,,,,,,,,SENIOR_NORE_14,26.59,50.21,78.3
+CYTK,"Cytokinetics, Incorporated",,48.66,,,,,,,,,,,,,,
+RKLB,Rocket Lab Corporation,,47.79,,,,,,,,,,,,,,
+GBX,"Greenbrier Companies, Inc. (The)",,46.16,,,,,,,,,,,,,,
+U,Unity Software Inc.,,46.05,,,,,,,,,,,,,,
+SMCI,"Super Micro Computer, Inc.",,45.81,,,,,,,,,,,,,,
+ECPG,"Encore Capital Group, Inc.",,45.15,,,,,,,,,,,,,,
+BMY,Bristol-Myers Squibb Company,,45.02,,,,,,,,,,,SENIOR_NORE_14,10.07,20.37,33.26
+BMY,Bristol-Myers Squibb Company,,45.02,,,,,,,,,,,SENIOR_NORE,11.55,21.23,36.32
+FLR,Fluor Corporation,,44.6,,,,,,,,,,,,,,
+FARO,"FARO Technologies, Inc.",,43.99,,,,,,,,,,,,,,
+CBRL,"Cracker Barrel Old Country Store, Inc.",,43.5,,,,,,,,,,,,,,
+DKNG,DraftKings Inc.,,43.45,,,,,,,,,,,,,,
+FE,FirstEnergy Corp.,,43.21,,,,,,,,,,,SENIOR_NORE,14.94,33.16,46.77
+FE,FirstEnergy Corp.,,43.21,,,,,,,,,,,SENIOR_NORE_14,14.37,32.81,48.26
+PAR,PAR Technology Corporation,,42.32,,,,,,,,,,,,,,
+REXR,"Rexford Industrial Realty, Inc.",,41.98,,,,,,,,,,,,,,
+PRGS,Progress Software Corporation,,41.96,,,,,,,,,,,,,,
+AORT,"Artivion, Inc.",,40.55,,,,,,,,,,,,,,
+GDS,GDS Holdings Limited,,38.96,,,,,,,,,,,,,,
+HTHT,H World Group Limited,,38.78,,,,,,,,,,,,,,
+SPR,"Spirit AeroSystems Holdings, Inc.",,38.53,,,,,,,,,,,,,,
+MTCH,"Match Group, Inc.",,38.51,,,,,,,,,,,,,,
+ENPH,"Enphase Energy, Inc.",,38.42,,,,,,,,,,,,,,
+ZD,"Ziff Davis, Inc.",,38.3,,,,,,,,,,,,,,
+CNP,"CenterPoint Energy, Inc.",,38.02,,,,,,,,,,,,,,
+NBR,Nabors Industries Ltd.,,37.62,,,,,,,,,,,SENIOR_NORE_14,131.3,375.81,668.06
+NBR,Nabors Industries Ltd.,,37.62,,,,,,,,,,,SENIOR_NORE,263.71,479.39,742.47
+DOCN,"DigitalOcean Holdings, Inc.",,36.57,,,,,,,,,,,,,,
+TTEK,"Tetra Tech, Inc.",,36.06,,,,,,,,,,,,,,
+COLL,"Collegium Pharmaceutical, Inc.",,35.75,,,,,,,,,,,,,,
+PPL,PPL Corporation,,35.69,,,,,,,,,,,,,,
+SEDG,"SolarEdge Technologies, Inc.",,35.45,,,,,,,,,,,,,,
+JD,"JD.com, Inc.",,35.1,,,,,,,,,,,,,,
+SLB,Schlumberger Limited,,34.43,,,,,,,,,,,SENIOR_NORE,15.55,30.1,70.32
+SLB,Schlumberger Limited,,34.43,,,,,,,,,,,SENIOR_NORE_14,15.55,30.12,70.33
+WGO,"Winnebago Industries, Inc.",,33.11,,,,,,,,,,,,,,
+IMCR,Immunocore Holdings plc,,32.6,,,,,,,,,,,,,,
+LUV,Southwest Airlines Co.,,32.52,,,,,,,,,,,SENIOR_NORE_14,28.72,63.3,97.02
+LUV,Southwest Airlines Co.,,32.52,,,,,,,,,,,SENIOR_NORE,28.72,63.3,97.02
+ENOV,Enovis Corporation,,32.36,,,,,,,,,,,,,,
+BOX,"Box, Inc.",,32.17,,,,,,,,,,,,,,
+IIIV,"i3 Verticals, Inc.",,32.07,,,,,,,,,,,,,,
+IMAX,IMAX Corporation,,31.96,,,,,,,,,,,,,,
+AR,Antero Resources Corporation,,31.7,,,,,,,,,,,SENIOR_NORE_14,22.66,48.64,78.43
+OMCL,"Omnicell, Inc.",,31.34,,,,,,,,,,,,,,
+RNG,"RingCentral, Inc.",,31.22,,,,,,,,,,,,,,
+DBX,"Dropbox, Inc.",,30.61,,,,,,,,,,,,,,
+CCL,Carnival Corporation & plc,,30.52,,,,,,,,,,,SENIOR_NORE,71.55,113.13,178.84
+CCL,Carnival Corporation & plc,,30.52,,,,,,,,,,,SENIOR_NORE_14,37.57,70.3,107.9
+CDP,"CPI Aerostructures, Inc.",,30.4,,,,,,,,,,,,,,
+CNX,CNX Resources Corporation,,30.36,,,,,,,,,,,,,,
+HASI,"Hannon Armstrong Sustainable Infrastructure Capital, Inc.",,28.9,,,,,,,,,,,,,,
+VECO,Veeco Instruments Inc.,,28.55,,,,,,,,,,,,,,
+SOFI,"SoFi Technologies, Inc.",,28.44,,,,,,,,,,,,,,
+HRTG,"Heritage Insurance Holdings, Inc.",,28.4,,,,,,,,,,,,,,
+AMPH,"Amphastar Pharmaceuticals, Inc.",,27.64,,,,,,,,,,,,,,
+CNK,"Cinemark Holdings, Inc.",,27.61,,,,,,,,,,,,,,
+CENX,Century Aluminum Company,,27.57,,,,,,,,,,,,,,
+VRM,"Vroom, Inc.",,27.46,,,,,,,,,,,,,,
+BTSG,"BrightSpring Health Services, Inc.",,27.31,,,,,,,,,,,,,,
+BILI,Bilibili Inc.,,27.15,,,,,,,,,,,,,,
+MGPI,"MGP Ingredients, Inc.",,27.06,,,,,,,,,,,,,,
+EYE,"National Vision Holdings, Inc.",,26.92,,,,,,,,,,,,,,
+FVRR,Fiverr International Ltd.,,26.67,,,,,,,,,,,,,,
+PCRX,"Pacira BioSciences, Inc.",,26.66,,,,,,,,,,,,,,
+FIVN,"Five9, Inc.",,26.49,,,,,,,,,,,,,,
+KHC,Kraft Heinz Company (The),,26.42,,,,,,,,,,,SENIOR_NORE,13.11,29.84,46.38
+KHC,Kraft Heinz Company (The),,26.42,,,,,,,,,,,SENIOR_NORE_14,16.01,36.99,57.77
+WKC,Wolters Kluwer N.V.,,26.4,,,,,,,,,,,,,,
+MGNI,"Magnite, Inc.",,25.92,,,,,,,,,,,,,,
+LI,Li-Cycle Holdings Corp.,,25.75,,,,,,,,,,,,,,
+NCLH,Norwegian Cruise Line Holdings Ltd.,,25.23,,,,,,,,,,,SENIOR_NORE_14,47.38,89.21,139.49
+VERX,"Vertex, Inc.",,25.15,,,,,,,,,,,,,,
+NOG,"Northern Oil and Gas, Inc.",,25.06,,,,,,,,,,,,,,
+TVTX,"Travere Therapeutics, Inc.",,24.85,,,,,,,,,,,,,,
+SIRI,Sirius XM Holdings Inc.,,23.12,,,,,,,,,,,,,,
+APLS,"Apellis Pharmaceuticals, Inc.",,23.01,,,,,,,,,,,,,,
+LCID,"Lucid Group, Inc.",,22.98,,,,,,,,,,,,,,
+SSRM,SSR Mining Inc.,,22.84,,,,,,,,,,,,,,
+BTU,Peabody Energy Corporation,,22.72,,,,,,,,,,,,,,
+LYFT,"Lyft, Inc.",,22.58,,,,,,,,,,,,,,
+GRPN,"Groupon, Inc.",,22.52,,,,,,,,,,,,,,
+KRG,"Knightscope, Inc.",,22.18,,,,,,,,,,,,,,
+GEO,"GEO Group, Inc. (The)",,21.81,,,,,,,,,,,,,,
+NVST,Envista Holdings Corporation,,20.93,,,,,,,,,,,,,,
+RPD,"Rapid7, Inc.",,20.29,,,,,,,,,,,,,,
+VRNT,Verint Systems Inc.,,20.28,,,,,,,,,,,,,,
+STWD,"Starwood Property Trust, Inc.",,20.23,,,,,,,,,,,,,,
+UPWK,Upwork Inc.,,20.07,,,,,,,,,,,,,,
+CFLT,"Confluent, Inc.",,20.05,,,,,,,,,,,,,,
+CMPO,"CompoSecure, Inc.",,19.77,,,,,,,,,,,,,,
+BXMT,"Blackstone Mortgage Trust, Inc.",,19.4,,,,,,,,,,,,,,
+INVA,"Innovava, Inc.",,19.19,,,,,,,,,,,,,,
+PENN,"Penn Entertainment, Inc.",,19.09,,,,,,,,,,,,,,
+PRCH,"Porch Group, Inc.",,18.86,,,,,,,,,,,,,,
+TRIP,"TripAdvisor, Inc.",,18.83,,,,,,,,,,,,,,
+ZTO,ZTO Express (Cayman) Inc.,,18.6,,,,,,,,,,,,,,
+TEVA,Teva Pharmaceutical Industries Limited,,18.35,,,,,,,,,,,SENIOR_NORE_14,26.32,66.69,90.07
+MARA,"Marathon Digital Holdings, Inc.",,18.29,,,,,,,,,,,,,,
+EZPW,"EZCORP, Inc.",,17.72,,,,,,,,,,,,,,
+BAND,Bandwidth Inc.,,17.54,,,,,,,,,,,,,,
+SRPT,"Sarepta Therapeutics, Inc.",,17.43,,,,,,,,,,,,,,
+GES,"Guess?, Inc.",,16.77,,,,,,,,,,,,,,
+RUN,Sunrun Inc.,,16.58,,,,,,,,,,,,,,
+PRO,"PROS Holdings, Inc.",,16.41,,,,,,,,,,,,,,
+CTO,"CTO Realty Growth, Inc.",,16.33,,,,,,,,,,,,,,
+PD,"PagerDuty, Inc.",,16.32,,,,,,,,,,,,,,
+AVDL,Avadel Pharmaceuticals plc,,16.2,,,,,,,,,,,,,,
+MCS,Marcus Corporation (The),,15.64,,,,,,,,,,,,,,
+ATEC,"Alphatec Holdings, Inc.",,15.54,,,,,,,,,,,,,,
+VSH,"Vishay Intertechnology, Inc.",,15.36,,,,,,,,,,,,,,
+PCG,PG&E Corporation,,14.91,,,,,,,,,,,SENIOR_NORE_14,82.0,156.04,188.41
+WT,"WisdomTree, Inc.",,14.67,,,,,,,,,,,,,,
+RIVN,"Rivian Automotive, Inc.",,14.38,,,,,,,,,,,,,,
+IART,Integra LifeSciences Holdings Corporation,,14.13,,,,,,,,,,,,,,
+PCT,"PureCycle Technologies, Inc.",,13.91,,,,,,,,,,,,,,
+INSG,Inseego Corp.,,13.41,,,,,,,,,,,,,,
+PR,Permian Resources Corporation,,13.25,,,,,,,,,,,,,,
+NVCR,NovoCure Limited,,12.69,,,,,,,,,,,,,,
+TNDM,"Tandem Diabetes Care, Inc.",,12.57,,,,,,,,,,,,,,
+WB,Weibo Corporation,,12.53,,,,,,,,,,,,,,
+CRNC,Cerence Inc.,,12.49,,,,,,,,,,,,,,
+VREX,Varex Imaging Corporation,,12.28,,,,,,,,,,,,,,
+VIAV,Viavi Solutions Inc.,,12.24,,,,,,,,,,,,,,
+PMT,PennyMac Mortgage Investment Trust,,12.1,,,,,,,,,,,,,,
+DBRG,"DigitalBridge Group, Inc.",,12.04,,,,,,,,,,,,,,
+PEB,Peabody Energy Corporation,,11.96,,,,,,,,,,,,,,
+AAL,"American Airlines Group, Inc.",,11.94,,,,,,,,,,,SENIOR_NORE_14,170.33,420.94,545.95
+ABR,"Arbor Realty Trust, Inc.",,11.87,,,,,,,,,,,,,,
+CSIQ,Canadian Solar Inc.,,11.7,,,,,,,,,,,,,,
+F,Ford Motor Company,,11.62,,,,,,,,,,,SENIOR_NORE,69.86,118.16,159.11
+F,Ford Motor Company,,11.62,,,,,,,,,,,SENIOR_NORE_14,69.86,118.16,159.11
+F,Ford Motor Company,,11.62,,,,,,,,,,,SENIOR_NORE_14,67.67,114.29,153.99
+JAMF,Jamf Holding Corp.,,11.11,,,,,,,,,,,,,,
+HOPE,"Hope Bancorp, Inc.",,10.94,,,,,,,,,,,,,,
+REAL,"The RealReal, Inc.",,10.89,,,,,,,,,,,,,,
+EQX,Equinox Gold Corp.,,10.8,,,,,,,,,,,,,,
+AG,First Majestic Silver Corp.,,10.62,,,,,,,,,,,,,,
+HLIT,Harmonic Inc.,,10.21,,,,,,,,,,,,,,
+MITK,"MITEK Systems, Inc.",,10.19,,,,,,,,,,,,,,
+ENVX,Enovix Corporation,,10.09,,,,,,,,,,,,,,
+CYRX,"Cryoport, Inc.",,9.97,,,,,,,,,,,,,,
+NMFC,New Mountain Finance Corporation,,9.91,,,,,,,,,,,,,,
+TWO,Two Harbors Investment Corp.,,9.9,,,,,,,,,,,,,,
+XIFR,"Unknown (possibly XPLR Infrastructure, LP or similar; limited data as of 2025)",,9.88,,,,,,,,,,,,,,
+DVAX,Dynavax Technologies Corporation,,9.69,,,,,,,,,,,,,,
+GPRE,"Green Plains, Inc.",,9.65,,,,,,,,,,,,,,
+VNET,"VNET Group, Inc.",,9.63,,,,,,,,,,,,,,
+MODG,Topgolf Callaway Brands Corp.,,9.29,,,,,,,,,,,,,,
+HLF,Herbalife Ltd.,,9.13,,,,,,,,,,,,,,
+NVAX,"Novavax, Inc.",,8.71,,,,,,,,,,,,,,
+FSLY,"Fastly, Inc.",,8.63,,,,,,,,,,,,,,
+NEO,NeoGames S.A.,,8.52,,,,,,,,,,,,,,
+EVH,Evotec SE,,8.38,,,,,,,,,,,,,,
+PTON,"Peloton Interactive, Inc.",,8.27,,,,,,,,,,,,,,
+OPEN,Opendoor Technologies Inc.,,8.23,,,,,,,,,,,,,,
+SNAP,Snap Inc.,,8.16,,,,,,,,,,,,,,
+ARRY,"Array Technologies, Inc.",,8.07,,,,,,,,,,,,,,
+TDOC,"Teladoc Health, Inc.",,7.95,,,,,,,,,,,,,,
+BKD,Brookdale Senior Living Inc.,,7.91,,,,,,,,,,,,,,
+MITT,"AG Mortgage Investment Trust, Inc.",,7.81,,,,,,,,,,,,,,
+XERS,"Xeris Biopharma Holdings, Inc.",,7.72,,,,,,,,,,,,,,
+MOMO,Hello Group Inc.,,7.52,,,,,,,,,,,,,,
+NIO,NIO Inc.,,7.12,,,,,,,,,,,,,,
+HOUS,Anywhere Real Estate Inc.,,7.07,,,,,,,,,,,,,,
+BBAI,"BigBear.ai Holdings, Inc.",,6.85,,,,,,,,,,,,,,
+BLMN,"Bloomin' Brands, Inc.",,6.83,,,,,,,,,,,,,,
+TTGT,"TechTarget, Inc.",,6.73,,,,,,,,,,,,,,
+UNIT,Uniti Group Inc.,,6.42,,,,,,,,,,,,,,
+HLX,"Helix Energy Solutions Group, Inc.",,6.22,,,,,,,,,,,,,,
+RWT,"Redwood Trust, Inc.",,6.02,,,,,,,,,,,,,,
+INN,"Summit Hotel Properties, Inc.",,5.88,,,,,,,,,,,,,,
+RPAY,Repay Holdings Corporation,,5.45,,,,,,,,,,,,,,
+MNKD,MannKind Corporation,,5.43,,,,,,,,,,,,,,
+KPTI,Karyopharm Therapeutics Inc.,,5.41,,,,,,,,,,,,,,
+VERI,"Veritone, Inc.",,5.35,,,,,,,,,,,,,,
+VATE,INNOVATE Corp.,,5.04,,,,,,,,,,,,,,
+CMRC,Costar Technologies Inc.,,5.03,,,,,,,,,,,,,,
+JBLU,JetBlue Airways Corporation,,5.03,,,,,,,,,,,SENIOR_NORE_14,181.41,423.3,579.48
+MDRX,Veradigm Inc.,,4.8,,,,,,,,,,,,,,
+FUBO,fuboTV Inc.,,4.35,,,,,,,,,,,,,,
+GCI,"Gannett Co., Inc.",,4.3,,,,,,,,,,,,,,
+BB,BlackBerry Limited,,4.21,,,,,,,,,,,,,,
+OMER,Omeros Corporation,,4.18,,,,,,,,,,,,,,
+XRX,Xerox Holdings Corporation,,4.1,,,,,,,,,,,,,,
+QD,Qudian Inc.,,3.91,,,,,,,,,,,,,,
+MAXN,"Maxeon Solar Technologies, Ltd.",,3.71,,,,,,,,,,,,,,
+INDI,"indie Semiconductor, Inc.",,3.63,,,,,,,,,,,,,,
+RIG,Transocean Ltd.,,3.32,,,,,,,,,,,SENIOR_NORE_14,131.3,385.46,572.03
+RIG,Transocean Ltd.,,3.32,,,,,,,,,,,SENIOR_NORE,155.96,334.2,520.19
+RIG,Transocean Ltd.,,3.32,,,,,,,,,,,SENIOR_NORE_14,175.07,513.94,762.71
+SPCE,"Virgin Galactic Holdings, Inc.",,3.29,,,,,,,,,,,,,,
+LAC,Lithium Americas Corp.,,3.25,,,,,,,,,,,,,,
+GOSS,"Gossamer Bio, Inc.",,3.05,,,,,,,,,,,,,,
+EB,"Eventbrite, Inc.",,3.04,,,,,,,,,,,,,,
+HCAT,"Health Catalyst, Inc.",,2.89,,,,,,,,,,,,,,
+BHR,Braemar Hotels & Resorts,,2.88,,,,,,,,,,,,,,
+BYND,"Beyond Meat, Inc.",,2.83,,,,,,,,,,,,,,
+PSEC,Prospect Capital Corporation,,2.66,,,,,,,,,,,,,,
+IQ,"iQIYI, Inc.",,2.6,,,,,,,,,,,,,,
+DDD,3D Systems Corporation,,2.45,,,,,,,,,,,,,,
+GPRO,"GoPro, Inc.",,2.43,,,,,,,,,,,,,,
+CDLX,"Cardlytics, Inc.",,2.43,,,,,,,,,,,,,,
+CAMP,CalAmp Corp.,,2.28,,,,,,,,,,,,,,
+SKIN,The Beauty Health Company,,2.28,,,,,,,,,,,,,,
+LAZR,"Luminar Technologies, Inc.",,2.28,,,,,,,,,,,,,,
+WOLF,"Wolfspeed, Inc.",,2.23,,,,,,,,,,,,,,
+PLUG,Plug Power Inc.,,2.18,,,,,,,,,,,,,,
+EGHT,"8x8, Inc.",,2.12,,,,,,,,,,,,,,
+SABR,Sabre Corporation,,1.88,,,,,,,,,,,,,,
+KOS,Kosmos Energy Ltd.,,1.69,,,,,,,,,,,,,,
+ARAY,Accuray Incorporated,,1.67,,,,,,,,,,,,,,
+CHGG,"Chegg, Inc.",,1.65,,,,,,,,,,,,,,
+CHRS,"Coherus BioSciences, Inc.",,1.61,,,,,,,,,,,,,,
+OPK,"OPKO Health, Inc.",,1.45,,,,,,,,,,,,,,
+IRWD,"Ironwood Pharmaceuticals, Inc.",,1.41,,,,,,,,,,,,,,
+LAB,Standard BioTools Inc.,,1.4,,,,,,,,,,,,,,
+NOTV,"Inotiv, Inc.",,1.37,,,,,,,,,,,,,,
+ASRT,"Assertio Holdings, Inc.",,0.9,,,,,,,,,,,,,,
+LPSN,"LivePerson, Inc.",,0.65,,,,,,,,,,,,,,
+SENS,"Senseonics Holdings, Inc.",,0.46,,,,,,,,,,,,,,
+DNMR,"Danimer Scientific, Inc.",,0.35,,,,,,,,,,,,,,
+TPIC,"TPI Composites, Inc.",,0.04,,,,,,,,,,,,,,
+UPHL,Unknown (possibly a placeholder or delisted; no active match as of 2025),,0.0,,,,,,,,,,,,,,
