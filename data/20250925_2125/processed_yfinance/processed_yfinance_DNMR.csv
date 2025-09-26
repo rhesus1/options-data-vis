@@ -1,0 +1,2 @@
+Ticker,Contract Name,Type,Expiry,Strike,Bid,Ask,Volume,Open Interest,Implied Volatility,Last Stock Price,Bid Stock,Ask Stock,Moneyness,Expiry_dt,Years_to_Expiry,T,r,market_price,IV_mid,IV_status,Forward,Smoothed_IV
+DNMR,DNMR260116P00000500,Put,2026-01-16,0.5,0.3,0.45,10,8349,3.68750078125,0.40605,0.35,0.4621,1.210266661456752,2026-01-16,0.3066392881587953,0.3066392881587953,0.0563889810080628,0.375,4.058260667079875,verified,0.41313209387935135,
