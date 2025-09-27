@@ -1,0 +1,3 @@
+Ticker,Contract Name,Type,Expiry,Strike,Bid,Ask,Volume,Open Interest,Implied Volatility,Last Stock Price,Bid Stock,Ask Stock,Moneyness,Expiry_dt,Years_to_Expiry,T,r,market_price,IV_mid,IV_status,Forward,Smoothed_IV
+HOPE,HOPE260320C00012500,Call,2026-03-20,12.5,0.2,0.45,2.0,6.0,0.3320379296875,10.88,7.8,13.96,,2026-03-20,0.47638603696098564,,,,,,,
+,,,,,,,,,,,,,,,,0.47638603696098564,0.0536560977572746,0.325,3.3005203152199662,verified,,
